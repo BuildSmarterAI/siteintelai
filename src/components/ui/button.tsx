@@ -5,7 +5,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md font-cta transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -15,6 +15,10 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        "maxx-red": "bg-maxx-red text-maxx-red-foreground hover:bg-maxx-red/90 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5",
+        "maxx-red-outline": "border-2 border-maxx-red text-maxx-red bg-background hover:bg-maxx-red hover:text-maxx-red-foreground",
+        navy: "bg-navy text-navy-foreground hover:bg-navy/90",
+        charcoal: "bg-charcoal text-charcoal-foreground hover:bg-charcoal/90",
       },
       size: {
         default: "h-10 px-4 py-2",

@@ -19,6 +19,24 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        
+        /* Brand Colors */
+        charcoal: {
+          DEFAULT: "hsl(var(--charcoal))",
+          foreground: "hsl(var(--charcoal-foreground))",
+        },
+        navy: {
+          DEFAULT: "hsl(var(--navy))",
+          foreground: "hsl(var(--navy-foreground))",
+        },
+        "maxx-red": {
+          DEFAULT: "hsl(var(--maxx-red))",
+          foreground: "hsl(var(--maxx-red-foreground))",
+        },
+        "light-gray": "hsl(var(--light-gray))",
+        "mid-gray": "hsl(var(--mid-gray))",
+        
+        /* Semantic tokens */
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
@@ -84,6 +102,13 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fade-in": "fade-in 0.6s ease-out",
+        "slide-up": "slide-up 0.8s ease-out",
+      },
+      fontFamily: {
+        headline: ['Arial Black', 'sans-serif'],
+        body: ['IBM Plex Sans', 'sans-serif'],
+        cta: ['Poppins', 'sans-serif'],
       },
     },
   },
