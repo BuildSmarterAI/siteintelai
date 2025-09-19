@@ -1,22 +1,30 @@
-import riskHeatmap from "@/assets/risk-heatmap.jpg";
+import { AlertTriangle, Gavel, DollarSign, Handshake } from "lucide-react";
 
 export const Problem = () => {
   const painPoints = [
     {
       title: "Unseen Entitlement Risk",
-      description: "Zoning variance delays trigger 9-month setbacks and costly redesigns that freeze deals."
+      description: "Zoning overlays, deed restrictions, or missing variances can stop your project cold.",
+      detail: "What looks like a shovel-ready site suddenly requires rezoning, adding 9–12 months of delay and six-figure redesign costs.",
+      icon: Gavel
     },
     {
-      title: "Hidden Infrastructure Costs", 
-      description: "Surprise $250K+ utility upgrades that your pro forma can't absorb."
+      title: "Latent Infrastructure Costs", 
+      description: "The site plan works on paper, but the ground tells a different story.",
+      detail: "Inadequate water, sewer, or power capacity forces a $250,000+ unplanned utility upgrade, throwing your pro forma into chaos.",
+      icon: AlertTriangle
     },
     {
-      title: "Outdated Pro Forma Data",
-      description: "20% budget overruns from stale market data jeopardize financing before groundbreaking."
+      title: "Pro Forma Inaccuracy",
+      description: "Outdated $/SF data and market volatility don't forgive errors.",
+      detail: "A budget misaligned with real Texas construction costs can leave you 20% over budget before breaking ground—jeopardizing financing and partner confidence.",
+      icon: DollarSign
     },
     {
       title: "Stakeholder Skepticism",
-      description: "Lenders and LPs demand third-party validation you can't provide."
+      description: "Investors and lenders demand objective validation.",
+      detail: "Without third-party feasibility, your project pitch risks being dismissed as unverified and high-risk, leading to lost capital commitments.",
+      icon: Handshake
     }
   ];
 
@@ -25,37 +33,42 @@ export const Problem = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
           <h3 className="font-headline text-4xl md:text-5xl text-charcoal-foreground mb-6">
-            STOP GUESSING. START BUILDING SMARTER.
+            👉 THE FINANCIAL LEAKS HIDDEN IN EVERY UNVETTED DEAL
           </h3>
           <p className="font-body text-xl text-charcoal-foreground/80 max-w-3xl mx-auto leading-relaxed">
-            Every unvetted assumption is a financial leak waiting to drain your IRR.
+            Untested assumptions quietly erode IRR, delay timelines, and destroy credibility with lenders and LPs.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {painPoints.map((point, index) => (
-            <div key={index} className="group">
-              <div className="bg-charcoal-foreground/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal-foreground/10 hover:bg-charcoal-foreground/10 transition-all duration-300">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-navy/20 rounded-lg flex items-center justify-center">
-                    <img 
-                      src={riskHeatmap} 
-                      alt="Risk visualization"
-                      className="w-12 h-12 object-cover rounded opacity-80"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-headline text-lg text-charcoal-foreground mb-3">
-                      {point.title}
-                    </h4>
-                    <p className="font-body text-charcoal-foreground/70 leading-relaxed">
-                      {point.description}
-                    </p>
+          {painPoints.map((point, index) => {
+            const IconComponent = point.icon;
+            return (
+              <div key={index} className="group">
+                <div className="bg-charcoal-foreground/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal-foreground/10 hover:bg-charcoal-foreground/10 transition-all duration-300">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-orange-500/20 rounded-lg flex items-center justify-center border border-maxx-red/30">
+                      <IconComponent 
+                        className="w-8 h-8 text-maxx-red"
+                        strokeWidth={2.5}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-headline text-lg text-charcoal-foreground mb-3">
+                        {point.title}
+                      </h4>
+                      <p className="font-body text-charcoal-foreground/70 leading-relaxed mb-3">
+                        {point.description}
+                      </p>
+                      <p className="font-body text-sm text-charcoal-foreground/60 leading-relaxed">
+                        {point.detail}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
