@@ -1,3 +1,3 @@
 export const AssociationLogos = () => {
-  return;
+  return null;
 };
