@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import heroBlueprint from "@/assets/hero-blueprint.jpg";
+import buildsmarterLogo from "@/assets/buildsmarter-logo.png";
 export const Hero = () => {
   return <section className="relative min-h-screen bg-light-gray flex items-center">
       {/* Blueprint Pattern Background */}
@@ -12,6 +13,12 @@ export const Hero = () => {
       
       <div className="container mx-auto px-6 lg:px-8 relative z-10">
         <div className="max-w-3xl">
+          <img 
+            src={buildsmarterLogo} 
+            alt="BuildSmarter Feasibility" 
+            className="h-16 md:h-20 mb-8 object-contain"
+          />
+          
           <h1 className="font-headline text-5xl md:text-7xl lg:text-8xl text-charcoal mb-6 leading-tight">
             BEFORE YOU COMMIT MILLIONS, VERIFY THE DEAL IS BUILDABLE.
           </h1>
