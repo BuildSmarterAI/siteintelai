@@ -17,7 +17,7 @@ export const Hero = () => {
           </h1>
           
           <h2 className="font-body text-xl md:text-2xl text-charcoal/80 mb-8 leading-relaxed">
-            Get a full feasibility evaluation of your Texas CRE property before you commit millions. Identify construction cost, zoning, utility, early to protect IRR and avoid six-figure mistakes.
+            Get a full feasibility evaluation before you commit millions. Identify construction, zoning, utility risks early to protect IRR.
           </h2>
           
           <div className="mb-6">
