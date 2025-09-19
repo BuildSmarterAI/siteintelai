@@ -1,74 +1,77 @@
-import { AlertTriangle, Gavel, DollarSign, Handshake } from "lucide-react";
+import { Gavel, Wrench, DollarSign, Handshake } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export const Problem = () => {
   const painPoints = [
     {
-      title: "Unseen Entitlement Risk",
-      description: "Zoning overlays, deed restrictions, or missing variances can stop your project cold.",
-      detail: "What looks like a shovel-ready site suddenly requires rezoning, adding 9–12 months of delay and six-figure redesign costs.",
+      title: "Unseen Zoning Risks",
+      description: "Rezoning requirements or overlays can add 9–12 months and six-figure redesign costs.",
       icon: Gavel
     },
     {
-      title: "Latent Infrastructure Costs", 
-      description: "The site plan works on paper, but the ground tells a different story.",
-      detail: "Inadequate water, sewer, or power capacity forces a $250,000+ unplanned utility upgrade, throwing your pro forma into chaos.",
-      icon: AlertTriangle
+      title: "Infrastructure Surprises", 
+      description: "Inadequate sewer or power capacity can force a $250K+ utility upgrade mid-project.",
+      icon: Wrench
     },
     {
-      title: "Pro Forma Inaccuracy",
-      description: "Outdated $/SF data and market volatility don't forgive errors.",
-      detail: "A budget misaligned with real Texas construction costs can leave you 20% over budget before breaking ground—jeopardizing financing and partner confidence.",
+      title: "Faulty Pro Formas",
+      description: "Outdated $/SF data means your budget is already 15–20% over plan before breaking ground.",
       icon: DollarSign
     },
     {
-      title: "Stakeholder Skepticism",
-      description: "Investors and lenders demand objective validation.",
-      detail: "Without third-party feasibility, your project pitch risks being dismissed as unverified and high-risk, leading to lost capital commitments.",
+      title: "Investor Doubt",
+      description: "Without third-party validation, lenders and LPs hesitate, stalling capital commitments.",
       icon: Handshake
     }
   ];
 
   return (
-    <section className="bg-charcoal py-20">
+    <section className="bg-charcoal py-20 lg:py-20">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h3 className="font-headline text-4xl md:text-5xl text-charcoal-foreground mb-6">
-            👉 THE FINANCIAL LEAKS HIDDEN IN EVERY UNVETTED DEAL
+        <div className="text-center mb-12 lg:mb-16">
+          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal-foreground mb-3 lg:mb-4 tracking-wide uppercase">
+            THE RISKS HIDING IN EVERY CRE PROPERTY
           </h3>
-          <p className="font-body text-xl text-charcoal-foreground/80 max-w-3xl mx-auto leading-relaxed">
-            Untested assumptions quietly erode IRR, delay timelines, and destroy credibility with lenders and LPs.
-          </p>
+          <h4 className="font-body text-lg md:text-xl text-charcoal-foreground/80 max-w-4xl mx-auto leading-relaxed">
+            Skipping feasibility quietly erodes IRR, derails schedules, and jeopardizes financing.
+          </h4>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-10 mb-12">
           {painPoints.map((point, index) => {
             const IconComponent = point.icon;
             return (
               <div key={index} className="group">
-                <div className="bg-charcoal-foreground/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal-foreground/10 hover:bg-charcoal-foreground/10 transition-all duration-300">
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-orange-500/20 rounded-lg flex items-center justify-center border border-maxx-red/30">
+                <div className="bg-charcoal-foreground/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal-foreground/10 hover:bg-charcoal-foreground/10 transition-all duration-300 h-full">
+                  <div className="text-center">
+                    <div className="inline-flex w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-navy/20 rounded-lg items-center justify-center border border-maxx-red/30 mb-4">
                       <IconComponent 
                         className="w-8 h-8 text-maxx-red"
-                        strokeWidth={2.5}
+                        strokeWidth={2}
                       />
                     </div>
-                    <div className="flex-1">
-                      <h4 className="font-headline text-lg text-charcoal-foreground mb-3">
-                        {point.title}
-                      </h4>
-                      <p className="font-body text-charcoal-foreground/70 leading-relaxed mb-3">
-                        {point.description}
-                      </p>
-                      <p className="font-body text-sm text-charcoal-foreground/60 leading-relaxed">
-                        {point.detail}
-                      </p>
-                    </div>
+                    <h5 className="font-body font-semibold text-base lg:text-lg text-charcoal-foreground mb-3">
+                      {point.title}
+                    </h5>
+                    <p className="font-body text-sm lg:text-base text-charcoal-foreground/70 leading-relaxed">
+                      {point.description}
+                    </p>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+
+        {/* Optional Secondary CTA */}
+        <div className="text-center">
+          <Button 
+            variant="maxx-red" 
+            size="lg"
+            className="text-base px-8 py-4 h-auto font-cta"
+          >
+            Start My Feasibility Review
+          </Button>
         </div>
       </div>
     </section>
