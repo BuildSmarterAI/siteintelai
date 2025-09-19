@@ -3,6 +3,7 @@ import { AssociationLogos } from "@/components/sections/AssociationLogos";
 import { Problem } from "@/components/sections/Problem";
 import { Solution } from "@/components/sections/Solution";
 import { Process } from "@/components/sections/Process";
+import { Comparison } from "@/components/sections/Comparison";
 import { Packages } from "@/components/sections/Packages";
 import { WhoWeServe } from "@/components/sections/WhoWeServe";
 import { SocialProof } from "@/components/sections/SocialProof";
@@ -22,6 +23,7 @@ const Index = () => {
       <Problem />
       <Solution />
       <Process />
+      <Comparison />
       <Packages />
       <WhoWeServe />
       <SocialProof />
