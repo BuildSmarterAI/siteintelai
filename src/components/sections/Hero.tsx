@@ -23,7 +23,7 @@ export const Hero = () => {
           </h1>
           
           <h2 className="font-body text-xl md:text-2xl text-charcoal/80 mb-8 leading-relaxed">
-            BuildSmarter™ delivers AI-enhanced feasibility reviews that protect your IRR and secure your financing with lender-ready intelligence.
+            BuildSmarter™ delivers AI-enhanced feasibility reviews that validate your Texas CRE deal, empowering you to make capital-secure decisions with confidence.
           </h2>
           
           <div className="mb-6">
@@ -32,12 +32,12 @@ export const Hero = () => {
               size="lg"
               className="text-lg px-8 py-4 h-auto"
             >
-              Protect My Capital – Start Review
+              Start My Feasibility Review
             </Button>
           </div>
           
           <p className="font-body text-sm text-muted-foreground mb-12">
-            Takes 60 seconds. No obligation to proceed.
+            Takes 60 seconds. No obligation.
           </p>
           
           {/* Trust Strip */}
