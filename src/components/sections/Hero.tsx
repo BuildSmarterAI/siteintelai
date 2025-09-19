@@ -19,8 +19,9 @@ export const Hero = () => {
             className="h-32 md:h-40 lg:h-48 mb-8 object-contain"
           />
           
-          <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl text-charcoal mb-6 leading-[1.1] tracking-tight bg-gradient-to-r from-charcoal via-charcoal to-navy bg-clip-text text-transparent animate-fade-in">
-            Evaluate Your CRE Property Before You Buy—or Before You Build.
+          <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-6 leading-[1.15] tracking-[-0.02em] font-medium bg-gradient-to-br from-charcoal via-charcoal/90 to-charcoal/70 bg-clip-text text-transparent relative">
+            <span className="block">Evaluate Your CRE Property</span>
+            <span className="block text-navy font-semibold">Before You Buy—or Before You Build.</span>
           </h1>
           
           <h2 className="font-body text-xl md:text-2xl text-charcoal/80 mb-8 leading-relaxed">
