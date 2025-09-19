@@ -26,7 +26,7 @@ export const Problem = () => {
   ];
 
   return (
-    <section className="bg-charcoal py-20 lg:py-20">
+    <section className="bg-white py-20 lg:py-20">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 lg:mb-16">
           <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal-foreground mb-3 lg:mb-4 tracking-wide uppercase">
