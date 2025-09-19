@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Application() {
@@ -25,6 +26,8 @@ export default function Application() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState("");
 
   const totalSteps = 3;
 
@@ -75,15 +78,76 @@ export default function Application() {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateStep(3)) {
-      setIsSubmitted(true);
-      toast({
-        title: "Application Submitted!",
-        description: "We'll review your application and contact you within 24 hours.",
-      });
+      setIsLoading(true);
+      
+      // Prepare data for webhook
+      const submissionData = {
+        ...formData,
+        timestamp: new Date().toISOString(),
+        source_page: "BuildSmarter Feasibility Application",
+        project_value_band: formData.budget,
+        timeline_band: formData.timeline,
+        lead_score: calculateLeadScore(),
+        utm_source: window.location.search // Capture any UTM parameters
+      };
+
+      try {
+        if (webhookUrl) {
+          // Send to Zapier webhook
+          await fetch(webhookUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            mode: "no-cors", // Handle CORS for webhook
+            body: JSON.stringify(submissionData),
+          });
+        }
+
+        setIsSubmitted(true);
+        toast({
+          title: "Application Submitted Successfully!",
+          description: "We'll review your application and contact you within 24 hours.",
+        });
+      } catch (error) {
+        console.error("Error submitting application:", error);
+        toast({
+          title: "Submission Error",
+          description: "There was an issue submitting your application. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
+  };
+
+  // Calculate lead score based on budget and timeline
+  const calculateLeadScore = (): number => {
+    let score = 0;
+    
+    // Budget scoring
+    switch (formData.budget) {
+      case "over-50m": score += 100; break;
+      case "20m-50m": score += 80; break;
+      case "5m-20m": score += 60; break;
+      case "under-5m": score += 40; break;
+    }
+    
+    // Timeline scoring (sooner = higher score)
+    switch (formData.timeline) {
+      case "0-3months": score += 50; break;
+      case "3-6months": score += 40; break;
+      case "6-12months": score += 30; break;
+    }
+    
+    // Role scoring
+    if (["developer", "investor"].includes(formData.role)) score += 20;
+    
+    return score;
   };
 
   const getProgress = () => (currentStep / totalSteps) * 100;
@@ -105,9 +169,36 @@ export default function Application() {
 
             <Card className="border-2 border-green-500/30 shadow-xl">
               <CardContent className="p-8">
-                <h3 className="font-headline text-xl font-bold text-charcoal mb-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <CheckCircle className="w-8 h-8 text-green-500" />
+                  <h3 className="font-headline text-xl font-bold text-charcoal">
+                    Application Submitted Successfully
+                  </h3>
+                </div>
+                
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                  <h4 className="font-headline text-lg font-bold text-charcoal mb-3">
+                    Your application has been automatically sent to:
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-green-600" />
+                      <span className="font-body text-sm text-charcoal">GoHighLevel CRM</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Database className="w-5 h-5 text-green-600" />
+                      <span className="font-body text-sm text-charcoal">Project Database</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-green-600" />
+                      <span className="font-body text-sm text-charcoal">Sales Team Alert</span>
+                    </div>
+                  </div>
+                </div>
+
+                <h4 className="font-headline text-lg font-bold text-charcoal mb-4">
                   What Happens Next?
-                </h3>
+                </h4>
                 <div className="space-y-4 text-left">
                   <div className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-navy rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mt-1">1</div>
@@ -191,6 +282,54 @@ export default function Application() {
       <section className="py-20">
         <div className="container mx-auto px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
+            
+            {/* Webhook Configuration (Admin) */}
+            <Card className="mb-8 border-2 border-navy/20">
+              <CardHeader className="bg-navy/5">
+                <CardTitle className="flex items-center gap-3 text-navy">
+                  <Zap className="w-6 h-6" />
+                  Webhook Integration Setup
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="webhook" className="font-body font-semibold text-charcoal">
+                      Zapier/Make Webhook URL (Optional)
+                    </Label>
+                    <Input
+                      id="webhook"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      placeholder="https://hooks.zapier.com/hooks/catch/..."
+                      className="mt-2"
+                    />
+                    <p className="text-sm text-charcoal/60 mt-2">
+                      Add your webhook URL to automatically send form submissions to your CRM, database, and notification systems.
+                    </p>
+                  </div>
+                  
+                  <div className="bg-navy/5 rounded-lg p-4">
+                    <h4 className="font-body font-semibold text-charcoal mb-2">Integration Flow:</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-navy" />
+                        <span className="font-body text-charcoal/80">GoHighLevel CRM</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Database className="w-4 h-4 text-navy" />
+                        <span className="font-body text-charcoal/80">Airtable/Sheets</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-navy" />
+                        <span className="font-body text-charcoal/80">Team Notifications</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
               
               {/* Form Section */}
@@ -420,6 +559,7 @@ export default function Application() {
                               variant="maxx-red"
                               onClick={handleNext}
                               className="px-8 py-3 font-cta text-lg"
+                              disabled={isLoading}
                             >
                               Next Step
                               <ArrowRight className="w-4 h-4 ml-2" />
@@ -429,8 +569,9 @@ export default function Application() {
                               type="submit"
                               variant="maxx-red"
                               className="px-8 py-3 font-cta text-lg hover:scale-105 transition-all duration-300"
+                              disabled={isLoading}
                             >
-                              Submit Application
+                              {isLoading ? "Submitting..." : "Submit Application"}
                             </Button>
                           )}
                         </div>
@@ -530,6 +671,7 @@ export default function Application() {
               onClick={handleNext}
               variant="maxx-red"
               className="px-6 py-2 font-cta"
+              disabled={isLoading}
             >
               Next Step
             </Button>
@@ -538,8 +680,9 @@ export default function Application() {
               onClick={handleSubmit}
               variant="maxx-red"
               className="px-6 py-2 font-cta"
+              disabled={isLoading}
             >
-              Submit Application
+              {isLoading ? "Submitting..." : "Submit Application"}
             </Button>
           )}
         </div>
