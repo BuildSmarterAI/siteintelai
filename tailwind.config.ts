@@ -106,7 +106,7 @@ export default {
         "slide-up": "slide-up 0.8s ease-out",
       },
       fontFamily: {
-        headline: ['Arial Black', 'sans-serif'],
+        headline: ['Yantramanav', 'sans-serif'],
         body: ['IBM Plex Sans', 'sans-serif'],
         cta: ['Poppins', 'sans-serif'],
       },
