@@ -6,7 +6,7 @@ import { Process } from "@/components/sections/Process";
 import { Comparison } from "@/components/sections/Comparison";
 import { Packages } from "@/components/sections/Packages";
 import { WhoWeServe } from "@/components/sections/WhoWeServe";
-import { SocialProof } from "@/components/sections/SocialProof";
+import { PackagesPricing } from "@/components/sections/PackagesPricing";
 import { Advantage } from "@/components/sections/Advantage";
 import { FAQ } from "@/components/sections/FAQ";
 import { ValueComparison } from "@/components/sections/ValueComparison";
@@ -26,7 +26,7 @@ const Index = () => {
       <Comparison />
       <Packages />
       <WhoWeServe />
-      <SocialProof />
+      <PackagesPricing />
       <Advantage />
       <FAQ />
       <ValueComparison />
