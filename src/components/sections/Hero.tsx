@@ -16,7 +16,7 @@ export const Hero = () => {
           <img 
             src={buildsmarterLogo} 
             alt="BuildSmarter Feasibility" 
-            className="h-24 md:h-32 lg:h-36 mb-8 object-contain"
+            className="h-32 md:h-40 lg:h-48 mb-8 object-contain"
           />
           
           <h1 className="font-headline text-5xl md:text-7xl lg:text-8xl text-charcoal mb-6 leading-tight">
