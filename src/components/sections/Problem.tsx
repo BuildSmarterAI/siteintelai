@@ -41,16 +41,16 @@ export const Problem = () => {
           {painPoints.map((point, index) => {
             const IconComponent = point.icon;
             return (
-              <div key={index} className="group">
-                <div className="bg-charcoal/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal/20 hover:bg-charcoal/10 transition-all duration-300 h-full">
+              <div key={index} className="group transform hover:scale-105 transition-all duration-300">
+                <div className="bg-charcoal/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal/20 hover:bg-charcoal/10 hover:border-maxx-red/30 hover:shadow-xl transition-all duration-300 h-full">
                   <div className="text-center">
-                    <div className="inline-flex w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-navy/20 rounded-lg items-center justify-center border border-maxx-red/30 mb-4">
+                    <div className="inline-flex w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-navy/20 rounded-lg items-center justify-center border border-maxx-red/30 mb-4 group-hover:scale-110 transition-transform duration-300">
                       <IconComponent 
-                        className="w-8 h-8 text-maxx-red"
+                        className="w-8 h-8 text-maxx-red group-hover:text-maxx-red transition-colors duration-300"
                         strokeWidth={2}
                       />
                     </div>
-                    <h5 className="font-body font-semibold text-base lg:text-lg text-charcoal mb-3">
+                    <h5 className="font-body font-semibold text-base lg:text-lg text-charcoal mb-3 group-hover:text-maxx-red transition-colors duration-300">
                       {point.title}
                     </h5>
                     <p className="font-body text-sm lg:text-base text-charcoal/70 leading-relaxed">
