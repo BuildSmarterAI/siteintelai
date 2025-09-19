@@ -26,8 +26,8 @@ const Index = () => {
       <WhoWeServe />
       <PackagesPricing />
       <Advantage />
-      <FAQ />
       <ValueComparison />
+      <FAQ />
       <LeadMagnet />
       <FinalCTA />
       <Footer />
