@@ -1,102 +1,83 @@
 import { Button } from "@/components/ui/button";
-import { Clock, Search, FileText } from "lucide-react";
+import { 
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { ClipboardList, Search, FileText } from "lucide-react";
 
 export const Process = () => {
   const steps = [
     {
-      icon: Clock,
+      icon: ClipboardList,
+      iconColor: "text-navy",
       title: "Apply in 60 Seconds",
-      description: "Complete our short application to qualify your project."
+      description: "Submit your property details in a short application form. Takes less than a minute to get started."
     },
     {
       icon: Search,
-      title: "Expert Review",
-      description: "We validate zoning, utilities, costs, and schedule risks."
+      iconColor: "text-maxx-red",
+      title: "Expert Review & Analysis",
+      description: "Our team validates zoning overlays, entitlements, utility capacity, and cost benchmarks using Texas-specific data."
     },
     {
       icon: FileText,
+      iconColor: "text-green-600",
       title: "Lender-Ready Report",
-      description: "Receive a detailed feasibility package + consultation call in 1–4 weeks."
+      description: "Within 1–3 weeks, receive a feasibility package with findings + a consultation call to discuss go/no-go options."
     }
   ];
 
   return (
-    <section className="bg-background py-20">
+    <section className="bg-white py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h3 className="font-headline text-4xl md:text-5xl text-charcoal mb-6">
+        <div className="text-center mb-12 md:mb-16">
+          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6 tracking-wider uppercase">
             HOW BUILDSMARTER™ WORKS
           </h3>
+          <h4 className="font-body text-lg md:text-xl text-charcoal/80 leading-relaxed">
+            A clear 3-step path from application to lender-ready clarity.
+          </h4>
         </div>
         
-        {/* Desktop Timeline */}
-        <div className="hidden md:block mb-12">
-          <div className="relative">
-            {/* Timeline Line */}
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-navy/20 transform -translate-y-1/2" />
-            
-            <div className="grid grid-cols-3 gap-8">
-              {steps.map((step, index) => (
-                <div key={index} className="relative text-center">
-                  {/* Timeline Node */}
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-12 h-12 bg-navy rounded-full flex items-center justify-center mb-6 z-10">
-                    <step.icon className="w-6 h-6 text-navy-foreground" />
+        <div className="max-w-4xl mx-auto mb-10 md:mb-15">
+          <Accordion type="single" collapsible className="space-y-4 md:space-y-6">
+            {steps.map((step, index) => (
+              <AccordionItem 
+                key={index} 
+                value={`step-${index}`}
+                className="border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+              >
+                <AccordionTrigger className="px-6 py-4 hover:no-underline [&[data-state=open]>div>svg]:rotate-180">
+                  <div className="flex items-center space-x-4 text-left w-full">
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-gray-50 flex-shrink-0">
+                      <step.icon className={`w-6 h-6 ${step.iconColor}`} />
+                    </div>
+                    <div className="flex-1">
+                      <h5 className="font-body font-semibold text-lg md:text-xl text-navy text-left">
+                        {step.title}
+                      </h5>
+                    </div>
                   </div>
-                  
-                  {/* Step Number */}
-                  <div className="absolute -top-2 -right-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-maxx-red rounded-full flex items-center justify-center z-20">
-                    <span className="text-xs font-cta font-semibold text-maxx-red-foreground">
-                      {index + 1}
-                    </span>
-                  </div>
-                  
-                  <div className="pt-16">
-                    <h4 className="font-headline text-xl text-charcoal mb-3">
-                      {step.title}
-                    </h4>
-                    <p className="font-body text-charcoal/70 leading-relaxed">
+                </AccordionTrigger>
+                <AccordionContent className="px-6 pb-6">
+                  <div className="ml-16 pt-2">
+                    <p className="font-body text-base md:text-lg text-charcoal leading-relaxed">
                       {step.description}
                     </p>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Mobile Vertical Stack */}
-        <div className="md:hidden mb-12">
-          <div className="space-y-6">
-            {steps.map((step, index) => (
-              <div key={index} className="flex items-start space-x-4">
-                <div className="flex-shrink-0 relative">
-                  <div className="w-12 h-12 bg-navy rounded-full flex items-center justify-center">
-                    <step.icon className="w-6 h-6 text-navy-foreground" />
-                  </div>
-                  <div className="absolute -top-1 -right-1 w-6 h-6 bg-maxx-red rounded-full flex items-center justify-center">
-                    <span className="text-xs font-cta font-semibold text-maxx-red-foreground">
-                      {index + 1}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-headline text-lg text-charcoal mb-2">
-                    {step.title}
-                  </h4>
-                  <p className="font-body text-charcoal/70 leading-relaxed">
-                    {step.description}
-                  </p>
-                </div>
-              </div>
+                </AccordionContent>
+              </AccordionItem>
             ))}
-          </div>
+          </Accordion>
         </div>
         
         <div className="text-center">
           <Button 
             variant="maxx-red" 
             size="lg"
-            className="text-lg px-8 py-4 h-auto"
+            className="text-lg md:text-xl px-8 py-4 h-auto font-cta"
           >
             Start My Feasibility Review
           </Button>
