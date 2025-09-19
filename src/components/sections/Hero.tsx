@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import aerialPropertySite from "@/assets/aerial-property-site.jpg";
-import buildsmarterLogo from "@/assets/buildsmarter-logo.png";
+import buildsmarterLogo from "@/assets/buildsmarter-logo-new.png";
 
 interface TooltipState {
   visible: boolean;
