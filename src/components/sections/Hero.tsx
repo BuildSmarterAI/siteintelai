@@ -20,7 +20,7 @@ export const Hero = () => {
           />
           
           <h1 className="font-headline text-5xl md:text-7xl lg:text-8xl text-charcoal mb-6 leading-tight">
-            BEFORE YOU COMMIT MILLIONS, VERIFY THE DEAL IS BUILDABLE.
+            Evaluate Your CRE Property Before You Buy—or Before You Build.
           </h1>
           
           <h2 className="font-body text-xl md:text-2xl text-charcoal/80 mb-8 leading-relaxed">
