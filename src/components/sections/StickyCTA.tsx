@@ -41,6 +41,7 @@ export const StickyCTA = () => {
                 variant="secondary"
                 size="lg"
                 className="px-6 py-3 font-cta bg-white text-charcoal hover:bg-white/90"
+                onClick={() => window.location.href = '/application'}
               >
                 Start My Review
               </Button>
@@ -75,6 +76,7 @@ export const StickyCTA = () => {
               <Button 
                 variant="secondary"
                 className="px-4 py-2 font-cta bg-white text-charcoal hover:bg-white/90 text-sm"
+                onClick={() => window.location.href = '/application'}
               >
                 Get Started
               </Button>

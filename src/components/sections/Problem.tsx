@@ -69,6 +69,7 @@ export const Problem = () => {
             variant="maxx-red" 
             size="lg"
             className="text-base px-8 py-4 h-auto font-cta"
+            onClick={() => window.location.href = '/application'}
           >
             Start My Feasibility Review
           </Button>
