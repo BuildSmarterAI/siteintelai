@@ -4,19 +4,19 @@ export const Problem = () => {
   const painPoints = [
     {
       title: "Unseen Entitlement Risk",
-      description: "Your project hinges on a zoning variance you don't know you need, triggering a 9-month delay and a costly redesign that puts the entire deal on ice."
+      description: "Zoning variance delays trigger 9-month setbacks and costly redesigns that freeze deals."
     },
     {
-      title: "Latent Infrastructure Costs", 
-      description: "The site is perfect, but the utility capacity isn't. You're now facing a surprise $250,000 upgrade that your pro forma can't absorb."
+      title: "Hidden Infrastructure Costs", 
+      description: "Surprise $250K+ utility upgrades that your pro forma can't absorb."
     },
     {
-      title: "Pro Forma Inaccuracy",
-      description: "Your budget relies on outdated data. Real-time Texas market volatility means your project is already 20% over budget, jeopardizing financing before you break ground."
+      title: "Outdated Pro Forma Data",
+      description: "20% budget overruns from stale market data jeopardize financing before groundbreaking."
     },
     {
       title: "Stakeholder Skepticism",
-      description: "You pitch to lenders and LPs, but without credible, third-party validation, your project lacks the data-driven certainty they require to commit capital."
+      description: "Lenders and LPs demand third-party validation you can't provide."
     }
   ];
 
@@ -25,10 +25,10 @@ export const Problem = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
           <h3 className="font-headline text-4xl md:text-5xl text-charcoal-foreground mb-6">
-            THE FINANCIAL LEAKS HIDDEN IN EVERY UNVETTED DEAL
+            STOP GUESSING. START BUILDING SMARTER.
           </h3>
-          <p className="font-body text-xl text-charcoal-foreground/80 max-w-4xl mx-auto leading-relaxed">
-            Untested assumptions are the leading cause of project failure. A single unverified detail on zoning, utilities, or cost can quietly drain your IRR, delay your timeline, and erode stakeholder trust.
+          <p className="font-body text-xl text-charcoal-foreground/80 max-w-3xl mx-auto leading-relaxed">
+            Every unvetted assumption is a financial leak waiting to drain your IRR.
           </p>
         </div>
         

@@ -1,12 +1,12 @@
 export const SocialProof = () => {
   const testimonials = [
     {
-      quote: "BuildSmarter's report is now our first checkpoint on any Texas acquisition. The data is credible, the risk analysis is sharp, and it gives our investment committee the clarity needed to act decisively. It's an essential tool for capital protection.",
+      quote: "BuildSmarter's report is our first checkpoint on any Texas acquisition. Sharp risk analysis gives our investment committee clarity to act decisively.",
       author: "VP of Acquisitions",
       company: "Dallas-Based Private Equity Firm"
     },
     {
-      quote: "The credibility of a report backed by Maxx Builders and Designers is unmatched. It's not a theoretical exercise; it's a buildable plan. We identified a critical utility issue and saved at least six months on our timeline.",
+      quote: "Backed by Maxx's credibility, it's a buildable plan, not theory. We identified critical utility issues and saved six months on our timeline.",
       author: "Managing Partner", 
       company: "Houston-Based Multifamily Developer"
     }
@@ -17,7 +17,7 @@ export const SocialProof = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
           <h3 className="font-headline text-4xl md:text-5xl text-white mb-6">
-            THE INTELLIGENCE BEHIND TEXAS'S TOP CRE DEALS
+            THE INTELLIGENCE BEHIND TEXAS'S TOP DEALS
           </h3>
         </div>
         

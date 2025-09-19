@@ -19,11 +19,11 @@ export const Hero = () => {
       <div className="container mx-auto px-6 lg:px-8 relative z-10">
         <div className="max-w-3xl">
           <h1 className="font-headline text-5xl md:text-7xl lg:text-8xl text-charcoal mb-6 leading-tight">
-            CLARITY BEFORE CAPITAL.
+            BEFORE YOU COMMIT MILLIONS, VERIFY THE DEAL IS BUILDABLE.
           </h1>
           
           <h2 className="font-body text-xl md:text-2xl text-charcoal/80 mb-8 leading-relaxed">
-            BuildSmarter™ is the intelligence arm of the Maxx ecosystem. We deliver AI-enhanced feasibility reviews that validate your Texas CRE deal, empowering you to make capital-secure decisions with total confidence.
+            BuildSmarter™ delivers AI-enhanced feasibility reviews that protect your IRR and secure your financing with lender-ready intelligence.
           </h2>
           
           <div className="mb-6">
@@ -32,7 +32,7 @@ export const Hero = () => {
               size="lg"
               className="text-lg px-8 py-4 h-auto"
             >
-              Start My Feasibility Review
+              Protect My Capital – Start Review
             </Button>
           </div>
           

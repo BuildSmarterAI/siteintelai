@@ -9,19 +9,19 @@ export const FAQ = () => {
   const faqs = [
     {
       question: "What if the report identifies major risks?",
-      answer: "That is the ideal outcome. Our report provides the intelligence to either walk away from a bad deal—saving millions—or renegotiate terms from a position of undeniable strength."
+      answer: "Perfect outcome. Walk away from bad deals or renegotiate from strength."
     },
     {
-      question: "How is this different from what my architect or GC provides?",
-      answer: "We provide a conflict-free, third-party validation focused exclusively on pre-investment risk for capital stakeholders. Backed by the entire Maxx ecosystem, our AI-enhanced analysis offers a level of depth and objectivity designed for one purpose: to protect your capital."
+      question: "How is this different from my architect or GC?",
+      answer: "Conflict-free third-party validation focused on pre-investment risk protection."
     },
     {
       question: "How does the 100% fee credit work?",
-      answer: "When you engage Maxx Builders or Maxx Designers for downstream services, the full fee from your feasibility study is applied as a direct credit to your first invoice. It's that simple."
+      answer: "Full feasibility fee credited to your first Maxx Builders or Designers invoice."
     },
     {
-      question: "Is my project information kept confidential?",
-      answer: "Yes. We operate with the discretion of a consulting partner and will execute an NDA upon request before any engagement begins."
+      question: "Is project information confidential?",
+      answer: "Yes. NDA executed upon request before engagement begins."
     }
   ];
 
