@@ -21,7 +21,7 @@ export const Hero = () => {
           
           <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-6 leading-[1.15] tracking-[-0.02em] font-medium bg-gradient-to-br from-charcoal via-charcoal/90 to-charcoal/70 bg-clip-text text-transparent relative">
             <span className="block">Evaluate Your CRE Property</span>
-            <span className="block text-navy font-semibold">Before You Buy—or Before You Build.</span>
+            <span className="block text-[#D00E07] font-semibold">Before You Buy—or Before You Build.</span>
           </h1>
           
           <h2 className="font-body text-xl md:text-2xl text-charcoal/80 mb-8 leading-relaxed">
