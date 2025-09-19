@@ -1,66 +1,68 @@
 import { Button } from "@/components/ui/button";
-import { Shield, Rocket, Handshake } from "lucide-react";
+import { MapPin, Droplets, DollarSign, Clock } from "lucide-react";
 
 export const Solution = () => {
-  const benefits = [
+  const pillars = [
     {
-      icon: Shield,
-      title: "Protect Your Capital",
-      points: ["Identify costly red flags before investment", "Prevent six-figure mistakes", "Protect IRR from unforeseen hits"]
+      icon: MapPin,
+      iconColor: "text-maxx-red",
+      title: "Zoning & Entitlements",
+      description: "Decode zoning overlays, variances, and deed restrictions before you close.",
+      benefit: "Avoid 9–12 month rezoning delays and six-figure redesigns."
     },
     {
-      icon: Rocket,
-      title: "Accelerate Decisions", 
-      points: ["2-3 week turnaround", "Confident go/no-go decisions", "Faster path to closing"]
+      icon: Droplets,
+      iconColor: "text-navy",
+      title: "Utilities & Infrastructure", 
+      description: "Verify site capacity for water, sewer, and power.",
+      benefit: "Prevent costly $250K+ mid-project upgrades."
     },
     {
-      icon: Handshake,
-      title: "Earn Stakeholder Confidence",
-      points: ["Institutional-grade credibility", "Satisfy lender due diligence", "Investment committee ready"]
+      icon: DollarSign,
+      iconColor: "text-green-600",
+      title: "Cost Benchmarking",
+      description: "Validate $/SF with Texas-specific historical and market data.",
+      benefit: "Align your pro forma with reality and keep investors confident."
     },
     {
-      icon: Shield,
-      title: "Lender-Ready Intelligence",
-      points: ["Third-party validation", "Risk-adjusted analysis", "Financing-grade reports"]
+      icon: Clock,
+      iconColor: "text-amber-500",
+      title: "Schedule & Risk Map",
+      description: "Uncover permitting timelines, municipal bottlenecks, and site risks.",
+      benefit: "Protect IRR and ensure lender-ready schedules."
     }
   ];
 
   return (
-    <section className="bg-light-gray py-20">
+    <section className="bg-light-gray py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h3 className="font-headline text-4xl md:text-5xl text-charcoal mb-6">
-            FEASIBILITY FIRST: PROTECT YOUR IRR, SECURE YOUR FINANCING.
+        <div className="text-center mb-10 md:mb-16">
+          <h3 className="font-headline text-3xl md:text-4xl text-charcoal mb-6 md:mb-6 tracking-wider uppercase">
+            ACCELERATE DECISIONS. PROTECT CAPITAL. EARN CONFIDENCE.
           </h3>
-          <p className="font-body text-xl text-charcoal/80 max-w-3xl mx-auto leading-relaxed">
-            Lender-ready intelligence in under 3 weeks.
-          </p>
+          <h4 className="font-body text-lg md:text-xl text-charcoal max-w-4xl mx-auto leading-relaxed">
+            Our lender-ready feasibility reports validate every CRE property in under 3 weeks—delivering the clarity you need before capital is at risk.
+          </h4>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {benefits.map((benefit, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10 md:mb-15">
+          {pillars.map((pillar, index) => (
             <div key={index} className="group">
-              <div className="bg-background border border-navy/10 rounded-lg p-8 hover:shadow-xl transition-all duration-300 h-full">
-                {/* Navy Blue Title Bar */}
-                <div className="bg-navy rounded-t-lg -mx-8 -mt-8 mb-6 p-4">
-                  <div className="flex items-center space-x-3">
-                    <benefit.icon className="w-6 h-6 text-navy-foreground" />
-                    <h4 className="font-headline text-lg text-navy-foreground">
-                      {benefit.title}
-                    </h4>
-                  </div>
+              <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 hover:shadow-lg hover:border-navy transition-all duration-300 h-full">
+                <div className="flex items-center space-x-4 mb-4">
+                  <pillar.icon className={`w-8 h-8 ${pillar.iconColor}`} />
+                  <h5 className="font-body font-semibold text-lg md:text-xl text-navy">
+                    {pillar.title}
+                  </h5>
                 </div>
                 
-                <ul className="space-y-3">
-                  {benefit.points.map((point, pointIndex) => (
-                    <li key={pointIndex} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-navy rounded-full mt-2 flex-shrink-0" />
-                      <span className="font-body text-charcoal/70 leading-relaxed">
-                        {point}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="font-body text-base md:text-lg text-charcoal mb-3 leading-relaxed">
+                  {pillar.description}
+                </p>
+                
+                <p className="font-body text-sm md:text-base text-charcoal/80 leading-relaxed">
+                  <span className="font-bold text-maxx-red">Benefit:</span> {pillar.benefit}
+                </p>
               </div>
             </div>
           ))}
@@ -70,7 +72,7 @@ export const Solution = () => {
           <Button 
             variant="maxx-red" 
             size="lg"
-            className="text-lg px-8 py-4 h-auto"
+            className="text-lg md:text-xl px-8 py-4 h-auto font-cta"
           >
             Start My Feasibility Review
           </Button>
