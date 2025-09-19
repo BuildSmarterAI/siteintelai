@@ -9,48 +9,63 @@ export const FAQ = () => {
   const faqs = [
     {
       question: "What if the report identifies major risks?",
-      answer: "Perfect outcome. Walk away from bad deals or renegotiate from strength."
+      answer: "That's the ideal outcome. Our feasibility report helps you avoid seven-figure losses by walking away from bad sites or renegotiating terms with leverage."
     },
     {
-      question: "How is this different from my architect or GC?",
-      answer: "Conflict-free third-party validation focused on pre-investment risk protection."
+      question: "How is this different from what my architect or GC provides?",
+      answer: "We provide third-party, conflict-free analysis focused on capital protection. Architects design, and GCs build — BuildSmarter™ validates feasibility before either step begins."
     },
     {
-      question: "How does the 100% fee credit work?",
-      answer: "Full feasibility fee credited to your first Maxx Builders or Designers invoice."
+      question: "How fast can I get results?",
+      answer: "QuickCheck: 1 week. SiteFit: 2 weeks. FullFeasibility: 3–4 weeks. Designed to match deal flow timelines."
     },
     {
-      question: "Is project information confidential?",
-      answer: "Yes. NDA executed upon request before engagement begins."
+      question: "Do I lose my fee if I hire Maxx Builders?",
+      answer: "No. 100% of your feasibility fee is credited toward Preconstruction or Design-Build with Maxx Builders."
+    },
+    {
+      question: "Is my information confidential?",
+      answer: "Yes. Every engagement is covered by NDA standards. All project data remains private and protected."
+    },
+    {
+      question: "Which property types does this cover?",
+      answer: "Retail, multifamily, healthcare, franchise, logistics, industrial, hospitality, religious institutions, and more."
     }
   ];
 
   return (
-    <section className="bg-background py-20">
+    <section className="bg-white py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h3 className="font-headline text-4xl md:text-5xl text-charcoal mb-6">
+        <div className="text-center mb-12 md:mb-16">
+          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-6 tracking-wider uppercase">
             FREQUENTLY ASKED QUESTIONS
           </h3>
         </div>
         
         <div className="max-w-4xl mx-auto">
-          <Accordion type="single" collapsible className="space-y-4">
+          <Accordion type="single" collapsible className="space-y-4 md:space-y-6">
             {faqs.map((faq, index) => (
               <AccordionItem 
                 key={index} 
                 value={`faq-${index}`}
-                className="border border-border rounded-lg px-6 shadow-sm hover:shadow-md transition-all duration-300"
+                className="border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
               >
-                <AccordionTrigger className="text-left hover:no-underline">
-                  <span className="font-cta font-semibold text-charcoal">
+                <AccordionTrigger className="px-6 py-4 text-left hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                  <span className="font-body font-semibold text-lg md:text-xl text-navy pr-4">
                     {faq.question}
                   </span>
                 </AccordionTrigger>
-                <AccordionContent>
-                  <div className="pt-2 pb-4">
-                    <p className="font-body text-charcoal/70 leading-relaxed">
-                      {faq.answer}
+                <AccordionContent className="px-6 pb-6">
+                  <div className="pt-2">
+                    <p className="font-body text-base md:text-lg text-charcoal leading-relaxed">
+                      {faq.answer.split('BuildSmarter™').map((part, i) => (
+                        i === 0 ? part : (
+                          <span key={i}>
+                            <span className="text-maxx-red font-semibold">BuildSmarter™</span>
+                            {part}
+                          </span>
+                        )
+                      ))}
                     </p>
                   </div>
                 </AccordionContent>
