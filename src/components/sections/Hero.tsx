@@ -19,7 +19,7 @@ export const Hero = () => {
             className="h-32 md:h-40 lg:h-48 mb-8 object-contain"
           />
           
-          <h1 className="font-headline text-5xl md:text-7xl lg:text-8xl text-charcoal mb-6 leading-tight">
+          <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl text-charcoal mb-6 leading-[1.1] tracking-tight bg-gradient-to-r from-charcoal via-charcoal to-navy bg-clip-text text-transparent animate-fade-in">
             Evaluate Your CRE Property Before You Buy—or Before You Build.
           </h1>
           
