@@ -1,37 +1,79 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Application() {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
-    name: "",
+    // Step 1: Contact Information
+    fullName: "",
     company: "",
     email: "",
     phone: "",
-    role: "",
-    propertyType: "",
+    
+    // Step 2: Property Information
+    propertyAddress: "",
+    parcelId: "",
+    lotSize: "",
+    lotSizeUnit: "acres",
+    currentUse: "",
+    zoning: "",
+    ownershipStatus: "",
+    
+    // Step 3: Project Intent & Building Parameters
+    projectType: [] as string[],
+    buildingSize: "",
+    buildingSizeUnit: "sqft",
+    stories: "",
+    prototypeRequirements: "",
+    qualityLevel: "",
     budget: "",
-    timeline: "",
-    location: "",
-    source: ""
+    
+    // Step 4: Market & Risks
+    submarket: "",
+    accessPriorities: [] as string[],
+    knownRisks: [] as string[],
+    utilityAccess: [] as string[],
+    environmentalConstraints: [] as string[],
+    tenantRequirements: "",
+    
+    // Step 5: Final Questions
+    hearAboutUs: "",
+    contactMethod: "",
+    bestTime: "",
+    additionalNotes: "",
+    ndaConsent: false,
+    contactConsent: false,
+    privacyConsent: false,
+    marketingOptIn: false,
+    
+    // Hidden tracking fields
+    utmSource: "",
+    utmMedium: "",
+    utmCampaign: "",
+    utmTerm: "",
+    pageUrl: window.location.href,
+    submissionTimestamp: ""
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("");
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
-  const totalSteps = 3;
+  const totalSteps = 5;
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -39,11 +81,29 @@ export default function Application() {
     }
   };
 
+  const handleMultiSelectChange = (field: string, value: string, checked: boolean) => {
+    const currentValues = formData[field as keyof typeof formData] as string[];
+    let newValues: string[];
+    
+    if (checked) {
+      newValues = [...currentValues, value];
+    } else {
+      newValues = currentValues.filter(v => v !== value);
+    }
+    
+    handleInputChange(field, newValues);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setUploadedFiles(prev => [...prev, ...files]);
+  };
+
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
     if (step === 1) {
-      if (!formData.name) newErrors.name = "Name is required";
+      if (!formData.fullName) newErrors.fullName = "Full name is required";
       if (!formData.company) newErrors.company = "Company is required";
       if (!formData.email) newErrors.email = "Email is required";
       if (!formData.phone) newErrors.phone = "Phone is required";
@@ -53,15 +113,29 @@ export default function Application() {
     }
 
     if (step === 2) {
-      if (!formData.role) newErrors.role = "Role is required";
-      if (!formData.propertyType) newErrors.propertyType = "Property type is required";
-      if (!formData.budget) newErrors.budget = "Budget range is required";
-      if (!formData.timeline) newErrors.timeline = "Timeline is required";
+      if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
+      if (!formData.lotSize) newErrors.lotSize = "Lot size is required";
+      if (!formData.currentUse) newErrors.currentUse = "Current use is required";
+      if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }
 
     if (step === 3) {
-      if (!formData.location) newErrors.location = "Location is required";
-      if (!formData.source) newErrors.source = "Please tell us how you heard about us";
+      if (formData.projectType.length === 0) newErrors.projectType = "Project type is required";
+      if (!formData.buildingSize) newErrors.buildingSize = "Building size is required";
+      if (!formData.stories) newErrors.stories = "Number of stories is required";
+      if (!formData.qualityLevel) newErrors.qualityLevel = "Quality level is required";
+      if (!formData.budget) newErrors.budget = "Budget is required";
+    }
+
+    if (step === 4) {
+      if (!formData.submarket) newErrors.submarket = "Submarket is required";
+    }
+
+    if (step === 5) {
+      if (!formData.hearAboutUs) newErrors.hearAboutUs = "Please tell us how you heard about us";
+      if (!formData.ndaConsent) newErrors.ndaConsent = "NDA consent is required";
+      if (!formData.contactConsent) newErrors.contactConsent = "Contact consent is required";
+      if (!formData.privacyConsent) newErrors.privacyConsent = "Privacy & Terms consent is required";
     }
 
     setErrors(newErrors);
@@ -80,38 +154,42 @@ export default function Application() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep(3)) {
+    if (validateStep(5)) {
       setIsLoading(true);
       
       // Prepare data for webhook
       const submissionData = {
         ...formData,
-        timestamp: new Date().toISOString(),
-        source_page: "BuildSmarter Feasibility Application",
-        project_value_band: formData.budget,
-        timeline_band: formData.timeline,
-        lead_score: calculateLeadScore(),
-        utm_source: window.location.search // Capture any UTM parameters
+        submissionTimestamp: new Date().toISOString(),
+        uploadedFilesCount: uploadedFiles.length,
+        leadScore: calculateLeadScore(),
+        utmSource: new URLSearchParams(window.location.search).get('utm_source') || '',
+        utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || '',
+        utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
+        utmTerm: new URLSearchParams(window.location.search).get('utm_term') || ''
       };
 
       try {
         if (webhookUrl) {
-          // Send to Zapier webhook
           await fetch(webhookUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            mode: "no-cors", // Handle CORS for webhook
+            mode: "no-cors",
             body: JSON.stringify(submissionData),
           });
         }
 
-        setIsSubmitted(true);
         toast({
           title: "Application Submitted Successfully!",
-          description: "We'll review your application and contact you within 24 hours.",
+          description: "Redirecting to next steps...",
         });
+
+        // Redirect to thank you page
+        setTimeout(() => {
+          navigate("/thank-you");
+        }, 1500);
       } catch (error) {
         console.error("Error submitting application:", error);
         toast({
@@ -125,116 +203,52 @@ export default function Application() {
     }
   };
 
-  // Calculate lead score based on budget and timeline
   const calculateLeadScore = (): number => {
     let score = 0;
     
     // Budget scoring
-    switch (formData.budget) {
-      case "over-50m": score += 100; break;
-      case "20m-50m": score += 80; break;
-      case "5m-20m": score += 60; break;
-      case "under-5m": score += 40; break;
-    }
+    const budgetValue = parseInt(formData.budget.replace(/[^0-9]/g, ''));
+    if (budgetValue >= 50000000) score += 100;
+    else if (budgetValue >= 20000000) score += 80;
+    else if (budgetValue >= 5000000) score += 60;
+    else score += 40;
     
-    // Timeline scoring (sooner = higher score)
-    switch (formData.timeline) {
-      case "0-3months": score += 50; break;
-      case "3-6months": score += 40; break;
-      case "6-12months": score += 30; break;
-    }
+    // Project type scoring
+    if (formData.projectType.includes("Mixed-Use") || formData.projectType.includes("Healthcare")) score += 20;
     
-    // Role scoring
-    if (["developer", "investor"].includes(formData.role)) score += 20;
+    // Ownership status scoring
+    if (["Under Contract (Hard Money In)", "Closed", "Owned Long-Term"].includes(formData.ownershipStatus)) score += 30;
     
     return score;
   };
 
   const getProgress = () => (currentStep / totalSteps) * 100;
 
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen bg-white">
-        <div className="container mx-auto px-6 lg:px-8 py-20">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="mb-8">
-              <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
-              <h1 className="font-headline text-3xl md:text-4xl font-black text-charcoal mb-4 uppercase tracking-wide">
-                Application Submitted Successfully
-              </h1>
-              <p className="font-body text-lg text-charcoal/80 mb-8">
-                Thank you for your application. Our team will review your project details and contact you within 24 hours to discuss next steps.
-              </p>
-            </div>
-
-            <Card className="border-2 border-green-500/30 shadow-xl">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <CheckCircle className="w-8 h-8 text-green-500" />
-                  <h3 className="font-headline text-xl font-bold text-charcoal">
-                    Application Submitted Successfully
-                  </h3>
-                </div>
-                
-                <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                  <h4 className="font-headline text-lg font-bold text-charcoal mb-3">
-                    Your application has been automatically sent to:
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-green-600" />
-                      <span className="font-body text-sm text-charcoal">GoHighLevel CRM</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Database className="w-5 h-5 text-green-600" />
-                      <span className="font-body text-sm text-charcoal">Project Database</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-5 h-5 text-green-600" />
-                      <span className="font-body text-sm text-charcoal">Sales Team Alert</span>
-                    </div>
-                  </div>
-                </div>
-
-                <h4 className="font-headline text-lg font-bold text-charcoal mb-4">
-                  What Happens Next?
-                </h4>
-                <div className="space-y-4 text-left">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-navy rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mt-1">1</div>
-                    <div>
-                      <p className="font-body font-semibold text-charcoal">Initial Review (24 hours)</p>
-                      <p className="font-body text-sm text-charcoal/70">Our team reviews your application and project requirements.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-navy rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mt-1">2</div>
-                    <div>
-                      <p className="font-body font-semibold text-charcoal">Discovery Call (48 hours)</p>
-                      <p className="font-body text-sm text-charcoal/70">We'll schedule a brief call to discuss your specific needs.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-navy rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 mt-1">3</div>
-                    <div>
-                      <p className="font-body font-semibold text-charcoal">Proposal & Timeline</p>
-                      <p className="font-body text-sm text-charcoal/70">Receive your customized feasibility package and timeline.</p>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="mt-8">
-              <Button variant="outline" size="lg" onClick={() => window.location.href = '/'}>
-                Return to Home
-              </Button>
-            </div>
-          </div>
+  const renderMultiSelectCheckboxes = (
+    field: string,
+    options: string[],
+    values: string[]
+  ) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {options.map((option) => (
+        <div key={option} className="flex items-center space-x-2">
+          <Checkbox
+            id={`${field}-${option}`}
+            checked={values.includes(option)}
+            onCheckedChange={(checked) => 
+              handleMultiSelectChange(field, option, checked as boolean)
+            }
+          />
+          <Label 
+            htmlFor={`${field}-${option}`}
+            className="text-sm font-body text-charcoal cursor-pointer"
+          >
+            {option}
+          </Label>
         </div>
-      </div>
-    );
-  }
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -246,7 +260,7 @@ export default function Application() {
               Start Your Feasibility Review
             </h1>
             <h2 className="font-body text-lg md:text-xl text-charcoal/80 max-w-3xl mx-auto mb-6 leading-relaxed">
-              Answer a few quick questions so we can tailor your feasibility package.
+              Answer a few quick questions so we can tailor your feasibility package. Only 5 projects accepted monthly.
             </h2>
             
             {/* Scarcity Badge */}
@@ -281,7 +295,7 @@ export default function Application() {
       {/* Main Content */}
       <section className="py-20">
         <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             
             {/* Webhook Configuration (Admin) */}
             <Card className="mb-8 border-2 border-navy/20">
@@ -305,41 +319,25 @@ export default function Application() {
                       className="mt-2"
                     />
                     <p className="text-sm text-charcoal/60 mt-2">
-                      Add your webhook URL to automatically send form submissions to your CRM, database, and notification systems.
+                      Add your webhook URL to automatically send form submissions to GoHighLevel CRM, Airtable, and notification systems.
                     </p>
-                  </div>
-                  
-                  <div className="bg-navy/5 rounded-lg p-4">
-                    <h4 className="font-body font-semibold text-charcoal mb-2">Integration Flow:</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-navy" />
-                        <span className="font-body text-charcoal/80">GoHighLevel CRM</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Database className="w-4 h-4 text-navy" />
-                        <span className="font-body text-charcoal/80">Airtable/Sheets</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Zap className="w-4 h-4 text-navy" />
-                        <span className="font-body text-charcoal/80">Team Notifications</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               
               {/* Form Section */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-3">
                 <Card className="shadow-2xl border-2 border-charcoal/10">
                   <CardHeader className="bg-gradient-to-r from-charcoal to-navy text-white">
                     <CardTitle className="font-headline text-xl">
                       {currentStep === 1 && "Contact Information"}
-                      {currentStep === 2 && "Project Details"}
-                      {currentStep === 3 && "Additional Information"}
+                      {currentStep === 2 && "Property Information"}
+                      {currentStep === 3 && "Project Intent & Building Parameters"}
+                      {currentStep === 4 && "Market & Risks"}
+                      {currentStep === 5 && "Final Questions"}
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-8">
@@ -350,22 +348,22 @@ export default function Application() {
                         <div className="space-y-6 animate-fade-in">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                              <Label htmlFor="name" className="font-body font-semibold text-charcoal">
+                              <Label htmlFor="fullName" className="font-body font-semibold text-charcoal">
                                 Full Name *
                               </Label>
                               <Input
-                                id="name"
-                                value={formData.name}
-                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                id="fullName"
+                                value={formData.fullName}
+                                onChange={(e) => handleInputChange('fullName', e.target.value)}
                                 placeholder="Your full name"
-                                className={`mt-2 ${errors.name ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                                className={`mt-2 ${errors.fullName ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
                               />
-                              {errors.name && <p className="text-maxx-red text-sm mt-1">{errors.name}</p>}
+                              {errors.fullName && <p className="text-maxx-red text-sm mt-1">{errors.fullName}</p>}
                             </div>
                             
                             <div>
                               <Label htmlFor="company" className="font-body font-semibold text-charcoal">
-                                Company *
+                                Company / Organization *
                               </Label>
                               <Input
                                 id="company"
@@ -400,6 +398,7 @@ export default function Application() {
                               </Label>
                               <Input
                                 id="phone"
+                                type="tel"
                                 value={formData.phone}
                                 onChange={(e) => handleInputChange('phone', e.target.value)}
                                 placeholder="(555) 123-4567"
@@ -411,170 +410,573 @@ export default function Application() {
                         </div>
                       )}
 
-                      {/* Step 2: Project Details */}
+                      {/* Step 2: Property Information */}
                       {currentStep === 2 && (
                         <div className="space-y-6 animate-fade-in">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="role" className="font-body font-semibold text-charcoal">
-                                Your Role *
-                              </Label>
-                              <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
-                                <SelectTrigger className={`mt-2 ${errors.role ? 'border-maxx-red' : 'border-charcoal/20'}`}>
-                                  <SelectValue placeholder="Select your role" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="developer">Developer</SelectItem>
-                                  <SelectItem value="investor">Investor/PE</SelectItem>
-                                  <SelectItem value="franchise">Franchise Leader</SelectItem>
-                                  <SelectItem value="cre-team">CRE Team</SelectItem>
-                                  <SelectItem value="healthcare">Healthcare/Multifamily</SelectItem>
-                                  <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {errors.role && <p className="text-maxx-red text-sm mt-1">{errors.role}</p>}
-                            </div>
-                            
-                            <div>
-                              <Label htmlFor="propertyType" className="font-body font-semibold text-charcoal">
-                                Property Type *
-                              </Label>
-                              <Select value={formData.propertyType} onValueChange={(value) => handleInputChange('propertyType', value)}>
-                                <SelectTrigger className={`mt-2 ${errors.propertyType ? 'border-maxx-red' : 'border-charcoal/20'}`}>
-                                  <SelectValue placeholder="Select property type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="retail">Retail</SelectItem>
-                                  <SelectItem value="multifamily">Multifamily</SelectItem>
-                                  <SelectItem value="healthcare">Healthcare</SelectItem>
-                                  <SelectItem value="industrial">Industrial</SelectItem>
-                                  <SelectItem value="hospitality">Hospitality</SelectItem>
-                                  <SelectItem value="office">Office</SelectItem>
-                                  <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {errors.propertyType && <p className="text-maxx-red text-sm mt-1">{errors.propertyType}</p>}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="budget" className="font-body font-semibold text-charcoal">
-                                Project Budget *
-                              </Label>
-                              <Select value={formData.budget} onValueChange={(value) => handleInputChange('budget', value)}>
-                                <SelectTrigger className={`mt-2 ${errors.budget ? 'border-maxx-red' : 'border-charcoal/20'}`}>
-                                  <SelectValue placeholder="Select budget range" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="under-5m">Under $5M</SelectItem>
-                                  <SelectItem value="5m-20m">$5M - $20M</SelectItem>
-                                  <SelectItem value="20m-50m">$20M - $50M</SelectItem>
-                                  <SelectItem value="over-50m">$50M+</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {errors.budget && <p className="text-maxx-red text-sm mt-1">{errors.budget}</p>}
-                            </div>
-                            
-                            <div>
-                              <Label htmlFor="timeline" className="font-body font-semibold text-charcoal">
-                                Project Timeline *
-                              </Label>
-                              <Select value={formData.timeline} onValueChange={(value) => handleInputChange('timeline', value)}>
-                                <SelectTrigger className={`mt-2 ${errors.timeline ? 'border-maxx-red' : 'border-charcoal/20'}`}>
-                                  <SelectValue placeholder="When do you plan to start?" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="0-3months">0-3 months</SelectItem>
-                                  <SelectItem value="3-6months">3-6 months</SelectItem>
-                                  <SelectItem value="6-12months">6-12 months</SelectItem>
-                                  <SelectItem value="12months">12+ months</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              {errors.timeline && <p className="text-maxx-red text-sm mt-1">{errors.timeline}</p>}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Step 3: Additional Information */}
-                      {currentStep === 3 && (
-                        <div className="space-y-6 animate-fade-in">
                           <div>
-                            <Label htmlFor="location" className="font-body font-semibold text-charcoal">
-                              Project Location *
+                            <Label htmlFor="propertyAddress" className="font-body font-semibold text-charcoal">
+                              Property Address *
                             </Label>
                             <Input
-                              id="location"
-                              value={formData.location}
-                              onChange={(e) => handleInputChange('location', e.target.value)}
-                              placeholder="City, Texas"
-                              className={`mt-2 ${errors.location ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                              id="propertyAddress"
+                              value={formData.propertyAddress}
+                              onChange={(e) => handleInputChange('propertyAddress', e.target.value)}
+                              placeholder="123 Main Street, City, State, ZIP"
+                              className={`mt-2 ${errors.propertyAddress ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
                             />
-                            {errors.location && <p className="text-maxx-red text-sm mt-1">{errors.location}</p>}
+                            <p className="text-sm text-charcoal/60 mt-1">
+                              Exact location helps us validate zoning and utility access.
+                            </p>
+                            {errors.propertyAddress && <p className="text-maxx-red text-sm mt-1">{errors.propertyAddress}</p>}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Label htmlFor="parcelId" className="font-body font-semibold text-charcoal">
+                                Parcel ID / APN
+                              </Label>
+                              <Input
+                                id="parcelId"
+                                value={formData.parcelId}
+                                onChange={(e) => handleInputChange('parcelId', e.target.value)}
+                                placeholder="123-456-789"
+                                className="mt-2"
+                              />
+                            </div>
+
+                            <div>
+                              <Label className="font-body font-semibold text-charcoal">
+                                Lot Size / Acreage *
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  value={formData.lotSize}
+                                  onChange={(e) => handleInputChange('lotSize', e.target.value)}
+                                  placeholder="5.2"
+                                  className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                                />
+                                <Select value={formData.lotSizeUnit} onValueChange={(value) => handleInputChange('lotSizeUnit', value)}>
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="acres">Acres</SelectItem>
+                                    <SelectItem value="sqft">Sq Ft</SelectItem>
+                                    <SelectItem value="hectares">Hectares</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {errors.lotSize && <p className="text-maxx-red text-sm mt-1">{errors.lotSize}</p>}
+                            </div>
                           </div>
 
                           <div>
-                            <Label htmlFor="source" className="font-body font-semibold text-charcoal">
-                              How Did You Hear About Us? *
+                            <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal">
+                              Current Use / Existing Improvements *
                             </Label>
-                            <Select value={formData.source} onValueChange={(value) => handleInputChange('source', value)}>
-                              <SelectTrigger className={`mt-2 ${errors.source ? 'border-maxx-red' : 'border-charcoal/20'}`}>
-                                <SelectValue placeholder="Select source" />
+                            <Select value={formData.currentUse} onValueChange={(value) => handleInputChange('currentUse', value)}>
+                              <SelectTrigger className={`mt-2 ${errors.currentUse ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
+                                <SelectValue placeholder="Select current use" />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="google">Google Search</SelectItem>
-                                <SelectItem value="referral">Referral</SelectItem>
-                                <SelectItem value="linkedin">LinkedIn</SelectItem>
-                                <SelectItem value="industry-event">Industry Event</SelectItem>
-                                <SelectItem value="existing-client">Existing Client</SelectItem>
+                                <SelectItem value="vacant-land">Vacant Land</SelectItem>
+                                <SelectItem value="raw-land">Raw Land</SelectItem>
+                                <SelectItem value="agricultural">Agricultural</SelectItem>
+                                <SelectItem value="parking-lot">Parking Lot</SelectItem>
+                                <SelectItem value="existing-occupied">Existing Structure (Occupied)</SelectItem>
+                                <SelectItem value="existing-vacant">Existing Structure (Vacant)</SelectItem>
+                                <SelectItem value="requires-demolition">Requires Demolition</SelectItem>
+                                <SelectItem value="partially-improved">Partially Improved</SelectItem>
+                                <SelectItem value="redevelopment-candidate">Redevelopment Candidate</SelectItem>
+                                <SelectItem value="brownfield">Brownfield</SelectItem>
                                 <SelectItem value="other">Other</SelectItem>
                               </SelectContent>
                             </Select>
-                            {errors.source && <p className="text-maxx-red text-sm mt-1">{errors.source}</p>}
+                            {errors.currentUse && <p className="text-maxx-red text-sm mt-1">{errors.currentUse}</p>}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Label htmlFor="zoning" className="font-body font-semibold text-charcoal">
+                                Current Zoning Classification
+                              </Label>
+                              <Input
+                                id="zoning"
+                                value={formData.zoning}
+                                onChange={(e) => handleInputChange('zoning', e.target.value)}
+                                placeholder="C-2, R-3, M-1, etc."
+                                className="mt-2"
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="ownershipStatus" className="font-body font-semibold text-charcoal">
+                                Ownership / Acquisition Status *
+                              </Label>
+                              <Select value={formData.ownershipStatus} onValueChange={(value) => handleInputChange('ownershipStatus', value)}>
+                                <SelectTrigger className={`mt-2 ${errors.ownershipStatus ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
+                                  <SelectValue placeholder="Select status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="exploring">Exploring Opportunities</SelectItem>
+                                  <SelectItem value="site-identified">Site Identified</SelectItem>
+                                  <SelectItem value="loi-drafted">LOI Drafted</SelectItem>
+                                  <SelectItem value="loi-signed">LOI Signed</SelectItem>
+                                  <SelectItem value="under-negotiation">Under Negotiation (PSA)</SelectItem>
+                                  <SelectItem value="under-contract-dd">Under Contract (Due Diligence)</SelectItem>
+                                  <SelectItem value="under-contract-hard">Under Contract (Hard Money In)</SelectItem>
+                                  <SelectItem value="closed">Closed</SelectItem>
+                                  <SelectItem value="owned-long-term">Owned Long-Term</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {errors.ownershipStatus && <p className="text-maxx-red text-sm mt-1">{errors.ownershipStatus}</p>}
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Navigation */}
-                      <div className="flex justify-between items-center mt-8 pt-6 border-t border-charcoal/20">
-                        <div>
-                          {currentStep > 1 && (
-                            <Button 
-                              type="button"
-                              variant="outline"
-                              onClick={handlePrev}
-                              className="px-6 py-3 font-cta"
-                            >
-                              <ArrowLeft className="w-4 h-4 mr-2" />
-                              Previous
-                            </Button>
-                          )}
+                      {/* Step 3: Project Intent & Building Parameters */}
+                      {currentStep === 3 && (
+                        <div className="space-y-6 animate-fade-in">
+                          <div>
+                            <Label className="font-body font-semibold text-charcoal">
+                              Project Type *
+                            </Label>
+                            <p className="text-sm text-charcoal/60 mb-3">Select all that apply</p>
+                            {renderMultiSelectCheckboxes('projectType', [
+                              'Residential - Single Family',
+                              'Residential - Multifamily',
+                              'Retail - Shopping Center',
+                              'Retail - Strip Mall',
+                              'Hospitality - Hotel',
+                              'Hospitality - Restaurant',
+                              'Healthcare - Medical Office',
+                              'Healthcare - Hospital',
+                              'Industrial - Warehouse',
+                              'Industrial - Manufacturing',
+                              'Logistics - Distribution',
+                              'Office - Class A',
+                              'Office - Class B/C',
+                              'Mixed-Use',
+                              'Specialty - Self Storage',
+                              'Specialty - Automotive',
+                              'Franchise Prototype',
+                              'Custom Build-to-Suit'
+                            ], formData.projectType)}
+                            {errors.projectType && <p className="text-maxx-red text-sm mt-1">{errors.projectType}</p>}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Label className="font-body font-semibold text-charcoal">
+                                Desired Building Size *
+                              </Label>
+                              <div className="flex gap-2 mt-2">
+                                <Input
+                                  value={formData.buildingSize}
+                                  onChange={(e) => handleInputChange('buildingSize', e.target.value)}
+                                  placeholder="50000"
+                                  className={`${errors.buildingSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                                />
+                                <Select value={formData.buildingSizeUnit} onValueChange={(value) => handleInputChange('buildingSizeUnit', value)}>
+                                  <SelectTrigger className="w-24">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="sqft">Sq Ft</SelectItem>
+                                    <SelectItem value="sqm">Sq M</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {errors.buildingSize && <p className="text-maxx-red text-sm mt-1">{errors.buildingSize}</p>}
+                            </div>
+
+                            <div>
+                              <Label htmlFor="stories" className="font-body font-semibold text-charcoal">
+                                Stories / Height *
+                              </Label>
+                              <Select value={formData.stories} onValueChange={(value) => handleInputChange('stories', value)}>
+                                <SelectTrigger className={`mt-2 ${errors.stories ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
+                                  <SelectValue placeholder="Select height" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="single">Single Story</SelectItem>
+                                  <SelectItem value="2-stories">2 Stories</SelectItem>
+                                  <SelectItem value="3-5-stories">3–5 Stories</SelectItem>
+                                  <SelectItem value="mid-rise">Mid-Rise (6–10)</SelectItem>
+                                  <SelectItem value="high-rise">High-Rise (10+)</SelectItem>
+                                  <SelectItem value="custom">Custom</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {errors.stories && <p className="text-maxx-red text-sm mt-1">{errors.stories}</p>}
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="prototypeRequirements" className="font-body font-semibold text-charcoal">
+                              Prototype Requirements
+                            </Label>
+                            <Textarea
+                              id="prototypeRequirements"
+                              value={formData.prototypeRequirements}
+                              onChange={(e) => handleInputChange('prototypeRequirements', e.target.value)}
+                              placeholder="Describe any specific prototype or franchise requirements..."
+                              className="mt-2"
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Label htmlFor="qualityLevel" className="font-body font-semibold text-charcoal">
+                                Quality Level *
+                              </Label>
+                              <Select value={formData.qualityLevel} onValueChange={(value) => handleInputChange('qualityLevel', value)}>
+                                <SelectTrigger className={`mt-2 ${errors.qualityLevel ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
+                                  <SelectValue placeholder="Select quality level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="shell">Shell / Base Building</SelectItem>
+                                  <SelectItem value="core-shell">Core+Shell</SelectItem>
+                                  <SelectItem value="standard">Standard Build-Out (Class C)</SelectItem>
+                                  <SelectItem value="mid-grade">Mid-Grade (Class B)</SelectItem>
+                                  <SelectItem value="premium">Premium (Class A)</SelectItem>
+                                  <SelectItem value="prototype">Prototype Standard</SelectItem>
+                                  <SelectItem value="build-to-suit">Build-to-Suit</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {errors.qualityLevel && <p className="text-maxx-red text-sm mt-1">{errors.qualityLevel}</p>}
+                            </div>
+
+                            <div>
+                              <Label htmlFor="budget" className="font-body font-semibold text-charcoal">
+                                Desired Budget *
+                              </Label>
+                              <Input
+                                id="budget"
+                                value={formData.budget}
+                                onChange={(e) => handleInputChange('budget', e.target.value)}
+                                placeholder="$25,000,000"
+                                className={`mt-2 ${errors.budget ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                              />
+                              <p className="text-sm text-charcoal/60 mt-1">
+                                Approximate total project budget, land + construction + soft costs if known.
+                              </p>
+                              {errors.budget && <p className="text-maxx-red text-sm mt-1">{errors.budget}</p>}
+                            </div>
+                          </div>
                         </div>
-                        
-                        <div>
-                          {currentStep < totalSteps ? (
-                            <Button 
-                              type="button"
-                              variant="maxx-red"
-                              onClick={handleNext}
-                              className="px-8 py-3 font-cta text-lg"
-                              disabled={isLoading}
-                            >
-                              Next Step
-                              <ArrowRight className="w-4 h-4 ml-2" />
-                            </Button>
-                          ) : (
-                            <Button 
-                              type="submit"
-                              variant="maxx-red"
-                              className="px-8 py-3 font-cta text-lg hover:scale-105 transition-all duration-300"
-                              disabled={isLoading}
-                            >
-                              {isLoading ? "Submitting..." : "Submit Application"}
-                            </Button>
-                          )}
+                      )}
+
+                      {/* Step 4: Market & Risks */}
+                      {currentStep === 4 && (
+                        <div className="space-y-6 animate-fade-in">
+                          <div>
+                            <Label htmlFor="submarket" className="font-body font-semibold text-charcoal">
+                              Submarket / District *
+                            </Label>
+                            <Input
+                              id="submarket"
+                              value={formData.submarket}
+                              onChange={(e) => handleInputChange('submarket', e.target.value)}
+                              placeholder="e.g., Downtown Dallas, Energy Corridor, Plano"
+                              className={`mt-2 ${errors.submarket ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                            />
+                            {errors.submarket && <p className="text-maxx-red text-sm mt-1">{errors.submarket}</p>}
+                          </div>
+
+                          <div>
+                            <Label className="font-body font-semibold text-charcoal">
+                              Access Priorities
+                            </Label>
+                            <p className="text-sm text-charcoal/60 mb-3">Select all that are important for your project</p>
+                            {renderMultiSelectCheckboxes('accessPriorities', [
+                              'Highway',
+                              'Transit',
+                              'Airport',
+                              'Hospital',
+                              'University',
+                              'Population Density',
+                              'Employment Center',
+                              'Retail Corridor',
+                              'Tourism',
+                              'Port/Logistics',
+                              'Other'
+                            ], formData.accessPriorities)}
+                          </div>
+
+                          <div>
+                            <Label className="font-body font-semibold text-charcoal">
+                              Known Risks
+                            </Label>
+                            <p className="text-sm text-charcoal/60 mb-3">Select any known or potential risks</p>
+                            {renderMultiSelectCheckboxes('knownRisks', [
+                              'Floodplain',
+                              'Easements',
+                              'Soil/Geotech',
+                              'Legal/Title',
+                              'Topography',
+                              'Drainage',
+                              'Political Opposition',
+                              'Other'
+                            ], formData.knownRisks)}
+                          </div>
+
+                          <div>
+                            <Label className="font-body font-semibold text-charcoal">
+                              Utility Access
+                            </Label>
+                            <p className="text-sm text-charcoal/60 mb-3">Select available utilities</p>
+                            {renderMultiSelectCheckboxes('utilityAccess', [
+                              'Water',
+                              'Sewer',
+                              'Power',
+                              'Gas',
+                              'Fiber',
+                              'Stormwater',
+                              'Not Sure'
+                            ], formData.utilityAccess)}
+                          </div>
+
+                          <div>
+                            <Label className="font-body font-semibold text-charcoal">
+                              Environmental Constraints
+                            </Label>
+                            <p className="text-sm text-charcoal/60 mb-3">Select any environmental concerns</p>
+                            {renderMultiSelectCheckboxes('environmentalConstraints', [
+                              'Wetlands',
+                              'Brownfield',
+                              'Protected Land',
+                              'Endangered Species',
+                              'Historic Site',
+                              'Air Quality',
+                              'Noise',
+                              'Other',
+                              'Not Sure'
+                            ], formData.environmentalConstraints)}
+                          </div>
+
+                          <div>
+                            <Label htmlFor="tenantRequirements" className="font-body font-semibold text-charcoal">
+                              Tenant / Prototype Requirements
+                            </Label>
+                            <Textarea
+                              id="tenantRequirements"
+                              value={formData.tenantRequirements}
+                              onChange={(e) => handleInputChange('tenantRequirements', e.target.value)}
+                              placeholder="Describe any specific tenant requirements, franchise standards, or operational needs..."
+                              className="mt-2"
+                              rows={3}
+                            />
+                          </div>
                         </div>
+                      )}
+
+                      {/* Step 5: Final Questions */}
+                      {currentStep === 5 && (
+                        <div className="space-y-6 animate-fade-in">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Label htmlFor="hearAboutUs" className="font-body font-semibold text-charcoal">
+                                How Did You Hear About Us? *
+                              </Label>
+                              <Select value={formData.hearAboutUs} onValueChange={(value) => handleInputChange('hearAboutUs', value)}>
+                                <SelectTrigger className={`mt-2 ${errors.hearAboutUs ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
+                                  <SelectValue placeholder="Select source" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                                  <SelectItem value="google">Google</SelectItem>
+                                  <SelectItem value="referral">Referral</SelectItem>
+                                  <SelectItem value="client-partner">Client/Partner</SelectItem>
+                                  <SelectItem value="event">Event</SelectItem>
+                                  <SelectItem value="email">Email</SelectItem>
+                                  <SelectItem value="youtube-podcast">YouTube/Podcast</SelectItem>
+                                  <SelectItem value="press">Press</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {errors.hearAboutUs && <p className="text-maxx-red text-sm mt-1">{errors.hearAboutUs}</p>}
+                            </div>
+
+                            <div>
+                              <Label htmlFor="contactMethod" className="font-body font-semibold text-charcoal">
+                                Preferred Contact Method
+                              </Label>
+                              <Select value={formData.contactMethod} onValueChange={(value) => handleInputChange('contactMethod', value)}>
+                                <SelectTrigger className="mt-2">
+                                  <SelectValue placeholder="Select method" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="email">Email</SelectItem>
+                                  <SelectItem value="phone">Phone</SelectItem>
+                                  <SelectItem value="text">Text/SMS</SelectItem>
+                                  <SelectItem value="video-call">Video Call</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="bestTime" className="font-body font-semibold text-charcoal">
+                              Best Time to Reach You
+                            </Label>
+                            <Select value={formData.bestTime} onValueChange={(value) => handleInputChange('bestTime', value)}>
+                              <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Select time" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="morning">Morning (8am-12pm)</SelectItem>
+                                <SelectItem value="afternoon">Afternoon (12pm-5pm)</SelectItem>
+                                <SelectItem value="evening">Evening (5pm-7pm)</SelectItem>
+                                <SelectItem value="flexible">Flexible</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="additionalNotes" className="font-body font-semibold text-charcoal">
+                              Additional Notes
+                            </Label>
+                            <Textarea
+                              id="additionalNotes"
+                              value={formData.additionalNotes}
+                              onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
+                              placeholder="Any additional information that would help us better understand your project..."
+                              className="mt-2"
+                              rows={4}
+                            />
+                          </div>
+
+                          <div>
+                            <Label className="font-body font-semibold text-charcoal">
+                              Upload Supporting Files
+                            </Label>
+                            <p className="text-sm text-charcoal/60 mb-3">
+                              Upload any relevant documents (PDF, DOCX, XLSX, CSV, JPG, PNG, DWG, ZIP - max 25MB)
+                            </p>
+                            <div className="border-2 border-dashed border-charcoal/20 rounded-lg p-6">
+                              <div className="text-center">
+                                <Upload className="w-8 h-8 mx-auto text-charcoal/40 mb-2" />
+                                <Input
+                                  type="file"
+                                  multiple
+                                  accept=".pdf,.docx,.xlsx,.csv,.jpg,.jpeg,.png,.dwg,.zip"
+                                  onChange={handleFileUpload}
+                                  className="hidden"
+                                  id="file-upload"
+                                />
+                                <Label 
+                                  htmlFor="file-upload"
+                                  className="cursor-pointer text-navy hover:text-navy/80 font-semibold"
+                                >
+                                  Click to upload files
+                                </Label>
+                              </div>
+                              {uploadedFiles.length > 0 && (
+                                <div className="mt-4 space-y-2">
+                                  {uploadedFiles.map((file, index) => (
+                                    <div key={index} className="flex items-center gap-2 text-sm">
+                                      <CheckCircle className="w-4 h-4 text-green-500" />
+                                      <span>{file.name}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Consent Checkboxes */}
+                          <div className="space-y-4 pt-6 border-t border-charcoal/20">
+                            <div className="flex items-start space-x-3">
+                              <Checkbox
+                                id="nda-consent"
+                                checked={formData.ndaConsent}
+                                onCheckedChange={(checked) => handleInputChange('ndaConsent', checked as boolean)}
+                                className={errors.ndaConsent ? 'border-maxx-red' : ''}
+                              />
+                              <Label htmlFor="nda-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                I agree to maintain confidentiality and acknowledge that an NDA may be required for detailed project discussions. *
+                              </Label>
+                            </div>
+                            {errors.ndaConsent && <p className="text-maxx-red text-sm">{errors.ndaConsent}</p>}
+
+                            <div className="flex items-start space-x-3">
+                              <Checkbox
+                                id="contact-consent"
+                                checked={formData.contactConsent}
+                                onCheckedChange={(checked) => handleInputChange('contactConsent', checked as boolean)}
+                                className={errors.contactConsent ? 'border-maxx-red' : ''}
+                              />
+                              <Label htmlFor="contact-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                I consent to be contacted by BuildSmarter™ regarding my feasibility application and project. *
+                              </Label>
+                            </div>
+                            {errors.contactConsent && <p className="text-maxx-red text-sm">{errors.contactConsent}</p>}
+
+                            <div className="flex items-start space-x-3">
+                              <Checkbox
+                                id="privacy-consent"
+                                checked={formData.privacyConsent}
+                                onCheckedChange={(checked) => handleInputChange('privacyConsent', checked as boolean)}
+                                className={errors.privacyConsent ? 'border-maxx-red' : ''}
+                              />
+                              <Label htmlFor="privacy-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                I agree to the Privacy Policy and Terms of Service. *
+                              </Label>
+                            </div>
+                            {errors.privacyConsent && <p className="text-maxx-red text-sm">{errors.privacyConsent}</p>}
+
+                            <div className="flex items-start space-x-3">
+                              <Checkbox
+                                id="marketing-opt-in"
+                                checked={formData.marketingOptIn}
+                                onCheckedChange={(checked) => handleInputChange('marketingOptIn', checked as boolean)}
+                              />
+                              <Label htmlFor="marketing-opt-in" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                I would like to receive marketing communications and industry insights from BuildSmarter™.
+                              </Label>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Navigation Buttons */}
+                      <div className="flex justify-between items-center mt-12 pt-8 border-t border-charcoal/20">
+                        {currentStep > 1 ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handlePrev}
+                            className="flex items-center gap-2"
+                          >
+                            <ArrowLeft className="w-4 h-4" />
+                            Previous
+                          </Button>
+                        ) : (
+                          <div />
+                        )}
+
+                        {currentStep < totalSteps ? (
+                          <Button
+                            type="button"
+                            onClick={handleNext}
+                            className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2"
+                          >
+                            Next
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            type="submit"
+                            disabled={isLoading}
+                            className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2"
+                          >
+                            {isLoading ? "Submitting..." : "Submit My Application"}
+                            <ArrowRight className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     </form>
                   </CardContent>
@@ -583,106 +985,91 @@ export default function Application() {
 
               {/* Trust & Risk Reversal Sidebar */}
               <div className="lg:col-span-1">
-                <div className="sticky top-8 space-y-6">
-                  
-                  {/* Risk Reversal Card */}
-                  <Card className="border-2 border-green-500/30 shadow-xl">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Shield className="w-8 h-8 text-green-500" />
-                        <h3 className="font-headline text-lg font-bold text-charcoal">
-                          Zero Risk Guarantee
-                        </h3>
+                <Card className="sticky top-8 shadow-xl border-2 border-navy/20">
+                  <CardHeader className="bg-navy/5">
+                    <CardTitle className="flex items-center gap-3 text-navy">
+                      <Shield className="w-6 h-6" />
+                      Trust & Confidence
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6 space-y-6">
+                    <div className="flex items-start gap-3">
+                      <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
+                      <div>
+                        <p className="font-body font-semibold text-charcoal mb-1">
+                          100% Fee Credit
+                        </p>
+                        <p className="font-body text-sm text-charcoal/70">
+                          Your feasibility fee is fully credited toward Preconstruction or Design-Build.
+                        </p>
                       </div>
-                      <div className="space-y-3 text-sm">
-                        <div className="flex items-start gap-3">
-                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                          <p className="font-body text-charcoal/80">
-                            <strong>100% of your feasibility fee</strong> is credited toward Preconstruction or Design-Build
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                          <p className="font-body text-charcoal/80">
-                            <strong>Confidential, NDA-ready</strong> reporting for all projects
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-3">
-                          <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                          <p className="font-body text-charcoal/80">
-                            <strong>No obligation</strong> to proceed after review
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </div>
 
-                  {/* Trust Indicators */}
-                  <Card className="border-2 border-navy/30 shadow-xl">
-                    <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <Award className="w-8 h-8 text-navy" />
-                        <h3 className="font-headline text-lg font-bold text-charcoal">
-                          Trusted Partner
-                        </h3>
-                      </div>
-                      <div className="space-y-3 text-sm">
-                        <p className="font-body text-charcoal/80">
-                          <strong>Trusted by developers</strong> managing $500M+ in Texas CRE projects
+                    <div className="flex items-start gap-3">
+                      <Shield className="w-6 h-6 text-maxx-red flex-shrink-0 mt-1" />
+                      <div>
+                        <p className="font-body font-semibold text-charcoal mb-1">
+                          Confidential Reporting
                         </p>
-                        <p className="font-body text-charcoal/80">
-                          <strong>Lender-grade analysis</strong> that satisfies due diligence requirements
-                        </p>
-                        <p className="font-body text-charcoal/80">
-                          <strong>Texas market experts</strong> with 15+ years local experience
+                        <p className="font-body text-sm text-charcoal/70">
+                          All applications treated as confidential. NDA-ready reporting.
                         </p>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
 
-                  {/* Urgency Reminder */}
-                  <Card className="border-2 border-maxx-red/30 bg-maxx-red/5 shadow-xl">
-                    <CardContent className="p-6 text-center">
-                      <Clock className="w-12 h-12 text-maxx-red mx-auto mb-3" />
-                      <h3 className="font-headline text-lg font-bold text-charcoal mb-2">
-                        Limited Availability
-                      </h3>
-                      <p className="font-body text-sm text-charcoal/80">
-                        We accept only <strong className="text-maxx-red">5 new projects monthly</strong> to ensure quality and attention to detail.
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                    <div className="flex items-start gap-3">
+                      <Award className="w-6 h-6 text-navy flex-shrink-0 mt-1" />
+                      <div>
+                        <p className="font-body font-semibold text-charcoal mb-1">
+                          Proven Track Record
+                        </p>
+                        <p className="font-body text-sm text-charcoal/70">
+                          Trusted by developers managing $500M+ in Texas CRE projects.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-6 h-6 text-maxx-red flex-shrink-0 mt-1" />
+                      <div>
+                        <p className="font-body font-semibold text-charcoal mb-1">
+                          Limited Availability
+                        </p>
+                        <p className="font-body text-sm text-charcoal/70">
+                          Only 5 projects accepted monthly to ensure quality service.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Sticky CTA for Mobile */}
+      {/* Sticky Mobile CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-charcoal/20 p-4 lg:hidden z-50">
-        <div className="flex items-center justify-between">
+        <div className="flex justify-between items-center">
           <div className="text-sm">
-            <div className="font-body font-semibold text-charcoal">Step {currentStep} of {totalSteps}</div>
-            <div className="font-body text-xs text-charcoal/60">{Math.round(getProgress())}% Complete</div>
+            <span className="font-body font-semibold text-charcoal">Step {currentStep} of {totalSteps}</span>
+            <span className="text-charcoal/60 ml-2">({Math.round(getProgress())}% complete)</span>
           </div>
+          
           {currentStep < totalSteps ? (
-            <Button 
+            <Button
               onClick={handleNext}
-              variant="maxx-red"
-              className="px-6 py-2 font-cta"
-              disabled={isLoading}
+              className="bg-maxx-red hover:bg-maxx-red/90 text-white"
             >
-              Next Step
+              Next
             </Button>
           ) : (
-            <Button 
+            <Button
               onClick={handleSubmit}
-              variant="maxx-red"
-              className="px-6 py-2 font-cta"
               disabled={isLoading}
+              className="bg-maxx-red hover:bg-maxx-red/90 text-white"
             >
-              {isLoading ? "Submitting..." : "Submit Application"}
+              {isLoading ? "Submitting..." : "Submit"}
             </Button>
           )}
         </div>
