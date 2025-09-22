@@ -18,137 +18,218 @@ export type Database = {
         Row: {
           access_priorities: string[] | null
           additional_notes: string | null
+          administrative_area_level_2: string | null
+          aerial_imagery_url: string | null
           attachments: Json | null
           best_time: string | null
           building_size_unit: string | null
           building_size_value: number | null
           company: string
+          conclusion_output: string | null
           consent_contact: boolean
           consent_terms_privacy: boolean
+          costs_output: string | null
           created_at: string
           desired_budget: number
+          elevation: number | null
           email: string
           environmental_constraints: string[] | null
+          executive_summary_output: string | null
           existing_improvements: string
+          floodplain: string | null
+          formatted_address: string | null
           full_name: string
+          geo_lat: number | null
+          geo_lng: number | null
           heard_about: string
+          highest_best_use_output: string | null
           id: string
           known_risks: string[] | null
+          locality: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
+          market_output: string | null
           marketing_opt_in: boolean
           nda_confidentiality: boolean
+          neighborhood_raw: string | null
+          overlay_district: string | null
           ownership_status: string
           page_url: string | null
           parcel_id_apn: string | null
           phone: string
+          place_id: string | null
           preferred_contact: string | null
           project_type: string[]
           property_address: Json | null
+          property_overview_output: string | null
           prototype_requirements: string | null
           quality_level: string
           report_url: string | null
+          schedule_output: string | null
+          sewer_lines: Json | null
           stories_height: string
+          storm_lines: Json | null
+          sublocality: string | null
           submarket: string
+          submarket_enriched: string | null
           submission_timestamp: string
           tenant_requirements: string | null
+          topography_map_url: string | null
           updated_at: string
+          utilities_output: string | null
           utility_access: string[] | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
           utm_term: string | null
+          water_lines: Json | null
           zoning_classification: string | null
+          zoning_code: string | null
+          zoning_output: string | null
         }
         Insert: {
           access_priorities?: string[] | null
           additional_notes?: string | null
+          administrative_area_level_2?: string | null
+          aerial_imagery_url?: string | null
           attachments?: Json | null
           best_time?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           company: string
+          conclusion_output?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
+          costs_output?: string | null
           created_at?: string
           desired_budget: number
+          elevation?: number | null
           email: string
           environmental_constraints?: string[] | null
+          executive_summary_output?: string | null
           existing_improvements: string
+          floodplain?: string | null
+          formatted_address?: string | null
           full_name: string
+          geo_lat?: number | null
+          geo_lng?: number | null
           heard_about: string
+          highest_best_use_output?: string | null
           id?: string
           known_risks?: string[] | null
+          locality?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
+          market_output?: string | null
           marketing_opt_in?: boolean
           nda_confidentiality?: boolean
+          neighborhood_raw?: string | null
+          overlay_district?: string | null
           ownership_status: string
           page_url?: string | null
           parcel_id_apn?: string | null
           phone: string
+          place_id?: string | null
           preferred_contact?: string | null
           project_type: string[]
           property_address?: Json | null
+          property_overview_output?: string | null
           prototype_requirements?: string | null
           quality_level: string
           report_url?: string | null
+          schedule_output?: string | null
+          sewer_lines?: Json | null
           stories_height: string
+          storm_lines?: Json | null
+          sublocality?: string | null
           submarket: string
+          submarket_enriched?: string | null
           submission_timestamp?: string
           tenant_requirements?: string | null
+          topography_map_url?: string | null
           updated_at?: string
+          utilities_output?: string | null
           utility_access?: string[] | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          water_lines?: Json | null
           zoning_classification?: string | null
+          zoning_code?: string | null
+          zoning_output?: string | null
         }
         Update: {
           access_priorities?: string[] | null
           additional_notes?: string | null
+          administrative_area_level_2?: string | null
+          aerial_imagery_url?: string | null
           attachments?: Json | null
           best_time?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           company?: string
+          conclusion_output?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
+          costs_output?: string | null
           created_at?: string
           desired_budget?: number
+          elevation?: number | null
           email?: string
           environmental_constraints?: string[] | null
+          executive_summary_output?: string | null
           existing_improvements?: string
+          floodplain?: string | null
+          formatted_address?: string | null
           full_name?: string
+          geo_lat?: number | null
+          geo_lng?: number | null
           heard_about?: string
+          highest_best_use_output?: string | null
           id?: string
           known_risks?: string[] | null
+          locality?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
+          market_output?: string | null
           marketing_opt_in?: boolean
           nda_confidentiality?: boolean
+          neighborhood_raw?: string | null
+          overlay_district?: string | null
           ownership_status?: string
           page_url?: string | null
           parcel_id_apn?: string | null
           phone?: string
+          place_id?: string | null
           preferred_contact?: string | null
           project_type?: string[]
           property_address?: Json | null
+          property_overview_output?: string | null
           prototype_requirements?: string | null
           quality_level?: string
           report_url?: string | null
+          schedule_output?: string | null
+          sewer_lines?: Json | null
           stories_height?: string
+          storm_lines?: Json | null
+          sublocality?: string | null
           submarket?: string
+          submarket_enriched?: string | null
           submission_timestamp?: string
           tenant_requirements?: string | null
+          topography_map_url?: string | null
           updated_at?: string
+          utilities_output?: string | null
           utility_access?: string[] | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          water_lines?: Json | null
           zoning_classification?: string | null
+          zoning_code?: string | null
+          zoning_output?: string | null
         }
         Relationships: []
       }
