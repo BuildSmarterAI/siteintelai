@@ -365,17 +365,24 @@ export default function Application() {
                       {currentStep === 5 && "Final Questions"}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-8">
+                   <CardContent className="p-8">
+                     {/* Required Fields Legend */}
+                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                       <p className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                         <span className="text-maxx-red">*</span>
+                         Required fields must be completed to proceed to the next step
+                       </p>
+                     </div>
                     <form onSubmit={handleSubmit}>
                       
                       {/* Step 1: Contact Information */}
                       {currentStep === 1 && (
                         <div className="space-y-6 animate-fade-in">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="fullName" className="font-body font-semibold text-charcoal">
-                                Full Name *
-                              </Label>
+                             <div>
+                               <Label htmlFor="fullName" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Full Name <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Input
                                 id="fullName"
                                 value={formData.fullName}
@@ -389,10 +396,10 @@ export default function Application() {
                               {errors.fullName && <p className="text-maxx-red text-sm mt-1">{errors.fullName}</p>}
                             </div>
                             
-                            <div>
-                              <Label htmlFor="company" className="font-body font-semibold text-charcoal">
-                                Company / Organization *
-                              </Label>
+                             <div>
+                               <Label htmlFor="company" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Company / Organization <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Input
                                 id="company"
                                 value={formData.company}
@@ -408,10 +415,10 @@ export default function Application() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="email" className="font-body font-semibold text-charcoal">
-                                Email Address *
-                              </Label>
+                             <div>
+                               <Label htmlFor="email" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Email Address <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Input
                                 id="email"
                                 type="email"
@@ -426,10 +433,10 @@ export default function Application() {
                               {errors.email && <p className="text-maxx-red text-sm mt-1">{errors.email}</p>}
                             </div>
                             
-                            <div>
-                              <Label htmlFor="phone" className="font-body font-semibold text-charcoal">
-                                Phone Number *
-                              </Label>
+                             <div>
+                               <Label htmlFor="phone" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Phone Number <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Input
                                 id="phone"
                                 type="tel"
@@ -450,10 +457,10 @@ export default function Application() {
                       {/* Step 2: Property Information */}
                       {currentStep === 2 && (
                         <div className="space-y-6 animate-fade-in">
-                          <div>
-                            <Label htmlFor="propertyAddress" className="font-body font-semibold text-charcoal">
-                              Property Address *
-                            </Label>
+                           <div>
+                             <Label htmlFor="propertyAddress" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                               Property Address <span className="text-maxx-red text-lg">*</span>
+                             </Label>
                             <Input
                               id="propertyAddress"
                               value={formData.propertyAddress}
@@ -484,10 +491,10 @@ export default function Application() {
                                </p>
                             </div>
 
-                            <div>
-                              <Label className="font-body font-semibold text-charcoal">
-                                Lot Size / Acreage *
-                              </Label>
+                             <div>
+                               <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Lot Size / Acreage <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <div className="flex gap-2 mt-2">
                                 <Input
                                   value={formData.lotSize}
@@ -513,10 +520,10 @@ export default function Application() {
                             </div>
                           </div>
 
-                          <div>
-                            <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal">
-                              Current Use / Existing Improvements *
-                            </Label>
+                           <div>
+                             <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                               Current Use / Existing Improvements <span className="text-maxx-red text-lg">*</span>
+                             </Label>
                             <Select value={formData.currentUse} onValueChange={(value) => handleInputChange('currentUse', value)}>
                               <SelectTrigger className={`mt-2 ${errors.currentUse ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                 <SelectValue placeholder="Select current use" />
@@ -558,10 +565,10 @@ export default function Application() {
                                </p>
                             </div>
 
-                            <div>
-                              <Label htmlFor="ownershipStatus" className="font-body font-semibold text-charcoal">
-                                Ownership / Acquisition Status *
-                              </Label>
+                             <div>
+                               <Label htmlFor="ownershipStatus" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Ownership / Acquisition Status <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Select value={formData.ownershipStatus} onValueChange={(value) => handleInputChange('ownershipStatus', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.ownershipStatus ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select status" />
@@ -591,10 +598,10 @@ export default function Application() {
                       {/* Step 3: Project Intent & Building Parameters */}
                       {currentStep === 3 && (
                         <div className="space-y-6 animate-fade-in">
-                          <div>
-                            <Label className="font-body font-semibold text-charcoal">
-                              Project Type *
-                            </Label>
+                           <div>
+                             <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
+                               Project Type <span className="text-maxx-red text-lg">*</span>
+                             </Label>
                             <p className="text-sm text-charcoal/60 mb-3">Select all that apply</p>
                             {renderMultiSelectCheckboxes('projectType', [
                               'Residential - Single Family',
@@ -626,10 +633,10 @@ export default function Application() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label className="font-body font-semibold text-charcoal">
-                                Desired Building Size *
-                              </Label>
+                             <div>
+                               <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Desired Building Size <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <div className="flex gap-2 mt-2">
                                 <Input
                                   value={formData.buildingSize}
@@ -650,10 +657,10 @@ export default function Application() {
                               {errors.buildingSize && <p className="text-maxx-red text-sm mt-1">{errors.buildingSize}</p>}
                             </div>
 
-                            <div>
-                              <Label htmlFor="stories" className="font-body font-semibold text-charcoal">
-                                Stories / Height *
-                              </Label>
+                             <div>
+                               <Label htmlFor="stories" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Stories / Height <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Select value={formData.stories} onValueChange={(value) => handleInputChange('stories', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.stories ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select height" />
@@ -692,10 +699,10 @@ export default function Application() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="qualityLevel" className="font-body font-semibold text-charcoal">
-                                Quality Level *
-                              </Label>
+                             <div>
+                               <Label htmlFor="qualityLevel" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Quality Level <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Select value={formData.qualityLevel} onValueChange={(value) => handleInputChange('qualityLevel', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.qualityLevel ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select quality level" />
@@ -716,10 +723,10 @@ export default function Application() {
                               {errors.qualityLevel && <p className="text-maxx-red text-sm mt-1">{errors.qualityLevel}</p>}
                             </div>
 
-                            <div>
-                              <Label htmlFor="budget" className="font-body font-semibold text-charcoal">
-                                Desired Budget *
-                              </Label>
+                             <div>
+                               <Label htmlFor="budget" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 Desired Budget <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Input
                                 id="budget"
                                 value={formData.budget}
@@ -739,10 +746,10 @@ export default function Application() {
                       {/* Step 4: Market & Risks */}
                       {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
-                          <div>
-                            <Label htmlFor="submarket" className="font-body font-semibold text-charcoal">
-                              Submarket / District *
-                            </Label>
+                           <div>
+                             <Label htmlFor="submarket" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                               Submarket / District <span className="text-maxx-red text-lg">*</span>
+                             </Label>
                             <Input
                               id="submarket"
                               value={formData.submarket}
@@ -862,10 +869,10 @@ export default function Application() {
                       {currentStep === 5 && (
                         <div className="space-y-6 animate-fade-in">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="hearAboutUs" className="font-body font-semibold text-charcoal">
-                                How Did You Hear About Us? *
-                              </Label>
+                             <div>
+                               <Label htmlFor="hearAboutUs" className="font-body font-semibold text-charcoal flex items-center gap-1">
+                                 How Did You Hear About Us? <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                               <Select value={formData.hearAboutUs} onValueChange={(value) => handleInputChange('hearAboutUs', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.hearAboutUs ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select source" />
@@ -993,9 +1000,9 @@ export default function Application() {
                                 onCheckedChange={(checked) => handleInputChange('ndaConsent', checked as boolean)}
                                 className={errors.ndaConsent ? 'border-maxx-red' : ''}
                               />
-                              <Label htmlFor="nda-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
-                                I agree to maintain confidentiality and acknowledge that an NDA may be required for detailed project discussions. *
-                              </Label>
+                               <Label htmlFor="nda-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                 I agree to maintain confidentiality and acknowledge that an NDA may be required for detailed project discussions. <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                             </div>
                             {errors.ndaConsent && <p className="text-maxx-red text-sm">{errors.ndaConsent}</p>}
 
@@ -1006,9 +1013,9 @@ export default function Application() {
                                 onCheckedChange={(checked) => handleInputChange('contactConsent', checked as boolean)}
                                 className={errors.contactConsent ? 'border-maxx-red' : ''}
                               />
-                              <Label htmlFor="contact-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
-                                I consent to be contacted by BuildSmarter™ regarding my feasibility application and project. *
-                              </Label>
+                               <Label htmlFor="contact-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                 I consent to be contacted by BuildSmarter™ regarding my feasibility application and project. <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                             </div>
                             {errors.contactConsent && <p className="text-maxx-red text-sm">{errors.contactConsent}</p>}
 
@@ -1019,9 +1026,9 @@ export default function Application() {
                                 onCheckedChange={(checked) => handleInputChange('privacyConsent', checked as boolean)}
                                 className={errors.privacyConsent ? 'border-maxx-red' : ''}
                               />
-                              <Label htmlFor="privacy-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
-                                I agree to the Privacy Policy and Terms of Service. *
-                              </Label>
+                               <Label htmlFor="privacy-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
+                                 I agree to the Privacy Policy and Terms of Service. <span className="text-maxx-red text-lg">*</span>
+                               </Label>
                             </div>
                             {errors.privacyConsent && <p className="text-maxx-red text-sm">{errors.privacyConsent}</p>}
 
