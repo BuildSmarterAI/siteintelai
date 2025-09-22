@@ -338,34 +338,6 @@ export default function Application() {
         <div className="container mx-auto px-6 lg:px-8">
           <div className="max-w-5xl mx-auto">
             
-            {/* Webhook Configuration (Admin) */}
-            <Card className="mb-8 border-2 border-navy/20">
-              <CardHeader className="bg-navy/5">
-                <CardTitle className="flex items-center gap-3 text-navy">
-                  <Zap className="w-6 h-6" />
-                  Webhook Integration Setup
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="webhook" className="font-body font-semibold text-charcoal">
-                      Zapier/Make Webhook URL (Optional)
-                    </Label>
-                    <Input
-                      id="webhook"
-                      value={webhookUrl}
-                      onChange={(e) => setWebhookUrl(e.target.value)}
-                      placeholder="https://hooks.zapier.com/hooks/catch/..."
-                      className="mt-2"
-                    />
-                    <p className="text-sm text-charcoal/60 mt-2">
-                      Add your webhook URL to automatically send form submissions to GoHighLevel CRM, Airtable, and notification systems.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               
