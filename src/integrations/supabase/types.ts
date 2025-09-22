@@ -14,7 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          access_priorities: string[] | null
+          additional_notes: string | null
+          attachments: Json | null
+          best_time: string | null
+          building_size_unit: string | null
+          building_size_value: number | null
+          company: string
+          consent_contact: boolean
+          consent_terms_privacy: boolean
+          created_at: string
+          desired_budget: number
+          email: string
+          environmental_constraints: string[] | null
+          existing_improvements: string
+          full_name: string
+          heard_about: string
+          id: string
+          known_risks: string[] | null
+          lot_size_unit: string | null
+          lot_size_value: number | null
+          marketing_opt_in: boolean
+          nda_confidentiality: boolean
+          ownership_status: string
+          page_url: string | null
+          parcel_id_apn: string | null
+          phone: string
+          preferred_contact: string | null
+          project_type: string[]
+          property_address: Json | null
+          prototype_requirements: string | null
+          quality_level: string
+          report_url: string | null
+          stories_height: string
+          submarket: string
+          submission_timestamp: string
+          tenant_requirements: string | null
+          updated_at: string
+          utility_access: string[] | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          zoning_classification: string | null
+        }
+        Insert: {
+          access_priorities?: string[] | null
+          additional_notes?: string | null
+          attachments?: Json | null
+          best_time?: string | null
+          building_size_unit?: string | null
+          building_size_value?: number | null
+          company: string
+          consent_contact?: boolean
+          consent_terms_privacy?: boolean
+          created_at?: string
+          desired_budget: number
+          email: string
+          environmental_constraints?: string[] | null
+          existing_improvements: string
+          full_name: string
+          heard_about: string
+          id?: string
+          known_risks?: string[] | null
+          lot_size_unit?: string | null
+          lot_size_value?: number | null
+          marketing_opt_in?: boolean
+          nda_confidentiality?: boolean
+          ownership_status: string
+          page_url?: string | null
+          parcel_id_apn?: string | null
+          phone: string
+          preferred_contact?: string | null
+          project_type: string[]
+          property_address?: Json | null
+          prototype_requirements?: string | null
+          quality_level: string
+          report_url?: string | null
+          stories_height: string
+          submarket: string
+          submission_timestamp?: string
+          tenant_requirements?: string | null
+          updated_at?: string
+          utility_access?: string[] | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          zoning_classification?: string | null
+        }
+        Update: {
+          access_priorities?: string[] | null
+          additional_notes?: string | null
+          attachments?: Json | null
+          best_time?: string | null
+          building_size_unit?: string | null
+          building_size_value?: number | null
+          company?: string
+          consent_contact?: boolean
+          consent_terms_privacy?: boolean
+          created_at?: string
+          desired_budget?: number
+          email?: string
+          environmental_constraints?: string[] | null
+          existing_improvements?: string
+          full_name?: string
+          heard_about?: string
+          id?: string
+          known_risks?: string[] | null
+          lot_size_unit?: string | null
+          lot_size_value?: number | null
+          marketing_opt_in?: boolean
+          nda_confidentiality?: boolean
+          ownership_status?: string
+          page_url?: string | null
+          parcel_id_apn?: string | null
+          phone?: string
+          preferred_contact?: string | null
+          project_type?: string[]
+          property_address?: Json | null
+          prototype_requirements?: string | null
+          quality_level?: string
+          report_url?: string | null
+          stories_height?: string
+          submarket?: string
+          submission_timestamp?: string
+          tenant_requirements?: string | null
+          updated_at?: string
+          utility_access?: string[] | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          zoning_classification?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

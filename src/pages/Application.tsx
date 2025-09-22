@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -157,19 +158,59 @@ export default function Application() {
     if (validateStep(5)) {
       setIsLoading(true);
       
-      // Prepare data for webhook
+      // Prepare data for Supabase submission
       const submissionData = {
-        ...formData,
-        submissionTimestamp: new Date().toISOString(),
-        uploadedFilesCount: uploadedFiles.length,
-        leadScore: calculateLeadScore(),
+        fullName: formData.fullName,
+        company: formData.company,
+        email: formData.email,
+        phone: formData.phone,
+        propertyAddress: formData.propertyAddress,
+        parcelIdApn: formData.parcelId,
+        lotSizeValue: formData.lotSize,
+        lotSizeUnit: formData.lotSizeUnit,
+        existingImprovements: formData.currentUse,
+        zoningClassification: formData.zoning,
+        ownershipStatus: formData.ownershipStatus,
+        projectType: formData.projectType,
+        buildingSizeValue: formData.buildingSize,
+        buildingSizeUnit: formData.buildingSizeUnit,
+        storiesHeight: formData.stories,
+        prototypeRequirements: formData.prototypeRequirements,
+        qualityLevel: formData.qualityLevel,
+        desiredBudget: formData.budget,
+        submarket: formData.submarket,
+        accessPriorities: formData.accessPriorities,
+        knownRisks: formData.knownRisks,
+        utilityAccess: formData.utilityAccess,
+        environmentalConstraints: formData.environmentalConstraints,
+        tenantRequirements: formData.tenantRequirements,
+        heardAbout: formData.hearAboutUs,
+        preferredContact: formData.contactMethod,
+        bestTime: formData.bestTime,
+        additionalNotes: formData.additionalNotes,
+        attachments: uploadedFiles.length > 0 ? uploadedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })) : null,
+        ndaConfidentiality: formData.ndaConsent,
+        consentContact: formData.contactConsent,
+        consentTermsPrivacy: formData.privacyConsent,
+        marketingOptIn: formData.marketingOptIn,
         utmSource: new URLSearchParams(window.location.search).get('utm_source') || '',
         utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || '',
         utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
-        utmTerm: new URLSearchParams(window.location.search).get('utm_term') || ''
+        utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
+        pageUrl: window.location.href
       };
 
       try {
+        // Submit to Supabase via edge function
+        const { data: result, error } = await supabase.functions.invoke('submit-application', {
+          body: submissionData
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        // Also trigger webhook if provided
         if (webhookUrl) {
           await fetch(webhookUrl, {
             method: "POST",
