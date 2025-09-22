@@ -1096,7 +1096,8 @@ export default function Application() {
                               'Retail Corridor',
                               'Tourism',
                               'Port/Logistics',
-                              'Other'
+                              'Other',
+                              'Not Sure'
                              ], formData.accessPriorities)}
                              <p className="text-sm text-charcoal/60 mt-1">
                                Access priorities help evaluate location advantages and tenant appeal.
