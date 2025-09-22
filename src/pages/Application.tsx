@@ -144,7 +144,7 @@ export default function Application() {
     }
 
     if (step === 4) {
-      if (!formData.submarket) newErrors.submarket = "Submarket is required";
+      // No validation needed for step 4 as all fields are optional now
     }
 
     if (step === 5) {
@@ -1079,22 +1079,6 @@ export default function Application() {
                       {/* Step 4: Market & Risks */}
                       {currentStep === 4 && (
                         <div className="space-y-6 animate-fade-in">
-                           <div>
-                             <Label htmlFor="submarket" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                               Submarket / District <span className="text-maxx-red text-lg">*</span>
-                             </Label>
-                            <Input
-                              id="submarket"
-                              value={formData.submarket}
-                              onChange={(e) => handleInputChange('submarket', e.target.value)}
-                              placeholder="e.g., Downtown Dallas, Energy Corridor, Plano"
-                               className={`mt-2 ${errors.submarket ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                             />
-                             <p className="text-sm text-charcoal/60 mt-1">
-                               Submarket determines demographics, competition, and market dynamics.
-                             </p>
-                            {errors.submarket && <p className="text-maxx-red text-sm mt-1">{errors.submarket}</p>}
-                          </div>
 
                           <div>
                             <Label className="font-body font-semibold text-charcoal">
