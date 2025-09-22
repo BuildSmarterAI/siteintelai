@@ -69,7 +69,7 @@ export default function Application() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 
   const totalSteps = 5;
