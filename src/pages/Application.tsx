@@ -976,15 +976,14 @@ export default function Application() {
                                   placeholder="50000"
                                   className={`${errors.buildingSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
                                 />
-                                <Select value={formData.buildingSizeUnit} onValueChange={(value) => handleInputChange('buildingSizeUnit', value)}>
-                                  <SelectTrigger className="w-24">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="sqft">Sq Ft</SelectItem>
-                                    <SelectItem value="sqm">Sq M</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                 <Select value={formData.buildingSizeUnit} onValueChange={(value) => handleInputChange('buildingSizeUnit', value)}>
+                                   <SelectTrigger className="w-24">
+                                     <SelectValue />
+                                   </SelectTrigger>
+                                   <SelectContent>
+                                     <SelectItem value="sqft">Sq Ft</SelectItem>
+                                   </SelectContent>
+                                 </Select>
                               </div>
                               {errors.buildingSize && <p className="text-maxx-red text-sm mt-1">{errors.buildingSize}</p>}
                             </div>
