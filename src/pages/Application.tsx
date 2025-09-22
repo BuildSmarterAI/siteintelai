@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload } from "lucide-react";
+import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Application() {
@@ -457,22 +458,14 @@ export default function Application() {
                       {/* Step 2: Property Information */}
                       {currentStep === 2 && (
                         <div className="space-y-6 animate-fade-in">
-                           <div>
-                             <Label htmlFor="propertyAddress" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                               Property Address <span className="text-maxx-red text-lg">*</span>
-                             </Label>
-                            <Input
-                              id="propertyAddress"
-                              value={formData.propertyAddress}
-                              onChange={(e) => handleInputChange('propertyAddress', e.target.value)}
-                              placeholder="123 Main Street, City, State, ZIP"
-                              className={`mt-2 ${errors.propertyAddress ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                            />
-                            <p className="text-sm text-charcoal/60 mt-1">
-                              Exact location helps us validate zoning and utility access.
-                            </p>
-                            {errors.propertyAddress && <p className="text-maxx-red text-sm mt-1">{errors.propertyAddress}</p>}
-                          </div>
+                           <AddressAutocomplete
+                             value={formData.propertyAddress}
+                             onChange={(value) => handleInputChange('propertyAddress', value)}
+                             placeholder="123 Main Street, City, State, ZIP"
+                             label="Property Address"
+                             error={errors.propertyAddress}
+                             required={true}
+                           />
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>

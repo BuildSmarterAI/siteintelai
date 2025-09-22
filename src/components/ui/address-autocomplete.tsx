@@ -1,0 +1,211 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Input } from './input';
+import { Label } from './label';
+import { supabase } from '@/integrations/supabase/client';
+
+// Simple debounce function
+function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
+  let timeout: NodeJS.Timeout;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
+
+interface AddressSuggestion {
+  place_id: string;
+  description: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+}
+
+interface AddressAutocompleteProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
+  label?: string;
+  error?: string;
+  required?: boolean;
+}
+
+export function AddressAutocomplete({
+  value,
+  onChange,
+  placeholder = "Enter address",
+  className = "",
+  label,
+  error,
+  required = false
+}: AddressAutocompleteProps) {
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionToken] = useState(() => Math.random().toString(36).substring(7));
+  const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionRefs = useRef<(HTMLLIElement | null)[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+
+  const fetchSuggestions = useCallback(debounce(async (input: string) => {
+    if (input.length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-places', {
+        body: { input, sessionToken }
+      });
+
+      if (error) throw error;
+
+      if (data?.predictions) {
+        setSuggestions(data.predictions);
+        setShowSuggestions(true);
+        setSelectedIndex(-1);
+      }
+    } catch (error) {
+      console.error('Error fetching address suggestions:', error);
+      setSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, 300), [sessionToken]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    onChange(inputValue);
+    fetchSuggestions(inputValue);
+  };
+
+  const handleSuggestionClick = async (suggestion: AddressSuggestion) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('google-place-details', {
+        body: { placeId: suggestion.place_id, sessionToken }
+      });
+
+      if (error) throw error;
+
+      if (data?.result?.formatted_address) {
+        onChange(data.result.formatted_address);
+      } else {
+        onChange(suggestion.description);
+      }
+    } catch (error) {
+      console.error('Error fetching place details:', error);
+      onChange(suggestion.description);
+    }
+
+    setSuggestions([]);
+    setShowSuggestions(false);
+    setSelectedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions || suggestions.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
+          handleSuggestionClick(suggestions[selectedIndex]);
+        }
+        break;
+      case 'Escape':
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setSelectedIndex(-1);
+        break;
+    }
+  };
+
+  const handleBlur = () => {
+    // Delay hiding suggestions to allow for click events
+    setTimeout(() => {
+      setShowSuggestions(false);
+      setSelectedIndex(-1);
+    }, 150);
+  };
+
+  useEffect(() => {
+    if (selectedIndex >= 0 && suggestionRefs.current[selectedIndex]) {
+      suggestionRefs.current[selectedIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth'
+      });
+    }
+  }, [selectedIndex]);
+
+  return (
+    <div className="relative">
+      {label && (
+        <Label htmlFor="address-autocomplete" className="font-body font-semibold text-charcoal flex items-center gap-1">
+          {label} {required && <span className="text-maxx-red text-lg">*</span>}
+        </Label>
+      )}
+      <Input
+        ref={inputRef}
+        id="address-autocomplete"
+        type="text"
+        value={value}
+        onChange={handleInputChange}
+        onKeyDown={handleKeyDown}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className={`mt-2 ${error ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'} ${className}`}
+        autoComplete="off"
+      />
+      
+      {showSuggestions && suggestions.length > 0 && (
+        <ul className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
+          {suggestions.map((suggestion, index) => (
+            <li
+              key={suggestion.place_id}
+              ref={el => suggestionRefs.current[index] = el}
+              onClick={() => handleSuggestionClick(suggestion)}
+              className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
+                index === selectedIndex ? 'bg-blue-50' : ''
+              }`}
+            >
+              <div className="font-medium text-charcoal">
+                {suggestion.structured_formatting.main_text}
+              </div>
+              <div className="text-sm text-charcoal/60">
+                {suggestion.structured_formatting.secondary_text}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      
+      {isLoading && (
+        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg mt-1">
+          <div className="px-4 py-3 text-center text-charcoal/60">
+            Searching addresses...
+          </div>
+        </div>
+      )}
+      
+      <p className="text-sm text-charcoal/60 mt-1">
+        Exact location helps us validate zoning and utility access.
+      </p>
+      
+      {error && <p className="text-maxx-red text-sm mt-1">{error}</p>}
+    </div>
+  );
+}
