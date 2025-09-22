@@ -1114,7 +1114,8 @@ export default function Application() {
                               'Topography',
                               'Drainage',
                               'Political Opposition',
-                              'Other'
+                              'Other',
+                              'Not Sure'
                              ], formData.knownRisks)}
                              <p className="text-sm text-charcoal/60 mt-1">
                                Known risks help prioritize due diligence and budget contingencies.
