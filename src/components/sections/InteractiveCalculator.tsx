@@ -163,6 +163,7 @@ export const InteractiveCalculator = () => {
                     variant="maxx-red" 
                     size="lg"
                     className="mt-6 px-8 py-4 text-lg font-cta animate-pulse"
+                    onClick={() => window.location.href = '/application?step=2'}
                   >
                     Start My Feasibility Review Now
                   </Button>

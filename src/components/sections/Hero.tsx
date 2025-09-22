@@ -163,7 +163,7 @@ export const Hero = () => {
                   variant="maxx-red" 
                   size="lg" 
                   className="font-cta font-medium text-[18px] px-8 py-4 h-auto w-full sm:w-auto hover:scale-105 transition-all duration-300 shadow-2xl hover:shadow-maxx-red/30"
-                  onClick={() => window.location.href = '/application'}
+                  onClick={() => window.location.href = '/application?step=2'}
                 >
                   Start My Feasibility Review
                 </Button>

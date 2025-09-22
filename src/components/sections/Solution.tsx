@@ -73,6 +73,7 @@ export const Solution = () => {
             variant="maxx-red" 
             size="lg"
             className="text-lg md:text-xl px-8 py-4 h-auto font-cta"
+            onClick={() => window.location.href = '/application?step=2'}
           >
             Start My Feasibility Review
           </Button>
