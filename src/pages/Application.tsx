@@ -139,7 +139,6 @@ export default function Application() {
       if (formData.projectType.length === 0) newErrors.projectType = "Project type is required";
       if (!formData.buildingSize) newErrors.buildingSize = "Building size is required";
       if (!formData.stories) newErrors.stories = "Number of stories is required";
-      if (!formData.qualityLevel) newErrors.qualityLevel = "Quality level is required";
       if (!formData.budget) newErrors.budget = "Budget is required";
     }
 
@@ -1033,11 +1032,11 @@ export default function Application() {
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div>
-                               <Label htmlFor="qualityLevel" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Quality Level <span className="text-maxx-red text-lg">*</span>
+                               <Label htmlFor="qualityLevel" className="font-body font-semibold text-charcoal">
+                                 Quality Level
                                </Label>
                               <Select value={formData.qualityLevel} onValueChange={(value) => handleInputChange('qualityLevel', value)}>
-                                <SelectTrigger className={`mt-2 ${errors.qualityLevel ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
+                                <SelectTrigger className="mt-2 border-charcoal/20">
                                   <SelectValue placeholder="Select quality level" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1053,7 +1052,6 @@ export default function Application() {
                                <p className="text-sm text-charcoal/60 mt-1">
                                  Quality level determines material specifications and construction costs.
                                </p>
-                              {errors.qualityLevel && <p className="text-maxx-red text-sm mt-1">{errors.qualityLevel}</p>}
                             </div>
 
                              <div>
