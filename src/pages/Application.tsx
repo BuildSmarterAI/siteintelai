@@ -47,6 +47,7 @@ export default function Application() {
     
     // Step 3: Project Intent & Building Parameters
     projectType: [] as string[],
+    projectTypeOther: "",
     buildingSize: "",
     buildingSizeUnit: "sqft",
     stories: "",
@@ -595,33 +596,287 @@ export default function Application() {
                              <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
                                Project Type <span className="text-maxx-red text-lg">*</span>
                              </Label>
-                            <p className="text-sm text-charcoal/60 mb-3">Select all that apply</p>
-                            {renderMultiSelectCheckboxes('projectType', [
-                              'Residential - Single Family',
-                              'Residential - Multifamily',
-                              'Retail - Shopping Center',
-                              'Retail - Strip Mall',
-                              'Hospitality - Hotel',
-                              'Hospitality - Restaurant',
-                              'Healthcare - Medical Office',
-                              'Healthcare - Hospital',
-                              'Industrial - Warehouse',
-                              'Industrial - Manufacturing',
-                              'Logistics - Distribution',
-                              'Office - Class A',
-                              'Office - Class B/C',
-                              'Mixed-Use',
-                              'Specialty - Self Storage',
-                              'Specialty - Automotive',
-                              'Franchise Prototype',
-                              'Custom Build-to-Suit'
-                             ], formData.projectType)}
-                             <p className="text-sm text-charcoal/60 mt-1">
-                               Project type determines code requirements and market analysis focus.
-                             </p>
-                             <p className="text-sm text-charcoal/60 mt-1">
-                               Project type determines code requirements and market analysis focus.
-                             </p>
+                            <p className="text-sm text-charcoal/60 mb-4">Select all that apply (grouped by asset class)</p>
+                            
+                            {/* Retail */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🛍 Retail
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'shopping_center', label: 'Shopping Center' },
+                                  { value: 'strip_mall', label: 'Strip Mall' },
+                                  { value: 'big_box', label: 'Big Box / Anchor Store' },
+                                  { value: 'grocery_specialty', label: 'Grocery / Specialty Retail' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Hospitality */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🏨 Hospitality
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'hotel', label: 'Hotel' },
+                                  { value: 'resort', label: 'Resort' },
+                                  { value: 'restaurant_qsr', label: 'Restaurant / QSR' },
+                                  { value: 'entertainment_venue', label: 'Entertainment Venue / Theater' },
+                                  { value: 'casino_gaming', label: 'Casino / Gaming Facility' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Healthcare */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🏥 Healthcare
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'medical_office_building', label: 'Medical Office Building (MOB)' },
+                                  { value: 'hospital', label: 'Hospital' },
+                                  { value: 'urgent_care_clinic', label: 'Urgent Care / Clinic' },
+                                  { value: 'specialty_clinic', label: 'Specialty Clinic (Dental, Dialysis, Surgery Center)' },
+                                  { value: 'ambulatory_surgery_center', label: 'Ambulatory Surgery Center' },
+                                  { value: 'rehabilitation_center', label: 'Rehabilitation Center' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Industrial */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🏭 Industrial
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'warehouse', label: 'Warehouse' },
+                                  { value: 'manufacturing_facility', label: 'Manufacturing Facility' },
+                                  { value: 'flex_industrial', label: 'Flex Industrial' },
+                                  { value: 'rd_facility', label: 'R&D Facility' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Logistics */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🚚 Logistics
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'distribution_center', label: 'Distribution Center' },
+                                  { value: 'last_mile_facility', label: 'Last-Mile Facility' },
+                                  { value: 'cold_storage_facility', label: 'Cold Storage Facility' },
+                                  { value: 'data_center', label: 'Data Center' },
+                                  { value: 'trucking_terminal', label: 'Trucking Terminal' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Office */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🏢 Office
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'office_class_a', label: 'Office Class A' },
+                                  { value: 'office_class_b', label: 'Office Class B' },
+                                  { value: 'office_class_c', label: 'Office Class C' },
+                                  { value: 'corporate_headquarters', label: 'Corporate Headquarters / Campus' },
+                                  { value: 'coworking_flex_office', label: 'Coworking / Flex Office' },
+                                  { value: 'call_center_operations', label: 'Call Center / Operations' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Mixed-Use */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🏗 Mixed-Use
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'mixed_use_retail_residential', label: 'Mixed-Use (Retail + Residential)' },
+                                  { value: 'mixed_use_office_residential', label: 'Mixed-Use (Office + Residential)' },
+                                  { value: 'mixed_use_retail_office', label: 'Mixed-Use (Retail + Office)' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Specialty */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🎯 Specialty
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'self_storage', label: 'Self Storage' },
+                                  { value: 'automotive_dealership', label: 'Automotive Dealership' },
+                                  { value: 'car_wash', label: 'Car Wash' },
+                                  { value: 'gas_station_convenience', label: 'Gas Station / Convenience Store' },
+                                  { value: 'educational_facility', label: 'Educational / School / Training Facility' },
+                                  { value: 'religious_institutional', label: 'Religious / Institutional Facility' },
+                                  { value: 'civic_community_recreational', label: 'Civic / Community / Recreational Center' },
+                                  { value: 'research_lab_life_sciences', label: 'Research / Lab / Life Sciences' },
+                                  { value: 'sports_facility_arena', label: 'Sports Facility / Arena' },
+                                  { value: 'agricultural_agri_tech', label: 'Agricultural / Agri-Tech Facility' },
+                                  { value: 'performing_arts_center', label: 'Performing Arts Center' },
+                                  { value: 'stadium_arena', label: 'Stadium / Arena' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Other */}
+                            <div className="mb-6">
+                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
+                                🏷 Other
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
+                                {[
+                                  { value: 'franchise_prototype', label: 'Franchise Prototype (Custom)' },
+                                  { value: 'custom_build_to_suit', label: 'Custom Build-to-Suit' },
+                                  { value: 'other', label: 'Other' }
+                                ].map((option) => (
+                                  <div key={option.value} className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id={`projectType-${option.value}`}
+                                      checked={formData.projectType.includes(option.value)}
+                                      onCheckedChange={(checked) => {
+                                        handleMultiSelectChange('projectType', option.value, !!checked);
+                                      }}
+                                    />
+                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                      {option.label}
+                                    </Label>
+                                  </div>
+                                ))}
+                              </div>
+                              
+                              {/* Other text input */}
+                              {formData.projectType.includes('other') && (
+                                <div className="mt-3 ml-4">
+                                  <Input
+                                    placeholder="Please specify other project type..."
+                                    value={formData.projectTypeOther || ''}
+                                    onChange={(e) => handleInputChange('projectTypeOther', e.target.value)}
+                                    className="max-w-md"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            
+                            <p className="text-sm text-charcoal/60 mt-4">
+                              Project type determines code requirements and market analysis focus.
+                            </p>
                             {errors.projectType && <p className="text-maxx-red text-sm mt-1">{errors.projectType}</p>}
                           </div>
 
