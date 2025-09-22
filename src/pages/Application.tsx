@@ -381,8 +381,11 @@ export default function Application() {
                                 value={formData.fullName}
                                 onChange={(e) => handleInputChange('fullName', e.target.value)}
                                 placeholder="Your full name"
-                                className={`mt-2 ${errors.fullName ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                              />
+                                 className={`mt-2 ${errors.fullName ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                               />
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Your primary contact name for project communications.
+                               </p>
                               {errors.fullName && <p className="text-maxx-red text-sm mt-1">{errors.fullName}</p>}
                             </div>
                             
@@ -395,8 +398,11 @@ export default function Application() {
                                 value={formData.company}
                                 onChange={(e) => handleInputChange('company', e.target.value)}
                                 placeholder="Your company name"
-                                className={`mt-2 ${errors.company ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                              />
+                                 className={`mt-2 ${errors.company ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                               />
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Organization responsible for the project and decision-making.
+                               </p>
                               {errors.company && <p className="text-maxx-red text-sm mt-1">{errors.company}</p>}
                             </div>
                           </div>
@@ -412,8 +418,11 @@ export default function Application() {
                                 value={formData.email}
                                 onChange={(e) => handleInputChange('email', e.target.value)}
                                 placeholder="your@email.com"
-                                className={`mt-2 ${errors.email ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                              />
+                                 className={`mt-2 ${errors.email ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                               />
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Primary email for project communications and feasibility report delivery.
+                               </p>
                               {errors.email && <p className="text-maxx-red text-sm mt-1">{errors.email}</p>}
                             </div>
                             
@@ -427,8 +436,11 @@ export default function Application() {
                                 value={formData.phone}
                                 onChange={(e) => handleInputChange('phone', e.target.value)}
                                 placeholder="(555) 123-4567"
-                                className={`mt-2 ${errors.phone ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                              />
+                                 className={`mt-2 ${errors.phone ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                               />
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Direct contact for urgent project discussions and coordination.
+                               </p>
                               {errors.phone && <p className="text-maxx-red text-sm mt-1">{errors.phone}</p>}
                             </div>
                           </div>
@@ -465,8 +477,11 @@ export default function Application() {
                                 value={formData.parcelId}
                                 onChange={(e) => handleInputChange('parcelId', e.target.value)}
                                 placeholder="123-456-789"
-                                className="mt-2"
-                              />
+                                 className="mt-2"
+                               />
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Official parcel identifier helps verify property boundaries and records.
+                               </p>
                             </div>
 
                             <div>
@@ -489,8 +504,11 @@ export default function Application() {
                                     <SelectItem value="sqft">Sq Ft</SelectItem>
                                     <SelectItem value="hectares">Hectares</SelectItem>
                                   </SelectContent>
-                                </Select>
-                              </div>
+                                 </Select>
+                               </div>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Property size determines development capacity and zoning requirements.
+                               </p>
                               {errors.lotSize && <p className="text-maxx-red text-sm mt-1">{errors.lotSize}</p>}
                             </div>
                           </div>
@@ -516,7 +534,10 @@ export default function Application() {
                                 <SelectItem value="brownfield">Brownfield</SelectItem>
                                 <SelectItem value="other">Other</SelectItem>
                               </SelectContent>
-                            </Select>
+                             </Select>
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Existing conditions impact development costs and permitting timeline.
+                             </p>
                             {errors.currentUse && <p className="text-maxx-red text-sm mt-1">{errors.currentUse}</p>}
                           </div>
 
@@ -530,8 +551,11 @@ export default function Application() {
                                 value={formData.zoning}
                                 onChange={(e) => handleInputChange('zoning', e.target.value)}
                                 placeholder="C-2, R-3, M-1, etc."
-                                className="mt-2"
-                              />
+                                 className="mt-2"
+                               />
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Zoning determines allowed uses and development requirements.
+                               </p>
                             </div>
 
                             <div>
@@ -554,7 +578,10 @@ export default function Application() {
                                   <SelectItem value="owned-long-term">Owned Long-Term</SelectItem>
                                   <SelectItem value="other">Other</SelectItem>
                                 </SelectContent>
-                              </Select>
+                               </Select>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Acquisition timeline affects feasibility study scope and urgency.
+                               </p>
                               {errors.ownershipStatus && <p className="text-maxx-red text-sm mt-1">{errors.ownershipStatus}</p>}
                             </div>
                           </div>
@@ -588,7 +615,13 @@ export default function Application() {
                               'Specialty - Automotive',
                               'Franchise Prototype',
                               'Custom Build-to-Suit'
-                            ], formData.projectType)}
+                             ], formData.projectType)}
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Project type determines code requirements and market analysis focus.
+                             </p>
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Project type determines code requirements and market analysis focus.
+                             </p>
                             {errors.projectType && <p className="text-maxx-red text-sm mt-1">{errors.projectType}</p>}
                           </div>
 
@@ -633,7 +666,10 @@ export default function Application() {
                                   <SelectItem value="high-rise">High-Rise (10+)</SelectItem>
                                   <SelectItem value="custom">Custom</SelectItem>
                                 </SelectContent>
-                              </Select>
+                               </Select>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Building height impacts zoning compliance and structural costs.
+                               </p>
                               {errors.stories && <p className="text-maxx-red text-sm mt-1">{errors.stories}</p>}
                             </div>
                           </div>
@@ -648,8 +684,11 @@ export default function Application() {
                               onChange={(e) => handleInputChange('prototypeRequirements', e.target.value)}
                               placeholder="Describe any specific prototype or franchise requirements..."
                               className="mt-2"
-                              rows={3}
-                            />
+                               rows={3}
+                             />
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Prototype requirements affect design flexibility and approval process.
+                             </p>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -670,7 +709,10 @@ export default function Application() {
                                   <SelectItem value="prototype">Prototype Standard</SelectItem>
                                   <SelectItem value="build-to-suit">Build-to-Suit</SelectItem>
                                 </SelectContent>
-                              </Select>
+                               </Select>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Quality level determines material specifications and construction costs.
+                               </p>
                               {errors.qualityLevel && <p className="text-maxx-red text-sm mt-1">{errors.qualityLevel}</p>}
                             </div>
 
@@ -706,8 +748,11 @@ export default function Application() {
                               value={formData.submarket}
                               onChange={(e) => handleInputChange('submarket', e.target.value)}
                               placeholder="e.g., Downtown Dallas, Energy Corridor, Plano"
-                              className={`mt-2 ${errors.submarket ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                            />
+                               className={`mt-2 ${errors.submarket ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                             />
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Submarket determines demographics, competition, and market dynamics.
+                             </p>
                             {errors.submarket && <p className="text-maxx-red text-sm mt-1">{errors.submarket}</p>}
                           </div>
 
@@ -728,7 +773,10 @@ export default function Application() {
                               'Tourism',
                               'Port/Logistics',
                               'Other'
-                            ], formData.accessPriorities)}
+                             ], formData.accessPriorities)}
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Access priorities help evaluate location advantages and tenant appeal.
+                             </p>
                           </div>
 
                           <div>
@@ -745,7 +793,10 @@ export default function Application() {
                               'Drainage',
                               'Political Opposition',
                               'Other'
-                            ], formData.knownRisks)}
+                             ], formData.knownRisks)}
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Known risks help prioritize due diligence and budget contingencies.
+                             </p>
                           </div>
 
                           <div>
@@ -761,7 +812,10 @@ export default function Application() {
                               'Fiber',
                               'Stormwater',
                               'Not Sure'
-                            ], formData.utilityAccess)}
+                             ], formData.utilityAccess)}
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Utility availability affects infrastructure costs and development timeline.
+                             </p>
                           </div>
 
                           <div>
@@ -779,7 +833,10 @@ export default function Application() {
                               'Noise',
                               'Other',
                               'Not Sure'
-                            ], formData.environmentalConstraints)}
+                             ], formData.environmentalConstraints)}
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Environmental factors impact permitting requirements and project costs.
+                             </p>
                           </div>
 
                           <div>
@@ -792,8 +849,11 @@ export default function Application() {
                               onChange={(e) => handleInputChange('tenantRequirements', e.target.value)}
                               placeholder="Describe any specific tenant requirements, franchise standards, or operational needs..."
                               className="mt-2"
-                              rows={3}
-                            />
+                               rows={3}
+                             />
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Tenant requirements guide space planning and operational considerations.
+                             </p>
                           </div>
                         </div>
                       )}
@@ -821,7 +881,10 @@ export default function Application() {
                                   <SelectItem value="press">Press</SelectItem>
                                   <SelectItem value="other">Other</SelectItem>
                                 </SelectContent>
-                              </Select>
+                               </Select>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Helps us track marketing effectiveness and tailor our communication.
+                               </p>
                               {errors.hearAboutUs && <p className="text-maxx-red text-sm mt-1">{errors.hearAboutUs}</p>}
                             </div>
 
@@ -839,7 +902,10 @@ export default function Application() {
                                   <SelectItem value="text">Text/SMS</SelectItem>
                                   <SelectItem value="video-call">Video Call</SelectItem>
                                 </SelectContent>
-                              </Select>
+                               </Select>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Ensures we reach you using your preferred communication method.
+                               </p>
                             </div>
                           </div>
 
@@ -857,7 +923,10 @@ export default function Application() {
                                 <SelectItem value="evening">Evening (5pm-7pm)</SelectItem>
                                 <SelectItem value="flexible">Flexible</SelectItem>
                               </SelectContent>
-                            </Select>
+                               </Select>
+                               <p className="text-sm text-charcoal/60 mt-1">
+                                 Helps us schedule calls when you're most likely to be available.
+                               </p>
                           </div>
 
                           <div>
@@ -870,8 +939,11 @@ export default function Application() {
                               onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
                               placeholder="Any additional information that would help us better understand your project..."
                               className="mt-2"
-                              rows={4}
-                            />
+                               rows={4}
+                             />
+                             <p className="text-sm text-charcoal/60 mt-1">
+                               Additional context helps us provide more accurate feasibility analysis.
+                             </p>
                           </div>
 
                           <div>
