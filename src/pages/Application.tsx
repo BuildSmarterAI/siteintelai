@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload } from "lucide-react";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
@@ -596,288 +597,372 @@ export default function Application() {
                              <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
                                Project Type <span className="text-maxx-red text-lg">*</span>
                              </Label>
-                            <p className="text-sm text-charcoal/60 mb-4">Select all that apply (grouped by asset class)</p>
-                            
-                            {/* Retail */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🛍 Retail
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'shopping_center', label: 'Shopping Center' },
-                                  { value: 'strip_mall', label: 'Strip Mall' },
-                                  { value: 'big_box', label: 'Big Box / Anchor Store' },
-                                  { value: 'grocery_specialty', label: 'Grocery / Specialty Retail' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Hospitality */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🏨 Hospitality
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'hotel', label: 'Hotel' },
-                                  { value: 'resort', label: 'Resort' },
-                                  { value: 'restaurant_qsr', label: 'Restaurant / QSR' },
-                                  { value: 'entertainment_venue', label: 'Entertainment Venue / Theater' },
-                                  { value: 'casino_gaming', label: 'Casino / Gaming Facility' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Healthcare */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🏥 Healthcare
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'medical_office_building', label: 'Medical Office Building (MOB)' },
-                                  { value: 'hospital', label: 'Hospital' },
-                                  { value: 'urgent_care_clinic', label: 'Urgent Care / Clinic' },
-                                  { value: 'specialty_clinic', label: 'Specialty Clinic (Dental, Dialysis, Surgery Center)' },
-                                  { value: 'ambulatory_surgery_center', label: 'Ambulatory Surgery Center' },
-                                  { value: 'rehabilitation_center', label: 'Rehabilitation Center' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Industrial */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🏭 Industrial
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'warehouse', label: 'Warehouse' },
-                                  { value: 'manufacturing_facility', label: 'Manufacturing Facility' },
-                                  { value: 'flex_industrial', label: 'Flex Industrial' },
-                                  { value: 'rd_facility', label: 'R&D Facility' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Logistics */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🚚 Logistics
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'distribution_center', label: 'Distribution Center' },
-                                  { value: 'last_mile_facility', label: 'Last-Mile Facility' },
-                                  { value: 'cold_storage_facility', label: 'Cold Storage Facility' },
-                                  { value: 'data_center', label: 'Data Center' },
-                                  { value: 'trucking_terminal', label: 'Trucking Terminal' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Office */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🏢 Office
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'office_class_a', label: 'Office Class A' },
-                                  { value: 'office_class_b', label: 'Office Class B' },
-                                  { value: 'office_class_c', label: 'Office Class C' },
-                                  { value: 'corporate_headquarters', label: 'Corporate Headquarters / Campus' },
-                                  { value: 'coworking_flex_office', label: 'Coworking / Flex Office' },
-                                  { value: 'call_center_operations', label: 'Call Center / Operations' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Mixed-Use */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🏗 Mixed-Use
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'mixed_use_retail_residential', label: 'Mixed-Use (Retail + Residential)' },
-                                  { value: 'mixed_use_office_residential', label: 'Mixed-Use (Office + Residential)' },
-                                  { value: 'mixed_use_retail_office', label: 'Mixed-Use (Retail + Office)' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Specialty */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🎯 Specialty
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'self_storage', label: 'Self Storage' },
-                                  { value: 'automotive_dealership', label: 'Automotive Dealership' },
-                                  { value: 'car_wash', label: 'Car Wash' },
-                                  { value: 'gas_station_convenience', label: 'Gas Station / Convenience Store' },
-                                  { value: 'educational_facility', label: 'Educational / School / Training Facility' },
-                                  { value: 'religious_institutional', label: 'Religious / Institutional Facility' },
-                                  { value: 'civic_community_recreational', label: 'Civic / Community / Recreational Center' },
-                                  { value: 'research_lab_life_sciences', label: 'Research / Lab / Life Sciences' },
-                                  { value: 'sports_facility_arena', label: 'Sports Facility / Arena' },
-                                  { value: 'agricultural_agri_tech', label: 'Agricultural / Agri-Tech Facility' },
-                                  { value: 'performing_arts_center', label: 'Performing Arts Center' },
-                                  { value: 'stadium_arena', label: 'Stadium / Arena' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Other */}
-                            <div className="mb-6">
-                              <h4 className="font-semibold text-charcoal mb-3 flex items-center gap-2">
-                                🏷 Other
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 ml-4">
-                                {[
-                                  { value: 'franchise_prototype', label: 'Franchise Prototype (Custom)' },
-                                  { value: 'custom_build_to_suit', label: 'Custom Build-to-Suit' },
-                                  { value: 'other', label: 'Other' }
-                                ].map((option) => (
-                                  <div key={option.value} className="flex items-center space-x-2">
-                                    <Checkbox
-                                      id={`projectType-${option.value}`}
-                                      checked={formData.projectType.includes(option.value)}
-                                      onCheckedChange={(checked) => {
-                                        handleMultiSelectChange('projectType', option.value, !!checked);
-                                      }}
-                                    />
-                                    <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
-                                      {option.label}
-                                    </Label>
-                                  </div>
-                                ))}
-                              </div>
-                              
-                              {/* Other text input */}
-                              {formData.projectType.includes('other') && (
-                                <div className="mt-3 ml-4">
-                                  <Input
-                                    placeholder="Please specify other project type..."
-                                    value={formData.projectTypeOther || ''}
-                                    onChange={(e) => handleInputChange('projectTypeOther', e.target.value)}
-                                    className="max-w-md"
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            
-                            <p className="text-sm text-charcoal/60 mt-4">
-                              Project type determines code requirements and market analysis focus.
+                            <p className="text-sm text-charcoal/60 mb-4">
+                              Select all project types that apply. Expand categories to see options. Your selection determines zoning checks, cost benchmarking, and feasibility analysis focus.
                             </p>
-                            {errors.projectType && <p className="text-maxx-red text-sm mt-1">{errors.projectType}</p>}
+                            
+                            <Accordion type="multiple" className="w-full space-y-2">
+                              {/* Retail */}
+                              <AccordionItem value="retail" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🛍 Retail
+                                    {formData.projectType.some(type => ['shopping_center', 'strip_mall', 'big_box', 'grocery_specialty'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['shopping_center', 'strip_mall', 'big_box', 'grocery_specialty'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'shopping_center', label: 'Shopping Center' },
+                                      { value: 'strip_mall', label: 'Strip Mall' },
+                                      { value: 'big_box', label: 'Big Box / Anchor Store' },
+                                      { value: 'grocery_specialty', label: 'Grocery / Specialty Retail' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Hospitality */}
+                              <AccordionItem value="hospitality" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🏨 Hospitality
+                                    {formData.projectType.some(type => ['hotel', 'resort', 'restaurant_qsr', 'entertainment_venue', 'casino_gaming'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['hotel', 'resort', 'restaurant_qsr', 'entertainment_venue', 'casino_gaming'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'hotel', label: 'Hotel' },
+                                      { value: 'resort', label: 'Resort' },
+                                      { value: 'restaurant_qsr', label: 'Restaurant / QSR' },
+                                      { value: 'entertainment_venue', label: 'Entertainment Venue / Theater' },
+                                      { value: 'casino_gaming', label: 'Casino / Gaming Facility' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Healthcare */}
+                              <AccordionItem value="healthcare" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🏥 Healthcare
+                                    {formData.projectType.some(type => ['medical_office_building', 'hospital', 'urgent_care_clinic', 'specialty_clinic', 'ambulatory_surgery_center', 'rehabilitation_center'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['medical_office_building', 'hospital', 'urgent_care_clinic', 'specialty_clinic', 'ambulatory_surgery_center', 'rehabilitation_center'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'medical_office_building', label: 'Medical Office Building (MOB)' },
+                                      { value: 'hospital', label: 'Hospital' },
+                                      { value: 'urgent_care_clinic', label: 'Urgent Care / Clinic' },
+                                      { value: 'specialty_clinic', label: 'Specialty Clinic (Dental, Dialysis, Surgery Center)' },
+                                      { value: 'ambulatory_surgery_center', label: 'Ambulatory Surgery Center' },
+                                      { value: 'rehabilitation_center', label: 'Rehabilitation Center' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Industrial */}
+                              <AccordionItem value="industrial" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🏭 Industrial
+                                    {formData.projectType.some(type => ['warehouse', 'manufacturing_facility', 'flex_industrial', 'rd_facility'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['warehouse', 'manufacturing_facility', 'flex_industrial', 'rd_facility'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'warehouse', label: 'Warehouse' },
+                                      { value: 'manufacturing_facility', label: 'Manufacturing Facility' },
+                                      { value: 'flex_industrial', label: 'Flex Industrial' },
+                                      { value: 'rd_facility', label: 'R&D Facility' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Logistics */}
+                              <AccordionItem value="logistics" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🚚 Logistics
+                                    {formData.projectType.some(type => ['distribution_center', 'last_mile_facility', 'cold_storage_facility', 'data_center', 'trucking_terminal'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['distribution_center', 'last_mile_facility', 'cold_storage_facility', 'data_center', 'trucking_terminal'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'distribution_center', label: 'Distribution Center' },
+                                      { value: 'last_mile_facility', label: 'Last-Mile Facility' },
+                                      { value: 'cold_storage_facility', label: 'Cold Storage Facility' },
+                                      { value: 'data_center', label: 'Data Center' },
+                                      { value: 'trucking_terminal', label: 'Trucking Terminal' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Office */}
+                              <AccordionItem value="office" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🏢 Office
+                                    {formData.projectType.some(type => ['office_class_a', 'office_class_b', 'office_class_c', 'corporate_headquarters', 'coworking_flex_office', 'call_center_operations'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['office_class_a', 'office_class_b', 'office_class_c', 'corporate_headquarters', 'coworking_flex_office', 'call_center_operations'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'office_class_a', label: 'Office Class A' },
+                                      { value: 'office_class_b', label: 'Office Class B' },
+                                      { value: 'office_class_c', label: 'Office Class C' },
+                                      { value: 'corporate_headquarters', label: 'Corporate Headquarters / Campus' },
+                                      { value: 'coworking_flex_office', label: 'Coworking / Flex Office' },
+                                      { value: 'call_center_operations', label: 'Call Center / Operations' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Mixed-Use */}
+                              <AccordionItem value="mixed-use" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🏗 Mixed-Use
+                                    {formData.projectType.some(type => ['mixed_use_retail_residential', 'mixed_use_office_residential', 'mixed_use_retail_office'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['mixed_use_retail_residential', 'mixed_use_office_residential', 'mixed_use_retail_office'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'mixed_use_retail_residential', label: 'Mixed-Use (Retail + Residential)' },
+                                      { value: 'mixed_use_office_residential', label: 'Mixed-Use (Office + Residential)' },
+                                      { value: 'mixed_use_retail_office', label: 'Mixed-Use (Retail + Office)' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Specialty */}
+                              <AccordionItem value="specialty" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🎯 Specialty
+                                    {formData.projectType.some(type => ['self_storage', 'automotive_dealership', 'car_wash', 'gas_station_convenience', 'educational_facility', 'religious_institutional', 'civic_community_recreational', 'research_lab_life_sciences', 'sports_facility_arena', 'agricultural_agri_tech', 'performing_arts_center', 'stadium_arena'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['self_storage', 'automotive_dealership', 'car_wash', 'gas_station_convenience', 'educational_facility', 'religious_institutional', 'civic_community_recreational', 'research_lab_life_sciences', 'sports_facility_arena', 'agricultural_agri_tech', 'performing_arts_center', 'stadium_arena'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {[
+                                      { value: 'self_storage', label: 'Self Storage' },
+                                      { value: 'automotive_dealership', label: 'Automotive Dealership' },
+                                      { value: 'car_wash', label: 'Car Wash' },
+                                      { value: 'gas_station_convenience', label: 'Gas Station / Convenience Store' },
+                                      { value: 'educational_facility', label: 'Educational / School / Training Facility' },
+                                      { value: 'religious_institutional', label: 'Religious / Institutional Facility' },
+                                      { value: 'civic_community_recreational', label: 'Civic / Community / Recreational Center' },
+                                      { value: 'research_lab_life_sciences', label: 'Research / Lab / Life Sciences' },
+                                      { value: 'sports_facility_arena', label: 'Sports Facility / Arena' },
+                                      { value: 'agricultural_agri_tech', label: 'Agricultural / Agri-Tech Facility' },
+                                      { value: 'performing_arts_center', label: 'Performing Arts Center' },
+                                      { value: 'stadium_arena', label: 'Stadium / Arena' }
+                                    ].map((option) => (
+                                      <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox
+                                          id={`projectType-${option.value}`}
+                                          checked={formData.projectType.includes(option.value)}
+                                          onCheckedChange={(checked) => {
+                                            handleMultiSelectChange('projectType', option.value, !!checked);
+                                          }}
+                                        />
+                                        <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                          {option.label}
+                                        </Label>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+
+                              {/* Other */}
+                              <AccordionItem value="other" className="border border-charcoal/20 rounded-lg px-4">
+                                <AccordionTrigger className="hover:no-underline">
+                                  <div className="flex items-center gap-2 font-medium">
+                                    🏷 Other
+                                    {formData.projectType.some(type => ['franchise_prototype', 'custom_build_to_suit', 'other'].includes(type)) && (
+                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                        {formData.projectType.filter(type => ['franchise_prototype', 'custom_build_to_suit', 'other'].includes(type)).length} selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-4">
+                                  <div className="space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {[
+                                        { value: 'franchise_prototype', label: 'Franchise Prototype (Custom)' },
+                                        { value: 'custom_build_to_suit', label: 'Custom Build-to-Suit' },
+                                        { value: 'other', label: 'Other' }
+                                      ].map((option) => (
+                                        <div key={option.value} className="flex items-center space-x-2">
+                                          <Checkbox
+                                            id={`projectType-${option.value}`}
+                                            checked={formData.projectType.includes(option.value)}
+                                            onCheckedChange={(checked) => {
+                                              handleMultiSelectChange('projectType', option.value, !!checked);
+                                            }}
+                                          />
+                                          <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
+                                            {option.label}
+                                          </Label>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    
+                                    {/* Other text input */}
+                                    {formData.projectType.includes('other') && (
+                                      <div className="mt-3">
+                                        <Input
+                                          placeholder="Please specify other project type..."
+                                          value={formData.projectTypeOther || ''}
+                                          onChange={(e) => handleInputChange('projectTypeOther', e.target.value)}
+                                          className="max-w-md"
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </AccordionContent>
+                              </AccordionItem>
+                            </Accordion>
+                            
+                            {errors.projectType && <p className="text-maxx-red text-sm mt-2">{errors.projectType}</p>}
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
