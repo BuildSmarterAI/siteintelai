@@ -23,7 +23,7 @@ interface AddressSuggestion {
 
 interface AddressAutocompleteProps {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, coordinates?: { lat: number; lng: number }) => void;
   placeholder?: string;
   className?: string;
   label?: string;
@@ -91,10 +91,20 @@ export function AddressAutocomplete({
 
       if (error) throw error;
 
+      let coordinates: { lat: number; lng: number } | undefined;
+      
+      // Extract coordinates from geometry
+      if (data?.result?.geometry?.location) {
+        coordinates = {
+          lat: data.result.geometry.location.lat,
+          lng: data.result.geometry.location.lng
+        };
+      }
+
       if (data?.result?.formatted_address) {
-        onChange(data.result.formatted_address);
+        onChange(data.result.formatted_address, coordinates);
       } else {
-        onChange(suggestion.description);
+        onChange(suggestion.description, coordinates);
       }
     } catch (error) {
       console.error('Error fetching place details:', error);

@@ -45,6 +45,8 @@ export default function Application() {
     currentUse: "",
     zoning: "",
     ownershipStatus: "",
+    geoLat: null as number | null,
+    geoLng: null as number | null,
     
     // Step 3: Project Intent & Building Parameters
     projectType: [] as string[],
@@ -185,6 +187,8 @@ export default function Application() {
         existingImprovements: formData.currentUse,
         zoningClassification: formData.zoning,
         ownershipStatus: formData.ownershipStatus,
+        geoLat: formData.geoLat,
+        geoLng: formData.geoLng,
         projectType: formData.projectType,
         buildingSizeValue: formData.buildingSize,
         buildingSizeUnit: formData.buildingSizeUnit,
@@ -461,7 +465,16 @@ export default function Application() {
                         <div className="space-y-6 animate-fade-in">
                            <AddressAutocomplete
                              value={formData.propertyAddress}
-                             onChange={(value) => handleInputChange('propertyAddress', value)}
+                             onChange={(value, coordinates) => {
+                               handleInputChange('propertyAddress', value);
+                               if (coordinates) {
+                                 setFormData(prev => ({
+                                   ...prev,
+                                   geoLat: coordinates.lat,
+                                   geoLng: coordinates.lng
+                                 }));
+                               }
+                             }}
                              placeholder="123 Main Street, City, State, ZIP"
                              label="Property Address"
                              error={errors.propertyAddress}
