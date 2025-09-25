@@ -36,6 +36,38 @@ serve(async (req) => {
     const utmTerm = req.headers.get('utm-term') || requestData.utm_term;
     const pageUrl = req.headers.get('referer') || requestData.page_url || 'unknown';
 
+    // Normalize numeric values and determine geolocation
+    const parseNumber = (val: unknown): number | null => {
+      if (typeof val === 'number' && !Number.isNaN(val)) return val;
+      if (typeof val === 'string') {
+        const cleaned = val.replace(/[^0-9.-]/g, '');
+        const n = parseFloat(cleaned);
+        return Number.isNaN(n) ? null : n;
+      }
+      return null;
+    };
+
+    let geo_lat = parseNumber(requestData.geoLat);
+    let geo_lng = parseNumber(requestData.geoLng);
+
+    // Fallback geocoding by address if coordinates missing
+    if ((geo_lat === null || geo_lng === null) && requestData.propertyAddress) {
+      try {
+        const apiKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
+        if (apiKey) {
+          const q = encodeURIComponent(String(requestData.propertyAddress));
+          const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
+          const geoData = await geoResp.json();
+          if (geoData?.results?.[0]?.geometry?.location) {
+            geo_lat = geoData.results[0].geometry.location.lat;
+            geo_lng = geoData.results[0].geometry.location.lng;
+          }
+        }
+      } catch (e) {
+        console.error('Geocoding fallback failed:', e);
+      }
+    }
+
     // Prepare the application data
     const applicationData = {
       // Step 1: Contact Information
@@ -45,24 +77,24 @@ serve(async (req) => {
       phone: requestData.phone,
       
       // Step 2: Property Information
-      property_address: requestData.propertyAddress, // Should be JSONB object
-      parcel_id_apn: requestData.parcelId || null,
-      lot_size_value: requestData.lotSizeValue ? parseFloat(requestData.lotSizeValue) : null,
+      property_address: requestData.propertyAddress, // Can be string or JSON
+      parcel_id_apn: requestData.parcelIdApn || requestData.parcelId || null,
+      lot_size_value: parseNumber(requestData.lotSizeValue),
       lot_size_unit: requestData.lotSizeUnit || null,
       existing_improvements: requestData.existingImprovements,
       zoning_classification: requestData.zoningClassification || null,
       ownership_status: requestData.ownershipStatus,
-      geo_lat: requestData.geoLat || null,
-      geo_lng: requestData.geoLng || null,
+      geo_lat: geo_lat,
+      geo_lng: geo_lng,
       
       // Step 3: Project Intent & Building Parameters
       project_type: requestData.projectType || [], // Array
-      building_size_value: requestData.buildingSizeValue ? parseFloat(requestData.buildingSizeValue) : null,
+      building_size_value: parseNumber(requestData.buildingSizeValue),
       building_size_unit: requestData.buildingSizeUnit || null,
       stories_height: requestData.storiesHeight,
       prototype_requirements: requestData.prototypeRequirements || null,
       quality_level: requestData.qualityLevel,
-      desired_budget: requestData.desiredBudget ? parseFloat(requestData.desiredBudget) : null,
+      desired_budget: parseNumber(requestData.desiredBudget),
       
       // Step 4: Market & Risks
       submarket: requestData.submarket,
