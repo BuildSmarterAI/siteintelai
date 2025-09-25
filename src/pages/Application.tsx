@@ -132,7 +132,6 @@ export default function Application() {
 
     if (step === 2) {
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
-      if (!formData.lotSize) newErrors.lotSize = "Lot size is required";
       if (!formData.currentUse) newErrors.currentUse = "Current use is required";
       if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }
@@ -499,8 +498,8 @@ export default function Application() {
                             </div>
 
                              <div>
-                               <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Lot Size / Acreage <span className="text-maxx-red text-lg">*</span>
+                               <Label className="font-body font-semibold text-charcoal">
+                                 Lot Size / Acreage
                                </Label>
                               <div className="flex gap-2 mt-2">
                                 <Input
