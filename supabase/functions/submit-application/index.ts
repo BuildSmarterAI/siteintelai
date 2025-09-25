@@ -52,6 +52,8 @@ serve(async (req) => {
       existing_improvements: requestData.existingImprovements,
       zoning_classification: requestData.zoningClassification || null,
       ownership_status: requestData.ownershipStatus,
+      geo_lat: requestData.geoLat || null,
+      geo_lng: requestData.geoLng || null,
       
       // Step 3: Project Intent & Building Parameters
       project_type: requestData.projectType || [], // Array
@@ -128,7 +130,7 @@ serve(async (req) => {
     console.error('Error in submit-application function:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      details: error.message 
+      details: error instanceof Error ? error.message : 'Unknown error occurred'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
