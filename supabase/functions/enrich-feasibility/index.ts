@@ -164,8 +164,17 @@ async function fetchElevation(lat: number, lng: number): Promise<number | null> 
   try {
     const url = `${USGS_ELEVATION_URL}?x=${lng}&y=${lat}&units=Feet&output=json`;
     const response = await fetch(url);
-    const data = await response.json();
-    return data?.USGS_Elevation_Point_Query_Service?.Elevation_Query?.Elevation || null;
+    const text = await response.text();
+    
+    if (!text || text.trim() === '') {
+      console.error('Elevation API returned empty response');
+      return null;
+    }
+    
+    const data = JSON.parse(text);
+    const elevation = data?.USGS_Elevation_Point_Query_Service?.Elevation_Query?.Elevation;
+    console.log('Elevation data:', { elevation, raw: text.substring(0, 200) });
+    return elevation || null;
   } catch (error) {
     console.error('Elevation fetch error:', error);
     return null;
@@ -885,6 +894,14 @@ serve(async (req) => {
       dataFlags.push('elevation_missing');
     }
 
+    // Generate map URLs for topography and aerial imagery
+    enrichedData.topography_map_url = `https://apps.nationalmap.gov/viewer/?bbox=${geoLng - 0.01},${geoLat - 0.01},${geoLng + 0.01},${geoLat + 0.01}`;
+    enrichedData.aerial_imagery_url = `https://www.google.com/maps/@${geoLat},${geoLng},18z/data=!5m1!1e4`;
+    console.log('Generated map URLs:', {
+      topography: enrichedData.topography_map_url,
+      aerial: enrichedData.aerial_imagery_url
+    });
+
     // Step 5: Environmental Constraints
     console.log('Fetching wetlands data...');
     const wetlands = await fetchWetlands(geoLat, geoLng);
@@ -976,6 +993,8 @@ serve(async (req) => {
         base_flood_elevation: enrichedData.base_flood_elevation,
         fema_panel_id: enrichedData.fema_panel_id,
         elevation: enrichedData.elevation,
+        topography_map_url: enrichedData.topography_map_url,
+        aerial_imagery_url: enrichedData.aerial_imagery_url,
         wetlands_type: enrichedData.wetlands_type,
         soil_series: enrichedData.soil_series,
         soil_slope_percent: enrichedData.soil_slope_percent,
