@@ -190,8 +190,13 @@ const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
 const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
 const TXDOT_AADT_URLS = [
-  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT_Traffic_Counts/FeatureServer/0/query",
-  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Traffic_Counts/FeatureServer/0/query"
+  // TxDOT official traffic count services
+  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Annual_Average_Daily_Traffic/FeatureServer/0/query",
+  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT_2023/FeatureServer/0/query",
+  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT_2022/FeatureServer/0/query",
+  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Traffic_Counts/FeatureServer/0/query",
+  // Houston-specific traffic data
+  "https://cohgis.houstontx.gov/arcgis/rest/services/PW/Traffic_Volumes/MapServer/0/query"
 ];
 const CENSUS_ACS_BASE = "https://api.census.gov/data/2022/acs/acs5";
 const BLS_QCEW_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
@@ -468,7 +473,7 @@ async function fetchTrafficData(lat: number, lng: number): Promise<any> {
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      distance: '2640', // ~0.5 miles
+      distance: '5280', // Increased to 1 mile for better coverage
       units: 'esriFeet',
       where: '1=1',
       outFields: '*',
@@ -476,43 +481,108 @@ async function fetchTrafficData(lat: number, lng: number): Promise<any> {
       f: 'json'
     } as const;
 
+    console.log('Fetching traffic data from multiple TxDOT sources...');
+
     for (const url of TXDOT_AADT_URLS) {
       try {
         const params = new URLSearchParams(commonParams as any);
-        const resp = await fetch(`${url}?${params}`);
+        const resp = await fetch(`${url}?${params}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!resp.ok) {
+          console.log(`TxDOT endpoint ${url} returned status ${resp.status}`);
+          continue;
+        }
+        
         const text = await resp.text();
         if (!text || text.trim().startsWith('<')) {
           console.log('TxDOT endpoint returned HTML/invalid, trying next');
           continue;
         }
+        
         const data = JSON.parse(text);
-        if (data?.features?.[0]) {
-          const feature = data.features[0];
+        
+        if (data?.features && data.features.length > 0) {
+          // Sort features by distance to find nearest
+          const sortedFeatures = data.features.sort((a: any, b: any) => {
+            const geomA = a.geometry;
+            const geomB = b.geometry;
+            const distA = geomA?.x && geomA?.y ? haversineFt(lat, lng, geomA.y, geomA.x) : Infinity;
+            const distB = geomB?.x && geomB?.y ? haversineFt(lat, lng, geomB.y, geomB.x) : Infinity;
+            return distA - distB;
+          });
+          
+          const feature = sortedFeatures[0];
           const attrs = feature.attributes || {};
           const geom = feature.geometry;
           const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
-          return {
-            traffic_aadt: attrs.AADT || attrs.aadt || attrs.AADT_2022 || null,
-            traffic_year: attrs.YEAR || attrs.year || attrs.COUNT_YEAR || null,
-            traffic_segment_id: attrs.SECTION_ID || attrs.OBJECTID || attrs.STATION_ID || null,
-            traffic_distance_ft: distFt || null,
-            traffic_road_name: attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || attrs.Route || null,
-            traffic_direction: attrs.DIRECTION || attrs.DIR || null,
-            traffic_map_url: url.replace('/query','')
-          };
+          
+          // Extract AADT with multiple field name attempts
+          const aadt = attrs.AADT || attrs.aadt || attrs.AADT_2023 || attrs.AADT_2022 || 
+                      attrs.AADT_2021 || attrs.CUR_AADT || attrs.CURRENT_AADT || 
+                      attrs.AVG_DAILY_TRAFFIC || attrs.TRAFFIC_COUNT || null;
+          
+          // Extract year with multiple field name attempts
+          const year = attrs.YEAR || attrs.year || attrs.COUNT_YEAR || attrs.AADT_YEAR ||
+                      attrs.DATA_YEAR || attrs.SURVEY_YEAR || 2023;
+          
+          // Extract segment ID with multiple field name attempts
+          const segmentId = attrs.SECTION_ID || attrs.OBJECTID || attrs.STATION_ID || 
+                           attrs.SEGMENT_ID || attrs.RTE_ID || attrs.ROADWAY_ID || 
+                           attrs.FID || null;
+          
+          // Extract road name with multiple field name attempts
+          const roadName = attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || 
+                          attrs.Route || attrs.STREET_NAME || attrs.ROADWAY_NAME || 
+                          attrs.NAME || null;
+          
+          // Extract direction
+          const direction = attrs.DIRECTION || attrs.DIR || attrs.TRAFFIC_DIR || null;
+          
+          if (aadt || roadName) {
+            console.log(`Traffic data found from ${url}:`, {
+              aadt,
+              year,
+              segmentId,
+              roadName,
+              direction,
+              distFt
+            });
+            
+            return {
+              traffic_aadt: aadt ? Number(aadt) : null,
+              traffic_year: year ? Number(year) : null,
+              traffic_segment_id: segmentId ? String(segmentId) : null,
+              traffic_distance_ft: distFt,
+              traffic_road_name: roadName,
+              traffic_direction: direction,
+              traffic_map_url: url.replace('/query', '')
+            };
+          }
         }
       } catch (inner) {
-        console.error('TxDOT endpoint error:', inner);
+        console.error(`TxDOT endpoint ${url} error:`, inner);
         continue;
       }
     }
 
-    // Fallback to OSM if no TxDOT data
+    console.log('No TxDOT traffic data found, falling back to OSM');
+    // Fallback to OSM if no TxDOT data (will not have AADT/year/segment)
     const osm = await fallbackRoadFromOSM(lat, lng);
-    return { ...osm };
+    return { 
+      ...osm,
+      traffic_aadt: null,
+      traffic_year: null,
+      traffic_segment_id: null
+    };
   } catch (error) {
     console.error('Traffic data fetch error:', error);
-    return {};
+    return {
+      traffic_aadt: null,
+      traffic_year: null,
+      traffic_segment_id: null
+    };
   }
 }
 
