@@ -119,6 +119,8 @@ export function AddressAutocomplete({
       if (data?.result?.address_components) {
         const components = data.result.address_components;
         
+        console.log('Google API address_components:', components);
+        
         // County (administrative_area_level_2)
         const countyComponent = components.find((c: any) =>
           c.types.includes('administrative_area_level_2')
@@ -151,7 +153,7 @@ export function AddressAutocomplete({
           addressDetails.zipCode = zipComponent.long_name;
         }
 
-        // Neighborhood
+        // Neighborhood (try neighborhood first, then sublocality as fallback)
         const neighborhoodComponent = components.find((c: any) =>
           c.types.includes('neighborhood')
         );
@@ -159,13 +161,19 @@ export function AddressAutocomplete({
           addressDetails.neighborhood = neighborhoodComponent.long_name;
         }
 
-        // Sublocality
+        // Sublocality (use as both sublocality AND neighborhood fallback)
         const sublocalityComponent = components.find((c: any) =>
           c.types.includes('sublocality') || c.types.includes('sublocality_level_1')
         );
         if (sublocalityComponent) {
           addressDetails.sublocality = sublocalityComponent.long_name;
+          // Use sublocality as neighborhood fallback if neighborhood not found
+          if (!addressDetails.neighborhood) {
+            addressDetails.neighborhood = sublocalityComponent.long_name;
+          }
         }
+        
+        console.log('Extracted address details:', addressDetails);
       }
 
       // Override with Place ID from details if available (more reliable)

@@ -122,7 +122,7 @@ serve(async (req) => {
                 }
               }
 
-              // Neighborhood
+              // Neighborhood (try neighborhood first, then sublocality as fallback)
               if (!neighborhood_raw) {
                 const neighborhoodComponent = result.address_components.find(
                   (component: any) => component.types.includes('neighborhood')
@@ -132,13 +132,17 @@ serve(async (req) => {
                 }
               }
 
-              // Sublocality
+              // Sublocality (also use as neighborhood fallback)
               if (!sublocality) {
                 const sublocalityComponent = result.address_components.find(
                   (component: any) => component.types.includes('sublocality') || component.types.includes('sublocality_level_1')
                 );
                 if (sublocalityComponent) {
                   sublocality = sublocalityComponent.long_name;
+                  // Use as neighborhood fallback if neighborhood not found
+                  if (!neighborhood_raw) {
+                    neighborhood_raw = sublocalityComponent.long_name;
+                  }
                 }
               }
             }
