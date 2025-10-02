@@ -136,7 +136,6 @@ export default function Application() {
     }
 
     if (step === 3) {
-      if (!formData.buildingSize) newErrors.buildingSize = "Building size is required";
       if (!formData.stories) newErrors.stories = "Number of stories is required";
       if (!formData.budget) newErrors.budget = "Budget is required";
     }
@@ -975,28 +974,30 @@ export default function Application() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div>
-                               <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Desired Building Size <span className="text-maxx-red text-lg">*</span>
-                               </Label>
-                              <div className="flex gap-2 mt-2">
-                                <Input
-                                  value={formData.buildingSize}
-                                  onChange={(e) => handleInputChange('buildingSize', e.target.value)}
-                                  placeholder="50000"
-                                  className={`${errors.buildingSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                                />
-                                 <Select value={formData.buildingSizeUnit} onValueChange={(value) => handleInputChange('buildingSizeUnit', value)}>
-                                   <SelectTrigger className="w-24">
-                                     <SelectValue />
-                                   </SelectTrigger>
-                                   <SelectContent>
-                                     <SelectItem value="sqft">Sq Ft</SelectItem>
-                                   </SelectContent>
-                                 </Select>
-                              </div>
-                              {errors.buildingSize && <p className="text-maxx-red text-sm mt-1">{errors.buildingSize}</p>}
+                           <div>
+                             <Label className="font-body font-semibold text-charcoal">
+                               Desired Building Size
+                             </Label>
+                            <div className="flex gap-2 mt-2">
+                              <Input
+                                value={formData.buildingSize}
+                                onChange={(e) => handleInputChange('buildingSize', e.target.value)}
+                                placeholder="e.g., 50000 or 'Maximum Possible' or 'Don't Know'"
+                                className="border-charcoal/20"
+                              />
+                               <Select value={formData.buildingSizeUnit} onValueChange={(value) => handleInputChange('buildingSizeUnit', value)}>
+                                 <SelectTrigger className="w-24">
+                                   <SelectValue />
+                                 </SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="sqft">Sq Ft</SelectItem>
+                                 </SelectContent>
+                               </Select>
                             </div>
+                            <p className="text-sm text-charcoal/60 mt-1">
+                              Enter desired size, or specify 'Maximum Possible' or 'Don't Know' if unsure.
+                            </p>
+                          </div>
 
                              <div>
                                <Label htmlFor="stories" className="font-body font-semibold text-charcoal flex items-center gap-1">
