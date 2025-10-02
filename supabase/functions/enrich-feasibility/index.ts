@@ -198,26 +198,67 @@ const OPPORTUNITY_ZONES_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcg
 const TEXAS_ENTERPRISE_ZONES_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Texas_Enterprise_Zones/FeatureServer/0/query";
 const US_FTZ_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/Foreign_Trade_Zones/FeatureServer/0/query";
 
-// Helper function to fetch elevation from USGS
+// Helper function to fetch elevation with multiple fallback sources
 async function fetchElevation(lat: number, lng: number): Promise<number | null> {
+  const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
+  
+  // Try Google Elevation API first (most reliable)
+  if (GOOGLE_API_KEY) {
+    try {
+      const googleUrl = `https://maps.googleapis.com/maps/api/elevation/json?locations=${lat},${lng}&key=${GOOGLE_API_KEY}`;
+      const googleResponse = await fetch(googleUrl);
+      const googleData = await googleResponse.json();
+      
+      if (googleData?.results?.[0]?.elevation) {
+        const elevationMeters = googleData.results[0].elevation;
+        const elevationFeet = elevationMeters * 3.28084; // Convert to feet
+        console.log('Elevation from Google:', elevationFeet);
+        return elevationFeet;
+      }
+    } catch (error) {
+      console.error('Google Elevation API error:', error);
+    }
+  }
+  
+  // Try Open-Elevation as fallback (free, no API key)
+  try {
+    const openElevUrl = `https://api.open-elevation.com/api/v1/lookup?locations=${lat},${lng}`;
+    const openElevResponse = await fetch(openElevUrl);
+    const openElevData = await openElevResponse.json();
+    
+    if (openElevData?.results?.[0]?.elevation) {
+      const elevationMeters = openElevData.results[0].elevation;
+      const elevationFeet = elevationMeters * 3.28084; // Convert to feet
+      console.log('Elevation from Open-Elevation:', elevationFeet);
+      return elevationFeet;
+    }
+  } catch (error) {
+    console.error('Open-Elevation API error:', error);
+  }
+  
+  // Try USGS as final fallback
   try {
     const url = `${USGS_ELEVATION_URL}?x=${lng}&y=${lat}&units=Feet&output=json`;
     const response = await fetch(url);
     const text = await response.text();
     
     if (!text || text.trim() === '') {
-      console.error('Elevation API returned empty response');
+      console.error('USGS Elevation API returned empty response');
       return null;
     }
     
     const data = JSON.parse(text);
     const elevation = data?.USGS_Elevation_Point_Query_Service?.Elevation_Query?.Elevation;
-    console.log('Elevation data:', { elevation, raw: text.substring(0, 200) });
-    return elevation || null;
+    if (elevation) {
+      console.log('Elevation from USGS:', elevation);
+      return elevation;
+    }
   } catch (error) {
-    console.error('Elevation fetch error:', error);
-    return null;
+    console.error('USGS Elevation fetch error:', error);
   }
+  
+  console.log('All elevation sources failed');
+  return null;
 }
 
 // Helper function to fetch wetlands data from USFWS
