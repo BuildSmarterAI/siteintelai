@@ -728,9 +728,13 @@ serve(async (req) => {
         enrichedData.geo_lat = geoLat;
         enrichedData.geo_lng = geoLng;
         enrichedData.situs_address = result.formatted_address;
+        enrichedData.place_id = result.place_id;
 
+        // Extract all address components
+        const components = result.address_components || [];
+        
         // Extract county (administrative_area_level_2)
-        const countyComponent = result.address_components?.find((c: any) =>
+        const countyComponent = components.find((c: any) =>
           c.types.includes('administrative_area_level_2')
         );
         if (countyComponent) {
@@ -738,7 +742,46 @@ serve(async (req) => {
           enrichedData.administrative_area_level_2 = countyName;
         }
         
-        console.log('Geocoding successful:', { geoLat, geoLng, countyName });
+        // Extract neighborhood
+        const neighborhoodComponent = components.find((c: any) =>
+          c.types.includes('neighborhood')
+        );
+        if (neighborhoodComponent) {
+          enrichedData.neighborhood = neighborhoodComponent.long_name;
+        }
+        
+        // Extract sublocality
+        const sublocalityComponent = components.find((c: any) =>
+          c.types.includes('sublocality') || c.types.includes('sublocality_level_1')
+        );
+        if (sublocalityComponent) {
+          enrichedData.sublocality = sublocalityComponent.long_name;
+        }
+        
+        // Extract locality (city)
+        const localityComponent = components.find((c: any) =>
+          c.types.includes('locality')
+        );
+        if (localityComponent) {
+          enrichedData.city = localityComponent.long_name;
+        }
+        
+        // Submarket is typically city + neighborhood or sublocality
+        enrichedData.submarket_enriched = [
+          enrichedData.city,
+          enrichedData.neighborhood || enrichedData.sublocality
+        ].filter(Boolean).join(' - ') || null;
+        
+        console.log('Geocoding successful:', { 
+          geoLat, 
+          geoLng, 
+          place_id: enrichedData.place_id,
+          county: countyName,
+          city: enrichedData.city,
+          neighborhood: enrichedData.neighborhood,
+          sublocality: enrichedData.sublocality,
+          submarket: enrichedData.submarket_enriched
+        });
       } else {
         console.log('No geocoding results found');
         dataFlags.push('geocoding_failed');
@@ -977,7 +1020,12 @@ serve(async (req) => {
         geo_lat: enrichedData.geo_lat,
         geo_lng: enrichedData.geo_lng,
         situs_address: enrichedData.situs_address,
+        place_id: enrichedData.place_id,
         county: enrichedData.administrative_area_level_2,
+        city: enrichedData.city,
+        neighborhood: enrichedData.neighborhood,
+        sublocality: enrichedData.sublocality,
+        submarket_enriched: enrichedData.submarket_enriched,
         
         // Parcel
         parcel_id: enrichedData.parcel_id,
