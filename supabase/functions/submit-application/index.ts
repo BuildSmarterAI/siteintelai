@@ -246,8 +246,8 @@ serve(async (req) => {
       acreage_cad: parseNumber(requestData.acreageCad),
       situs_address: requestData.situsAddress || null,
       overlay_district: requestData.overlayDistrict || null,
+      floodplain: requestData.floodplainZone || null,
       base_flood_elevation: parseNumber(requestData.baseFloodElevation),
-      data_flags: requestData.dataFlags || null,
     };
 
     console.log('Inserting application data:', applicationData);

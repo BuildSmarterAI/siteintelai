@@ -233,10 +233,10 @@ export default function Application() {
           parcelOwner: enrichedData.parcel_owner,
           acreageCad: enrichedData.acreage_cad,
           situsAddress: enrichedData.situs_address,
+          administrativeAreaLevel2: enrichedData.administrative_area_level_2,
           overlayDistrict: enrichedData.overlay_district,
-          floodplain: enrichedData.floodplain,
-          baseFloodElevation: enrichedData.base_flood_elevation,
-          dataFlags: enrichedData.data_flags
+          floodplainZone: enrichedData.floodplain_zone,
+          baseFloodElevation: enrichedData.base_flood_elevation
         })
       };
 
@@ -510,13 +510,19 @@ export default function Application() {
                                  // Auto-fill enriched fields
                                  setFormData(prev => ({
                                    ...prev,
-                                   parcelId: data.data.parcel_id_apn || prev.parcelId,
+                                   parcelId: data.data.parcel_id || prev.parcelId,
                                    zoning: data.data.zoning_code || prev.zoning,
                                    lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize
                                  }));
                                  toast({
-                                   title: "GIS Data Loaded",
+                                   title: "GIS Data Loaded ✅",
                                    description: "Property information has been automatically filled from public records.",
+                                 });
+                               } else if (!data?.success) {
+                                 toast({
+                                   title: "Manual Entry Required ⚠️",
+                                   description: data?.error || "Unable to load GIS data for this location.",
+                                   variant: "destructive"
                                  });
                                }
                              }}

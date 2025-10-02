@@ -43,72 +43,75 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { application_id, address, lat, lng, county } = await req.json();
+    const { application_id, address } = await req.json();
 
-    console.log('Enriching application:', { application_id, address, lat, lng, county });
+    console.log('Enriching application:', { application_id, address });
 
     // application_id is optional - if not provided, we'll just return the data without saving
 
     const dataFlags: string[] = [];
-    const updateData: any = {};
+    const enrichedData: any = {};
 
-    let geoLat = lat;
-    let geoLng = lng;
-    let countyName = county;
+    let geoLat: number | null = null;
+    let geoLng: number | null = null;
+    let countyName: string | null = null;
 
-    // Geocode if coordinates not provided
-    if (!geoLat || !geoLng) {
-      try {
-        const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${googleApiKey}`;
-        const geoResp = await fetch(geoUrl);
-        const geoData = await geoResp.json();
+    // Step 1: Geocode the address
+    try {
+      const geoUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${googleApiKey}`;
+      const geoResp = await fetch(geoUrl);
+      const geoData = await geoResp.json();
 
-        if (geoData?.results?.[0]) {
-          const result = geoData.results[0];
-          geoLat = result.geometry.location.lat;
-          geoLng = result.geometry.location.lng;
-          updateData.geo_lat = geoLat;
-          updateData.geo_lng = geoLng;
-          updateData.situs_address = result.formatted_address;
+      if (geoData?.results?.[0]) {
+        const result = geoData.results[0];
+        geoLat = result.geometry.location.lat;
+        geoLng = result.geometry.location.lng;
+        enrichedData.geo_lat = geoLat;
+        enrichedData.geo_lng = geoLng;
+        enrichedData.situs_address = result.formatted_address;
 
-          // Extract county
-          const countyComponent = result.address_components?.find((c: any) =>
-            c.types.includes('administrative_area_level_2')
-          );
-          if (countyComponent) {
-            countyName = countyComponent.long_name;
-            updateData.county = countyName;
-          }
+        // Extract county (administrative_area_level_2)
+        const countyComponent = result.address_components?.find((c: any) =>
+          c.types.includes('administrative_area_level_2')
+        );
+        if (countyComponent) {
+          countyName = countyComponent.long_name;
+          enrichedData.administrative_area_level_2 = countyName;
         }
-      } catch (error) {
-        console.error('Geocoding error:', error);
+        
+        console.log('Geocoding successful:', { geoLat, geoLng, countyName });
+      } else {
+        console.log('No geocoding results found');
         dataFlags.push('geocoding_failed');
       }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      dataFlags.push('geocoding_failed');
     }
 
-    // Check if county has endpoints
-    const endpoints = ENDPOINT_CATALOG[countyName];
-    if (!endpoints) {
-      console.log(`No endpoints configured for county: ${countyName}`);
-      dataFlags.push('county_not_supported');
-      
-      // Update with flags and return
-      updateData.data_flags = dataFlags;
-      await supabase
-        .from('applications')
-        .update(updateData)
-        .eq('id', application_id);
-
+    // If geocoding failed, return error
+    if (!geoLat || !geoLng || !countyName) {
       return new Response(JSON.stringify({
         success: false,
-        message: 'Manual entry required - county not in catalog',
-        dataFlags
+        error: 'Unable to geocode address'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Query parcel data
+    // Step 2: Check if county has endpoints
+    const endpoints = ENDPOINT_CATALOG[countyName];
+    if (!endpoints) {
+      console.log(`No endpoints configured for county: ${countyName}`);
+      return new Response(JSON.stringify({
+        success: false,
+        error: `No endpoint configured for ${countyName}`
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Step 3: Query parcel data
     try {
       const parcelParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
@@ -125,10 +128,10 @@ serve(async (req) => {
 
       if (parcelData?.features?.[0]) {
         const attrs = parcelData.features[0].attributes;
-        updateData.parcel_id_apn = attrs[endpoints.parcel_id_field];
-        updateData.parcel_owner = attrs[endpoints.owner_field];
-        updateData.acreage_cad = attrs[endpoints.acreage_field];
-        console.log('Parcel data found:', updateData);
+        enrichedData.parcel_id = attrs[endpoints.parcel_id_field];
+        enrichedData.parcel_owner = attrs[endpoints.owner_field];
+        enrichedData.acreage_cad = attrs[endpoints.acreage_field];
+        console.log('Parcel data found:', enrichedData);
       } else {
         dataFlags.push('parcel_not_found');
         console.log('No parcel data found');
@@ -138,7 +141,7 @@ serve(async (req) => {
       dataFlags.push('parcel_query_failed');
     }
 
-    // Query zoning data
+    // Step 4: Query zoning data
     try {
       const zoningParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
@@ -155,9 +158,9 @@ serve(async (req) => {
 
       if (zoningData?.features?.[0]) {
         const attrs = zoningData.features[0].attributes;
-        updateData.zoning_code = attrs[endpoints.zoning_field];
-        updateData.overlay_district = attrs[endpoints.overlay_field];
-        console.log('Zoning data found:', updateData);
+        enrichedData.zoning_code = attrs[endpoints.zoning_field];
+        enrichedData.overlay_district = attrs[endpoints.overlay_field];
+        console.log('Zoning data found:', enrichedData);
       } else {
         dataFlags.push('zoning_not_found');
         console.log('No zoning data found');
@@ -167,7 +170,7 @@ serve(async (req) => {
       dataFlags.push('zoning_query_failed');
     }
 
-    // Query FEMA flood data
+    // Step 5: Query FEMA flood data
     try {
       const femaParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
@@ -184,9 +187,9 @@ serve(async (req) => {
 
       if (femaData?.features?.[0]) {
         const attrs = femaData.features[0].attributes;
-        updateData.floodplain = attrs.FLD_ZONE;
-        updateData.base_flood_elevation = attrs.STATIC_BFE;
-        console.log('FEMA data found:', updateData);
+        enrichedData.floodplain_zone = attrs.FLD_ZONE;
+        enrichedData.base_flood_elevation = attrs.STATIC_BFE;
+        console.log('FEMA data found:', enrichedData);
       } else {
         dataFlags.push('fema_not_found');
         console.log('No FEMA flood data found');
@@ -196,11 +199,23 @@ serve(async (req) => {
       dataFlags.push('fema_query_failed');
     }
 
-    // Add data flags
-    updateData.data_flags = dataFlags;
-
-    // Update the application if ID provided
+    // Step 6: Save to database if application_id provided
     if (application_id) {
+      const updateData = {
+        geo_lat: enrichedData.geo_lat,
+        geo_lng: enrichedData.geo_lng,
+        situs_address: enrichedData.situs_address,
+        county: enrichedData.administrative_area_level_2,
+        parcel_id_apn: enrichedData.parcel_id,
+        parcel_owner: enrichedData.parcel_owner,
+        acreage_cad: enrichedData.acreage_cad,
+        zoning_code: enrichedData.zoning_code,
+        overlay_district: enrichedData.overlay_district,
+        floodplain: enrichedData.floodplain_zone,
+        base_flood_elevation: enrichedData.base_flood_elevation,
+        data_flags: dataFlags
+      };
+
       const { error: updateError } = await supabase
         .from('applications')
         .update(updateData)
@@ -217,16 +232,14 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      console.log('Enrichment completed and saved to database');
-    } else {
-      console.log('Enrichment completed (not saved - no application_id provided)');
+      console.log('Enrichment saved to database');
     }
 
+    // Step 7: Return success response
     return new Response(JSON.stringify({
       success: true,
-      message: 'GIS data enrichment completed',
-      data: updateData,
-      dataFlags
+      county: countyName,
+      data: enrichedData
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
