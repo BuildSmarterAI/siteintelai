@@ -45,7 +45,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: "ZONE",
-    overlay_field: "OVERLAY"
+    overlay_field: "OVERLAY",
+    // Galveston utility endpoints
+    water_lines_url: "https://gis.galvestontx.gov/server/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.galvestontx.gov/server/rest/services/Utilities/Wastewater_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.galvestontx.gov/server/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Montgomery County": {
     parcel_url: "https://mcad-tx.maps.arcgis.com/arcgis/rest/services/MCAD_Parcels/FeatureServer/0/query",
@@ -54,7 +58,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // Montgomery County utility endpoints (varies by city)
+    water_lines_url: "https://gis.mctx.org/arcgis/rest/services/Utilities/Water_System/MapServer/0/query",
+    sewer_lines_url: "https://gis.mctx.org/arcgis/rest/services/Utilities/Wastewater_System/MapServer/0/query",
+    storm_lines_url: "https://gis.mctx.org/arcgis/rest/services/Utilities/Storm_System/MapServer/0/query"
   },
   "Brazoria County": {
     parcel_url: "https://gis.brazoriacad.org/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -63,7 +71,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // Brazoria County utility endpoints (city-specific)
+    water_lines_url: "https://gis.brazoriacounty.com/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.brazoriacounty.com/arcgis/rest/services/Utilities/Sewer_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.brazoriacounty.com/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Dallas County": {
     parcel_url: "https://gisservices.dallasopendata.com/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -84,7 +96,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // Fort Worth utility endpoints
+    water_lines_url: "https://gis.fortworthtexas.gov/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.fortworthtexas.gov/arcgis/rest/services/Utilities/Wastewater_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.fortworthtexas.gov/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Collin County": {
     parcel_url: "https://ccad-tx.maps.arcgis.com/arcgis/rest/services/Parcels/FeatureServer/0/query",
@@ -93,7 +109,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // Plano/Frisco utility endpoints (major cities)
+    water_lines_url: "https://gis.planotx.org/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.planotx.org/arcgis/rest/services/Utilities/Wastewater_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.planotx.org/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Denton County": {
     parcel_url: "https://gis.dentoncad.com/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -102,7 +122,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // Denton city utility endpoints
+    water_lines_url: "https://gis.cityofdenton.com/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.cityofdenton.com/arcgis/rest/services/Utilities/Wastewater_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.cityofdenton.com/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Travis County": {
     parcel_url: "https://gis.traviscad.org/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -123,7 +147,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // Round Rock utility endpoints (major city)
+    water_lines_url: "https://gis.roundrocktexas.gov/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.roundrocktexas.gov/arcgis/rest/services/Utilities/Wastewater_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.roundrocktexas.gov/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Hays County": {
     parcel_url: "https://gis.hayscad.com/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -132,7 +160,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // San Marcos utility endpoints (major city)
+    water_lines_url: "https://gis.sanmarcostx.gov/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gis.sanmarcostx.gov/arcgis/rest/services/Utilities/Wastewater_Lines/MapServer/0/query",
+    storm_lines_url: "https://gis.sanmarcostx.gov/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Bexar County": {
     parcel_url: "https://gis.bcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
