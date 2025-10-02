@@ -11,16 +11,16 @@ const corsHeaders = {
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
     parcel_url: "https://maps.hcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
-    zoning_url: "https://gis.houstontx.gov/arcgis/rest/services/Zoning/MapServer/0/query",
+    zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
     parcel_id_field: "ACCOUNT",
     owner_field: "OWNER",
     acreage_field: "ACRES",
-    zoning_field: "ZONING",
-    overlay_field: "OVERLAY_DISTRICT",
-    // Houston utility endpoints
-    water_lines_url: "https://gis.houstontx.gov/arcgis/rest/services/Utilities/Water/MapServer/0/query",
-    sewer_lines_url: "https://gis.houstontx.gov/arcgis/rest/services/Utilities/Wastewater/MapServer/0/query",
-    storm_lines_url: "https://gis.houstontx.gov/arcgis/rest/services/Utilities/Storm/MapServer/0/query"
+    zoning_field: "ZONECODE",
+    overlay_field: "OVERLAY",
+    // Houston utility endpoints - using COH open data portal
+    water_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Water_Lines/FeatureServer/0/query",
+    sewer_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Sanitary_Sewer_Lines/FeatureServer/0/query",
+    storm_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Storm_Lines/FeatureServer/0/query"
   },
   "Fort Bend County": {
     // Primary parcel source (CAD data - richer information)
