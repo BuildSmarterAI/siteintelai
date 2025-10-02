@@ -1,0 +1,86 @@
+{
+    "applications": {
+        "Property_Parcel": {
+            "parcel_id": "TEXT",
+            "parcel_owner": "TEXT",
+            "acreage_cad": "NUMERIC",
+            "property_address": "TEXT",
+            "formatted_address": "TEXT",
+            "situs_address": "TEXT",
+            "geo_lat": "DOUBLE",
+            "geo_lng": "DOUBLE",
+            "place_id": "TEXT"
+        },
+        "Zoning_Entitlements": {
+            "zoning_code": "TEXT",
+            "overlay_district": "TEXT",
+            "entitlement_notes": "TEXT"
+        },
+        "Floodplain_Environmental": {
+            "floodplain_zone": "TEXT",
+            "base_flood_elevation": "NUMERIC",
+            "elevation": "NUMERIC",
+            "wetlands_type": "TEXT",
+            "soil_series": "TEXT",
+            "soil_slope_percent": "NUMERIC",
+            "soil_drainage_class": "TEXT",
+            "environmental_sites": "JSONB",
+            "historical_flood_events": "INT"
+        },
+        "Utilities_Infrastructure": {
+            "utility_access": "TEXT[]",
+            "water_lines": "JSONB",
+            "sewer_lines": "JSONB",
+            "storm_lines": "JSONB",
+            "water_capacity_mgd": "NUMERIC",
+            "sewer_capacity_mgd": "NUMERIC",
+            "power_kv_nearby": "NUMERIC",
+            "fiber_available": "BOOLEAN",
+            "broadband_providers": "JSONB"
+        },
+        "Traffic_Mobility": {
+            "traffic_aadt": "NUMERIC",
+            "traffic_year": "INT",
+            "traffic_segment_id": "TEXT",
+            "traffic_distance_ft": "NUMERIC",
+            "traffic_road_name": "TEXT",
+            "traffic_direction": "TEXT",
+            "traffic_map_url": "TEXT",
+            "nearest_highway": "TEXT",
+            "distance_highway_ft": "NUMERIC",
+            "nearest_transit_stop": "TEXT",
+            "distance_transit_ft": "NUMERIC",
+            "drive_time_15min_population": "NUMERIC",
+            "drive_time_30min_population": "NUMERIC"
+        },
+        "Demographics_Market": {
+            "population_1mi": "NUMERIC",
+            "population_3mi": "NUMERIC",
+            "population_5mi": "NUMERIC",
+            "growth_rate_5yr": "NUMERIC",
+            "median_income": "NUMERIC",
+            "households_5mi": "NUMERIC",
+            "employment_clusters": "JSONB"
+        },
+        "Financial_Jurisdictional": {
+            "tax_rate_total": "NUMERIC",
+            "taxing_jurisdictions": "JSONB",
+            "opportunity_zone": "BOOLEAN",
+            "enterprise_zone": "BOOLEAN",
+            "foreign_trade_zone": "BOOLEAN",
+            "average_permit_time_months": "NUMERIC"
+        },
+        "AI_Outputs": {
+            "executive_summary_output": "TEXT",
+            "property_overview_output": "TEXT",
+            "zoning_output": "TEXT",
+            "utilities_output": "TEXT",
+            "market_output": "TEXT",
+            "costs_output": "TEXT",
+            "schedule_output": "TEXT",
+            "highest_best_use_output": "TEXT",
+            "traffic_output": "TEXT",
+            "conclusion_output": "TEXT"
+        }
+    }
+}

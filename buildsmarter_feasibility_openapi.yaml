@@ -1,0 +1,225 @@
+
+openapi: 3.0.3
+info:
+  title: BuildSmarter Feasibility API
+  version: 1.0.0
+  description: API contract for the applications table in BuildSmarter Feasibility (Supabase/Postgres)
+
+paths:
+  /applications:
+    get:
+      summary: Retrieve applications
+      responses:
+        '200':
+          description: A list of applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Application'
+    post:
+      summary: Create a new application
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Application'
+      responses:
+        '201':
+          description: Application created
+
+components:
+  schemas:
+    Application:
+      type: object
+      properties:
+        id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+        # Property / Parcel
+        parcel_id:
+          type: string
+        parcel_owner:
+          type: string
+        acreage_cad:
+          type: number
+        property_address:
+          type: string
+        formatted_address:
+          type: string
+        situs_address:
+          type: string
+        geo_lat:
+          type: number
+        geo_lng:
+          type: number
+        place_id:
+          type: string
+
+        # Zoning
+        zoning_code:
+          type: string
+        overlay_district:
+          type: string
+        entitlement_notes:
+          type: string
+
+        # Floodplain / Environmental
+        floodplain_zone:
+          type: string
+        base_flood_elevation:
+          type: number
+        elevation:
+          type: number
+        wetlands_type:
+          type: string
+        soil_series:
+          type: string
+        soil_slope_percent:
+          type: number
+        soil_drainage_class:
+          type: string
+        environmental_sites:
+          type: array
+          items:
+            type: object
+            properties:
+              site_name: { type: string }
+              program: { type: string }
+              status: { type: string }
+        historical_flood_events:
+          type: integer
+
+        # Utilities / Infrastructure
+        utility_access:
+          type: array
+          items: { type: string }
+        water_lines:
+          type: array
+          items:
+            type: object
+            properties:
+              diameter: { type: string }
+              distance_ft: { type: number }
+              status: { type: string }
+        sewer_lines:
+          type: array
+          items:
+            type: object
+            properties:
+              diameter: { type: string }
+              distance_ft: { type: number }
+              status: { type: string }
+        storm_lines:
+          type: array
+          items:
+            type: object
+            properties:
+              diameter: { type: string }
+              distance_ft: { type: number }
+              status: { type: string }
+        water_capacity_mgd:
+          type: number
+        sewer_capacity_mgd:
+          type: number
+        power_kv_nearby:
+          type: number
+        fiber_available:
+          type: boolean
+        broadband_providers:
+          type: array
+          items: { type: string }
+
+        # Traffic / Mobility
+        traffic_aadt:
+          type: number
+        traffic_year:
+          type: integer
+        traffic_segment_id:
+          type: string
+        traffic_distance_ft:
+          type: number
+        traffic_road_name:
+          type: string
+        traffic_direction:
+          type: string
+        traffic_map_url:
+          type: string
+        nearest_highway:
+          type: string
+        distance_highway_ft:
+          type: number
+        nearest_transit_stop:
+          type: string
+        distance_transit_ft:
+          type: number
+        drive_time_15min_population:
+          type: number
+        drive_time_30min_population:
+          type: number
+
+        # Demographics / Market
+        population_1mi:
+          type: number
+        population_3mi:
+          type: number
+        population_5mi:
+          type: number
+        growth_rate_5yr:
+          type: number
+        median_income:
+          type: number
+        households_5mi:
+          type: number
+        employment_clusters:
+          type: array
+          items:
+            type: object
+            properties:
+              sector: { type: string }
+              jobs: { type: number }
+
+        # Financial / Jurisdictional
+        tax_rate_total:
+          type: number
+        taxing_jurisdictions:
+          type: array
+          items: { type: string }
+        opportunity_zone:
+          type: boolean
+        enterprise_zone:
+          type: boolean
+        foreign_trade_zone:
+          type: boolean
+        average_permit_time_months:
+          type: number
+
+        # AI Outputs
+        executive_summary_output:
+          type: string
+        property_overview_output:
+          type: string
+        zoning_output:
+          type: string
+        utilities_output:
+          type: string
+        market_output:
+          type: string
+        costs_output:
+          type: string
+        schedule_output:
+          type: string
+        highest_best_use_output:
+          type: string
+        traffic_output:
+          type: string
+        conclusion_output:
+          type: string
