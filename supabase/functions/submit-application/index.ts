@@ -182,11 +182,11 @@ serve(async (req) => {
       // Step 2: Property Information
       property_address: requestData.propertyAddress, // Can be string or JSON
       formatted_address: formatted_address,
-      administrative_area_level_2: administrative_area_level_2,
-      locality: locality,
+      county: administrative_area_level_2,
+      City: locality,
       administrative_area_level_1: administrative_area_level_1,
       postal_code: postal_code,
-      neighborhood_raw: neighborhood_raw,
+      neighborhood: neighborhood_raw,
       sublocality: sublocality,
       place_id: place_id,
       parcel_id_apn: requestData.parcelIdApn || requestData.parcelId || null,
