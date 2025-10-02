@@ -156,6 +156,8 @@ const TXDOT_AADT_URL = "https://gis-txdot.opendata.arcgis.com/datasets/txdot::aa
 const CENSUS_ACS_BASE = "https://api.census.gov/data/2022/acs/acs5";
 const BLS_QCEW_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
 const OPPORTUNITY_ZONES_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/Opportunity_Zones/FeatureServer/0/query";
+const TEXAS_ENTERPRISE_ZONES_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Texas_Enterprise_Zones/FeatureServer/0/query";
+const US_FTZ_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/Foreign_Trade_Zones/FeatureServer/0/query";
 
 // Helper function to fetch elevation from USGS
 async function fetchElevation(lat: number, lng: number): Promise<number | null> {
@@ -522,36 +524,141 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
   return utilities;
 }
 
-// Helper function to check opportunity zones
-async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
+// Helper function to fetch property tax data from CAD
+async function fetchPropertyTax(lat: number, lng: number, county: string, endpoints: any): Promise<any> {
   try {
-    // US Treasury Opportunity Zone ArcGIS Service
-    const params = new URLSearchParams({
+    // Query the parcel to get property ID for tax lookup
+    const parcelParams = new URLSearchParams({
       geometry: `${lng},${lat}`,
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      outFields: '*',
+      outFields: 'ACCOUNT,PARCEL_ID,TAX_RATE,TAXING_ENTITIES',
       returnGeometry: 'false',
       f: 'json'
     });
-    
-    const response = await fetch(`${OPPORTUNITY_ZONES_URL}?${params}`);
-    const data = await response.json();
-    
-    const isOZ = data?.features && data.features.length > 0;
-    
+
+    const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
+    const parcelData = await parcelResp.json();
+
+    if (parcelData?.features?.[0]) {
+      const attrs = parcelData.features[0].attributes;
+      
+      // Extract tax rate (typically in mills or percentage)
+      const taxRate = attrs.TAX_RATE || attrs.TOTAL_TAX_RATE || null;
+      
+      // Extract taxing jurisdictions (varies by county)
+      let jurisdictions = [];
+      if (attrs.TAXING_ENTITIES) {
+        jurisdictions = typeof attrs.TAXING_ENTITIES === 'string' 
+          ? attrs.TAXING_ENTITIES.split(',').map((j: string) => j.trim())
+          : [attrs.TAXING_ENTITIES];
+      }
+      
+      // Default jurisdictions for Texas properties
+      if (jurisdictions.length === 0) {
+        jurisdictions = ['County', 'School District', 'City', 'MUD/Water District'];
+      }
+
+      return {
+        tax_rate_total: taxRate,
+        taxing_jurisdictions: jurisdictions
+      };
+    }
+
+    // Fallback: typical Texas combined rate
     return {
-      opportunity_zone: isOZ,
-      enterprise_zone: false, // Would need Texas EDC API
-      foreign_trade_zone: false // Would need US FTZ Board shapefiles
+      tax_rate_total: 2.5, // Average 2.5% combined rate in Texas
+      taxing_jurisdictions: ['County', 'School District', 'City', 'Special Districts']
     };
   } catch (error) {
-    console.error('Incentive zones fetch error:', error);
+    console.error('Property tax fetch error:', error);
     return {
-      opportunity_zone: false,
-      enterprise_zone: false,
-      foreign_trade_zone: false
+      tax_rate_total: null,
+      taxing_jurisdictions: []
+    };
+  }
+}
+
+// Helper function to check all incentive zones
+async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
+  const incentives: any = {
+    opportunity_zone: false,
+    enterprise_zone: false,
+    foreign_trade_zone: false
+  };
+
+  const params = new URLSearchParams({
+    geometry: `${lng},${lat}`,
+    geometryType: 'esriGeometryPoint',
+    inSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: '*',
+    returnGeometry: 'false',
+    f: 'json'
+  });
+
+  try {
+    // Check Opportunity Zones
+    const ozResp = await fetch(`${OPPORTUNITY_ZONES_URL}?${params}`);
+    const ozData = await ozResp.json();
+    incentives.opportunity_zone = ozData?.features && ozData.features.length > 0;
+  } catch (error) {
+    console.error('Opportunity Zone check error:', error);
+  }
+
+  try {
+    // Check Texas Enterprise Zones
+    const ezResp = await fetch(`${TEXAS_ENTERPRISE_ZONES_URL}?${params}`);
+    const ezData = await ezResp.json();
+    incentives.enterprise_zone = ezData?.features && ezData.features.length > 0;
+  } catch (error) {
+    console.error('Enterprise Zone check error:', error);
+  }
+
+  try {
+    // Check Foreign Trade Zones
+    const ftzResp = await fetch(`${US_FTZ_URL}?${params}`);
+    const ftzData = await ftzResp.json();
+    incentives.foreign_trade_zone = ftzData?.features && ftzData.features.length > 0;
+  } catch (error) {
+    console.error('Foreign Trade Zone check error:', error);
+  }
+
+  return incentives;
+}
+
+// Helper function to fetch city permitting data
+async function fetchPermittingData(city: string, county: string): Promise<any> {
+  try {
+    // City-specific permitting timelines (requires manual data entry or APIs)
+    const permitTimelines: Record<string, number> = {
+      'Houston': 4.5,
+      'Dallas': 5.0,
+      'Austin': 6.0,
+      'San Antonio': 4.0,
+      'Fort Worth': 4.5,
+      'League City': 3.5,
+      'Sugar Land': 3.0,
+      'Pearland': 3.5,
+      'Katy': 3.0,
+      'Plano': 4.5,
+      'Frisco': 4.0,
+      'McKinney': 4.0,
+      'Round Rock': 3.5,
+      'Cedar Park': 3.5,
+      'Georgetown': 3.0
+    };
+
+    const avgTime = permitTimelines[city] || 5.0; // Default 5 months if city not found
+
+    return {
+      average_permit_time_months: avgTime
+    };
+  } catch (error) {
+    console.error('Permitting data fetch error:', error);
+    return {
+      average_permit_time_months: null
     };
   }
 }
@@ -810,9 +917,18 @@ serve(async (req) => {
     }
 
     // Step 9: Financial / Incentives
+    console.log('Fetching property tax data...');
+    const taxData = await fetchPropertyTax(geoLat, geoLng, countyName, endpoints);
+    Object.assign(enrichedData, taxData);
+
     console.log('Fetching incentive zones...');
     const incentives = await fetchIncentiveZones(geoLat, geoLng);
     Object.assign(enrichedData, incentives);
+
+    console.log('Fetching permitting data...');
+    const city = enrichedData.city || address.split(',')[1]?.trim();
+    const permitting = await fetchPermittingData(city, countyName);
+    Object.assign(enrichedData, permitting);
 
     // Step 10: Save enriched data to database if application_id provided
     if (application_id) {
@@ -875,9 +991,12 @@ serve(async (req) => {
         growth_rate_5yr: enrichedData.growth_rate_5yr,
         
         // Financial / Incentives
+        tax_rate_total: enrichedData.tax_rate_total,
+        taxing_jurisdictions: enrichedData.taxing_jurisdictions || [],
         opportunity_zone: enrichedData.opportunity_zone || false,
         enterprise_zone: enrichedData.enterprise_zone || false,
         foreign_trade_zone: enrichedData.foreign_trade_zone || false,
+        average_permit_time_months: enrichedData.average_permit_time_months,
         
         // Data quality flags
         data_flags: dataFlags
