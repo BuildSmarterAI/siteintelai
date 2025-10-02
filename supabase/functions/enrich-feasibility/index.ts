@@ -296,7 +296,7 @@ async function fetchEnvironmentalSites(lat: number, lng: number, county: string)
     const response = await fetch(
       `${EPA_FRS_URL}?county=${encodeURIComponent(county)}&state=TX&output=JSON`
     );
-    const data = await response.json();
+    const data = await safeJsonParse(response, 'EPA environmental sites query');
     
     const sites = (data?.Results?.FRSFacility || []).slice(0, 10).map((site: any) => ({
       site_name: site.RegistryName,
@@ -528,6 +528,29 @@ function bearingToCardinal(b: number) {
   return dirs[idx];
 }
 
+// Helper to safely parse JSON and detect HTML error responses
+async function safeJsonParse(response: Response, context: string): Promise<any> {
+  const text = await response.text();
+  
+  if (!text || text.trim() === '') {
+    console.log(`${context}: Empty response`);
+    return null;
+  }
+  
+  // Check if response is HTML (error page)
+  if (text.trim().startsWith('<') || text.includes('<!DOCTYPE') || text.includes('<html')) {
+    console.log(`${context}: Received HTML error page instead of JSON`);
+    return null;
+  }
+  
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    console.error(`${context}: JSON parse error:`, error);
+    return null;
+  }
+}
+
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 async function fallbackRoadFromOSM(lat: number, lng: number) {
   try {
@@ -589,7 +612,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       });
 
       const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParams}`);
-      const waterData = await waterResp.json();
+      const waterData = await safeJsonParse(waterResp, 'Water lines query');
       
       if (waterData?.features && waterData.features.length > 0) {
         utilities.water_lines = waterData.features.map((f: any) => {
@@ -631,7 +654,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       });
 
       const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParams}`);
-      const sewerData = await sewerResp.json();
+      const sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
       
       if (sewerData?.features && sewerData.features.length > 0) {
         utilities.sewer_lines = sewerData.features.map((f: any) => {
@@ -673,7 +696,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       });
 
       const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParams}`);
-      const stormData = await stormResp.json();
+      const stormData = await safeJsonParse(stormResp, 'Storm lines query');
       
       if (stormData?.features && stormData.features.length > 0) {
         utilities.storm_lines = stormData.features.map((f: any) => {
@@ -719,7 +742,7 @@ async function fetchPropertyTax(lat: number, lng: number, county: string, endpoi
     });
 
     const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
-    const parcelData = await parcelResp.json();
+    const parcelData = await safeJsonParse(parcelResp, 'Property tax parcel query');
 
     if (parcelData?.features?.[0]) {
       const attrs = parcelData.features[0].attributes;
@@ -781,7 +804,7 @@ async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
   try {
     // Check Opportunity Zones
     const ozResp = await fetch(`${OPPORTUNITY_ZONES_URL}?${params}`);
-    const ozData = await ozResp.json();
+    const ozData = await safeJsonParse(ozResp, 'Opportunity Zone query');
     incentives.opportunity_zone = ozData?.features && ozData.features.length > 0;
   } catch (error) {
     console.error('Opportunity Zone check error:', error);
@@ -790,7 +813,7 @@ async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
   try {
     // Check Texas Enterprise Zones
     const ezResp = await fetch(`${TEXAS_ENTERPRISE_ZONES_URL}?${params}`);
-    const ezData = await ezResp.json();
+    const ezData = await safeJsonParse(ezResp, 'Enterprise Zone query');
     incentives.enterprise_zone = ezData?.features && ezData.features.length > 0;
   } catch (error) {
     console.error('Enterprise Zone check error:', error);
@@ -799,7 +822,7 @@ async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
   try {
     // Check Foreign Trade Zones
     const ftzResp = await fetch(`${US_FTZ_URL}?${params}`);
-    const ftzData = await ftzResp.json();
+    const ftzData = await safeJsonParse(ftzResp, 'Foreign Trade Zone query');
     incentives.foreign_trade_zone = ftzData?.features && ftzData.features.length > 0;
   } catch (error) {
     console.error('Foreign Trade Zone check error:', error);
@@ -993,7 +1016,7 @@ serve(async (req) => {
         console.log('Querying Fort Bend CAD parcel data...');
         try {
           const cadResp = await fetch(`${endpoints.cad_parcel_url}?${parcelParams}`);
-          const cadData = await cadResp.json();
+          const cadData = await safeJsonParse(cadResp, 'Fort Bend CAD query');
           if (cadData?.features?.[0]) {
             parcelData = cadData;
             console.log('Fort Bend CAD parcel data found');
@@ -1007,7 +1030,7 @@ serve(async (req) => {
       if (!parcelData && endpoints.parcel_url) {
         console.log('Querying standard parcel data...');
         const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
-        parcelData = await parcelResp.json();
+        parcelData = await safeJsonParse(parcelResp, 'Parcel query');
       }
 
       if (parcelData?.features?.[0]) {
@@ -1039,7 +1062,7 @@ serve(async (req) => {
         });
 
         const zoningResp = await fetch(`${endpoints.zoning_url}?${zoningParams}`);
-        const zoningData = await zoningResp.json();
+        const zoningData = await safeJsonParse(zoningResp, 'Zoning query');
 
         if (zoningData?.features?.[0]) {
           const attrs = zoningData.features[0].attributes;
@@ -1077,7 +1100,7 @@ serve(async (req) => {
       });
 
       const femaResp = await fetch(`${FEMA_NFHL_URL}?${femaParams}`);
-      const femaData = await femaResp.json();
+      const femaData = await safeJsonParse(femaResp, 'FEMA query');
 
       if (femaData?.features?.[0]) {
         const attrs = femaData.features[0].attributes;
