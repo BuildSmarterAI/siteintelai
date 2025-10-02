@@ -270,6 +270,29 @@ serve(async (req) => {
 
     console.log('Application submitted successfully:', data);
 
+    // Trigger enrichment to auto-fill GIS fields for this application
+    try {
+      const addressForEnrichment = formatted_address || String(requestData.propertyAddress || '') || null;
+      if (addressForEnrichment) {
+        console.log('Invoking enrich-feasibility for application:', data.id);
+        const { data: enrichResp, error: enrichErr } = await supabase.functions.invoke('enrich-feasibility', {
+          body: {
+            application_id: data.id,
+            address: addressForEnrichment
+          }
+        });
+        if (enrichErr) {
+          console.error('Enrichment invocation error:', enrichErr);
+        } else {
+          console.log('Enrichment invoked successfully:', enrichResp?.success ?? enrichResp);
+        }
+      } else {
+        console.log('Skipping enrichment: no address available');
+      }
+    } catch (invokeError) {
+      console.error('Failed to invoke enrichment:', invokeError);
+    }
+
     // Return success response
     return new Response(JSON.stringify({
       id: data.id,
