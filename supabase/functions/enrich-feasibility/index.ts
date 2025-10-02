@@ -812,9 +812,9 @@ serve(async (req) => {
 
         if (zoningData?.features?.[0]) {
           const attrs = zoningData.features[0].attributes;
-          enrichedData.zoning_code = attrs[endpoints.zoning_field];
-          enrichedData.overlay_district = attrs[endpoints.overlay_field];
-          console.log('Zoning data found:', enrichedData);
+          enrichedData.zoning_code = attrs[endpoints.zoning_field] || attrs.ZONE_CODE || attrs.ZONING || attrs.ZONECODE;
+          enrichedData.overlay_district = attrs[endpoints.overlay_field] || attrs.OVERLAY_DISTRICT || attrs.OVERLAY || attrs.OVERLAY_CODE;
+          console.log('Zoning data found:', { zoning_code: enrichedData.zoning_code, overlay_district: enrichedData.overlay_district, all_attrs: attrs });
         } else {
           dataFlags.push('zoning_not_found');
           console.log('No zoning data found');
