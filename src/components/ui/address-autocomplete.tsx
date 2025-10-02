@@ -23,7 +23,7 @@ interface AddressSuggestion {
 
 interface AddressAutocompleteProps {
   value: string;
-  onChange: (value: string, coordinates?: { lat: number; lng: number }) => void;
+  onChange: (value: string, coordinates?: { lat: number; lng: number }, county?: string) => void;
   placeholder?: string;
   className?: string;
   label?: string;
@@ -92,6 +92,7 @@ export function AddressAutocomplete({
       if (error) throw error;
 
       let coordinates: { lat: number; lng: number } | undefined;
+      let county: string | undefined;
       
       // Extract coordinates from geometry
       if (data?.result?.geometry?.location) {
@@ -101,10 +102,20 @@ export function AddressAutocomplete({
         };
       }
 
+      // Extract county (administrative_area_level_2) from address_components
+      if (data?.result?.address_components) {
+        const countyComponent = data.result.address_components.find((component: any) =>
+          component.types.includes('administrative_area_level_2')
+        );
+        if (countyComponent) {
+          county = countyComponent.long_name;
+        }
+      }
+
       if (data?.result?.formatted_address) {
-        onChange(data.result.formatted_address, coordinates);
+        onChange(data.result.formatted_address, coordinates, county);
       } else {
-        onChange(suggestion.description, coordinates);
+        onChange(suggestion.description, coordinates, county);
       }
     } catch (error) {
       console.error('Error fetching place details:', error);

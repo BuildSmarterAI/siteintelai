@@ -50,7 +50,7 @@ serve(async (req) => {
     let geo_lat = parseNumber(requestData.geoLat);
     let geo_lng = parseNumber(requestData.geoLng);
     let formatted_address: string | null = null;
-    let administrative_area_level_2: string | null = null;
+    let administrative_area_level_2: string | null = requestData.county || null;
 
     // Fallback geocoding by address if coordinates missing
     if ((geo_lat === null || geo_lng === null) && requestData.propertyAddress) {
@@ -74,8 +74,8 @@ serve(async (req) => {
               formatted_address = result.formatted_address;
             }
             
-            // Extract administrative_area_level_2 (county)
-            if (result.address_components) {
+            // Extract administrative_area_level_2 (county) if not already set
+            if (result.address_components && !administrative_area_level_2) {
               const countyComponent = result.address_components.find(
                 (component: any) => component.types.includes('administrative_area_level_2')
               );

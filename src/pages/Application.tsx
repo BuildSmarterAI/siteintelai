@@ -47,6 +47,7 @@ export default function Application() {
     ownershipStatus: "",
     geoLat: null as number | null,
     geoLng: null as number | null,
+    county: "",
     
     // Step 3: Project Intent & Building Parameters
     projectType: [] as string[],
@@ -184,6 +185,7 @@ export default function Application() {
         ownershipStatus: formData.ownershipStatus,
         geoLat: formData.geoLat,
         geoLng: formData.geoLng,
+        county: formData.county,
         projectType: formData.projectType,
         buildingSizeValue: formData.buildingSize,
         buildingSizeUnit: formData.buildingSizeUnit,
@@ -460,13 +462,14 @@ export default function Application() {
                         <div className="space-y-6 animate-fade-in">
                            <AddressAutocomplete
                              value={formData.propertyAddress}
-                             onChange={(value, coordinates) => {
+                             onChange={(value, coordinates, county) => {
                                handleInputChange('propertyAddress', value);
                                if (coordinates) {
                                  setFormData(prev => ({
                                    ...prev,
                                    geoLat: coordinates.lat,
-                                   geoLng: coordinates.lng
+                                   geoLng: coordinates.lng,
+                                   county: county || ''
                                  }));
                                }
                              }}
