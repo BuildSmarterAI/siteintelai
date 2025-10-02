@@ -61,6 +61,7 @@ export default function Application() {
     buildingSize: "",
     buildingSizeUnit: "sqft",
     stories: "",
+    buildingHeight: "",
     prototypeRequirements: "",
     qualityLevel: "",
     budget: "",
@@ -1021,11 +1022,11 @@ export default function Application() {
 
                              <div>
                                <Label htmlFor="stories" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Stories / Height <span className="text-maxx-red text-lg">*</span>
+                                 Desired Stories <span className="text-maxx-red text-lg">*</span>
                                </Label>
                               <Select value={formData.stories} onValueChange={(value) => handleInputChange('stories', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.stories ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
-                                  <SelectValue placeholder="Select height" />
+                                  <SelectValue placeholder="Select number of stories" />
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectItem value="single">Single Story</SelectItem>
@@ -1037,10 +1038,26 @@ export default function Application() {
                                 </SelectContent>
                                </Select>
                                <p className="text-sm text-charcoal/60 mt-1">
-                                 Building height impacts zoning compliance and structural costs.
+                                 Number of floors for the building.
                                </p>
                               {errors.stories && <p className="text-maxx-red text-sm mt-1">{errors.stories}</p>}
                             </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="buildingHeight" className="font-body font-semibold text-charcoal">
+                              Desired Overall Building Height
+                            </Label>
+                            <Input
+                              id="buildingHeight"
+                              value={formData.buildingHeight}
+                              onChange={(e) => handleInputChange('buildingHeight', e.target.value)}
+                              placeholder="e.g., 120 feet or 'Don't Know'"
+                              className="mt-2 border-charcoal/20"
+                            />
+                            <p className="text-sm text-charcoal/60 mt-1">
+                              Total building height including roofing and mechanical equipment.
+                            </p>
                           </div>
 
                           <div>
