@@ -102,7 +102,10 @@ export function AddressAutocomplete({
       if (error) throw error;
 
       let coordinates: { lat: number; lng: number } | undefined;
-      const addressDetails: AddressDetails = {};
+      const addressDetails: AddressDetails = {
+        // Store suggestion's place_id as fallback
+        placeId: suggestion.place_id
+      };
       
       // Extract coordinates from geometry
       if (data?.result?.geometry?.location) {
@@ -165,7 +168,7 @@ export function AddressAutocomplete({
         }
       }
 
-      // Extract Place ID
+      // Override with Place ID from details if available (more reliable)
       if (data?.result?.place_id) {
         addressDetails.placeId = data.result.place_id;
       }
@@ -177,7 +180,8 @@ export function AddressAutocomplete({
       }
     } catch (error) {
       console.error('Error fetching place details:', error);
-      onChange(suggestion.description);
+      // Still pass the suggestion's place_id even on error
+      onChange(suggestion.description, undefined, { placeId: suggestion.place_id });
     }
 
     setSuggestions([]);
