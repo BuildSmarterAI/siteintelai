@@ -26,6 +26,9 @@ interface AddressDetails {
   city?: string;
   state?: string;
   zipCode?: string;
+  neighborhood?: string;
+  sublocality?: string;
+  placeId?: string;
 }
 
 interface AddressAutocompleteProps {
@@ -109,7 +112,7 @@ export function AddressAutocomplete({
         };
       }
 
-      // Extract address components (county, city, state, ZIP)
+      // Extract address components (county, city, state, ZIP, neighborhood)
       if (data?.result?.address_components) {
         const components = data.result.address_components;
         
@@ -144,6 +147,27 @@ export function AddressAutocomplete({
         if (zipComponent) {
           addressDetails.zipCode = zipComponent.long_name;
         }
+
+        // Neighborhood
+        const neighborhoodComponent = components.find((c: any) =>
+          c.types.includes('neighborhood')
+        );
+        if (neighborhoodComponent) {
+          addressDetails.neighborhood = neighborhoodComponent.long_name;
+        }
+
+        // Sublocality
+        const sublocalityComponent = components.find((c: any) =>
+          c.types.includes('sublocality') || c.types.includes('sublocality_level_1')
+        );
+        if (sublocalityComponent) {
+          addressDetails.sublocality = sublocalityComponent.long_name;
+        }
+      }
+
+      // Extract Place ID
+      if (data?.result?.place_id) {
+        addressDetails.placeId = data.result.place_id;
       }
 
       if (data?.result?.formatted_address) {

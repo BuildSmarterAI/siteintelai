@@ -51,6 +51,9 @@ export default function Application() {
     city: "",
     state: "",
     zipCode: "",
+    neighborhood: "",
+    sublocality: "",
+    placeId: "",
     
     // Step 3: Project Intent & Building Parameters
     projectType: [] as string[],
@@ -192,6 +195,9 @@ export default function Application() {
         city: formData.city,
         state: formData.state,
         zipCode: formData.zipCode,
+        neighborhood: formData.neighborhood,
+        sublocality: formData.sublocality,
+        placeId: formData.placeId,
         projectType: formData.projectType,
         buildingSizeValue: formData.buildingSize,
         buildingSizeUnit: formData.buildingSizeUnit,
@@ -478,7 +484,10 @@ export default function Application() {
                                    county: addressDetails?.county || prev.county,
                                    city: addressDetails?.city || prev.city,
                                    state: addressDetails?.state || prev.state,
-                                   zipCode: addressDetails?.zipCode || prev.zipCode
+                                   zipCode: addressDetails?.zipCode || prev.zipCode,
+                                   neighborhood: addressDetails?.neighborhood || prev.neighborhood,
+                                   sublocality: addressDetails?.sublocality || prev.sublocality,
+                                   placeId: addressDetails?.placeId || prev.placeId
                                  }));
                                }
                              }}

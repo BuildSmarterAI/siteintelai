@@ -54,6 +54,9 @@ serve(async (req) => {
     let locality: string | null = requestData.city || null;
     let administrative_area_level_1: string | null = requestData.state || null;
     let postal_code: string | null = requestData.zipCode || null;
+    let neighborhood_raw: string | null = requestData.neighborhood || null;
+    let sublocality: string | null = requestData.sublocality || null;
+    let place_id: string | null = requestData.placeId || null;
 
     // Fallback geocoding by address if coordinates missing
     if ((geo_lat === null || geo_lng === null) && requestData.propertyAddress) {
@@ -118,6 +121,31 @@ serve(async (req) => {
                   postal_code = zipComponent.long_name;
                 }
               }
+
+              // Neighborhood
+              if (!neighborhood_raw) {
+                const neighborhoodComponent = result.address_components.find(
+                  (component: any) => component.types.includes('neighborhood')
+                );
+                if (neighborhoodComponent) {
+                  neighborhood_raw = neighborhoodComponent.long_name;
+                }
+              }
+
+              // Sublocality
+              if (!sublocality) {
+                const sublocalityComponent = result.address_components.find(
+                  (component: any) => component.types.includes('sublocality') || component.types.includes('sublocality_level_1')
+                );
+                if (sublocalityComponent) {
+                  sublocality = sublocalityComponent.long_name;
+                }
+              }
+            }
+
+            // Extract Place ID
+            if (result.place_id && !place_id) {
+              place_id = result.place_id;
             }
             
             console.log('Geocoding extracted:', { 
@@ -127,7 +155,10 @@ serve(async (req) => {
               administrative_area_level_2,
               locality,
               administrative_area_level_1,
-              postal_code
+              postal_code,
+              neighborhood_raw,
+              sublocality,
+              place_id
             });
           }
         }
@@ -151,6 +182,9 @@ serve(async (req) => {
       locality: locality,
       administrative_area_level_1: administrative_area_level_1,
       postal_code: postal_code,
+      neighborhood_raw: neighborhood_raw,
+      sublocality: sublocality,
+      place_id: place_id,
       parcel_id_apn: requestData.parcelIdApn || requestData.parcelId || null,
       lot_size_value: parseNumber(requestData.lotSizeValue),
       lot_size_unit: requestData.lotSizeUnit || null,
