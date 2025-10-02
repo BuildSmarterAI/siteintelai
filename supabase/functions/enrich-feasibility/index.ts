@@ -406,6 +406,14 @@ async function fetchDemographics(lat: number, lng: number): Promise<any> {
   }
 }
 
+// Utility attribute picker to handle varying field names across services
+function pickAttr(attrs: any, keys: string[]): any {
+  for (const key of keys) {
+    if (attrs[key] !== undefined && attrs[key] !== null) return attrs[key];
+  }
+  return null;
+}
+
 // Helper function to fetch utility infrastructure from city GIS
 async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise<any> {
   const utilities: any = {
@@ -429,8 +437,9 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
         spatialRel: 'esriSpatialRelIntersects',
         distance: searchRadius.toString(),
         units: 'esriFeet',
-        outFields: 'DIAMETER,MATERIAL,INSTALL_DATE,PIPE_SIZE',
-        returnGeometry: 'true',
+        where: '1=1',
+        outFields: '*',
+        returnGeometry: 'false',
         f: 'json'
       });
 
@@ -438,18 +447,20 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       const waterData = await waterResp.json();
       
       if (waterData?.features && waterData.features.length > 0) {
-        utilities.water_lines = waterData.features.map((f: any) => ({
-          diameter: f.attributes.DIAMETER || f.attributes.PIPE_SIZE,
-          material: f.attributes.MATERIAL,
-          install_date: f.attributes.INSTALL_DATE,
-          distance_ft: searchRadius
+        utilities.water_lines = waterData.features.map((f: any) => {
+          const attrs = f.attributes || {};
+          return {
+            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
+            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
+            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
+            distance_ft: searchRadius
+          };
+        });
+        const maxDiameter = Math.max(...waterData.features.map((f: any) => {
+          const attrs = f.attributes || {};
+          return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
         }));
-        
-        // Estimate capacity based on largest pipe
-        const maxDiameter = Math.max(...waterData.features.map((f: any) => 
-          f.attributes.DIAMETER || f.attributes.PIPE_SIZE || 0
-        ));
-        utilities.water_capacity_mgd = maxDiameter ? (maxDiameter / 12) * 0.5 : null;
+        utilities.water_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
       }
     }
 
@@ -462,8 +473,9 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
         spatialRel: 'esriSpatialRelIntersects',
         distance: searchRadius.toString(),
         units: 'esriFeet',
-        outFields: 'DIAMETER,MATERIAL,INSTALL_DATE,PIPE_SIZE',
-        returnGeometry: 'true',
+        where: '1=1',
+        outFields: '*',
+        returnGeometry: 'false',
         f: 'json'
       });
 
@@ -471,18 +483,20 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       const sewerData = await sewerResp.json();
       
       if (sewerData?.features && sewerData.features.length > 0) {
-        utilities.sewer_lines = sewerData.features.map((f: any) => ({
-          diameter: f.attributes.DIAMETER || f.attributes.PIPE_SIZE,
-          material: f.attributes.MATERIAL,
-          install_date: f.attributes.INSTALL_DATE,
-          distance_ft: searchRadius
+        utilities.sewer_lines = sewerData.features.map((f: any) => {
+          const attrs = f.attributes || {};
+          return {
+            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
+            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
+            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
+            distance_ft: searchRadius
+          };
+        });
+        const maxDiameter = Math.max(...sewerData.features.map((f: any) => {
+          const attrs = f.attributes || {};
+          return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
         }));
-        
-        // Estimate capacity based on largest pipe
-        const maxDiameter = Math.max(...sewerData.features.map((f: any) => 
-          f.attributes.DIAMETER || f.attributes.PIPE_SIZE || 0
-        ));
-        utilities.sewer_capacity_mgd = maxDiameter ? (maxDiameter / 12) * 0.5 : null;
+        utilities.sewer_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
       }
     }
 
@@ -495,8 +509,9 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
         spatialRel: 'esriSpatialRelIntersects',
         distance: searchRadius.toString(),
         units: 'esriFeet',
-        outFields: 'DIAMETER,MATERIAL,INSTALL_DATE,PIPE_SIZE',
-        returnGeometry: 'true',
+        where: '1=1',
+        outFields: '*',
+        returnGeometry: 'false',
         f: 'json'
       });
 
@@ -504,12 +519,15 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       const stormData = await stormResp.json();
       
       if (stormData?.features && stormData.features.length > 0) {
-        utilities.storm_lines = stormData.features.map((f: any) => ({
-          diameter: f.attributes.DIAMETER || f.attributes.PIPE_SIZE,
-          material: f.attributes.MATERIAL,
-          install_date: f.attributes.INSTALL_DATE,
-          distance_ft: searchRadius
-        }));
+        utilities.storm_lines = stormData.features.map((f: any) => {
+          const attrs = f.attributes || {};
+          return {
+            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
+            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
+            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
+            distance_ft: searchRadius
+          };
+        });
       }
     }
 
@@ -887,8 +905,13 @@ serve(async (req) => {
     // Step 6: Utilities / Infrastructure
     console.log('Fetching utility infrastructure data...');
     const utilities = await fetchUtilities(geoLat, geoLng, endpoints);
+    console.log('Utilities fetched summary:', {
+      water: utilities.water_lines?.length || 0,
+      sewer: utilities.sewer_lines?.length || 0,
+      storm: utilities.storm_lines?.length || 0
+    });
     Object.assign(enrichedData, utilities);
-    if (!utilities.water_lines && !utilities.sewer_lines) {
+    if (!utilities.water_lines && !utilities.sewer_lines && !utilities.storm_lines) {
       dataFlags.push('utilities_not_found');
     }
 
