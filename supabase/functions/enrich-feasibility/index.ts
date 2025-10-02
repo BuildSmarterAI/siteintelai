@@ -7,8 +7,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// County endpoint catalog
+// County endpoint catalog - Texas major counties
 const ENDPOINT_CATALOG: Record<string, any> = {
+  "Harris County": {
+    parcel_url: "https://maps.hcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: "https://gis.houstontx.gov/arcgis/rest/services/Zoning/MapServer/0/query",
+    parcel_id_field: "ACCOUNT",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: "ZONING",
+    overlay_field: "OVERLAY_DISTRICT"
+  },
+  "Fort Bend County": {
+    // Primary parcel source (CAD data - richer information)
+    cad_parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
+    // Fallback parcel source
+    parcel_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/General/Parcels/MapServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER_NAME",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
   "Galveston County": {
     parcel_url: "https://www1.cityofwebster.com/arcgis/rest/services/Landbase/CountyGalveston/MapServer/0/query",
     zoning_url: "https://gis.galvestontx.gov/server/rest/services/Planning/Zoning/MapServer/0/query",
@@ -18,23 +39,92 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     zoning_field: "ZONE",
     overlay_field: "OVERLAY"
   },
-  "Harris County": {
-    parcel_url: "https://maps.hcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
-    zoning_url: "https://gis.houstontx.gov/arcgis/rest/services/Zoning/MapServer/0/query",
-    parcel_id_field: "ACCOUNT",
-    owner_field: "OWNER_NAME",
-    acreage_field: "ACREAGE",
-    zoning_field: "ZONING",
-    overlay_field: "OVERLAY_DISTRICT"
-  },
-  "Fort Bend County": {
-    // Primary parcel source (CAD data - richer information)
-    cad_parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
-    // Fallback parcel source
-    parcel_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/General/Parcels/MapServer/0/query",
-    zoning_url: null, // Fort Bend County does not enforce zoning at county level
+  "Montgomery County": {
+    parcel_url: "https://mcad-tx.maps.arcgis.com/arcgis/rest/services/MCAD_Parcels/FeatureServer/0/query",
+    zoning_url: null,
     parcel_id_field: "PARCEL_ID",
-    owner_field: "OWNER_NAME",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Brazoria County": {
+    parcel_url: "https://gis.brazoriacad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Dallas County": {
+    parcel_url: "https://gisservices.dallasopendata.com/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: "https://gis.dallascityhall.com/arcgis/rest/services/Zoning/MapServer/0/query",
+    parcel_id_field: "PARCEL",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: "ZONE_CODE",
+    overlay_field: "OVERLAY"
+  },
+  "Tarrant County": {
+    parcel_url: "https://gis.tad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Collin County": {
+    parcel_url: "https://ccad-tx.maps.arcgis.com/arcgis/rest/services/Parcels/FeatureServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Denton County": {
+    parcel_url: "https://gis.dentoncad.com/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Travis County": {
+    parcel_url: "https://gis.traviscad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: "https://data.austintexas.gov/resource/zoning.json",
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: "ZONE",
+    overlay_field: "OVERLAY"
+  },
+  "Williamson County": {
+    parcel_url: "https://gis.wcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Hays County": {
+    parcel_url: "https://gis.hayscad.com/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: null,
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
+  },
+  "Bexar County": {
+    parcel_url: "https://gis.bcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    zoning_url: null, // San Antonio has zoning but needs different API approach
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
     overlay_field: null
