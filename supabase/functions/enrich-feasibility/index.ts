@@ -131,16 +131,18 @@ const ENDPOINT_CATALOG: Record<string, any> = {
   }
 };
 
+// API Endpoints - Official Sources
 const FEMA_NFHL_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query";
-const USGS_ELEVATION_URL = "https://epqs.nationalmap.gov/v1/json";
-const USFWS_WETLANDS_URL = "https://fwsprimary.wim.usgs.gov/wetlands/rest/services/Wetlands/MapServer/0/query";
-const USDA_SOIL_URL = "https://sdmdataaccess.sc.egov.usda.gov/Spatial/SDMWGS84Geographic.wfs";
-const EPA_FRS_URL = "https://ofmpub.epa.gov/enviro/frs_rest_services.get_facilities";
+const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php"; // Updated to correct endpoint
+const USFWS_WETLANDS_URL = "https://www.fws.gov/wetlands/arcgis/rest/services/Wetlands/MapServer/0/query";
+const USDA_SOIL_URL = "https://sdmdataaccess.nrcs.usda.gov/Tabular/post.rest";
+const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
-const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/public/map/basic/fixed";
-const TXDOT_AADT_URL = "https://gis-txdot.opendata.arcgis.com/datasets/txdot-aadt.geojson";
+const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
+const TXDOT_AADT_URL = "https://gis-txdot.opendata.arcgis.com/datasets/txdot::aadt-traffic-counts/api";
 const CENSUS_ACS_BASE = "https://api.census.gov/data/2022/acs/acs5";
-const OPPORTUNITY_ZONES_URL = "https://geocoding.geo.census.gov/geocoder/geographies/coordinates";
+const BLS_QCEW_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
+const OPPORTUNITY_ZONES_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/Opportunity_Zones/FeatureServer/0/query";
 
 // Helper function to fetch elevation from USGS
 async function fetchElevation(lat: number, lng: number): Promise<number | null> {
@@ -148,7 +150,7 @@ async function fetchElevation(lat: number, lng: number): Promise<number | null> 
     const url = `${USGS_ELEVATION_URL}?x=${lng}&y=${lat}&units=Feet&output=json`;
     const response = await fetch(url);
     const data = await response.json();
-    return data?.value || null;
+    return data?.USGS_Elevation_Point_Query_Service?.Elevation_Query?.Elevation || null;
   } catch (error) {
     console.error('Elevation fetch error:', error);
     return null;
@@ -205,11 +207,11 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
 }
 
 // Helper function to fetch EPA environmental sites
-async function fetchEnvironmentalSites(lat: number, lng: number): Promise<any[]> {
+async function fetchEnvironmentalSites(lat: number, lng: number, county: string): Promise<any[]> {
   try {
-    // Search within 1 mile radius
+    // EPA FRS API - search within county
     const response = await fetch(
-      `${EPA_FRS_URL}?latitude=${lat}&longitude=${lng}&radius=1&output=JSON`
+      `${EPA_FRS_URL}?county=${encodeURIComponent(county)}&state=TX&output=JSON`
     );
     const data = await response.json();
     
@@ -229,20 +231,23 @@ async function fetchEnvironmentalSites(lat: number, lng: number): Promise<any[]>
 // Helper function to fetch FCC broadband data
 async function fetchBroadband(lat: number, lng: number): Promise<any> {
   try {
+    // FCC Broadband Map API - nationwide dataset
     const response = await fetch(
       `${FCC_BROADBAND_URL}?latitude=${lat}&longitude=${lng}`
     );
     const data = await response.json();
     
-    const providers = (data?.data || []).map((p: any) => ({
-      provider: p.provider_name,
-      technology: p.technology,
+    const providers = (data?.results || []).map((p: any) => ({
+      provider: p.provider_name || p.holding_company_name,
+      technology: p.technology_code,
       max_download: p.max_advertised_download_speed,
       max_upload: p.max_advertised_upload_speed
     }));
     
     return {
-      fiber_available: providers.some((p: any) => p.technology === 'Fiber'),
+      fiber_available: providers.some((p: any) => 
+        p.technology === '50' || p.technology === 'Fiber'
+      ),
       broadband_providers: providers
     };
   } catch (error) {
@@ -254,35 +259,41 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
 // Helper function to fetch TxDOT traffic data
 async function fetchTrafficData(lat: number, lng: number): Promise<any> {
   try {
-    // Query TxDOT AADT data - find nearest segment
-    const response = await fetch(TXDOT_AADT_URL);
-    const geojson = await response.json();
+    // TxDOT AADT REST API - query nearest traffic count station
+    const params = new URLSearchParams({
+      where: '1=1',
+      geometry: `${lng},${lat}`,
+      geometryType: 'esriGeometryPoint',
+      inSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      distance: '2640', // 0.5 miles in feet
+      units: 'esriFeet',
+      outFields: 'AADT,YEAR,SECTION_ID,RTE_NM,DIRECTION',
+      returnGeometry: 'true',
+      f: 'json'
+    });
     
-    // Find closest traffic station within 0.5 miles
-    let closest: any = null;
-    let minDist = Infinity;
+    const response = await fetch(`${TXDOT_AADT_URL}?${params}`);
+    const data = await response.json();
     
-    for (const feature of geojson.features) {
-      const coords = feature.geometry.coordinates[0];
-      const dist = Math.sqrt(
-        Math.pow((coords[0] - lng) * 69, 2) + 
-        Math.pow((coords[1] - lat) * 69, 2)
+    if (data?.features?.[0]) {
+      const feature = data.features[0];
+      const attrs = feature.attributes;
+      
+      // Calculate distance from parcel to traffic station
+      const geom = feature.geometry;
+      const distMiles = Math.sqrt(
+        Math.pow((geom.x - lng) * 69, 2) + 
+        Math.pow((geom.y - lat) * 69, 2)
       );
       
-      if (dist < 0.5 && dist < minDist) {
-        minDist = dist;
-        closest = feature;
-      }
-    }
-    
-    if (closest) {
       return {
-        traffic_aadt: closest.properties.AADT,
-        traffic_year: closest.properties.YEAR,
-        traffic_segment_id: closest.properties.SECTION_ID,
-        traffic_distance_ft: minDist * 5280,
-        traffic_road_name: closest.properties.RTE_NM,
-        traffic_direction: closest.properties.DIRECTION,
+        traffic_aadt: attrs.AADT,
+        traffic_year: attrs.YEAR,
+        traffic_segment_id: attrs.SECTION_ID,
+        traffic_distance_ft: distMiles * 5280,
+        traffic_road_name: attrs.RTE_NM,
+        traffic_direction: attrs.DIRECTION,
         traffic_map_url: `https://gis-txdot.opendata.arcgis.com/maps/txdot-aadt`
       };
     }
@@ -383,16 +394,26 @@ async function fetchDemographics(lat: number, lng: number): Promise<any> {
 // Helper function to check opportunity zones
 async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
   try {
-    const geoUrl = `${OPPORTUNITY_ZONES_URL}?x=${lng}&y=${lat}&benchmark=Public_AR_Current&vintage=Current_Current&layers=86&format=json`;
-    const response = await fetch(geoUrl);
+    // US Treasury Opportunity Zone ArcGIS Service
+    const params = new URLSearchParams({
+      geometry: `${lng},${lat}`,
+      geometryType: 'esriGeometryPoint',
+      inSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: '*',
+      returnGeometry: 'false',
+      f: 'json'
+    });
+    
+    const response = await fetch(`${OPPORTUNITY_ZONES_URL}?${params}`);
     const data = await response.json();
     
-    const isOZ = data?.result?.geographies?.['Opportunity Zones']?.length > 0;
+    const isOZ = data?.features && data.features.length > 0;
     
     return {
       opportunity_zone: isOZ,
-      enterprise_zone: false, // Would need state-specific API
-      foreign_trade_zone: false // Would need FTZ shapefiles
+      enterprise_zone: false, // Would need Texas EDC API
+      foreign_trade_zone: false // Would need US FTZ Board shapefiles
     };
   } catch (error) {
     console.error('Incentive zones fetch error:', error);
@@ -621,7 +642,7 @@ serve(async (req) => {
 
     // Step 9: Fetch environmental sites
     console.log('Fetching environmental sites...');
-    const envSites = await fetchEnvironmentalSites(geoLat, geoLng);
+    const envSites = await fetchEnvironmentalSites(geoLat, geoLng, countyName);
     if (envSites.length > 0) {
       enrichedData.environmental_sites = envSites;
     }
