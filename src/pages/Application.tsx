@@ -137,7 +137,6 @@ export default function Application() {
 
     if (step === 3) {
       if (!formData.stories) newErrors.stories = "Number of stories is required";
-      if (!formData.budget) newErrors.budget = "Budget is required";
     }
 
     if (step === 4) {
@@ -1064,22 +1063,24 @@ export default function Application() {
                                </p>
                             </div>
 
-                             <div>
-                               <Label htmlFor="budget" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Desired Budget <span className="text-maxx-red text-lg">*</span>
-                               </Label>
+                           <div>
+                             <Label htmlFor="budget" className="font-body font-semibold text-charcoal">
+                               Desired Budget
+                             </Label>
+                            <div className="relative mt-2">
+                              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/60">$</span>
                               <Input
                                 id="budget"
                                 value={formData.budget}
                                 onChange={(e) => handleInputChange('budget', e.target.value)}
-                                placeholder="$25,000,000"
-                                className={`mt-2 ${errors.budget ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                                placeholder="25,000,000"
+                                className="pl-7 border-charcoal/20"
                               />
-                              <p className="text-sm text-charcoal/60 mt-1">
-                                Approximate total project budget, land + construction + soft costs if known.
-                              </p>
-                              {errors.budget && <p className="text-maxx-red text-sm mt-1">{errors.budget}</p>}
                             </div>
+                            <p className="text-sm text-charcoal/60 mt-1">
+                              Approximate total project budget (land + construction + soft costs). Leave blank if unknown.
+                            </p>
+                          </div>
                           </div>
                         </div>
                       )}
