@@ -16,7 +16,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: "ZONING",
-    overlay_field: "OVERLAY_DISTRICT"
+    overlay_field: "OVERLAY_DISTRICT",
+    // Houston utility endpoints
+    water_lines_url: "https://gis.houstontx.gov/arcgis/rest/services/Utilities/Water/MapServer/0/query",
+    sewer_lines_url: "https://gis.houstontx.gov/arcgis/rest/services/Utilities/Wastewater/MapServer/0/query",
+    storm_lines_url: "https://gis.houstontx.gov/arcgis/rest/services/Utilities/Storm/MapServer/0/query"
   },
   "Fort Bend County": {
     // Primary parcel source (CAD data - richer information)
@@ -64,7 +68,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: "ZONE_CODE",
-    overlay_field: "OVERLAY"
+    overlay_field: "OVERLAY",
+    // Dallas utility endpoints
+    water_lines_url: "https://gis.dallascityhall.com/arcgis/rest/services/Utilities/Water/MapServer/0/query",
+    sewer_lines_url: "https://gis.dallascityhall.com/arcgis/rest/services/Utilities/Wastewater/MapServer/0/query"
   },
   "Tarrant County": {
     parcel_url: "https://gis.tad.org/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -100,7 +107,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: "ZONE",
-    overlay_field: "OVERLAY"
+    overlay_field: "OVERLAY",
+    // Austin utility endpoints
+    water_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_water_line/FeatureServer/0/query",
+    sewer_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_wastewater_line/FeatureServer/0/query"
   },
   "Williamson County": {
     parcel_url: "https://gis.wcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
@@ -127,7 +137,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
-    overlay_field: null
+    overlay_field: null,
+    // San Antonio utility endpoints
+    water_lines_url: "https://gis.sanantonio.gov/arcgis/rest/services/Utilities/Water/MapServer/0/query",
+    sewer_lines_url: "https://gis.sanantonio.gov/arcgis/rest/services/Utilities/Wastewater/MapServer/0/query"
   }
 };
 
@@ -391,6 +404,124 @@ async function fetchDemographics(lat: number, lng: number): Promise<any> {
   }
 }
 
+// Helper function to fetch utility infrastructure from city GIS
+async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise<any> {
+  const utilities: any = {
+    water_lines: null,
+    sewer_lines: null,
+    storm_lines: null,
+    water_capacity_mgd: null,
+    sewer_capacity_mgd: null,
+    power_kv_nearby: null
+  };
+
+  const searchRadius = 500; // 500 feet radius
+
+  try {
+    // Fetch water lines if endpoint exists
+    if (endpoints.water_lines_url) {
+      const waterParams = new URLSearchParams({
+        geometry: `${lng},${lat}`,
+        geometryType: 'esriGeometryPoint',
+        inSR: '4326',
+        spatialRel: 'esriSpatialRelIntersects',
+        distance: searchRadius.toString(),
+        units: 'esriFeet',
+        outFields: 'DIAMETER,MATERIAL,INSTALL_DATE,PIPE_SIZE',
+        returnGeometry: 'true',
+        f: 'json'
+      });
+
+      const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParams}`);
+      const waterData = await waterResp.json();
+      
+      if (waterData?.features && waterData.features.length > 0) {
+        utilities.water_lines = waterData.features.map((f: any) => ({
+          diameter: f.attributes.DIAMETER || f.attributes.PIPE_SIZE,
+          material: f.attributes.MATERIAL,
+          install_date: f.attributes.INSTALL_DATE,
+          distance_ft: searchRadius
+        }));
+        
+        // Estimate capacity based on largest pipe
+        const maxDiameter = Math.max(...waterData.features.map((f: any) => 
+          f.attributes.DIAMETER || f.attributes.PIPE_SIZE || 0
+        ));
+        utilities.water_capacity_mgd = maxDiameter ? (maxDiameter / 12) * 0.5 : null;
+      }
+    }
+
+    // Fetch sewer lines if endpoint exists
+    if (endpoints.sewer_lines_url) {
+      const sewerParams = new URLSearchParams({
+        geometry: `${lng},${lat}`,
+        geometryType: 'esriGeometryPoint',
+        inSR: '4326',
+        spatialRel: 'esriSpatialRelIntersects',
+        distance: searchRadius.toString(),
+        units: 'esriFeet',
+        outFields: 'DIAMETER,MATERIAL,INSTALL_DATE,PIPE_SIZE',
+        returnGeometry: 'true',
+        f: 'json'
+      });
+
+      const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParams}`);
+      const sewerData = await sewerResp.json();
+      
+      if (sewerData?.features && sewerData.features.length > 0) {
+        utilities.sewer_lines = sewerData.features.map((f: any) => ({
+          diameter: f.attributes.DIAMETER || f.attributes.PIPE_SIZE,
+          material: f.attributes.MATERIAL,
+          install_date: f.attributes.INSTALL_DATE,
+          distance_ft: searchRadius
+        }));
+        
+        // Estimate capacity based on largest pipe
+        const maxDiameter = Math.max(...sewerData.features.map((f: any) => 
+          f.attributes.DIAMETER || f.attributes.PIPE_SIZE || 0
+        ));
+        utilities.sewer_capacity_mgd = maxDiameter ? (maxDiameter / 12) * 0.5 : null;
+      }
+    }
+
+    // Fetch storm lines if endpoint exists
+    if (endpoints.storm_lines_url) {
+      const stormParams = new URLSearchParams({
+        geometry: `${lng},${lat}`,
+        geometryType: 'esriGeometryPoint',
+        inSR: '4326',
+        spatialRel: 'esriSpatialRelIntersects',
+        distance: searchRadius.toString(),
+        units: 'esriFeet',
+        outFields: 'DIAMETER,MATERIAL,INSTALL_DATE,PIPE_SIZE',
+        returnGeometry: 'true',
+        f: 'json'
+      });
+
+      const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParams}`);
+      const stormData = await stormResp.json();
+      
+      if (stormData?.features && stormData.features.length > 0) {
+        utilities.storm_lines = stormData.features.map((f: any) => ({
+          diameter: f.attributes.DIAMETER || f.attributes.PIPE_SIZE,
+          material: f.attributes.MATERIAL,
+          install_date: f.attributes.INSTALL_DATE,
+          distance_ft: searchRadius
+        }));
+      }
+    }
+
+    // Power infrastructure typically requires manual lookup or private utility data
+    // Placeholder for future integration with utility company APIs
+    utilities.power_kv_nearby = null;
+
+  } catch (error) {
+    console.error('Utility infrastructure fetch error:', error);
+  }
+
+  return utilities;
+}
+
 // Helper function to check opportunity zones
 async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
   try {
@@ -647,6 +778,13 @@ serve(async (req) => {
     }
 
     // Step 6: Utilities / Infrastructure
+    console.log('Fetching utility infrastructure data...');
+    const utilities = await fetchUtilities(geoLat, geoLng, endpoints);
+    Object.assign(enrichedData, utilities);
+    if (!utilities.water_lines && !utilities.sewer_lines) {
+      dataFlags.push('utilities_not_found');
+    }
+
     console.log('Fetching broadband data...');
     const broadband = await fetchBroadband(geoLat, geoLng);
     Object.assign(enrichedData, broadband);
@@ -706,6 +844,12 @@ serve(async (req) => {
         environmental_sites: enrichedData.environmental_sites || [],
         
         // Utilities / Infrastructure
+        water_lines: enrichedData.water_lines,
+        sewer_lines: enrichedData.sewer_lines,
+        storm_lines: enrichedData.storm_lines,
+        water_capacity_mgd: enrichedData.water_capacity_mgd,
+        sewer_capacity_mgd: enrichedData.sewer_capacity_mgd,
+        power_kv_nearby: enrichedData.power_kv_nearby,
         fiber_available: enrichedData.fiber_available || false,
         broadband_providers: enrichedData.broadband_providers || [],
         
