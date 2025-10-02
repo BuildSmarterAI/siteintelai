@@ -188,17 +188,16 @@ serve(async (req) => {
       property_address: requestData.propertyAddress, // Can be string or JSON
       formatted_address: formatted_address,
       county: administrative_area_level_2,
-      City: locality,
+      city: locality,
       administrative_area_level_1: administrative_area_level_1,
       postal_code: postal_code,
       neighborhood: neighborhood_raw,
       sublocality: sublocality,
       place_id: place_id,
-      parcel_id_apn: requestData.parcelIdApn || requestData.parcelId || null,
+      parcel_id: requestData.parcelIdApn || requestData.parcelId || null,
       lot_size_value: parseNumber(requestData.lotSizeValue),
       lot_size_unit: requestData.lotSizeUnit || null,
       existing_improvements: requestData.existingImprovements,
-      zoning_classification: requestData.zoningClassification || null,
       ownership_status: requestData.ownershipStatus,
       geo_lat: geo_lat,
       geo_lng: geo_lng,
@@ -213,7 +212,6 @@ serve(async (req) => {
       desired_budget: parseNumber(requestData.desiredBudget),
       
       // Step 4: Market & Risks
-      submarket: requestData.submarket,
       access_priorities: requestData.accessPriorities || [], // Array
       known_risks: requestData.knownRisks || [], // Array
       utility_access: requestData.utilityAccess || [], // Array
@@ -246,7 +244,7 @@ serve(async (req) => {
       acreage_cad: parseNumber(requestData.acreageCad),
       situs_address: requestData.situsAddress || null,
       overlay_district: requestData.overlayDistrict || null,
-      floodplain: requestData.floodplainZone || null,
+      floodplain_zone: requestData.floodplainZone || null,
       base_flood_elevation: parseNumber(requestData.baseFloodElevation),
     };
 
