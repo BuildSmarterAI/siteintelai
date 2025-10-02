@@ -30,7 +30,7 @@ export type Database = {
           consent_terms_privacy: boolean
           costs_output: string | null
           created_at: string
-          desired_budget: number
+          desired_budget: number | null
           elevation: number | null
           email: string
           environmental_constraints: string[] | null
@@ -102,7 +102,7 @@ export type Database = {
           consent_terms_privacy?: boolean
           costs_output?: string | null
           created_at?: string
-          desired_budget: number
+          desired_budget?: number | null
           elevation?: number | null
           email: string
           environmental_constraints?: string[] | null
@@ -174,7 +174,7 @@ export type Database = {
           consent_terms_privacy?: boolean
           costs_output?: string | null
           created_at?: string
-          desired_budget?: number
+          desired_budget?: number | null
           elevation?: number | null
           email?: string
           environmental_constraints?: string[] | null
