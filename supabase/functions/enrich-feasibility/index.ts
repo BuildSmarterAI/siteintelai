@@ -27,12 +27,12 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     cad_parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
     // Fallback parcel source
     parcel_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/General/Parcels/MapServer/0/query",
-    zoning_url: null,
+    zoning_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Planning/Zoning/MapServer/0/query",
     parcel_id_field: "PARCEL_ID",
     owner_field: "OWNER_NAME",
     acreage_field: "ACRES",
-    zoning_field: null,
-    overlay_field: null
+    zoning_field: "ZONING",
+    overlay_field: "OVERLAY_DISTRICT"
   },
   "Galveston County": {
     parcel_url: "https://www1.cityofwebster.com/arcgis/rest/services/Landbase/CountyGalveston/MapServer/0/query",
@@ -872,10 +872,18 @@ serve(async (req) => {
         }
         
         // Submarket is typically city + neighborhood or sublocality
-        enrichedData.submarket_enriched = [
+        // Fallback: use county if city is not available
+        const submarketParts = [
           enrichedData.city,
           enrichedData.neighborhood || enrichedData.sublocality
-        ].filter(Boolean).join(' - ') || null;
+        ].filter(Boolean);
+        
+        if (submarketParts.length === 0 && countyName) {
+          // Fallback: use county name as submarket
+          enrichedData.submarket_enriched = countyName;
+        } else {
+          enrichedData.submarket_enriched = submarketParts.join(' - ') || null;
+        }
         
         console.log('Geocoding successful:', { 
           geoLat, 
@@ -987,12 +995,17 @@ serve(async (req) => {
 
         if (zoningData?.features?.[0]) {
           const attrs = zoningData.features[0].attributes;
-          enrichedData.zoning_code = attrs[endpoints.zoning_field] || attrs.ZONE_CODE || attrs.ZONING || attrs.ZONECODE;
+          enrichedData.zoning_code = attrs[endpoints.zoning_field] || attrs.ZONE_CODE || attrs.ZONING || attrs.ZONECODE || attrs.ZONE;
           enrichedData.overlay_district = attrs[endpoints.overlay_field] || attrs.OVERLAY_DISTRICT || attrs.OVERLAY || attrs.OVERLAY_CODE;
-          console.log('Zoning data found:', { zoning_code: enrichedData.zoning_code, overlay_district: enrichedData.overlay_district, all_attrs: attrs });
+          console.log('Zoning data found:', { 
+            zoning_code: enrichedData.zoning_code, 
+            overlay_district: enrichedData.overlay_district, 
+            endpoint: endpoints.zoning_url,
+            available_fields: Object.keys(attrs)
+          });
         } else {
           dataFlags.push('zoning_not_found');
-          console.log('No zoning data found');
+          console.log('No zoning data found for endpoint:', endpoints.zoning_url);
         }
       } catch (error) {
         console.error('Zoning query error:', error);
