@@ -590,14 +590,14 @@ serve(async (req) => {
       dataFlags.push('zoning_not_available');
     }
 
-    // Step 5: Query FEMA flood data
+    // Step 4: Query FEMA flood data (Floodplain & Elevation - Part 1)
     try {
       const femaParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: 'FLD_ZONE,STATIC_BFE',
+        outFields: 'FLD_ZONE,STATIC_BFE,DFIRM_ID,PANEL_TYP',
         returnGeometry: 'false',
         f: 'json'
       });
@@ -609,63 +609,61 @@ serve(async (req) => {
         const attrs = femaData.features[0].attributes;
         enrichedData.floodplain_zone = attrs.FLD_ZONE;
         enrichedData.base_flood_elevation = attrs.STATIC_BFE;
-        console.log('FEMA data found:', enrichedData);
+        enrichedData.fema_panel_id = attrs.DFIRM_ID || attrs.PANEL_TYP;
+        console.log('FEMA data found:', { floodplain_zone: attrs.FLD_ZONE, base_flood_elevation: attrs.STATIC_BFE, fema_panel_id: enrichedData.fema_panel_id });
       } else {
-        dataFlags.push('fema_not_found');
+        dataFlags.push('floodplain_missing');
         console.log('No FEMA flood data found');
       }
     } catch (error) {
       console.error('FEMA query error:', error);
-      dataFlags.push('fema_query_failed');
+      dataFlags.push('floodplain_missing');
     }
 
-    // Step 6: Fetch elevation data
+    // Step 4 continued: Fetch elevation data (Floodplain & Elevation - Part 2)
     console.log('Fetching elevation data...');
     const elevation = await fetchElevation(geoLat, geoLng);
     if (elevation !== null) {
       enrichedData.elevation = elevation;
     } else {
-      dataFlags.push('elevation_not_found');
+      dataFlags.push('elevation_missing');
     }
 
-    // Step 7: Fetch wetlands data
+    // Step 5: Environmental Constraints
     console.log('Fetching wetlands data...');
     const wetlands = await fetchWetlands(geoLat, geoLng);
     if (wetlands) {
       enrichedData.wetlands_type = wetlands;
     }
 
-    // Step 8: Fetch soil data
     console.log('Fetching soil data...');
     const soilData = await fetchSoilData(geoLat, geoLng);
     Object.assign(enrichedData, soilData);
 
-    // Step 9: Fetch environmental sites
     console.log('Fetching environmental sites...');
     const envSites = await fetchEnvironmentalSites(geoLat, geoLng, countyName);
     if (envSites.length > 0) {
       enrichedData.environmental_sites = envSites;
     }
 
-    // Step 10: Fetch broadband data
+    // Step 6: Utilities / Infrastructure
     console.log('Fetching broadband data...');
     const broadband = await fetchBroadband(geoLat, geoLng);
     Object.assign(enrichedData, broadband);
 
-    // Step 11: Fetch traffic data
+    // Step 7: Traffic & Mobility
     console.log('Fetching traffic data...');
     const trafficData = await fetchTrafficData(geoLat, geoLng);
     Object.assign(enrichedData, trafficData);
     if (!trafficData.traffic_aadt) {
-      dataFlags.push('traffic_data_not_found');
+      dataFlags.push('traffic_missing');
     }
 
-    // Step 12: Fetch mobility data (highways, transit)
-    console.log('Fetching mobility data...');
+    console.log('Fetching mobility data (highways, transit)...');
     const mobilityData = await fetchMobilityData(geoLat, geoLng, googleApiKey);
     Object.assign(enrichedData, mobilityData);
 
-    // Step 13: Fetch demographics
+    // Step 8: Demographics / Market Context
     console.log('Fetching demographics...');
     const demographics = await fetchDemographics(geoLat, geoLng);
     Object.assign(enrichedData, demographics);
@@ -673,12 +671,12 @@ serve(async (req) => {
       dataFlags.push('demographics_not_found');
     }
 
-    // Step 14: Fetch incentive zones
+    // Step 9: Financial / Incentives
     console.log('Fetching incentive zones...');
     const incentives = await fetchIncentiveZones(geoLat, geoLng);
     Object.assign(enrichedData, incentives);
 
-    // Step 15: Save to database if application_id provided
+    // Step 10: Save enriched data to database if application_id provided
     if (application_id) {
       const updateData = {
         // Location
@@ -699,6 +697,7 @@ serve(async (req) => {
         // Floodplain / Environmental
         floodplain_zone: enrichedData.floodplain_zone,
         base_flood_elevation: enrichedData.base_flood_elevation,
+        fema_panel_id: enrichedData.fema_panel_id,
         elevation: enrichedData.elevation,
         wetlands_type: enrichedData.wetlands_type,
         soil_series: enrichedData.soil_series,
@@ -761,11 +760,12 @@ serve(async (req) => {
       console.log('Enrichment saved to database');
     }
 
-    // Step 16: Return success response
+    // Return success response (Step 10 AI Generation would happen after this in a separate process)
     return new Response(JSON.stringify({
       success: true,
       county: countyName,
-      data: enrichedData
+      data: enrichedData,
+      data_flags: dataFlags
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
