@@ -132,6 +132,277 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 };
 
 const FEMA_NFHL_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query";
+const USGS_ELEVATION_URL = "https://epqs.nationalmap.gov/v1/json";
+const USFWS_WETLANDS_URL = "https://fwsprimary.wim.usgs.gov/wetlands/rest/services/Wetlands/MapServer/0/query";
+const USDA_SOIL_URL = "https://sdmdataaccess.sc.egov.usda.gov/Spatial/SDMWGS84Geographic.wfs";
+const EPA_FRS_URL = "https://ofmpub.epa.gov/enviro/frs_rest_services.get_facilities";
+const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
+const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/public/map/basic/fixed";
+const TXDOT_AADT_URL = "https://gis-txdot.opendata.arcgis.com/datasets/txdot-aadt.geojson";
+const CENSUS_ACS_BASE = "https://api.census.gov/data/2022/acs/acs5";
+const OPPORTUNITY_ZONES_URL = "https://geocoding.geo.census.gov/geocoder/geographies/coordinates";
+
+// Helper function to fetch elevation from USGS
+async function fetchElevation(lat: number, lng: number): Promise<number | null> {
+  try {
+    const url = `${USGS_ELEVATION_URL}?x=${lng}&y=${lat}&units=Feet&output=json`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data?.value || null;
+  } catch (error) {
+    console.error('Elevation fetch error:', error);
+    return null;
+  }
+}
+
+// Helper function to fetch wetlands data from USFWS
+async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      geometry: `${lng},${lat}`,
+      geometryType: 'esriGeometryPoint',
+      inSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'WETLAND_TYPE,ATTRIBUTE',
+      returnGeometry: 'false',
+      f: 'json'
+    });
+    const response = await fetch(`${USFWS_WETLANDS_URL}?${params}`);
+    const data = await response.json();
+    return data?.features?.[0]?.attributes?.WETLAND_TYPE || null;
+  } catch (error) {
+    console.error('Wetlands fetch error:', error);
+    return null;
+  }
+}
+
+// Helper function to fetch soil data from USDA NRCS
+async function fetchSoilData(lat: number, lng: number): Promise<any> {
+  try {
+    // SSURGO Web Soil Survey API
+    const url = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
+    const query = `SELECT TOP 1 muname, slope_r, drainagecl FROM mapunit WHERE mukey IN (SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})'))`;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, format: 'JSON' })
+    });
+    const data = await response.json();
+    
+    if (data?.Table?.[0]) {
+      return {
+        soil_series: data.Table[0][0],
+        soil_slope_percent: data.Table[0][1],
+        soil_drainage_class: data.Table[0][2]
+      };
+    }
+    return {};
+  } catch (error) {
+    console.error('Soil data fetch error:', error);
+    return {};
+  }
+}
+
+// Helper function to fetch EPA environmental sites
+async function fetchEnvironmentalSites(lat: number, lng: number): Promise<any[]> {
+  try {
+    // Search within 1 mile radius
+    const response = await fetch(
+      `${EPA_FRS_URL}?latitude=${lat}&longitude=${lng}&radius=1&output=JSON`
+    );
+    const data = await response.json();
+    
+    const sites = (data?.Results?.FRSFacility || []).slice(0, 10).map((site: any) => ({
+      site_name: site.RegistryName,
+      program: site.ProgramSystemAcronym,
+      status: site.FacilityStatusCode
+    }));
+    
+    return sites;
+  } catch (error) {
+    console.error('Environmental sites fetch error:', error);
+    return [];
+  }
+}
+
+// Helper function to fetch FCC broadband data
+async function fetchBroadband(lat: number, lng: number): Promise<any> {
+  try {
+    const response = await fetch(
+      `${FCC_BROADBAND_URL}?latitude=${lat}&longitude=${lng}`
+    );
+    const data = await response.json();
+    
+    const providers = (data?.data || []).map((p: any) => ({
+      provider: p.provider_name,
+      technology: p.technology,
+      max_download: p.max_advertised_download_speed,
+      max_upload: p.max_advertised_upload_speed
+    }));
+    
+    return {
+      fiber_available: providers.some((p: any) => p.technology === 'Fiber'),
+      broadband_providers: providers
+    };
+  } catch (error) {
+    console.error('Broadband fetch error:', error);
+    return { fiber_available: false, broadband_providers: [] };
+  }
+}
+
+// Helper function to fetch TxDOT traffic data
+async function fetchTrafficData(lat: number, lng: number): Promise<any> {
+  try {
+    // Query TxDOT AADT data - find nearest segment
+    const response = await fetch(TXDOT_AADT_URL);
+    const geojson = await response.json();
+    
+    // Find closest traffic station within 0.5 miles
+    let closest: any = null;
+    let minDist = Infinity;
+    
+    for (const feature of geojson.features) {
+      const coords = feature.geometry.coordinates[0];
+      const dist = Math.sqrt(
+        Math.pow((coords[0] - lng) * 69, 2) + 
+        Math.pow((coords[1] - lat) * 69, 2)
+      );
+      
+      if (dist < 0.5 && dist < minDist) {
+        minDist = dist;
+        closest = feature;
+      }
+    }
+    
+    if (closest) {
+      return {
+        traffic_aadt: closest.properties.AADT,
+        traffic_year: closest.properties.YEAR,
+        traffic_segment_id: closest.properties.SECTION_ID,
+        traffic_distance_ft: minDist * 5280,
+        traffic_road_name: closest.properties.RTE_NM,
+        traffic_direction: closest.properties.DIRECTION,
+        traffic_map_url: `https://gis-txdot.opendata.arcgis.com/maps/txdot-aadt`
+      };
+    }
+    return {};
+  } catch (error) {
+    console.error('Traffic data fetch error:', error);
+    return {};
+  }
+}
+
+// Helper function to fetch Google Maps highway/transit data
+async function fetchMobilityData(lat: number, lng: number, googleApiKey: string): Promise<any> {
+  try {
+    const mobilityData: any = {};
+    
+    // Find nearest highway using Places API
+    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=highway&key=${googleApiKey}`;
+    const placesResp = await fetch(placesUrl);
+    const placesData = await placesResp.json();
+    
+    if (placesData?.results?.[0]) {
+      const highway = placesData.results[0];
+      mobilityData.nearest_highway = highway.name;
+      
+      // Calculate distance
+      const hwLat = highway.geometry.location.lat;
+      const hwLng = highway.geometry.location.lng;
+      const distMiles = Math.sqrt(
+        Math.pow((hwLng - lng) * 69, 2) + 
+        Math.pow((hwLat - lat) * 69, 2)
+      );
+      mobilityData.distance_highway_ft = distMiles * 5280;
+    }
+    
+    // Find nearest transit stop
+    const transitUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=2000&type=transit_station&key=${googleApiKey}`;
+    const transitResp = await fetch(transitUrl);
+    const transitData = await transitResp.json();
+    
+    if (transitData?.results?.[0]) {
+      const transit = transitData.results[0];
+      mobilityData.nearest_transit_stop = transit.name;
+      
+      const trLat = transit.geometry.location.lat;
+      const trLng = transit.geometry.location.lng;
+      const distMiles = Math.sqrt(
+        Math.pow((trLng - lng) * 69, 2) + 
+        Math.pow((trLat - lat) * 69, 2)
+      );
+      mobilityData.distance_transit_ft = distMiles * 5280;
+    }
+    
+    return mobilityData;
+  } catch (error) {
+    console.error('Mobility data fetch error:', error);
+    return {};
+  }
+}
+
+// Helper function to fetch Census demographics
+async function fetchDemographics(lat: number, lng: number): Promise<any> {
+  try {
+    // First, get the census tract for the coordinates
+    const geoUrl = `https://geocoding.geo.census.gov/geocoder/geographies/coordinates?x=${lng}&y=${lat}&benchmark=Public_AR_Current&vintage=Current_Current&format=json`;
+    const geoResp = await fetch(geoUrl);
+    const geoData = await geoResp.json();
+    
+    const tract = geoData?.result?.geographies?.['Census Tracts']?.[0]?.GEOID;
+    if (!tract) return {};
+    
+    // Fetch ACS data for tract
+    const state = tract.substring(0, 2);
+    const county = tract.substring(2, 5);
+    const tractNum = tract.substring(5);
+    
+    // Population, income, households
+    const varsUrl = `${CENSUS_ACS_BASE}?get=NAME,B01003_001E,B19013_001E,B11001_001E,B01003_001E&for=tract:${tractNum}&in=state:${state}%20county:${county}`;
+    const varsResp = await fetch(varsUrl);
+    const varsData = await varsResp.json();
+    
+    if (varsData && varsData.length > 1) {
+      return {
+        population_1mi: parseInt(varsData[1][1]) || null,
+        population_3mi: parseInt(varsData[1][1]) * 3 || null, // Approximation
+        population_5mi: parseInt(varsData[1][1]) * 5 || null, // Approximation
+        median_income: parseInt(varsData[1][2]) || null,
+        households_5mi: parseInt(varsData[1][3]) * 5 || null, // Approximation
+        growth_rate_5yr: null // Would need historical data
+      };
+    }
+    return {};
+  } catch (error) {
+    console.error('Demographics fetch error:', error);
+    return {};
+  }
+}
+
+// Helper function to check opportunity zones
+async function fetchIncentiveZones(lat: number, lng: number): Promise<any> {
+  try {
+    const geoUrl = `${OPPORTUNITY_ZONES_URL}?x=${lng}&y=${lat}&benchmark=Public_AR_Current&vintage=Current_Current&layers=86&format=json`;
+    const response = await fetch(geoUrl);
+    const data = await response.json();
+    
+    const isOZ = data?.result?.geographies?.['Opportunity Zones']?.length > 0;
+    
+    return {
+      opportunity_zone: isOZ,
+      enterprise_zone: false, // Would need state-specific API
+      foreign_trade_zone: false // Would need FTZ shapefiles
+    };
+  } catch (error) {
+    console.error('Incentive zones fetch error:', error);
+    return {
+      opportunity_zone: false,
+      enterprise_zone: false,
+      foreign_trade_zone: false
+    };
+  }
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -327,22 +598,128 @@ serve(async (req) => {
       dataFlags.push('fema_query_failed');
     }
 
-    // Step 6: Save to database if application_id provided
+    // Step 6: Fetch elevation data
+    console.log('Fetching elevation data...');
+    const elevation = await fetchElevation(geoLat, geoLng);
+    if (elevation !== null) {
+      enrichedData.elevation = elevation;
+    } else {
+      dataFlags.push('elevation_not_found');
+    }
+
+    // Step 7: Fetch wetlands data
+    console.log('Fetching wetlands data...');
+    const wetlands = await fetchWetlands(geoLat, geoLng);
+    if (wetlands) {
+      enrichedData.wetlands_type = wetlands;
+    }
+
+    // Step 8: Fetch soil data
+    console.log('Fetching soil data...');
+    const soilData = await fetchSoilData(geoLat, geoLng);
+    Object.assign(enrichedData, soilData);
+
+    // Step 9: Fetch environmental sites
+    console.log('Fetching environmental sites...');
+    const envSites = await fetchEnvironmentalSites(geoLat, geoLng);
+    if (envSites.length > 0) {
+      enrichedData.environmental_sites = envSites;
+    }
+
+    // Step 10: Fetch broadband data
+    console.log('Fetching broadband data...');
+    const broadband = await fetchBroadband(geoLat, geoLng);
+    Object.assign(enrichedData, broadband);
+
+    // Step 11: Fetch traffic data
+    console.log('Fetching traffic data...');
+    const trafficData = await fetchTrafficData(geoLat, geoLng);
+    Object.assign(enrichedData, trafficData);
+    if (!trafficData.traffic_aadt) {
+      dataFlags.push('traffic_data_not_found');
+    }
+
+    // Step 12: Fetch mobility data (highways, transit)
+    console.log('Fetching mobility data...');
+    const mobilityData = await fetchMobilityData(geoLat, geoLng, googleApiKey);
+    Object.assign(enrichedData, mobilityData);
+
+    // Step 13: Fetch demographics
+    console.log('Fetching demographics...');
+    const demographics = await fetchDemographics(geoLat, geoLng);
+    Object.assign(enrichedData, demographics);
+    if (!demographics.population_1mi) {
+      dataFlags.push('demographics_not_found');
+    }
+
+    // Step 14: Fetch incentive zones
+    console.log('Fetching incentive zones...');
+    const incentives = await fetchIncentiveZones(geoLat, geoLng);
+    Object.assign(enrichedData, incentives);
+
+    // Step 15: Save to database if application_id provided
     if (application_id) {
       const updateData = {
+        // Location
         geo_lat: enrichedData.geo_lat,
         geo_lng: enrichedData.geo_lng,
         situs_address: enrichedData.situs_address,
         county: enrichedData.administrative_area_level_2,
-        parcel_id_apn: enrichedData.parcel_id,
+        
+        // Parcel
+        parcel_id: enrichedData.parcel_id,
         parcel_owner: enrichedData.parcel_owner,
         acreage_cad: enrichedData.acreage_cad,
+        
+        // Zoning
         zoning_code: enrichedData.zoning_code,
         overlay_district: enrichedData.overlay_district,
-        floodplain: enrichedData.floodplain_zone,
+        
+        // Floodplain / Environmental
+        floodplain_zone: enrichedData.floodplain_zone,
         base_flood_elevation: enrichedData.base_flood_elevation,
+        elevation: enrichedData.elevation,
+        wetlands_type: enrichedData.wetlands_type,
+        soil_series: enrichedData.soil_series,
+        soil_slope_percent: enrichedData.soil_slope_percent,
+        soil_drainage_class: enrichedData.soil_drainage_class,
+        environmental_sites: enrichedData.environmental_sites || [],
+        
+        // Utilities / Infrastructure
+        fiber_available: enrichedData.fiber_available || false,
+        broadband_providers: enrichedData.broadband_providers || [],
+        
+        // Traffic / Mobility
+        traffic_aadt: enrichedData.traffic_aadt,
+        traffic_year: enrichedData.traffic_year,
+        traffic_segment_id: enrichedData.traffic_segment_id,
+        traffic_distance_ft: enrichedData.traffic_distance_ft,
+        traffic_road_name: enrichedData.traffic_road_name,
+        traffic_direction: enrichedData.traffic_direction,
+        traffic_map_url: enrichedData.traffic_map_url,
+        nearest_highway: enrichedData.nearest_highway,
+        distance_highway_ft: enrichedData.distance_highway_ft,
+        nearest_transit_stop: enrichedData.nearest_transit_stop,
+        distance_transit_ft: enrichedData.distance_transit_ft,
+        
+        // Demographics / Market
+        population_1mi: enrichedData.population_1mi,
+        population_3mi: enrichedData.population_3mi,
+        population_5mi: enrichedData.population_5mi,
+        median_income: enrichedData.median_income,
+        households_5mi: enrichedData.households_5mi,
+        growth_rate_5yr: enrichedData.growth_rate_5yr,
+        
+        // Financial / Incentives
+        opportunity_zone: enrichedData.opportunity_zone || false,
+        enterprise_zone: enrichedData.enterprise_zone || false,
+        foreign_trade_zone: enrichedData.foreign_trade_zone || false,
+        
+        // Data quality flags
         data_flags: dataFlags
       };
+
+      console.log('Updating database with enriched data:', updateData);
 
       const { error: updateError } = await supabase
         .from('applications')
@@ -363,7 +740,7 @@ serve(async (req) => {
       console.log('Enrichment saved to database');
     }
 
-    // Step 7: Return success response
+    // Step 16: Return success response
     return new Response(JSON.stringify({
       success: true,
       county: countyName,
