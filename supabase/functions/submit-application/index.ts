@@ -145,6 +145,11 @@ serve(async (req) => {
                   }
                 }
               }
+
+              // Final fallback: if neighborhood still missing, use locality (city)
+              if (!neighborhood_raw && locality) {
+                neighborhood_raw = locality;
+              }
             }
 
             // Extract Place ID

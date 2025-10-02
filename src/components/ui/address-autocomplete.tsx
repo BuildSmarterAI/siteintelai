@@ -173,6 +173,11 @@ export function AddressAutocomplete({
           }
         }
         
+        // Final fallback: use city if neighborhood still missing
+        if (!addressDetails.neighborhood && addressDetails.city) {
+          addressDetails.neighborhood = addressDetails.city;
+        }
+        
         console.log('Extracted address details:', addressDetails);
       }
 
