@@ -51,6 +51,7 @@ export type Database = {
           environmental_sites: Json | null
           executive_summary_output: string | null
           existing_improvements: string
+          fema_panel_id: string | null
           fiber_available: boolean | null
           floodplain_zone: string | null
           foreign_trade_zone: boolean | null
@@ -167,6 +168,7 @@ export type Database = {
           environmental_sites?: Json | null
           executive_summary_output?: string | null
           existing_improvements: string
+          fema_panel_id?: string | null
           fiber_available?: boolean | null
           floodplain_zone?: string | null
           foreign_trade_zone?: boolean | null
@@ -283,6 +285,7 @@ export type Database = {
           environmental_sites?: Json | null
           executive_summary_output?: string | null
           existing_improvements?: string
+          fema_panel_id?: string | null
           fiber_available?: boolean | null
           floodplain_zone?: string | null
           foreign_trade_zone?: boolean | null
