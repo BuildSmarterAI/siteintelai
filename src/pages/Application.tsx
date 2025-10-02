@@ -144,7 +144,7 @@ export default function Application() {
     }
 
     if (step === 3) {
-      if (!formData.stories) newErrors.stories = "Number of stories is required";
+      // All fields in step 3 are now optional
     }
 
     if (step === 4) {
@@ -1021,8 +1021,8 @@ export default function Application() {
                           </div>
 
                              <div>
-                               <Label htmlFor="stories" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Desired Stories <span className="text-maxx-red text-lg">*</span>
+                               <Label htmlFor="stories" className="font-body font-semibold text-charcoal">
+                                 Desired Stories
                                </Label>
                               <Select value={formData.stories} onValueChange={(value) => handleInputChange('stories', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.stories ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
