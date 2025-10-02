@@ -1130,6 +1130,7 @@ serve(async (req) => {
         geo_lat: enrichedData.geo_lat,
         geo_lng: enrichedData.geo_lng,
         situs_address: enrichedData.situs_address,
+        formatted_address: enrichedData.situs_address, // Same as situs_address from geocoding
         place_id: enrichedData.place_id,
         county: enrichedData.administrative_area_level_2,
         city: enrichedData.city,
