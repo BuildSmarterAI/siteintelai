@@ -132,7 +132,6 @@ export default function Application() {
 
     if (step === 2) {
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
-      if (!formData.currentUse) newErrors.currentUse = "Current use is required";
       if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }
 
@@ -527,8 +526,8 @@ export default function Application() {
                           </div>
 
                            <div>
-                             <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                               Current Use / Existing Improvements <span className="text-maxx-red text-lg">*</span>
+                             <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal">
+                               Current Use / Existing Improvements
                              </Label>
                             <Select value={formData.currentUse} onValueChange={(value) => handleInputChange('currentUse', value)}>
                               <SelectTrigger className={`mt-2 ${errors.currentUse ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
