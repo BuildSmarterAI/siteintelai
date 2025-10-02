@@ -303,7 +303,10 @@ export function AddressAutocomplete({
             <li
               key={suggestion.place_id}
               ref={el => suggestionRefs.current[index] = el}
-              onClick={() => handleSuggestionClick(suggestion)}
+              onMouseDown={(e) => {
+                e.preventDefault(); // Prevent blur from firing
+                handleSuggestionClick(suggestion);
+              }}
               className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
                 index === selectedIndex ? 'bg-blue-50' : ''
               }`}
