@@ -10,11 +10,12 @@ const corsHeaders = {
 // County endpoint catalog - Texas major counties
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
-    parcel_url: "https://maps.hcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
+    parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
-    parcel_id_field: "ACCOUNT",
-    owner_field: "OWNER",
-    acreage_field: "ACRES",
+    parcel_id_field: "HCAD_NUM",
+    parcel_id_alt_field: "parcel_id",
+    owner_field: "owner_name_1",
+    acreage_field: "ACREAGE",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
     // Houston utility endpoints - using COH open data portal
@@ -1040,12 +1041,20 @@ serve(async (req) => {
 
     // Step 3: Query parcel data (with Fort Bend fallback logic)
     try {
+      // Build outFields based on county configuration
+      const outFieldsList = [
+        endpoints.parcel_id_field,
+        endpoints.parcel_id_alt_field,
+        endpoints.owner_field,
+        endpoints.acreage_field
+      ].filter(Boolean).join(',');
+      
       const parcelParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: '*',
+        outFields: outFieldsList || '*',
         returnGeometry: 'false',
         f: 'json'
       });
@@ -1076,10 +1085,19 @@ serve(async (req) => {
 
       if (parcelData?.features?.[0]) {
         const attrs = parcelData.features[0].attributes;
-        enrichedData.parcel_id = attrs[endpoints.parcel_id_field];
+        
+        // Try primary parcel ID field, then alternative field
+        enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || 
+                                  (endpoints.parcel_id_alt_field ? attrs[endpoints.parcel_id_alt_field] : null);
         enrichedData.parcel_owner = attrs[endpoints.owner_field];
         enrichedData.acreage_cad = attrs[endpoints.acreage_field];
-        console.log('Parcel data found:', enrichedData);
+        
+        console.log('Parcel data found:', {
+          parcel_id: enrichedData.parcel_id,
+          parcel_owner: enrichedData.parcel_owner,
+          acreage: enrichedData.acreage_cad,
+          rawAttributes: attrs
+        });
       } else {
         dataFlags.push('parcel_not_found');
         console.log('No parcel data found');
