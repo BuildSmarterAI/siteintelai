@@ -189,15 +189,14 @@ const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest"
 const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
 const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
-const TXDOT_AADT_URLS = [
-  // TxDOT official traffic count services
-  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Annual_Average_Daily_Traffic/FeatureServer/0/query",
-  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT_2023/FeatureServer/0/query",
-  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT_2022/FeatureServer/0/query",
-  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Traffic_Counts/FeatureServer/0/query",
-  // Houston-specific traffic data
-  "https://cohgis.houstontx.gov/arcgis/rest/services/PW/Traffic_Volumes/MapServer/0/query"
-];
+// TxDOT Official Traffic Data Endpoints
+const TXDOT_AADT_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0/query";
+const TXDOT_ROADWAYS_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadways/FeatureServer/0/query";
+const TXDOT_CONGESTION_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Congestion/FeatureServer/0/query";
+const TXDOT_TRUCK_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/ArcGIS/rest/services/TxDOT_Truck_Percent_SRD/FeatureServer/0/query";
+
+// Houston-specific traffic endpoint
+const HOUSTON_TRAFFIC_URL = "https://cohgis.houstontx.gov/arcgis/rest/services/PW/Traffic_Volumes/MapServer/0/query";
 const CENSUS_ACS_BASE = "https://api.census.gov/data/2022/acs/acs5";
 const BLS_QCEW_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
 const OPPORTUNITY_ZONES_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/Opportunity_Zones/FeatureServer/0/query";
@@ -465,110 +464,183 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
   }
 }
 
-// Helper function to fetch TxDOT traffic data (with fallbacks)
+// Helper function to fetch TxDOT traffic data (with confirmed endpoints)
 async function fetchTrafficData(lat: number, lng: number): Promise<any> {
   try {
+    const searchRadius = '5280'; // 1 mile
     const commonParams = {
       geometry: `${lng},${lat}`,
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      distance: '5280', // Increased to 1 mile for better coverage
+      distance: searchRadius,
       units: 'esriFeet',
       where: '1=1',
       outFields: '*',
       returnGeometry: 'true',
       f: 'json'
-    } as const;
+    };
 
-    console.log('Fetching traffic data from multiple TxDOT sources...');
+    console.log('Fetching traffic data from TxDOT AADT service...');
 
-    for (const url of TXDOT_AADT_URLS) {
-      try {
-        const params = new URLSearchParams(commonParams as any);
-        const resp = await fetch(`${url}?${params}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (!resp.ok) {
-          console.log(`TxDOT endpoint ${url} returned status ${resp.status}`);
-          continue;
-        }
-        
+    // Try TxDOT AADT service first (primary source)
+    try {
+      const params = new URLSearchParams(commonParams as any);
+      const resp = await fetch(`${TXDOT_AADT_URL}?${params}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (resp.ok) {
         const text = await resp.text();
-        if (!text || text.trim().startsWith('<')) {
-          console.log('TxDOT endpoint returned HTML/invalid, trying next');
-          continue;
-        }
-        
-        const data = JSON.parse(text);
-        
-        if (data?.features && data.features.length > 0) {
-          // Sort features by distance to find nearest
-          const sortedFeatures = data.features.sort((a: any, b: any) => {
-            const geomA = a.geometry;
-            const geomB = b.geometry;
-            const distA = geomA?.x && geomA?.y ? haversineFt(lat, lng, geomA.y, geomA.x) : Infinity;
-            const distB = geomB?.x && geomB?.y ? haversineFt(lat, lng, geomB.y, geomB.x) : Infinity;
-            return distA - distB;
-          });
+        if (text && !text.trim().startsWith('<')) {
+          const data = JSON.parse(text);
           
-          const feature = sortedFeatures[0];
-          const attrs = feature.attributes || {};
-          const geom = feature.geometry;
-          const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
-          
-          // Extract AADT with multiple field name attempts
-          const aadt = attrs.AADT || attrs.aadt || attrs.AADT_2023 || attrs.AADT_2022 || 
-                      attrs.AADT_2021 || attrs.CUR_AADT || attrs.CURRENT_AADT || 
-                      attrs.AVG_DAILY_TRAFFIC || attrs.TRAFFIC_COUNT || null;
-          
-          // Extract year with multiple field name attempts
-          const year = attrs.YEAR || attrs.year || attrs.COUNT_YEAR || attrs.AADT_YEAR ||
-                      attrs.DATA_YEAR || attrs.SURVEY_YEAR || 2023;
-          
-          // Extract segment ID with multiple field name attempts
-          const segmentId = attrs.SECTION_ID || attrs.OBJECTID || attrs.STATION_ID || 
-                           attrs.SEGMENT_ID || attrs.RTE_ID || attrs.ROADWAY_ID || 
-                           attrs.FID || null;
-          
-          // Extract road name with multiple field name attempts
-          const roadName = attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || 
-                          attrs.Route || attrs.STREET_NAME || attrs.ROADWAY_NAME || 
-                          attrs.NAME || null;
-          
-          // Extract direction
-          const direction = attrs.DIRECTION || attrs.DIR || attrs.TRAFFIC_DIR || null;
-          
-          if (aadt || roadName) {
-            console.log(`Traffic data found from ${url}:`, {
-              aadt,
-              year,
-              segmentId,
-              roadName,
-              direction,
-              distFt
+          if (data?.features && data.features.length > 0) {
+            // Sort by distance to find nearest segment
+            const sortedFeatures = data.features.sort((a: any, b: any) => {
+              const geomA = a.geometry;
+              const geomB = b.geometry;
+              const distA = geomA?.x && geomA?.y ? haversineFt(lat, lng, geomA.y, geomA.x) : Infinity;
+              const distB = geomB?.x && geomB?.y ? haversineFt(lat, lng, geomB.y, geomB.x) : Infinity;
+              return distA - distB;
             });
             
-            return {
-              traffic_aadt: aadt ? Number(aadt) : null,
-              traffic_year: year ? Number(year) : null,
-              traffic_segment_id: segmentId ? String(segmentId) : null,
-              traffic_distance_ft: distFt,
-              traffic_road_name: roadName,
-              traffic_direction: direction,
-              traffic_map_url: url.replace('/query', '')
-            };
+            const feature = sortedFeatures[0];
+            const attrs = feature.attributes || {};
+            const geom = feature.geometry;
+            const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
+            
+            // TxDOT AADT confirmed field mappings
+            const aadt = attrs.AADT_CUR || attrs.AADT || attrs.CUR_AADT || null;
+            const year = attrs.ADT_YEAR || attrs.AADT_YEAR || attrs.YEAR || 2024;
+            const segmentId = attrs.OBJECTID || attrs.SECTION_ID || attrs.RTE_ID || null;
+            const roadName = attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || null;
+            const roadPrefix = attrs.RTE_PRFX || null;
+            const direction = attrs.DIRECTION || attrs.DIR || null;
+            
+            // Build full road name with prefix if available
+            const fullRoadName = roadPrefix ? `${roadPrefix} ${roadName}` : roadName;
+            
+            if (aadt || fullRoadName) {
+              console.log('Traffic data from TxDOT AADT:', {
+                aadt,
+                year,
+                segmentId,
+                roadName: fullRoadName,
+                direction,
+                distFt
+              });
+              
+              return {
+                traffic_aadt: aadt ? Number(aadt) : null,
+                traffic_year: year ? Number(year) : null,
+                traffic_segment_id: segmentId ? String(segmentId) : null,
+                traffic_distance_ft: distFt,
+                traffic_road_name: fullRoadName,
+                traffic_direction: direction,
+                traffic_map_url: TXDOT_AADT_URL.replace('/query', '')
+              };
+            }
           }
         }
-      } catch (inner) {
-        console.error(`TxDOT endpoint ${url} error:`, inner);
-        continue;
       }
+    } catch (error) {
+      console.error('TxDOT AADT error:', error);
     }
 
-    console.log('No TxDOT traffic data found, falling back to OSM');
-    // Fallback to OSM if no TxDOT data (will not have AADT/year/segment)
+    // Try Houston-specific traffic data as fallback
+    console.log('Trying Houston traffic data fallback...');
+    try {
+      const params = new URLSearchParams(commonParams as any);
+      const resp = await fetch(`${HOUSTON_TRAFFIC_URL}?${params}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (resp.ok) {
+        const text = await resp.text();
+        if (text && !text.trim().startsWith('<')) {
+          const data = JSON.parse(text);
+          
+          if (data?.features && data.features.length > 0) {
+            const feature = data.features[0];
+            const attrs = feature.attributes || {};
+            const geom = feature.geometry;
+            const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
+            
+            const aadt = attrs.AADT || attrs.TRAFFIC_VOLUME || attrs.ADT || null;
+            const year = attrs.YEAR || attrs.DATA_YEAR || 2024;
+            const roadName = attrs.STREET_NAME || attrs.STREET || attrs.NAME || null;
+            
+            if (aadt || roadName) {
+              console.log('Traffic data from Houston:', {
+                aadt,
+                year,
+                roadName,
+                distFt
+              });
+              
+              return {
+                traffic_aadt: aadt ? Number(aadt) : null,
+                traffic_year: year ? Number(year) : null,
+                traffic_segment_id: attrs.OBJECTID ? String(attrs.OBJECTID) : null,
+                traffic_distance_ft: distFt,
+                traffic_road_name: roadName,
+                traffic_direction: attrs.DIRECTION || null,
+                traffic_map_url: HOUSTON_TRAFFIC_URL.replace('/query', '')
+              };
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Houston traffic error:', error);
+    }
+
+    // Final fallback to TxDOT Roadways (for road name only, no AADT)
+    console.log('Trying TxDOT Roadways fallback (no AADT available)...');
+    try {
+      const params = new URLSearchParams(commonParams as any);
+      const resp = await fetch(`${TXDOT_ROADWAYS_URL}?${params}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      
+      if (resp.ok) {
+        const text = await resp.text();
+        if (text && !text.trim().startsWith('<')) {
+          const data = JSON.parse(text);
+          
+          if (data?.features && data.features.length > 0) {
+            const feature = data.features[0];
+            const attrs = feature.attributes || {};
+            const geom = feature.geometry;
+            const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
+            
+            const roadName = attrs.RTE_NM || attrs.ROADWAY_NAME || attrs.NAME || null;
+            const roadPrefix = attrs.RTE_PRFX || null;
+            const fullRoadName = roadPrefix ? `${roadPrefix} ${roadName}` : roadName;
+            
+            if (fullRoadName) {
+              console.log('Road name from TxDOT Roadways (no AADT):', fullRoadName);
+              
+              return {
+                traffic_aadt: null,
+                traffic_year: null,
+                traffic_segment_id: attrs.OBJECTID ? String(attrs.OBJECTID) : null,
+                traffic_distance_ft: distFt,
+                traffic_road_name: fullRoadName,
+                traffic_direction: attrs.DIRECTION || null,
+                traffic_map_url: TXDOT_ROADWAYS_URL.replace('/query', '')
+              };
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('TxDOT Roadways error:', error);
+    }
+
+    // Ultimate fallback to OSM
+    console.log('All TxDOT sources failed, falling back to OSM');
     const osm = await fallbackRoadFromOSM(lat, lng);
     return { 
       ...osm,
@@ -581,7 +653,11 @@ async function fetchTrafficData(lat: number, lng: number): Promise<any> {
     return {
       traffic_aadt: null,
       traffic_year: null,
-      traffic_segment_id: null
+      traffic_segment_id: null,
+      traffic_road_name: null,
+      traffic_distance_ft: null,
+      traffic_direction: null,
+      traffic_map_url: null
     };
   }
 }
