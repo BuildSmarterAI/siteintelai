@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           access_priorities: string[] | null
           additional_notes: string | null
+          administrative_area_level_1: string | null
           administrative_area_level_2: string | null
           aerial_imagery_url: string | null
           attachments: Json | null
@@ -58,6 +59,7 @@ export type Database = {
           parcel_id_apn: string | null
           phone: string
           place_id: string | null
+          postal_code: string | null
           preferred_contact: string | null
           project_type: string[]
           property_address: Json | null
@@ -90,6 +92,7 @@ export type Database = {
         Insert: {
           access_priorities?: string[] | null
           additional_notes?: string | null
+          administrative_area_level_1?: string | null
           administrative_area_level_2?: string | null
           aerial_imagery_url?: string | null
           attachments?: Json | null
@@ -130,6 +133,7 @@ export type Database = {
           parcel_id_apn?: string | null
           phone: string
           place_id?: string | null
+          postal_code?: string | null
           preferred_contact?: string | null
           project_type: string[]
           property_address?: Json | null
@@ -162,6 +166,7 @@ export type Database = {
         Update: {
           access_priorities?: string[] | null
           additional_notes?: string | null
+          administrative_area_level_1?: string | null
           administrative_area_level_2?: string | null
           aerial_imagery_url?: string | null
           attachments?: Json | null
@@ -202,6 +207,7 @@ export type Database = {
           parcel_id_apn?: string | null
           phone?: string
           place_id?: string | null
+          postal_code?: string | null
           preferred_contact?: string | null
           project_type?: string[]
           property_address?: Json | null

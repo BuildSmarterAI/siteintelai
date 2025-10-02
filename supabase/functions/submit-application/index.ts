@@ -51,6 +51,9 @@ serve(async (req) => {
     let geo_lng = parseNumber(requestData.geoLng);
     let formatted_address: string | null = null;
     let administrative_area_level_2: string | null = requestData.county || null;
+    let locality: string | null = requestData.city || null;
+    let administrative_area_level_1: string | null = requestData.state || null;
+    let postal_code: string | null = requestData.zipCode || null;
 
     // Fallback geocoding by address if coordinates missing
     if ((geo_lat === null || geo_lng === null) && requestData.propertyAddress) {
@@ -74,13 +77,46 @@ serve(async (req) => {
               formatted_address = result.formatted_address;
             }
             
-            // Extract administrative_area_level_2 (county) if not already set
-            if (result.address_components && !administrative_area_level_2) {
-              const countyComponent = result.address_components.find(
-                (component: any) => component.types.includes('administrative_area_level_2')
-              );
-              if (countyComponent) {
-                administrative_area_level_2 = countyComponent.long_name;
+            // Extract address components if not already set
+            if (result.address_components) {
+              // County (administrative_area_level_2)
+              if (!administrative_area_level_2) {
+                const countyComponent = result.address_components.find(
+                  (component: any) => component.types.includes('administrative_area_level_2')
+                );
+                if (countyComponent) {
+                  administrative_area_level_2 = countyComponent.long_name;
+                }
+              }
+
+              // City (locality)
+              if (!locality) {
+                const cityComponent = result.address_components.find(
+                  (component: any) => component.types.includes('locality')
+                );
+                if (cityComponent) {
+                  locality = cityComponent.long_name;
+                }
+              }
+
+              // State (administrative_area_level_1)
+              if (!administrative_area_level_1) {
+                const stateComponent = result.address_components.find(
+                  (component: any) => component.types.includes('administrative_area_level_1')
+                );
+                if (stateComponent) {
+                  administrative_area_level_1 = stateComponent.short_name;
+                }
+              }
+
+              // ZIP Code (postal_code)
+              if (!postal_code) {
+                const zipComponent = result.address_components.find(
+                  (component: any) => component.types.includes('postal_code')
+                );
+                if (zipComponent) {
+                  postal_code = zipComponent.long_name;
+                }
               }
             }
             
@@ -88,7 +124,10 @@ serve(async (req) => {
               geo_lat, 
               geo_lng, 
               formatted_address, 
-              administrative_area_level_2 
+              administrative_area_level_2,
+              locality,
+              administrative_area_level_1,
+              postal_code
             });
           }
         }
@@ -109,6 +148,9 @@ serve(async (req) => {
       property_address: requestData.propertyAddress, // Can be string or JSON
       formatted_address: formatted_address,
       administrative_area_level_2: administrative_area_level_2,
+      locality: locality,
+      administrative_area_level_1: administrative_area_level_1,
+      postal_code: postal_code,
       parcel_id_apn: requestData.parcelIdApn || requestData.parcelId || null,
       lot_size_value: parseNumber(requestData.lotSizeValue),
       lot_size_unit: requestData.lotSizeUnit || null,

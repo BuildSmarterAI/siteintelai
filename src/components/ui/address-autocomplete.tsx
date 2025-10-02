@@ -21,9 +21,16 @@ interface AddressSuggestion {
   };
 }
 
+interface AddressDetails {
+  county?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+}
+
 interface AddressAutocompleteProps {
   value: string;
-  onChange: (value: string, coordinates?: { lat: number; lng: number }, county?: string) => void;
+  onChange: (value: string, coordinates?: { lat: number; lng: number }, addressDetails?: AddressDetails) => void;
   placeholder?: string;
   className?: string;
   label?: string;
@@ -92,7 +99,7 @@ export function AddressAutocomplete({
       if (error) throw error;
 
       let coordinates: { lat: number; lng: number } | undefined;
-      let county: string | undefined;
+      const addressDetails: AddressDetails = {};
       
       // Extract coordinates from geometry
       if (data?.result?.geometry?.location) {
@@ -102,20 +109,47 @@ export function AddressAutocomplete({
         };
       }
 
-      // Extract county (administrative_area_level_2) from address_components
+      // Extract address components (county, city, state, ZIP)
       if (data?.result?.address_components) {
-        const countyComponent = data.result.address_components.find((component: any) =>
-          component.types.includes('administrative_area_level_2')
+        const components = data.result.address_components;
+        
+        // County (administrative_area_level_2)
+        const countyComponent = components.find((c: any) =>
+          c.types.includes('administrative_area_level_2')
         );
         if (countyComponent) {
-          county = countyComponent.long_name;
+          addressDetails.county = countyComponent.long_name;
+        }
+
+        // City (locality)
+        const cityComponent = components.find((c: any) =>
+          c.types.includes('locality')
+        );
+        if (cityComponent) {
+          addressDetails.city = cityComponent.long_name;
+        }
+
+        // State (administrative_area_level_1)
+        const stateComponent = components.find((c: any) =>
+          c.types.includes('administrative_area_level_1')
+        );
+        if (stateComponent) {
+          addressDetails.state = stateComponent.short_name; // Use short_name for state abbreviation
+        }
+
+        // ZIP Code (postal_code)
+        const zipComponent = components.find((c: any) =>
+          c.types.includes('postal_code')
+        );
+        if (zipComponent) {
+          addressDetails.zipCode = zipComponent.long_name;
         }
       }
 
       if (data?.result?.formatted_address) {
-        onChange(data.result.formatted_address, coordinates, county);
+        onChange(data.result.formatted_address, coordinates, addressDetails);
       } else {
-        onChange(suggestion.description, coordinates, county);
+        onChange(suggestion.description, coordinates, addressDetails);
       }
     } catch (error) {
       console.error('Error fetching place details:', error);

@@ -48,6 +48,9 @@ export default function Application() {
     geoLat: null as number | null,
     geoLng: null as number | null,
     county: "",
+    city: "",
+    state: "",
+    zipCode: "",
     
     // Step 3: Project Intent & Building Parameters
     projectType: [] as string[],
@@ -186,6 +189,9 @@ export default function Application() {
         geoLat: formData.geoLat,
         geoLng: formData.geoLng,
         county: formData.county,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
         projectType: formData.projectType,
         buildingSizeValue: formData.buildingSize,
         buildingSizeUnit: formData.buildingSizeUnit,
@@ -462,14 +468,17 @@ export default function Application() {
                         <div className="space-y-6 animate-fade-in">
                            <AddressAutocomplete
                              value={formData.propertyAddress}
-                             onChange={(value, coordinates, county) => {
+                             onChange={(value, coordinates, addressDetails) => {
                                handleInputChange('propertyAddress', value);
-                               if (coordinates) {
+                               if (coordinates || addressDetails) {
                                  setFormData(prev => ({
                                    ...prev,
-                                   geoLat: coordinates.lat,
-                                   geoLng: coordinates.lng,
-                                   county: county || ''
+                                   geoLat: coordinates?.lat || prev.geoLat,
+                                   geoLng: coordinates?.lng || prev.geoLng,
+                                   county: addressDetails?.county || prev.county,
+                                   city: addressDetails?.city || prev.city,
+                                   state: addressDetails?.state || prev.state,
+                                   zipCode: addressDetails?.zipCode || prev.zipCode
                                  }));
                                }
                              }}
