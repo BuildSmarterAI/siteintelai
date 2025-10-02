@@ -1142,6 +1142,8 @@ serve(async (req) => {
         parcel_id: enrichedData.parcel_id,
         parcel_owner: enrichedData.parcel_owner,
         acreage_cad: enrichedData.acreage_cad,
+        lot_size_value: enrichedData.acreage_cad, // Auto-fill from CAD acreage
+        lot_size_unit: enrichedData.acreage_cad ? 'acres' : null, // Set unit when we have acreage
         
         // Zoning
         zoning_code: enrichedData.zoning_code,
