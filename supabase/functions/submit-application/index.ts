@@ -49,6 +49,8 @@ serve(async (req) => {
 
     let geo_lat = parseNumber(requestData.geoLat);
     let geo_lng = parseNumber(requestData.geoLng);
+    let formatted_address: string | null = null;
+    let administrative_area_level_2: string | null = null;
 
     // Fallback geocoding by address if coordinates missing
     if ((geo_lat === null || geo_lng === null) && requestData.propertyAddress) {
@@ -58,9 +60,36 @@ serve(async (req) => {
           const q = encodeURIComponent(String(requestData.propertyAddress));
           const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
           const geoData = await geoResp.json();
-          if (geoData?.results?.[0]?.geometry?.location) {
-            geo_lat = geoData.results[0].geometry.location.lat;
-            geo_lng = geoData.results[0].geometry.location.lng;
+          if (geoData?.results?.[0]) {
+            const result = geoData.results[0];
+            
+            // Extract coordinates
+            if (result.geometry?.location) {
+              geo_lat = result.geometry.location.lat;
+              geo_lng = result.geometry.location.lng;
+            }
+            
+            // Extract formatted address
+            if (result.formatted_address) {
+              formatted_address = result.formatted_address;
+            }
+            
+            // Extract administrative_area_level_2 (county)
+            if (result.address_components) {
+              const countyComponent = result.address_components.find(
+                (component: any) => component.types.includes('administrative_area_level_2')
+              );
+              if (countyComponent) {
+                administrative_area_level_2 = countyComponent.long_name;
+              }
+            }
+            
+            console.log('Geocoding extracted:', { 
+              geo_lat, 
+              geo_lng, 
+              formatted_address, 
+              administrative_area_level_2 
+            });
           }
         }
       } catch (e) {
@@ -78,6 +107,8 @@ serve(async (req) => {
       
       // Step 2: Property Information
       property_address: requestData.propertyAddress, // Can be string or JSON
+      formatted_address: formatted_address,
+      administrative_area_level_2: administrative_area_level_2,
       parcel_id_apn: requestData.parcelIdApn || requestData.parcelId || null,
       lot_size_value: parseNumber(requestData.lotSizeValue),
       lot_size_unit: requestData.lotSizeUnit || null,
