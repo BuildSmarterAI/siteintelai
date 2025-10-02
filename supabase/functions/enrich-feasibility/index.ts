@@ -276,10 +276,24 @@ async function fetchEnvironmentalSites(lat: number, lng: number, county: string)
 async function fetchBroadband(lat: number, lng: number): Promise<any> {
   try {
     // FCC Broadband Map API - nationwide dataset
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(
-      `${FCC_BROADBAND_URL}?latitude=${lat}&longitude=${lng}`
+      `${FCC_BROADBAND_URL}?latitude=${lat}&longitude=${lng}`,
+      { signal: controller.signal }
     );
-    const data = await response.json();
+    clearTimeout(timeoutId);
+    
+    const text = await response.text();
+    
+    if (!text || text.trim().startsWith('<')) {
+      console.log('Broadband API returned HTML/invalid response');
+      return { fiber_available: false, broadband_providers: [] };
+    }
+    
+    const data = JSON.parse(text);
+    console.log('Broadband API response:', { hasResults: !!data?.results, count: data?.results?.length });
     
     const providers = (data?.results || []).map((p: any) => ({
       provider: p.provider_name || p.holding_company_name,
@@ -288,10 +302,14 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
       max_upload: p.max_advertised_upload_speed
     }));
     
+    const hasFiber = providers.some((p: any) => 
+      p.technology === '50' || p.technology === 'Fiber' || p.technology?.toString() === '50'
+    );
+    
+    console.log('Broadband data:', { fiber_available: hasFiber, provider_count: providers.length });
+    
     return {
-      fiber_available: providers.some((p: any) => 
-        p.technology === '50' || p.technology === 'Fiber'
-      ),
+      fiber_available: hasFiber,
       broadband_providers: providers
     };
   } catch (error) {
@@ -490,6 +508,9 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
           return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
         }));
         utilities.water_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
+        console.log('Water capacity calculated:', { maxDiameter, capacity_mgd: utilities.water_capacity_mgd });
+      } else {
+        console.log('No water lines found in response');
       }
     }
 
@@ -526,6 +547,9 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
           return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
         }));
         utilities.sewer_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
+        console.log('Sewer capacity calculated:', { maxDiameter, capacity_mgd: utilities.sewer_capacity_mgd });
+      } else {
+        console.log('No sewer lines found in response');
       }
     }
 
@@ -988,7 +1012,10 @@ serve(async (req) => {
     console.log('Utilities fetched summary:', {
       water: utilities.water_lines?.length || 0,
       sewer: utilities.sewer_lines?.length || 0,
-      storm: utilities.storm_lines?.length || 0
+      storm: utilities.storm_lines?.length || 0,
+      water_capacity_mgd: utilities.water_capacity_mgd,
+      sewer_capacity_mgd: utilities.sewer_capacity_mgd,
+      power_kv_nearby: utilities.power_kv_nearby
     });
     Object.assign(enrichedData, utilities);
     if (!utilities.water_lines && !utilities.sewer_lines && !utilities.storm_lines) {
@@ -997,6 +1024,7 @@ serve(async (req) => {
 
     console.log('Fetching broadband data...');
     const broadband = await fetchBroadband(geoLat, geoLng);
+    console.log('Broadband result:', broadband);
     Object.assign(enrichedData, broadband);
 
     // Step 7: Traffic & Mobility
