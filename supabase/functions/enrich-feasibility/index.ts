@@ -182,7 +182,8 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 };
 
 // API Endpoints - Official Sources
-const FEMA_NFHL_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query";
+const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query"; // Flood Hazard Zones
+const FEMA_NFHL_AVAILABILITY_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"; // Check data availability
 const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php";
 const USFWS_WETLANDS_URL = "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/1/query";
 const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest";
@@ -1354,29 +1355,64 @@ serve(async (req) => {
     }
 
     // Step 4: Query FEMA flood data (Floodplain & Elevation - Part 1)
+    console.log('Fetching FEMA flood zone data...');
     try {
-      const femaParams = new URLSearchParams({
+      // First check if NFHL data is available for this location
+      const availParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: 'FLD_ZONE,STATIC_BFE,DFIRM_ID,PANEL_TYP',
+        outFields: '*',
         returnGeometry: 'false',
         f: 'json'
       });
 
-      const femaResp = await fetch(`${FEMA_NFHL_URL}?${femaParams}`);
-      const femaData = await safeJsonParse(femaResp, 'FEMA query');
+      const availResp = await fetch(`${FEMA_NFHL_AVAILABILITY_URL}?${availParams}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const availData = await safeJsonParse(availResp, 'FEMA availability check');
+      
+      if (availData?.features && availData.features.length > 0) {
+        console.log('FEMA NFHL data available, querying flood zones...');
+        
+        // Query flood hazard zones (Layer 28)
+        const femaParams = new URLSearchParams({
+          geometry: `${geoLng},${geoLat}`,
+          geometryType: 'esriGeometryPoint',
+          inSR: '4326',
+          spatialRel: 'esriSpatialRelIntersects',
+          outFields: 'FLD_ZONE,BFE,STATIC_BFE,DFIRM_ID,PANEL_TYP,ZONE_SUBTY',
+          returnGeometry: 'false',
+          f: 'json'
+        });
 
-      if (femaData?.features?.[0]) {
-        const attrs = femaData.features[0].attributes;
-        enrichedData.floodplain_zone = attrs.FLD_ZONE;
-        enrichedData.base_flood_elevation = attrs.STATIC_BFE;
-        enrichedData.fema_panel_id = attrs.DFIRM_ID || attrs.PANEL_TYP;
-        console.log('FEMA data found:', { floodplain_zone: attrs.FLD_ZONE, base_flood_elevation: attrs.STATIC_BFE, fema_panel_id: enrichedData.fema_panel_id });
+        const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
+
+        if (femaData?.features && femaData.features.length > 0) {
+          const attrs = femaData.features[0].attributes;
+          
+          // Map FEMA fields to schema
+          enrichedData.floodplain_zone = attrs.FLD_ZONE || attrs.ZONE_SUBTY || null;
+          enrichedData.base_flood_elevation = attrs.BFE || attrs.STATIC_BFE || null;
+          enrichedData.fema_panel_id = attrs.DFIRM_ID || attrs.PANEL_TYP || null;
+          
+          console.log('FEMA flood data found:', {
+            floodplain_zone: enrichedData.floodplain_zone,
+            base_flood_elevation: enrichedData.base_flood_elevation,
+            fema_panel_id: enrichedData.fema_panel_id,
+            raw_attrs: attrs
+          });
+        } else {
+          console.log('No flood zone features found at this location');
+          dataFlags.push('floodplain_missing');
+        }
       } else {
+        console.log('FEMA NFHL data not available for this location');
         dataFlags.push('floodplain_missing');
-        console.log('No FEMA flood data found');
       }
     } catch (error) {
       console.error('FEMA query error:', error);
