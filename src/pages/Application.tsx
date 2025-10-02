@@ -136,7 +136,6 @@ export default function Application() {
     }
 
     if (step === 3) {
-      if (formData.projectType.length === 0) newErrors.projectType = "Project type is required";
       if (!formData.buildingSize) newErrors.buildingSize = "Building size is required";
       if (!formData.stories) newErrors.stories = "Number of stories is required";
       if (!formData.budget) newErrors.budget = "Budget is required";
@@ -604,8 +603,8 @@ export default function Application() {
                       {currentStep === 3 && (
                         <div className="space-y-6 animate-fade-in">
                            <div>
-                             <Label className="font-body font-semibold text-charcoal flex items-center gap-1">
-                               Project Type <span className="text-maxx-red text-lg">*</span>
+                             <Label className="font-body font-semibold text-charcoal">
+                               Desired Project Type
                              </Label>
                             <p className="text-sm text-charcoal/60 mb-4">
                               Select all project types that apply. Expand categories to see options. Your selection determines zoning checks, cost benchmarking, and feasibility analysis focus.
