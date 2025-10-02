@@ -152,7 +152,10 @@ const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest"
 const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
 const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
-const TXDOT_AADT_URL = "https://gis-txdot.opendata.arcgis.com/datasets/txdot::aadt-traffic-counts/api";
+const TXDOT_AADT_URLS = [
+  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT_Traffic_Counts/FeatureServer/0/query",
+  "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Traffic_Counts/FeatureServer/0/query"
+];
 const CENSUS_ACS_BASE = "https://api.census.gov/data/2022/acs/acs5";
 const BLS_QCEW_URL = "https://api.bls.gov/publicAPI/v2/timeseries/data/";
 const OPPORTUNITY_ZONES_URL = "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/Opportunity_Zones/FeatureServer/0/query";
@@ -318,48 +321,56 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
   }
 }
 
-// Helper function to fetch TxDOT traffic data
+// Helper function to fetch TxDOT traffic data (with fallbacks)
 async function fetchTrafficData(lat: number, lng: number): Promise<any> {
   try {
-    // TxDOT AADT REST API - query nearest traffic count station
-    const params = new URLSearchParams({
-      where: '1=1',
+    const commonParams = {
       geometry: `${lng},${lat}`,
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      distance: '2640', // 0.5 miles in feet
+      distance: '2640', // ~0.5 miles
       units: 'esriFeet',
-      outFields: 'AADT,YEAR,SECTION_ID,RTE_NM,DIRECTION',
+      where: '1=1',
+      outFields: '*',
       returnGeometry: 'true',
       f: 'json'
-    });
-    
-    const response = await fetch(`${TXDOT_AADT_URL}?${params}`);
-    const data = await response.json();
-    
-    if (data?.features?.[0]) {
-      const feature = data.features[0];
-      const attrs = feature.attributes;
-      
-      // Calculate distance from parcel to traffic station
-      const geom = feature.geometry;
-      const distMiles = Math.sqrt(
-        Math.pow((geom.x - lng) * 69, 2) + 
-        Math.pow((geom.y - lat) * 69, 2)
-      );
-      
-      return {
-        traffic_aadt: attrs.AADT,
-        traffic_year: attrs.YEAR,
-        traffic_segment_id: attrs.SECTION_ID,
-        traffic_distance_ft: distMiles * 5280,
-        traffic_road_name: attrs.RTE_NM,
-        traffic_direction: attrs.DIRECTION,
-        traffic_map_url: `https://gis-txdot.opendata.arcgis.com/maps/txdot-aadt`
-      };
+    } as const;
+
+    for (const url of TXDOT_AADT_URLS) {
+      try {
+        const params = new URLSearchParams(commonParams as any);
+        const resp = await fetch(`${url}?${params}`);
+        const text = await resp.text();
+        if (!text || text.trim().startsWith('<')) {
+          console.log('TxDOT endpoint returned HTML/invalid, trying next');
+          continue;
+        }
+        const data = JSON.parse(text);
+        if (data?.features?.[0]) {
+          const feature = data.features[0];
+          const attrs = feature.attributes || {};
+          const geom = feature.geometry;
+          const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
+          return {
+            traffic_aadt: attrs.AADT || attrs.aadt || attrs.AADT_2022 || null,
+            traffic_year: attrs.YEAR || attrs.year || attrs.COUNT_YEAR || null,
+            traffic_segment_id: attrs.SECTION_ID || attrs.OBJECTID || attrs.STATION_ID || null,
+            traffic_distance_ft: distFt || null,
+            traffic_road_name: attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || attrs.Route || null,
+            traffic_direction: attrs.DIRECTION || attrs.DIR || null,
+            traffic_map_url: url.replace('/query','')
+          };
+        }
+      } catch (inner) {
+        console.error('TxDOT endpoint error:', inner);
+        continue;
+      }
     }
-    return {};
+
+    // Fallback to OSM if no TxDOT data
+    const osm = await fallbackRoadFromOSM(lat, lng);
+    return { ...osm };
   } catch (error) {
     console.error('Traffic data fetch error:', error);
     return {};
@@ -371,24 +382,27 @@ async function fetchMobilityData(lat: number, lng: number, googleApiKey: string)
   try {
     const mobilityData: any = {};
     
-    // Find nearest highway using Places API
-    const placesUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=highway&key=${googleApiKey}`;
-    const placesResp = await fetch(placesUrl);
-    const placesData = await placesResp.json();
+    // Find nearest highway via Google Places Text Search
+    const textUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=highway&location=${lat},${lng}&radius=5000&key=${googleApiKey}`;
+    const textResp = await fetch(textUrl);
+    const textData = await textResp.json();
     
-    if (placesData?.results?.[0]) {
-      const highway = placesData.results[0];
+    if (textData?.results?.[0]) {
+      const highway = textData.results[0];
       mobilityData.nearest_highway = highway.name;
-      
-      // Calculate distance
       const hwLat = highway.geometry.location.lat;
       const hwLng = highway.geometry.location.lng;
-      const distMiles = Math.sqrt(
-        Math.pow((hwLng - lng) * 69, 2) + 
-        Math.pow((hwLat - lat) * 69, 2)
-      );
-      mobilityData.distance_highway_ft = distMiles * 5280;
+      mobilityData.distance_highway_ft = haversineFt(lat, lng, hwLat, hwLng);
+    } else {
+      // Fallback to OSM motorway/trunk
+      const osm = await fallbackRoadFromOSM(lat, lng);
+      if (osm?.traffic_road_name) {
+        mobilityData.nearest_highway = osm.traffic_road_name;
+        mobilityData.distance_highway_ft = osm.traffic_distance_ft;
+      }
     }
+    
+    // Find nearest transit stop
     
     // Find nearest transit stop
     const transitUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=2000&type=transit_station&key=${googleApiKey}`;
@@ -459,6 +473,53 @@ function pickAttr(attrs: any, keys: string[]): any {
     if (attrs[key] !== undefined && attrs[key] !== null) return attrs[key];
   }
   return null;
+}
+
+// Geo helpers
+function toRad(d: number) { return (d * Math.PI) / 180; }
+function haversineFt(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const Rm = 6371000; // meters
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const meters = Rm * c;
+  return meters * 3.28084; // feet
+}
+function bearingToCardinal(b: number) {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  const idx = Math.round(((b % 360) / 45)) % 8;
+  return dirs[idx];
+}
+
+const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+async function fallbackRoadFromOSM(lat: number, lng: number) {
+  try {
+    const query = `[
+      out:json][timeout:25];
+      way(around:2000, ${lat}, ${lng})[highway~"^(motorway|trunk|primary|secondary|tertiary)$"]; 
+      out geom 1;`;
+    const resp = await fetch(OVERPASS_URL, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `data=${encodeURIComponent(query)}` });
+    const data = await resp.json();
+    if (data?.elements?.length) {
+      const way = data.elements[0];
+      const name = way.tags?.name || way.tags?.ref || 'Nearest road';
+      // Use first geometry point to approx bearing
+      const g0 = way.geometry?.[0];
+      const g1 = way.geometry?.[1] || g0;
+      const distFt = haversineFt(lat, lng, g0.lat, g0.lon);
+      const bearing = Math.atan2(g1.lon - g0.lon, g1.lat - g0.lat) * 180 / Math.PI;
+      return {
+        traffic_road_name: name,
+        traffic_distance_ft: distFt,
+        traffic_direction: bearingToCardinal(bearing),
+        traffic_map_url: `https://www.openstreetmap.org/way/${way.id}`
+      };
+    }
+  } catch (e) {
+    console.error('OSM fallback error:', e);
+  }
+  return {};
 }
 
 // Helper function to fetch utility infrastructure from city GIS
@@ -1030,8 +1091,9 @@ serve(async (req) => {
     // Step 7: Traffic & Mobility
     console.log('Fetching traffic data...');
     const trafficData = await fetchTrafficData(geoLat, geoLng);
+    console.log('Traffic result:', trafficData);
     Object.assign(enrichedData, trafficData);
-    if (!trafficData.traffic_aadt) {
+    if (!trafficData.traffic_aadt && !trafficData.traffic_road_name) {
       dataFlags.push('traffic_missing');
     }
 
