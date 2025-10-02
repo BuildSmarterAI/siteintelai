@@ -146,9 +146,9 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 
 // API Endpoints - Official Sources
 const FEMA_NFHL_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query";
-const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php"; // Updated to correct endpoint
-const USFWS_WETLANDS_URL = "https://www.fws.gov/wetlands/arcgis/rest/services/Wetlands/MapServer/0/query";
-const USDA_SOIL_URL = "https://sdmdataaccess.nrcs.usda.gov/Tabular/post.rest";
+const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php";
+const USFWS_WETLANDS_URL = "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/1/query";
+const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest";
 const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
 const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
@@ -189,13 +189,24 @@ async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      outFields: 'WETLAND_TYPE,ATTRIBUTE',
+      outFields: 'WETLAND_TYPE,ATTRIBUTE,WETLAND_LABEL',
       returnGeometry: 'false',
       f: 'json'
     });
     const response = await fetch(`${USFWS_WETLANDS_URL}?${params}`);
-    const data = await response.json();
-    return data?.features?.[0]?.attributes?.WETLAND_TYPE || null;
+    const text = await response.text();
+    
+    if (!text || text.trim().startsWith('<')) {
+      console.log('Wetlands API returned HTML/invalid response');
+      return null;
+    }
+    
+    const data = JSON.parse(text);
+    const wetlandType = data?.features?.[0]?.attributes?.WETLAND_TYPE || 
+                        data?.features?.[0]?.attributes?.WETLAND_LABEL ||
+                        data?.features?.[0]?.attributes?.ATTRIBUTE;
+    console.log('Wetlands data:', { wetlandType, featureCount: data?.features?.length });
+    return wetlandType || null;
   } catch (error) {
     console.error('Wetlands fetch error:', error);
     return null;
@@ -211,16 +222,25 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
     
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, format: 'JSON' })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `query=${encodeURIComponent(query)}&format=JSON`
     });
-    const data = await response.json();
+    
+    const text = await response.text();
+    
+    if (!text || text.trim().startsWith('<')) {
+      console.log('Soil API returned HTML/XML - trying alternative approach');
+      return {};
+    }
+    
+    const data = JSON.parse(text);
+    console.log('Soil data response:', { hasTable: !!data?.Table, rows: data?.Table?.length });
     
     if (data?.Table?.[0]) {
       return {
-        soil_series: data.Table[0][0],
-        soil_slope_percent: data.Table[0][1],
-        soil_drainage_class: data.Table[0][2]
+        soil_series: data.Table[0][0] || null,
+        soil_slope_percent: data.Table[0][1] ? Number(data.Table[0][1]) : null,
+        soil_drainage_class: data.Table[0][2] || null
       };
     }
     return {};
