@@ -1096,20 +1096,32 @@ serve(async (req) => {
 
     // Step 4 continued: Fetch elevation data (Floodplain & Elevation - Part 2)
     console.log('Fetching elevation data...');
-    const elevation = await fetchElevation(geoLat, geoLng);
-    if (elevation !== null) {
-      enrichedData.elevation = elevation;
-    } else {
+    try {
+      const elevation = await fetchElevation(geoLat, geoLng);
+      if (elevation !== null) {
+        enrichedData.elevation = elevation;
+        console.log('Elevation data fetched successfully:', elevation);
+      } else {
+        console.log('Elevation API returned null');
+        dataFlags.push('elevation_missing');
+      }
+    } catch (elevError) {
+      console.error('Elevation fetch failed:', elevError);
       dataFlags.push('elevation_missing');
     }
 
     // Generate map URLs for topography and aerial imagery
-    enrichedData.topography_map_url = `https://apps.nationalmap.gov/viewer/?bbox=${geoLng - 0.01},${geoLat - 0.01},${geoLng + 0.01},${geoLat + 0.01}`;
-    enrichedData.aerial_imagery_url = `https://www.google.com/maps/@${geoLat},${geoLng},18z/data=!5m1!1e4`;
-    console.log('Generated map URLs:', {
-      topography: enrichedData.topography_map_url,
-      aerial: enrichedData.aerial_imagery_url
-    });
+    try {
+      enrichedData.topography_map_url = `https://apps.nationalmap.gov/viewer/?bbox=${geoLng - 0.01},${geoLat - 0.01},${geoLng + 0.01},${geoLat + 0.01}`;
+      enrichedData.aerial_imagery_url = `https://www.google.com/maps/@${geoLat},${geoLng},18z/data=!5m1!1e4`;
+      console.log('Generated map URLs:', {
+        topography: enrichedData.topography_map_url,
+        aerial: enrichedData.aerial_imagery_url,
+        elevation: enrichedData.elevation
+      });
+    } catch (urlError) {
+      console.error('Failed to generate map URLs:', urlError);
+    }
 
     // Step 5: Environmental Constraints
     console.log('Fetching wetlands data...');
@@ -1214,9 +1226,9 @@ serve(async (req) => {
         floodplain_zone: enrichedData.floodplain_zone,
         base_flood_elevation: enrichedData.base_flood_elevation,
         fema_panel_id: enrichedData.fema_panel_id,
-        elevation: enrichedData.elevation,
-        topography_map_url: enrichedData.topography_map_url,
-        aerial_imagery_url: enrichedData.aerial_imagery_url,
+        elevation: enrichedData.elevation || null,
+        topography_map_url: enrichedData.topography_map_url || null,
+        aerial_imagery_url: enrichedData.aerial_imagery_url || null,
         wetlands_type: enrichedData.wetlands_type,
         soil_series: enrichedData.soil_series,
         soil_slope_percent: enrichedData.soil_slope_percent,
