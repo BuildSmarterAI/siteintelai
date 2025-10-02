@@ -90,7 +90,17 @@ export default function Application() {
     utmCampaign: "",
     utmTerm: "",
     pageUrl: window.location.href,
-    submissionTimestamp: ""
+    submissionTimestamp: "",
+    
+    // Hidden GIS enriched fields (auto-populated)
+    situsAddress: "",
+    administrativeAreaLevel2: "",
+    parcelOwner: "",
+    acreageCad: null as number | null,
+    zoningCode: "",
+    overlayDistrict: "",
+    floodplainZone: "",
+    baseFloodElevation: null as number | null
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -228,16 +238,15 @@ export default function Application() {
         utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
         pageUrl: window.location.href,
         
-        // Include enriched GIS data if available
-        ...(enrichedData && {
-          parcelOwner: enrichedData.parcel_owner,
-          acreageCad: enrichedData.acreage_cad,
-          situsAddress: enrichedData.situs_address,
-          administrativeAreaLevel2: enrichedData.administrative_area_level_2,
-          overlayDistrict: enrichedData.overlay_district,
-          floodplainZone: enrichedData.floodplain_zone,
-          baseFloodElevation: enrichedData.base_flood_elevation
-        })
+        // Include enriched GIS data from formData state
+        situsAddress: formData.situsAddress,
+        administrativeAreaLevel2: formData.administrativeAreaLevel2,
+        parcelOwner: formData.parcelOwner,
+        acreageCad: formData.acreageCad,
+        zoningCode: formData.zoningCode,
+        overlayDistrict: formData.overlayDistrict,
+        floodplainZone: formData.floodplainZone,
+        baseFloodElevation: formData.baseFloodElevation
       };
 
       try {
@@ -507,12 +516,22 @@ export default function Application() {
                              onEnrichmentComplete={(data) => {
                                if (data?.success && data?.data) {
                                  setEnrichedData(data.data);
-                                 // Auto-fill enriched fields
+                                 // Auto-fill both visible and hidden enriched fields
                                  setFormData(prev => ({
                                    ...prev,
+                                   // Visible fields
                                    parcelId: data.data.parcel_id || prev.parcelId,
                                    zoning: data.data.zoning_code || prev.zoning,
-                                   lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize
+                                   lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize,
+                                   // Hidden enriched fields
+                                   situsAddress: data.data.situs_address || prev.situsAddress,
+                                   administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                                   parcelOwner: data.data.parcel_owner || prev.parcelOwner,
+                                   acreageCad: data.data.acreage_cad || prev.acreageCad,
+                                   zoningCode: data.data.zoning_code || prev.zoningCode,
+                                   overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
+                                   floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
+                                   baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
                                  }));
                                  toast({
                                    title: "GIS Data Loaded ✅",
@@ -531,6 +550,18 @@ export default function Application() {
                              error={errors.propertyAddress}
                              required={true}
                            />
+                           
+                           {/* Hidden GIS Enriched Fields (auto-populated from enrich-feasibility API)
+                               These fields are stored in formData state and submitted automatically:
+                               - situsAddress: Normalized address from Google Geocoding
+                               - administrativeAreaLevel2: County name
+                               - parcelOwner: Property owner from parcel records
+                               - acreageCad: Lot acreage from CAD parcel data
+                               - zoningCode: Zoning classification code
+                               - overlayDistrict: Zoning overlay district
+                               - floodplainZone: FEMA flood zone designation
+                               - baseFloodElevation: Base flood elevation from FEMA
+                           */}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
