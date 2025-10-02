@@ -265,16 +265,25 @@ async function fetchElevation(lat: number, lng: number): Promise<number | null> 
 // Helper function to fetch wetlands data from USFWS
 async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
   try {
+    // Buffer distance in meters (100m ~ 328ft)
+    const bufferMeters = 100;
+    
     const params = new URLSearchParams({
       geometry: `${lng},${lat}`,
       geometryType: 'esriGeometryPoint',
       inSR: '4326',
       spatialRel: 'esriSpatialRelIntersects',
-      outFields: 'WETLAND_TYPE,ATTRIBUTE,WETLAND_LABEL',
+      distance: bufferMeters.toString(),
+      units: 'esriSRUnit_Meter',
+      outFields: 'WETLAND_TYPE,ATTRIBUTE,WETLAND_LABEL,WETLAND_CODE,WET_TYPE',
       returnGeometry: 'false',
       f: 'json'
     });
-    const response = await fetch(`${USFWS_WETLANDS_URL}?${params}`);
+    
+    const response = await fetch(`${USFWS_WETLANDS_URL}?${params}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
     const text = await response.text();
     
     if (!text || text.trim().startsWith('<')) {
@@ -283,11 +292,17 @@ async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
     }
     
     const data = JSON.parse(text);
-    const wetlandType = data?.features?.[0]?.attributes?.WETLAND_TYPE || 
-                        data?.features?.[0]?.attributes?.WETLAND_LABEL ||
-                        data?.features?.[0]?.attributes?.ATTRIBUTE;
-    console.log('Wetlands data:', { wetlandType, featureCount: data?.features?.length });
-    return wetlandType || null;
+    
+    if (data?.features && data.features.length > 0) {
+      const attrs = data.features[0].attributes;
+      const wetlandType = attrs.WETLAND_TYPE || attrs.WET_TYPE || attrs.WETLAND_LABEL || 
+                         attrs.ATTRIBUTE || attrs.WETLAND_CODE;
+      console.log('Wetlands found:', { type: wetlandType, featureCount: data.features.length });
+      return wetlandType || null;
+    }
+    
+    console.log('No wetlands features found at location');
+    return null;
   } catch (error) {
     console.error('Wetlands fetch error:', error);
     return null;
@@ -297,33 +312,79 @@ async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
 // Helper function to fetch soil data from USDA NRCS
 async function fetchSoilData(lat: number, lng: number): Promise<any> {
   try {
-    // SSURGO Web Soil Survey API
-    const url = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
-    const query = `SELECT TOP 1 muname, slope_r, drainagecl FROM mapunit WHERE mukey IN (SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})'))`;
+    // Try USDA Soil Data Access API first
+    const sdaUrl = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
+    const query = `SELECT TOP 1 m.muname, c.slope_r, c.drainagecl 
+                   FROM mapunit m 
+                   INNER JOIN component c ON m.mukey = c.mukey
+                   WHERE m.mukey IN (
+                     SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
+                   )`;
     
-    const response = await fetch(url, {
+    const sdaResponse = await fetch(sdaUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
       body: `query=${encodeURIComponent(query)}&format=JSON`
     });
     
-    const text = await response.text();
+    const text = await sdaResponse.text();
     
-    if (!text || text.trim().startsWith('<')) {
-      console.log('Soil API returned HTML/XML - trying alternative approach');
-      return {};
+    if (text && !text.trim().startsWith('<')) {
+      try {
+        const data = JSON.parse(text);
+        
+        if (data?.Table?.[0]) {
+          const soilData = {
+            soil_series: data.Table[0][0] || null,
+            soil_slope_percent: data.Table[0][1] ? Number(data.Table[0][1]) : null,
+            soil_drainage_class: data.Table[0][2] || null
+          };
+          console.log('Soil data from USDA SDA:', soilData);
+          return soilData;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse USDA SDA response:', parseError);
+      }
     }
     
-    const data = JSON.parse(text);
-    console.log('Soil data response:', { hasTable: !!data?.Table, rows: data?.Table?.length });
+    // Fallback: Try NRCS Soil Survey Geographic (SSURGO) REST service
+    console.log('Trying NRCS SSURGO REST service fallback');
+    const ssurgoUrl = `https://sdmdataaccess.nrcs.usda.gov/Spatial/SDMWGS84Geographic.wfs`;
+    const ssurgoParams = new URLSearchParams({
+      service: 'WFS',
+      version: '1.1.0',
+      request: 'GetFeature',
+      typeName: 'MapunitPoly',
+      outputFormat: 'application/json',
+      srsname: 'EPSG:4326',
+      bbox: `${lng-0.001},${lat-0.001},${lng+0.001},${lat+0.001},EPSG:4326`
+    });
     
-    if (data?.Table?.[0]) {
-      return {
-        soil_series: data.Table[0][0] || null,
-        soil_slope_percent: data.Table[0][1] ? Number(data.Table[0][1]) : null,
-        soil_drainage_class: data.Table[0][2] || null
-      };
+    const ssurgoResponse = await fetch(`${ssurgoUrl}?${ssurgoParams}`);
+    const ssurgoText = await ssurgoResponse.text();
+    
+    if (ssurgoText && !ssurgoText.trim().startsWith('<')) {
+      try {
+        const ssurgoData = JSON.parse(ssurgoText);
+        if (ssurgoData?.features?.[0]?.properties) {
+          const props = ssurgoData.features[0].properties;
+          const soilData = {
+            soil_series: props.muname || props.MapUnitName || null,
+            soil_slope_percent: props.slope_r || props.slopegradwta || null,
+            soil_drainage_class: props.drainagecl || props.drclassdcd || null
+          };
+          console.log('Soil data from SSURGO fallback:', soilData);
+          return soilData;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse SSURGO response:', parseError);
+      }
     }
+    
+    console.log('No soil data available from any source');
     return {};
   } catch (error) {
     console.error('Soil data fetch error:', error);
