@@ -26,6 +26,18 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     acreage_field: "ACREAGE",
     zoning_field: "ZONING",
     overlay_field: "OVERLAY_DISTRICT"
+  },
+  "Fort Bend County": {
+    // Primary parcel source (CAD data - richer information)
+    cad_parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
+    // Fallback parcel source
+    parcel_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/General/Parcels/MapServer/0/query",
+    zoning_url: null, // Fort Bend County does not enforce zoning at county level
+    parcel_id_field: "PARCEL_ID",
+    owner_field: "OWNER_NAME",
+    acreage_field: "ACRES",
+    zoning_field: null,
+    overlay_field: null
   }
 };
 
@@ -111,7 +123,7 @@ serve(async (req) => {
       });
     }
 
-    // Step 3: Query parcel data
+    // Step 3: Query parcel data (with Fort Bend fallback logic)
     try {
       const parcelParams = new URLSearchParams({
         geometry: `${geoLng},${geoLat}`,
@@ -123,8 +135,29 @@ serve(async (req) => {
         f: 'json'
       });
 
-      const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
-      const parcelData = await parcelResp.json();
+      let parcelData = null;
+      
+      // Fort Bend County: Try CAD parcel URL first (preferred)
+      if (countyName === "Fort Bend County" && endpoints.cad_parcel_url) {
+        console.log('Querying Fort Bend CAD parcel data...');
+        try {
+          const cadResp = await fetch(`${endpoints.cad_parcel_url}?${parcelParams}`);
+          const cadData = await cadResp.json();
+          if (cadData?.features?.[0]) {
+            parcelData = cadData;
+            console.log('Fort Bend CAD parcel data found');
+          }
+        } catch (cadError) {
+          console.error('Fort Bend CAD query failed, trying fallback:', cadError);
+        }
+      }
+
+      // If CAD query failed or not Fort Bend, use standard parcel URL
+      if (!parcelData && endpoints.parcel_url) {
+        console.log('Querying standard parcel data...');
+        const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
+        parcelData = await parcelResp.json();
+      }
 
       if (parcelData?.features?.[0]) {
         const attrs = parcelData.features[0].attributes;
@@ -141,33 +174,38 @@ serve(async (req) => {
       dataFlags.push('parcel_query_failed');
     }
 
-    // Step 4: Query zoning data
-    try {
-      const zoningParams = new URLSearchParams({
-        geometry: `${geoLng},${geoLat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      });
+    // Step 4: Query zoning data (skip for Fort Bend County)
+    if (endpoints.zoning_url) {
+      try {
+        const zoningParams = new URLSearchParams({
+          geometry: `${geoLng},${geoLat}`,
+          geometryType: 'esriGeometryPoint',
+          inSR: '4326',
+          spatialRel: 'esriSpatialRelIntersects',
+          outFields: '*',
+          returnGeometry: 'false',
+          f: 'json'
+        });
 
-      const zoningResp = await fetch(`${endpoints.zoning_url}?${zoningParams}`);
-      const zoningData = await zoningResp.json();
+        const zoningResp = await fetch(`${endpoints.zoning_url}?${zoningParams}`);
+        const zoningData = await zoningResp.json();
 
-      if (zoningData?.features?.[0]) {
-        const attrs = zoningData.features[0].attributes;
-        enrichedData.zoning_code = attrs[endpoints.zoning_field];
-        enrichedData.overlay_district = attrs[endpoints.overlay_field];
-        console.log('Zoning data found:', enrichedData);
-      } else {
-        dataFlags.push('zoning_not_found');
-        console.log('No zoning data found');
+        if (zoningData?.features?.[0]) {
+          const attrs = zoningData.features[0].attributes;
+          enrichedData.zoning_code = attrs[endpoints.zoning_field];
+          enrichedData.overlay_district = attrs[endpoints.overlay_field];
+          console.log('Zoning data found:', enrichedData);
+        } else {
+          dataFlags.push('zoning_not_found');
+          console.log('No zoning data found');
+        }
+      } catch (error) {
+        console.error('Zoning query error:', error);
+        dataFlags.push('zoning_query_failed');
       }
-    } catch (error) {
-      console.error('Zoning query error:', error);
-      dataFlags.push('zoning_query_failed');
+    } else {
+      console.log(`Zoning not available for ${countyName} - skipping zoning query`);
+      dataFlags.push('zoning_not_available');
     }
 
     // Step 5: Query FEMA flood data
