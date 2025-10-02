@@ -17,20 +17,24 @@ export type Database = {
       applications: {
         Row: {
           access_priorities: string[] | null
+          acreage_cad: number | null
           additional_notes: string | null
           administrative_area_level_1: string | null
-          administrative_area_level_2: string | null
           aerial_imagery_url: string | null
           attachments: Json | null
+          base_flood_elevation: number | null
           best_time: string | null
           building_size_unit: string | null
           building_size_value: number | null
+          City: string | null
           company: string
           conclusion_output: string | null
           consent_contact: boolean
           consent_terms_privacy: boolean
           costs_output: string | null
+          county: string | null
           created_at: string
+          data_flags: Json | null
           desired_budget: number | null
           elevation: number | null
           email: string
@@ -46,17 +50,17 @@ export type Database = {
           highest_best_use_output: string | null
           id: string
           known_risks: string[] | null
-          locality: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
           market_output: string | null
           marketing_opt_in: boolean
           nda_confidentiality: boolean
-          neighborhood_raw: string | null
+          neighborhood: string | null
           overlay_district: string | null
           ownership_status: string
           page_url: string | null
           parcel_id_apn: string | null
+          parcel_owner: string | null
           phone: string
           place_id: string | null
           postal_code: string | null
@@ -69,6 +73,7 @@ export type Database = {
           report_url: string | null
           schedule_output: string | null
           sewer_lines: Json | null
+          situs_address: string | null
           stories_height: string
           storm_lines: Json | null
           sublocality: string | null
@@ -91,20 +96,24 @@ export type Database = {
         }
         Insert: {
           access_priorities?: string[] | null
+          acreage_cad?: number | null
           additional_notes?: string | null
           administrative_area_level_1?: string | null
-          administrative_area_level_2?: string | null
           aerial_imagery_url?: string | null
           attachments?: Json | null
+          base_flood_elevation?: number | null
           best_time?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
+          City?: string | null
           company: string
           conclusion_output?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
           costs_output?: string | null
+          county?: string | null
           created_at?: string
+          data_flags?: Json | null
           desired_budget?: number | null
           elevation?: number | null
           email: string
@@ -120,17 +129,17 @@ export type Database = {
           highest_best_use_output?: string | null
           id?: string
           known_risks?: string[] | null
-          locality?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
           market_output?: string | null
           marketing_opt_in?: boolean
           nda_confidentiality?: boolean
-          neighborhood_raw?: string | null
+          neighborhood?: string | null
           overlay_district?: string | null
           ownership_status: string
           page_url?: string | null
           parcel_id_apn?: string | null
+          parcel_owner?: string | null
           phone: string
           place_id?: string | null
           postal_code?: string | null
@@ -143,6 +152,7 @@ export type Database = {
           report_url?: string | null
           schedule_output?: string | null
           sewer_lines?: Json | null
+          situs_address?: string | null
           stories_height: string
           storm_lines?: Json | null
           sublocality?: string | null
@@ -165,20 +175,24 @@ export type Database = {
         }
         Update: {
           access_priorities?: string[] | null
+          acreage_cad?: number | null
           additional_notes?: string | null
           administrative_area_level_1?: string | null
-          administrative_area_level_2?: string | null
           aerial_imagery_url?: string | null
           attachments?: Json | null
+          base_flood_elevation?: number | null
           best_time?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
+          City?: string | null
           company?: string
           conclusion_output?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
           costs_output?: string | null
+          county?: string | null
           created_at?: string
+          data_flags?: Json | null
           desired_budget?: number | null
           elevation?: number | null
           email?: string
@@ -194,17 +208,17 @@ export type Database = {
           highest_best_use_output?: string | null
           id?: string
           known_risks?: string[] | null
-          locality?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
           market_output?: string | null
           marketing_opt_in?: boolean
           nda_confidentiality?: boolean
-          neighborhood_raw?: string | null
+          neighborhood?: string | null
           overlay_district?: string | null
           ownership_status?: string
           page_url?: string | null
           parcel_id_apn?: string | null
+          parcel_owner?: string | null
           phone?: string
           place_id?: string | null
           postal_code?: string | null
@@ -217,6 +231,7 @@ export type Database = {
           report_url?: string | null
           schedule_output?: string | null
           sewer_lines?: Json | null
+          situs_address?: string | null
           stories_height?: string
           storm_lines?: Json | null
           sublocality?: string | null

@@ -240,6 +240,14 @@ serve(async (req) => {
       utm_term: utmTerm,
       page_url: pageUrl,
       submission_timestamp: new Date().toISOString(),
+      
+      // Enriched GIS Data (from enrich-feasibility edge function)
+      parcel_owner: requestData.parcelOwner || null,
+      acreage_cad: parseNumber(requestData.acreageCad),
+      situs_address: requestData.situsAddress || null,
+      overlay_district: requestData.overlayDistrict || null,
+      base_flood_elevation: parseNumber(requestData.baseFloodElevation),
+      data_flags: requestData.dataFlags || null,
     };
 
     console.log('Inserting application data:', applicationData);

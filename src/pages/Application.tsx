@@ -96,6 +96,7 @@ export default function Application() {
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [enrichedData, setEnrichedData] = useState<any>(null);
 
   const totalSteps = 5;
 
@@ -225,7 +226,18 @@ export default function Application() {
         utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || '',
         utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
         utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
-        pageUrl: window.location.href
+        pageUrl: window.location.href,
+        
+        // Include enriched GIS data if available
+        ...(enrichedData && {
+          parcelOwner: enrichedData.parcel_owner,
+          acreageCad: enrichedData.acreage_cad,
+          situsAddress: enrichedData.situs_address,
+          overlayDistrict: enrichedData.overlay_district,
+          floodplain: enrichedData.floodplain,
+          baseFloodElevation: enrichedData.base_flood_elevation,
+          dataFlags: enrichedData.data_flags
+        })
       };
 
       try {
@@ -490,6 +502,22 @@ export default function Application() {
                                    sublocality: addressDetails?.sublocality || prev.sublocality,
                                    placeId: addressDetails?.placeId || prev.placeId
                                  }));
+                               }
+                             }}
+                             onEnrichmentComplete={(data) => {
+                               if (data?.success && data?.data) {
+                                 setEnrichedData(data.data);
+                                 // Auto-fill enriched fields
+                                 setFormData(prev => ({
+                                   ...prev,
+                                   parcelId: data.data.parcel_id_apn || prev.parcelId,
+                                   zoning: data.data.zoning_code || prev.zoning,
+                                   lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize
+                                 }));
+                                 toast({
+                                   title: "GIS Data Loaded",
+                                   description: "Property information has been automatically filled from public records.",
+                                 });
                                }
                              }}
                              placeholder="123 Main Street, City, State, ZIP"

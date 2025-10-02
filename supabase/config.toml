@@ -3,4 +3,5 @@ project_id = "mcmfwlgovubpdcfiqfvk"
 [functions.submit-application]
 [functions.google-places]
 [functions.google-place-details]
+[functions.enrich-feasibility]
 verify_jwt = false
