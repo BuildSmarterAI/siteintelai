@@ -32,7 +32,11 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     owner_field: "OWNER_NAME",
     acreage_field: "ACRES",
     zoning_field: "ZONING",
-    overlay_field: "OVERLAY_DISTRICT"
+    overlay_field: "OVERLAY_DISTRICT",
+    // Fort Bend utility endpoints (city-specific may vary)
+    water_lines_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Utilities/Water_Lines/MapServer/0/query",
+    sewer_lines_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Utilities/Sewer_Lines/MapServer/0/query",
+    storm_lines_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Galveston County": {
     parcel_url: "https://www1.cityofwebster.com/arcgis/rest/services/Landbase/CountyGalveston/MapServer/0/query",
@@ -538,6 +542,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
   try {
     // Fetch water lines if endpoint exists
     if (endpoints.water_lines_url) {
+      console.log('Fetching water lines from:', endpoints.water_lines_url);
       const waterParams = new URLSearchParams({
         geometry: `${lng},${lat}`,
         geometryType: 'esriGeometryPoint',
@@ -569,14 +574,17 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
           return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
         }));
         utilities.water_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
-        console.log('Water capacity calculated:', { maxDiameter, capacity_mgd: utilities.water_capacity_mgd });
+        console.log('Water lines found:', utilities.water_lines.length, 'capacity:', utilities.water_capacity_mgd);
       } else {
         console.log('No water lines found in response');
       }
+    } else {
+      console.log('No water lines endpoint configured for this county');
     }
 
     // Fetch sewer lines if endpoint exists
     if (endpoints.sewer_lines_url) {
+      console.log('Fetching sewer lines from:', endpoints.sewer_lines_url);
       const sewerParams = new URLSearchParams({
         geometry: `${lng},${lat}`,
         geometryType: 'esriGeometryPoint',
@@ -608,14 +616,17 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
           return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
         }));
         utilities.sewer_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
-        console.log('Sewer capacity calculated:', { maxDiameter, capacity_mgd: utilities.sewer_capacity_mgd });
+        console.log('Sewer lines found:', utilities.sewer_lines.length, 'capacity:', utilities.sewer_capacity_mgd);
       } else {
         console.log('No sewer lines found in response');
       }
+    } else {
+      console.log('No sewer lines endpoint configured for this county');
     }
 
     // Fetch storm lines if endpoint exists
     if (endpoints.storm_lines_url) {
+      console.log('Fetching storm lines from:', endpoints.storm_lines_url);
       const stormParams = new URLSearchParams({
         geometry: `${lng},${lat}`,
         geometryType: 'esriGeometryPoint',
@@ -642,7 +653,12 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
             distance_ft: searchRadius
           };
         });
+        console.log('Storm lines found:', utilities.storm_lines.length);
+      } else {
+        console.log('No storm lines found in response');
       }
+    } else {
+      console.log('No storm lines endpoint configured for this county');
     }
 
     // Power infrastructure typically requires manual lookup or private utility data
