@@ -19,10 +19,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     acreage_field: "StatedArea",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
-    // Houston utility endpoints - using COH open data portal
-    water_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Water_Lines/FeatureServer/0/query",
-    sewer_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Sanitary_Sewer_Lines/FeatureServer/0/query",
-    storm_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Storm_Lines/FeatureServer/0/query"
+    // Houston utility endpoints - using City of Houston official GIS services
+    water_lines_url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
+    sewer_lines_url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
+    storm_lines_url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewer/MapServer/0/query"
   },
   "Fort Bend County": {
     // FBCAD parcel service (confirmed working)
@@ -149,9 +149,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     acreage_field: "ACRES",
     zoning_field: "ZONE",
     overlay_field: "OVERLAY",
-    // Austin utility endpoints
+    // Austin Water Utility (AWU) endpoints - official city services
     water_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_water_line/FeatureServer/0/query",
-    sewer_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_wastewater_line/FeatureServer/0/query"
+    sewer_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_wastewater_line/FeatureServer/0/query",
+    storm_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_storm_line/FeatureServer/0/query"
   },
   "Williamson County": {
     // WCAD parcel service (confirmed working)
