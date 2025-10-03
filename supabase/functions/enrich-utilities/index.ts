@@ -1,0 +1,159 @@
+// supabase/functions/enrich-utilities/index.ts
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { application_id } = await req.json();
+    console.log('Enriching utilities for application:', application_id);
+
+    // 1. Get parcel lat/lng + city
+    const { data: app, error: fetchError } = await supabase
+      .from("applications")
+      .select("geo_lat, geo_lng, city")
+      .eq("id", application_id)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error('Fetch error:', fetchError);
+      throw new Error("Error fetching application");
+    }
+
+    if (!app) {
+      console.error('Application not found:', application_id);
+      throw new Error("Application not found");
+    }
+
+    const { geo_lat, geo_lng, city } = app;
+
+    if (!geo_lat || !geo_lng) {
+      console.error('Missing coordinates for application:', application_id);
+      throw new Error("Missing coordinates");
+    }
+
+    // 2. Decide city → endpoint set
+    let endpoints: Record<string, string> = {};
+    const cityLower = city?.toLowerCase() || '';
+    
+    if (cityLower.includes("houston")) {
+      console.log('Using Houston endpoints');
+      endpoints = {
+        water: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
+        sewer: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
+        storm: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewer/MapServer/0/query",
+      };
+    } else if (cityLower.includes("austin")) {
+      console.log('Using Austin endpoints');
+      endpoints = {
+        water: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_water_line/FeatureServer/0/query",
+        sewer: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_wastewater_line/FeatureServer/0/query",
+        storm: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_storm_line/FeatureServer/0/query"
+      };
+    } else {
+      // No supported city
+      console.log('City not supported for utilities:', city);
+      await supabase.from("applications")
+        .update({ data_flags: ["utilities_not_supported"] })
+        .eq("id", application_id);
+      return new Response(
+        JSON.stringify({ status: "skipped", message: "City not supported" }), 
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Helper function for ArcGIS query
+    const queryArcGIS = async (url: string, fields: string[]) => {
+      if (!url) return [];
+      const params = new URLSearchParams({
+        f: "json",
+        geometry: `${geo_lng},${geo_lat}`,
+        geometryType: "esriGeometryPoint",
+        inSR: "4326",
+        spatialRel: "esriSpatialRelIntersects",
+        distance: "500",
+        units: "esriFeet",
+        outFields: fields.join(","),
+        returnGeometry: "false",
+      });
+      
+      console.log('Querying:', url);
+      const resp = await fetch(`${url}?${params.toString()}`);
+      const json = await resp.json();
+      console.log('Response features:', json.features?.length || 0);
+      return json.features?.map((f: any) => f.attributes) ?? [];
+    };
+
+    // 3. Run queries
+    const water = await queryArcGIS(endpoints.water, ["DIAMETER", "MATERIAL", "STATUS"]);
+    const sewer = await queryArcGIS(endpoints.sewer, ["DIAMETER", "MATERIAL", "STATUS"]);
+    const storm = endpoints.storm
+      ? await queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"])
+      : [];
+
+    // 4. Format JSON for Supabase
+    const formatLines = (arr: any[]) =>
+      arr.map((a) => ({
+        diameter: a.DIAMETER || null,
+        material: a.MATERIAL || null,
+        status: a.STATUS || null,
+      }));
+
+    const waterLines = formatLines(water);
+    const sewerLines = formatLines(sewer);
+    const stormLines = formatLines(storm);
+
+    // 5. Update row
+    const { error: updateError } = await supabase.from("applications").update({
+      water_lines: waterLines.length > 0 ? waterLines : null,
+      sewer_lines: sewerLines.length > 0 ? sewerLines : null,
+      storm_lines: stormLines.length > 0 ? stormLines : null,
+      data_flags:
+        water.length || sewer.length || storm.length
+          ? []
+          : ["utilities_not_found"],
+    }).eq("id", application_id);
+
+    if (updateError) {
+      console.error('Update error:', updateError);
+      throw new Error(`Failed to update application: ${updateError.message}`);
+    }
+
+    console.log('Utilities enriched successfully:', {
+      water: waterLines.length,
+      sewer: sewerLines.length,
+      storm: stormLines.length
+    });
+
+    return new Response(
+      JSON.stringify({ 
+        status: "ok",
+        data: {
+          water_lines: waterLines.length,
+          sewer_lines: sewerLines.length,
+          storm_lines: stormLines.length
+        }
+      }), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (err) {
+    console.error('Error in enrich-utilities:', err);
+    return new Response(
+      JSON.stringify({ error: err.message }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});

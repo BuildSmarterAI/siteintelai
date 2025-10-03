@@ -5,3 +5,5 @@ project_id = "mcmfwlgovubpdcfiqfvk"
 [functions.google-place-details]
 [functions.enrich-feasibility]
 verify_jwt = false
+[functions.enrich-utilities]
+verify_jwt = false
