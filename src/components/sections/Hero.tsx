@@ -175,7 +175,7 @@ export const Hero = () => {
                   style={{ boxShadow: 'var(--shadow-glow)' }}
                 >
                   <span className="group-hover:scale-105 transition-transform duration-200">
-                    Start Intelligence Review
+                    Start My Feasibility Review
                   </span>
                 </Button>
               </div>
