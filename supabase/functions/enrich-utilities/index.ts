@@ -96,23 +96,58 @@ serve(async (req) => {
     }
 
     // 2. Decide city → endpoint set
-    let endpoints: Record<string, string> = {};
+    const UTILITY_ENDPOINTS: Record<string, any> = {
+      houston: {
+        water: {
+          name: "COH Water Distribution Mains",
+          url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0",
+          outFields: ["DIAMETER", "MATERIAL", "STATUS"],
+          geometryType: "esriGeometryPolyline"
+        },
+        sewer: {
+          name: "COH Sanitary Sewer Lines",
+          url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewerLines/MapServer/0",
+          outFields: ["DIAMETER", "MATERIAL", "STATUS"],
+          geometryType: "esriGeometryPolyline"
+        },
+        storm: {
+          name: "COH Storm Sewer Lines",
+          url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewerLines/MapServer/0",
+          outFields: ["DIAMETER", "MATERIAL", "STATUS"],
+          geometryType: "esriGeometryPolyline"
+        }
+      },
+      austin: {
+        water: {
+          name: "AWU Waterlines",
+          url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0",
+          outFields: ["DIAMETER", "MATERIAL", "STATUS", "INSTALL_YEAR"],
+          geometryType: "esriGeometryPolyline"
+        },
+        sewer: {
+          name: "AWU Wastewaterlines",
+          url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Wastewaterlines/FeatureServer/0",
+          outFields: ["DIAMETER", "MATERIAL", "STATUS", "INSTALL_YEAR"],
+          geometryType: "esriGeometryPolyline"
+        },
+        storm: {
+          name: "AWU Reclaimed Waterlines",
+          url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_ReclaimedWaterlines/FeatureServer/0",
+          outFields: ["DIAMETER", "MATERIAL", "STATUS"],
+          geometryType: "esriGeometryPolyline"
+        }
+      }
+    };
+
+    let endpoints: Record<string, any> = {};
     const cityLower = city?.toLowerCase() || '';
     
     if (cityLower.includes("houston")) {
       console.log('Using Houston endpoints');
-      endpoints = {
-        water: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
-        sewer: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
-        storm: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewer/MapServer/0/query",
-      };
+      endpoints = UTILITY_ENDPOINTS.houston;
     } else if (cityLower.includes("austin")) {
       console.log('Using Austin endpoints');
-      endpoints = {
-        water: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_water_line/FeatureServer/0/query",
-        sewer: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_wastewater_line/FeatureServer/0/query",
-        storm: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_storm_line/FeatureServer/0/query"
-      };
+      endpoints = UTILITY_ENDPOINTS.austin;
     } else {
       // No supported city
       console.log('City not supported for utilities:', city);
@@ -126,8 +161,8 @@ serve(async (req) => {
     }
 
     // Helper function for ArcGIS query with better error handling
-    const queryArcGIS = async (url: string, fields: string[], utilityType: string): Promise<{ features: any[], unreachable: boolean }> => {
-      if (!url) return { features: [], unreachable: false };
+    const queryArcGIS = async (endpointConfig: any, utilityType: string): Promise<{ features: any[], unreachable: boolean }> => {
+      if (!endpointConfig || !endpointConfig.url) return { features: [], unreachable: false };
       
       const params = new URLSearchParams({
         f: "json",
@@ -135,13 +170,13 @@ serve(async (req) => {
         geometryType: "esriGeometryPoint",
         inSR: "4326",
         spatialRel: "esriSpatialRelIntersects",
-        outFields: fields.length ? fields.join(",") : "*",
+        outFields: endpointConfig.outFields.join(","),
         returnGeometry: "true",
         distance: "1000",
         units: "esriSRUnit_Foot",
       });
       
-      const queryUrl = `${url}?${params.toString()}`;
+      const queryUrl = `${endpointConfig.url}/query?${params.toString()}`;
       console.log(`ArcGIS Query URL (${utilityType}):`, queryUrl);
       
       try {
@@ -182,9 +217,9 @@ serve(async (req) => {
 
     // 3. Run queries with error handling
     const [waterResult, sewerResult, stormResult] = await Promise.all([
-      queryArcGIS(endpoints.water, ["DIAMETER", "MATERIAL", "STATUS"], "water"),
-      queryArcGIS(endpoints.sewer, ["DIAMETER", "MATERIAL", "STATUS"], "sewer"),
-      endpoints.storm ? queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"], "storm") : Promise.resolve({ features: [], unreachable: false })
+      queryArcGIS(endpoints.water, "water"),
+      queryArcGIS(endpoints.sewer, "sewer"),
+      endpoints.storm ? queryArcGIS(endpoints.storm, "storm") : Promise.resolve({ features: [], unreachable: false })
     ]);
 
     const waterResults = waterResult.features;
