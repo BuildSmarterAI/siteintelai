@@ -482,312 +482,85 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
   }
 }
 
-// Helper function to fetch TxDOT traffic data (with confirmed endpoints)
+// Helper function to fetch TxDOT traffic data
 async function fetchTrafficData(lat: number, lng: number): Promise<any> {
   try {
-    const searchRadius = '5280'; // 1 mile
-    const commonParams = {
-      geometry: `${lng},${lat}`,
-      geometryType: 'esriGeometryPoint',
-      inSR: '4326',
-      spatialRel: 'esriSpatialRelIntersects',
-      distance: searchRadius,
-      units: 'esriFeet',
-      where: '1=1',
-      outFields: '*',
-      returnGeometry: 'true',
-      f: 'json'
-    };
-
-    let trafficResult: any = {
-      traffic_aadt: null,
-      traffic_year: null,
-      traffic_segment_id: null,
-      traffic_distance_ft: null,
-      traffic_road_name: null,
-      traffic_direction: null,
-      traffic_map_url: null,
-      congestion_level: null,
-      truck_percent: null
-    };
-
     console.log('Fetching traffic data from TxDOT AADT service...');
-
-    // Try TxDOT AADT service first (primary source)
-    try {
-      // Use specific outFields for TxDOT official AADT endpoint
-      const txdotParams = new URLSearchParams({
-        ...commonParams as any,
-        outFields: 'AADT,Year,SEGID,RTE_NM,RTE_PRFX,DIRECTION,OBJECTID'
-      });
-      
-      const resp = await fetch(`${TXDOT_AADT_URL}?${txdotParams}`, {
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (resp.ok) {
-        const text = await resp.text();
-        if (text && !text.trim().startsWith('<')) {
-          const data = JSON.parse(text);
-          
-          if (data?.features && data.features.length > 0) {
-            // Sort by distance to find nearest segment
-            const sortedFeatures = data.features.sort((a: any, b: any) => {
-              const geomA = a.geometry;
-              const geomB = b.geometry;
-              const distA = geomA?.x && geomA?.y ? haversineFt(lat, lng, geomA.y, geomA.x) : Infinity;
-              const distB = geomB?.x && geomB?.y ? haversineFt(lat, lng, geomB.y, geomB.x) : Infinity;
-              return distA - distB;
-            });
-            
-            const feature = sortedFeatures[0];
-            const attrs = feature.attributes || {};
-            const geom = feature.geometry;
-            const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
-            
-            // TxDOT official AADT field mappings (prioritize official field names)
-            const aadt = attrs.AADT || attrs.AADT_CUR || attrs.CUR_AADT || null;
-            const year = attrs.Year || attrs.ADT_YEAR || attrs.AADT_YEAR || 2024;
-            const segmentId = attrs.SEGID || attrs.OBJECTID || attrs.SECTION_ID || null;
-            const roadName = attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || null;
-            const roadPrefix = attrs.RTE_PRFX || null;
-            const direction = attrs.DIRECTION || attrs.DIR || null;
-            
-            // Build full road name with prefix if available
-            const fullRoadName = roadPrefix ? `${roadPrefix} ${roadName}` : roadName;
-            
-            if (aadt || fullRoadName) {
-              console.log('Traffic data from TxDOT AADT:', {
-                aadt,
-                year,
-                segmentId,
-                roadName: fullRoadName,
-                direction,
-                distFt
-              });
-              
-              trafficResult = {
-                traffic_aadt: aadt ? Number(aadt) : null,
-                traffic_year: year ? Number(year) : null,
-                traffic_segment_id: segmentId ? String(segmentId) : null,
-                traffic_distance_ft: distFt,
-                traffic_road_name: fullRoadName,
-                traffic_direction: direction,
-                traffic_map_url: TXDOT_AADT_URL.replace('/query', ''),
-                congestion_level: null, // Will be populated below
-                truck_percent: null // Will be populated below
-              };
-            }
-          } else {
-            console.log('No TxDOT traffic count features within search radius');
-          }
-        }
-      }
-    } catch (error) {
-      console.error('TxDOT AADT error:', error);
-    }
-
-    // If AADT didn't return data, try fallbacks before fetching supplemental data
-    if (!trafficResult.traffic_aadt && !trafficResult.traffic_road_name) {
-
-      // Try Houston-specific traffic data as fallback
-      console.log('Trying Houston traffic data fallback...');
-      try {
-        const params = new URLSearchParams(commonParams as any);
-        const resp = await fetch(`${HOUSTON_TRAFFIC_URL}?${params}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (resp.ok) {
-          const text = await resp.text();
-          if (text && !text.trim().startsWith('<')) {
-            const data = JSON.parse(text);
-            
-            if (data?.features && data.features.length > 0) {
-              const feature = data.features[0];
-              const attrs = feature.attributes || {};
-              const geom = feature.geometry;
-              const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
-              
-              const aadt = attrs.AADT || attrs.TRAFFIC_VOLUME || attrs.ADT || null;
-              const year = attrs.YEAR || attrs.DATA_YEAR || 2024;
-              const roadName = attrs.STREET_NAME || attrs.STREET || attrs.NAME || null;
-              
-              if (aadt || roadName) {
-                console.log('Traffic data from Houston:', {
-                  aadt,
-                  year,
-                  roadName,
-                  distFt
-                });
-                
-                trafficResult = {
-                  traffic_aadt: aadt ? Number(aadt) : null,
-                  traffic_year: year ? Number(year) : null,
-                  traffic_segment_id: attrs.OBJECTID ? String(attrs.OBJECTID) : null,
-                  traffic_distance_ft: distFt,
-                  traffic_road_name: roadName,
-                  traffic_direction: attrs.DIRECTION || null,
-                  traffic_map_url: HOUSTON_TRAFFIC_URL.replace('/query', ''),
-                  congestion_level: null,
-                  truck_percent: null
-                };
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Houston traffic error:', error);
-      }
-    }
-
-    // If still no data, try TxDOT Roadways fallback (for road name only, no AADT)
-    if (!trafficResult.traffic_aadt && !trafficResult.traffic_road_name) {
-      console.log('Trying TxDOT Roadways fallback (no AADT available)...');
-      try {
-        const params = new URLSearchParams(commonParams as any);
-        const resp = await fetch(`${TXDOT_ROADWAYS_URL}?${params}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        if (resp.ok) {
-          const text = await resp.text();
-          if (text && !text.trim().startsWith('<')) {
-            const data = JSON.parse(text);
-            
-            if (data?.features && data.features.length > 0) {
-              const feature = data.features[0];
-              const attrs = feature.attributes || {};
-              const geom = feature.geometry;
-              const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
-              
-              const roadName = attrs.RTE_NM || attrs.ROADWAY_NAME || attrs.NAME || null;
-              const roadPrefix = attrs.RTE_PRFX || null;
-              const fullRoadName = roadPrefix ? `${roadPrefix} ${roadName}` : roadName;
-              
-              if (fullRoadName) {
-                console.log('Road name from TxDOT Roadways (no AADT):', fullRoadName);
-                
-                trafficResult = {
-                  traffic_aadt: null,
-                  traffic_year: null,
-                  traffic_segment_id: attrs.OBJECTID ? String(attrs.OBJECTID) : null,
-                  traffic_distance_ft: distFt,
-                  traffic_road_name: fullRoadName,
-                  traffic_direction: attrs.DIRECTION || null,
-                  traffic_map_url: TXDOT_ROADWAYS_URL.replace('/query', ''),
-                  congestion_level: null,
-                  truck_percent: null
-                };
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('TxDOT Roadways error:', error);
-      }
-    }
-
-    // Ultimate fallback to OSM
-    if (!trafficResult.traffic_road_name) {
-      console.log('All TxDOT sources failed, falling back to OSM');
-      const osm = await fallbackRoadFromOSM(lat, lng);
-      trafficResult = { 
-        ...trafficResult,
-        ...osm
+    
+    const params = new URLSearchParams({
+      f: "json",
+      geometry: `${lng},${lat}`,
+      geometryType: "esriGeometryPoint",
+      inSR: "4326",
+      spatialRel: "esriSpatialRelIntersects",
+      outFields: "AADT,Year,SEGID",
+      returnGeometry: "false",
+      distance: "1000",
+      units: "esriSRUnit_Foot"
+    });
+    
+    const resp = await fetch(`${TXDOT_AADT_URL}?${params.toString()}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!resp.ok) {
+      console.error(`TxDOT query failed: ${resp.status}`);
+      return {
+        traffic_aadt: null,
+        traffic_year: null,
+        traffic_segment_id: null,
+        traffic_distance_ft: null,
+        traffic_road_name: null,
+        traffic_direction: null,
+        traffic_map_url: null,
+        congestion_level: null,
+        truck_percent: null
       };
     }
-
-    // Now fetch supplemental data: congestion level and truck percent
-    // These are additional queries to enrich the traffic data we already have
     
-    // Fetch congestion level from TxDOT Congestion service
-    console.log('Fetching congestion level from TxDOT...');
-    try {
-      const congParams = new URLSearchParams(commonParams as any);
-      const congResp = await fetch(`${TXDOT_CONGESTION_URL}?${congParams}`, {
-        headers: { 'Accept': 'application/json' }
+    const json = await resp.json();
+    const attrs = json.features?.[0]?.attributes;
+    
+    if (attrs) {
+      console.log('TxDOT traffic data found:', {
+        aadt: attrs.AADT,
+        year: attrs.Year,
+        segid: attrs.SEGID
       });
       
-      if (congResp.ok) {
-        const congText = await congResp.text();
-        if (congText && !congText.trim().startsWith('<')) {
-          const congData = JSON.parse(congText);
-          
-          if (congData?.features && congData.features.length > 0) {
-            // Find the nearest congestion segment
-            const sortedCong = congData.features.sort((a: any, b: any) => {
-              const geomA = a.geometry;
-              const geomB = b.geometry;
-              const distA = geomA?.x && geomA?.y ? haversineFt(lat, lng, geomA.y, geomA.x) : Infinity;
-              const distB = geomB?.x && geomB?.y ? haversineFt(lat, lng, geomB.y, geomB.x) : Infinity;
-              return distA - distB;
-            });
-            
-            const congFeature = sortedCong[0];
-            const congAttrs = congFeature.attributes || {};
-            const congLevel = congAttrs.CUR_CONG || congAttrs.CONG_LVL || congAttrs.CONGESTION || null;
-            
-            if (congLevel) {
-              trafficResult.congestion_level = String(congLevel);
-              console.log('Congestion level found:', congLevel);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('TxDOT Congestion error:', error);
+      return {
+        traffic_aadt: attrs.AADT || null,
+        traffic_year: attrs.Year || null,
+        traffic_segment_id: attrs.SEGID || null,
+        traffic_distance_ft: null,
+        traffic_road_name: null,
+        traffic_direction: null,
+        traffic_map_url: attrs.AADT ? TXDOT_AADT_URL.replace('/query', '') : null,
+        congestion_level: null,
+        truck_percent: null
+      };
+    } else {
+      console.log('No TxDOT traffic data found within 1000ft');
+      return {
+        traffic_aadt: null,
+        traffic_year: null,
+        traffic_segment_id: null,
+        traffic_distance_ft: null,
+        traffic_road_name: null,
+        traffic_direction: null,
+        traffic_map_url: null,
+        congestion_level: null,
+        truck_percent: null
+      };
     }
-
-    // Fetch truck percent from TxDOT Truck Percent service
-    console.log('Fetching truck percentage from TxDOT...');
-    try {
-      const truckParams = new URLSearchParams(commonParams as any);
-      const truckResp = await fetch(`${TXDOT_TRUCK_URL}?${truckParams}`, {
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (truckResp.ok) {
-        const truckText = await truckResp.text();
-        if (truckText && !truckText.trim().startsWith('<')) {
-          const truckData = JSON.parse(truckText);
-          
-          if (truckData?.features && truckData.features.length > 0) {
-            // Find the nearest truck segment
-            const sortedTruck = truckData.features.sort((a: any, b: any) => {
-              const geomA = a.geometry;
-              const geomB = b.geometry;
-              const distA = geomA?.x && geomA?.y ? haversineFt(lat, lng, geomA.y, geomA.x) : Infinity;
-              const distB = geomB?.x && geomB?.y ? haversineFt(lat, lng, geomB.y, geomB.x) : Infinity;
-              return distA - distB;
-            });
-            
-            const truckFeature = sortedTruck[0];
-            const truckAttrs = truckFeature.attributes || {};
-            // Try various possible field names for truck percentage
-            const truckPct = truckAttrs.TRUCK_PCT || truckAttrs.PCT_TRUCKS || 
-                            truckAttrs.TRUCK_PERCENT || truckAttrs['%_TRUCKS'] || null;
-            
-            if (truckPct !== null && truckPct !== undefined) {
-              trafficResult.truck_percent = Number(truckPct);
-              console.log('Truck percentage found:', truckPct);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('TxDOT Truck Percent error:', error);
-    }
-
-    return trafficResult;
   } catch (error) {
-    console.error('Traffic data fetch error:', error);
+    console.error('TxDOT traffic fetch error:', error);
     return {
       traffic_aadt: null,
       traffic_year: null,
       traffic_segment_id: null,
-      traffic_road_name: null,
       traffic_distance_ft: null,
+      traffic_road_name: null,
       traffic_direction: null,
       traffic_map_url: null,
       congestion_level: null,
@@ -1633,9 +1406,9 @@ serve(async (req) => {
     const trafficData = await fetchTrafficData(geoLat, geoLng);
     console.log('Traffic result:', trafficData);
     Object.assign(enrichedData, trafficData);
-    if (!trafficData.traffic_aadt && !trafficData.traffic_road_name) {
+    if (!trafficData.traffic_aadt) {
       dataFlags.push('traffic_not_found');
-      console.log('No TxDOT traffic counts within 1000 ft. Manual verification recommended.');
+      console.log('No TxDOT traffic counts within 1000 ft.');
     }
 
     console.log('Fetching mobility data (highways, transit)...');
