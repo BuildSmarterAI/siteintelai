@@ -10,12 +10,17 @@ const corsHeaders = {
 // County endpoint catalog - Texas major counties
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
+    // Primary HCAD parcel service (most reliable)
     parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
+    // Alternate HCAD service (fallback if primary fails)
+    parcel_url_alt: "https://maps.hcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
+    // HCAD-specific field mappings
     parcel_id_field: "HCAD_NUM",
-    parcel_id_alt_field: "parcel_id",
-    owner_field: "owner_name_1",
-    acreage_field: "ACREAGE",
+    owner_field: "OWNER_NAME",
+    owner_field_alt: "owner_name_1",
+    acreage_field: "ACRES",
+    acreage_field_alt: "StatedArea",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
     // Houston utility endpoints - using COH open data portal
@@ -24,11 +29,12 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     storm_lines_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Storm_Lines/FeatureServer/0/query"
   },
   "Fort Bend County": {
-    // Primary parcel source (CAD data - richer information)
-    cad_parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
-    // Fallback parcel source
-    parcel_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/General/Parcels/MapServer/0/query",
+    // Primary parcel source (FBCAD public data - most reliable)
+    parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
+    // Fallback parcel source (county GIS)
+    parcel_url_alt: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/General/Parcels/MapServer/0/query",
     zoning_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Planning/Zoning/MapServer/0/query",
+    // FBCAD-specific field mappings
     parcel_id_field: "PARCEL_ID",
     owner_field: "OWNER_NAME",
     acreage_field: "ACRES",
@@ -40,8 +46,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     storm_lines_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Galveston County": {
+    // GCAD parcel service
     parcel_url: "https://www1.cityofwebster.com/arcgis/rest/services/Landbase/CountyGalveston/MapServer/0/query",
     zoning_url: "https://gis.galvestontx.gov/server/rest/services/Planning/Zoning/MapServer/0/query",
+    // GCAD-specific field mappings
     parcel_id_field: "PARCEL_ID",
     owner_field: "OWNER",
     acreage_field: "ACRES",
@@ -79,8 +87,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     storm_lines_url: "https://gis.brazoriacounty.com/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Dallas County": {
+    // DCAD parcel service
     parcel_url: "https://gisservices.dallasopendata.com/arcgis/rest/services/Parcels/MapServer/0/query",
     zoning_url: "https://gis.dallascityhall.com/arcgis/rest/services/Zoning/MapServer/0/query",
+    // DCAD-specific field mappings
     parcel_id_field: "PARCEL",
     owner_field: "OWNER",
     acreage_field: "ACRES",
@@ -91,10 +101,13 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     sewer_lines_url: "https://gis.dallascityhall.com/arcgis/rest/services/Utilities/Wastewater/MapServer/0/query"
   },
   "Tarrant County": {
+    // TAD parcel service
     parcel_url: "https://gis.tad.org/arcgis/rest/services/Parcels/MapServer/0/query",
     zoning_url: null,
+    // TAD-specific field mappings
     parcel_id_field: "PARCEL_ID",
-    owner_field: "OWNER",
+    owner_field: "OWNER_NAME",
+    owner_field_alt: "OWNER",
     acreage_field: "ACRES",
     zoning_field: null,
     overlay_field: null,
@@ -130,8 +143,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     storm_lines_url: "https://gis.cityofdenton.com/arcgis/rest/services/Utilities/Storm_Lines/MapServer/0/query"
   },
   "Travis County": {
+    // Travis CAD parcel service (Austin area)
     parcel_url: "https://gis.traviscad.org/arcgis/rest/services/Parcels/MapServer/0/query",
     zoning_url: "https://data.austintexas.gov/resource/zoning.json",
+    // Travis CAD-specific field mappings
     parcel_id_field: "PARCEL_ID",
     owner_field: "OWNER",
     acreage_field: "ACRES",
@@ -142,8 +157,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     sewer_lines_url: "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/WATER_wastewater_line/FeatureServer/0/query"
   },
   "Williamson County": {
+    // WCAD parcel service
     parcel_url: "https://gis.wcad.org/arcgis/rest/services/Parcels/MapServer/0/query",
     zoning_url: null,
+    // WCAD-specific field mappings
     parcel_id_field: "PARCEL_ID",
     owner_field: "OWNER",
     acreage_field: "ACRES",
@@ -1378,26 +1395,32 @@ serve(async (req) => {
 
       let parcelData = null;
       
-      // Fort Bend County: Try CAD parcel URL first (preferred)
-      if (countyName === "Fort Bend County" && endpoints.cad_parcel_url) {
-        console.log('Querying Fort Bend CAD parcel data...');
+      // Try primary parcel URL first
+      if (endpoints.parcel_url) {
+        console.log('Querying parcel data from primary endpoint...');
         try {
-          const cadResp = await fetch(`${endpoints.cad_parcel_url}?${parcelParams}`);
-          const cadData = await safeJsonParse(cadResp, 'Fort Bend CAD query');
-          if (cadData?.features?.[0]) {
-            parcelData = cadData;
-            console.log('Fort Bend CAD parcel data found');
+          const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
+          parcelData = await safeJsonParse(parcelResp, 'Primary parcel query');
+          if (parcelData?.features?.[0]) {
+            console.log('Primary parcel data found');
           }
-        } catch (cadError) {
-          console.error('Fort Bend CAD query failed, trying fallback:', cadError);
+        } catch (parcelError) {
+          console.error('Primary parcel query failed:', parcelError);
         }
       }
 
-      // If CAD query failed or not Fort Bend, use standard parcel URL
-      if (!parcelData && endpoints.parcel_url) {
-        console.log('Querying standard parcel data...');
-        const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
-        parcelData = await safeJsonParse(parcelResp, 'Parcel query');
+      // Try alternate parcel URL if primary failed or returned no data
+      if (!parcelData?.features?.[0] && endpoints.parcel_url_alt) {
+        console.log('Trying alternate parcel endpoint...');
+        try {
+          const altParcelResp = await fetch(`${endpoints.parcel_url_alt}?${parcelParams}`);
+          parcelData = await safeJsonParse(altParcelResp, 'Alternate parcel query');
+          if (parcelData?.features?.[0]) {
+            console.log('Alternate parcel data found');
+          }
+        } catch (altError) {
+          console.error('Alternate parcel query failed:', altError);
+        }
       }
 
       if (parcelData?.features?.[0]) {
@@ -1406,8 +1429,14 @@ serve(async (req) => {
         // Try primary parcel ID field, then alternative field
         enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || 
                                   (endpoints.parcel_id_alt_field ? attrs[endpoints.parcel_id_alt_field] : null);
-        enrichedData.parcel_owner = attrs[endpoints.owner_field];
-        enrichedData.acreage_cad = attrs[endpoints.acreage_field];
+        
+        // Try primary owner field, then alternative field
+        enrichedData.parcel_owner = attrs[endpoints.owner_field] || 
+                                     (endpoints.owner_field_alt ? attrs[endpoints.owner_field_alt] : null);
+        
+        // Try primary acreage field, then alternative field
+        enrichedData.acreage_cad = attrs[endpoints.acreage_field] || 
+                                    (endpoints.acreage_field_alt ? attrs[endpoints.acreage_field_alt] : null);
         
         console.log('Parcel data found:', {
           parcel_id: enrichedData.parcel_id,
@@ -1415,9 +1444,15 @@ serve(async (req) => {
           acreage: enrichedData.acreage_cad,
           rawAttributes: attrs
         });
+        
+        // Flag if owner data is missing (some counties don't expose it publicly)
+        if (!enrichedData.parcel_owner) {
+          dataFlags.push('parcel_owner_missing');
+          console.log('Parcel owner data not available (county privacy policy)');
+        }
       } else {
         dataFlags.push('parcel_not_found');
-        console.log('No parcel data found');
+        console.log('No parcel data found at this location');
       }
     } catch (error) {
       console.error('Parcel query error:', error);
