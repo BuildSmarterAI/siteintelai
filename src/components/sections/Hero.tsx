@@ -161,7 +161,7 @@ export const Hero = () => {
             
             {/* Modern subheadline */}
             <h2 className="font-body text-lg lg:text-xl text-white/90 leading-relaxed max-w-2xl mb-8 lg:mb-10 fade-in-up" style={{ animationDelay: '0.4s' }}>
-              Advanced CRE property analysis powered by AI. Identify zoning, utility, and cost risks early to protect your investment and optimize returns.
+              BuildSmarter™ Feasibility delivers lender-ready property reports in 2–3 weeks, not 2–3 months. Each report identifies zoning restrictions, utility capacity, floodplain risks, soils, costs, and permitting delays before you commit capital.
             </h2>
             
             {/* Modern CTA section */}
