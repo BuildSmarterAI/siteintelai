@@ -1519,40 +1519,42 @@ serve(async (req) => {
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: 'FLD_ZONE,STATIC_BFE,DFIRM_ID',
+        outFields: 'FLD_ZONE,STATIC_BFE,PANEL',
         returnGeometry: 'false'
       });
 
       const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
         headers: { 'Accept': 'application/json' }
       });
-      const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
+      
+      if (!femaResp.ok) {
+        console.error(`FEMA API failed: ${femaResp.status}`);
+        dataFlags.push('floodplain_missing');
+      } else {
+        const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
 
-      if (femaData?.features && femaData.features.length > 0) {
-        const attrs = femaData.features[0].attributes;
-        
-        enrichedData.floodplain_zone = attrs.FLD_ZONE || null;
-        enrichedData.base_flood_elevation = attrs.STATIC_BFE || null;
-        enrichedData.fema_panel_id = attrs.DFIRM_ID || null;
-        
-        // Add flag if zone exists but BFE is not available (common in Zone X)
-        if (enrichedData.floodplain_zone && !enrichedData.base_flood_elevation) {
-          dataFlags.push('bfe_not_available');
-          console.log(`FEMA zone ${enrichedData.floodplain_zone} found but no BFE published`);
+        if (femaData?.features && femaData.features.length > 0) {
+          const attrs = femaData.features[0].attributes;
+          
+          enrichedData.floodplain_zone = attrs.FLD_ZONE || null;
+          enrichedData.base_flood_elevation = attrs.STATIC_BFE || null;
+          enrichedData.fema_panel_id = attrs.PANEL || null;
+          
+          // Add flag if zone exists but BFE is not available (common in Zone X)
+          if (enrichedData.floodplain_zone && !enrichedData.base_flood_elevation) {
+            dataFlags.push('bfe_not_available');
+            console.log(`FEMA zone ${enrichedData.floodplain_zone} found but no BFE published`);
+          }
+          
+          console.log('FEMA flood data found:', {
+            floodplain_zone: enrichedData.floodplain_zone,
+            base_flood_elevation: enrichedData.base_flood_elevation,
+            fema_panel_id: enrichedData.fema_panel_id
+          });
+        } else {
+          console.log('No flood zone features found at this location');
+          dataFlags.push('floodplain_missing');
         }
-        
-        console.log('FEMA flood data found:', {
-          floodplain_zone: enrichedData.floodplain_zone,
-          base_flood_elevation: enrichedData.base_flood_elevation,
-          fema_panel_id: enrichedData.fema_panel_id
-        });
-      } else {
-        console.log('No flood zone features found at this location');
-        dataFlags.push('floodplain_missing');
-      }
-      } else {
-        console.log('FEMA NFHL data not available for this location');
-        dataFlags.push('floodplain_missing');
       }
     } catch (error) {
       console.error('FEMA query error:', error);
