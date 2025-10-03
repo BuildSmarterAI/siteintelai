@@ -119,7 +119,7 @@ serve(async (req) => {
     };
 
     // 3. Run queries with error handling
-    const [water, sewer, storm] = await Promise.all([
+    const [waterResults, sewerResults, stormResults] = await Promise.all([
       queryArcGIS(endpoints.water, ["DIAMETER", "MATERIAL", "STATUS"], "water"),
       queryArcGIS(endpoints.sewer, ["DIAMETER", "MATERIAL", "STATUS"], "sewer"),
       endpoints.storm ? queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"], "storm") : Promise.resolve([])
@@ -133,19 +133,14 @@ serve(async (req) => {
         status: a.STATUS || null,
       }));
 
-    const waterLines = formatLines(water);
-    const sewerLines = formatLines(sewer);
-    const stormLines = formatLines(storm);
-
     // 5. Update row
     const { error: updateError } = await supabase.from("applications").update({
-      water_lines: waterLines.length > 0 ? waterLines : null,
-      sewer_lines: sewerLines.length > 0 ? sewerLines : null,
-      storm_lines: stormLines.length > 0 ? stormLines : null,
-      data_flags:
-        water.length || sewer.length || storm.length
-          ? []
-          : ["utilities_not_found"],
+      water_lines: formatLines(waterResults),
+      sewer_lines: formatLines(sewerResults),
+      storm_lines: formatLines(stormResults),
+      data_flags: (waterResults.length || sewerResults.length || stormResults.length)
+        ? []
+        : ["utilities_not_found"]
     }).eq("id", application_id);
 
     if (updateError) {
@@ -154,18 +149,18 @@ serve(async (req) => {
     }
 
     console.log('Utilities enriched successfully:', {
-      water: waterLines.length,
-      sewer: sewerLines.length,
-      storm: stormLines.length
+      water: waterResults.length,
+      sewer: sewerResults.length,
+      storm: stormResults.length
     });
 
     return new Response(
       JSON.stringify({ 
         status: "ok",
         data: {
-          water_lines: waterLines.length,
-          sewer_lines: sewerLines.length,
-          storm_lines: stormLines.length
+          water_lines: waterResults.length,
+          sewer_lines: sewerResults.length,
+          storm_lines: stormResults.length
         }
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
