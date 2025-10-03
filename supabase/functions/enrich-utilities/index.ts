@@ -59,7 +59,7 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number) {
   });
 }
 
-// Generic ArcGIS query
+// Generic ArcGIS query for polylines
 const queryArcGIS = async (url: string, fields: string[], geo_lat: number, geo_lng: number, utilityType: string) => {
   try {
     const params = new URLSearchParams({
@@ -109,6 +109,35 @@ const queryArcGIS = async (url: string, fields: string[], geo_lat: number, geo_l
     
     throw err;
   }
+};
+
+// Query for polygon features (MUD boundaries, ETJ, etc.)
+const queryPolygon = async (url: string, fields: string[], geo_lat: number, geo_lng: number) => {
+  const params = new URLSearchParams({
+    f: "json",
+    geometry: `${geo_lng},${geo_lat}`,
+    geometryType: "esriGeometryPoint",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: fields.join(","),
+    returnGeometry: "false"
+  });
+  
+  const queryUrl = `${url}?${params.toString()}`;
+  console.log('Querying polygon:', queryUrl);
+  
+  const resp = await fetch(queryUrl, {
+    signal: AbortSignal.timeout(15000)
+  });
+  
+  if (!resp.ok) {
+    throw new Error(`HTTP ${resp.status}`);
+  }
+  
+  const json = await resp.json();
+  console.log('Polygon features found:', json.features?.length || 0);
+  
+  return json.features ?? [];
 };
 
 serve(async (req) => {
@@ -170,8 +199,43 @@ serve(async (req) => {
           storm = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "reclaimed");
         }
       } else if (county?.toLowerCase().includes("harris")) {
-        console.log('Harris County - boundary check needed');
-        flags.push("etj_provider_boundary_only");
+        console.log('Harris County - checking MUD districts');
+        
+        // Try to find MUD district
+        const mudEp = endpointCatalog.harris_county_etj.mud;
+        let mudFound = false;
+        
+        try {
+          const mudHits = await queryPolygon(mudEp.url, mudEp.outFields, geo_lat, geo_lng);
+          
+          if (mudHits.length > 0) {
+            const mudAttrs = mudHits[0].attributes;
+            const mudDistrict = mudAttrs.DISTRICT_NA || mudAttrs.DISTRICT_NO || null;
+            console.log('MUD district found:', mudDistrict);
+            
+            // Update with MUD info
+            await supabase.from("applications").update({
+              mud_district: mudDistrict,
+              etj_provider: mudAttrs.AGENCY || "MUD"
+            }).eq("id", application_id);
+            
+            mudFound = true;
+            flags.push("etj_provider_boundary_only");
+          }
+        } catch (mudErr) {
+          console.error("MUD lookup failed:", mudErr instanceof Error ? mudErr.message : String(mudErr));
+        }
+        
+        // If no MUD found, mark as Harris ETJ
+        if (!mudFound) {
+          console.log('No MUD district found - marking as Harris ETJ');
+          await supabase.from("applications").update({
+            mud_district: null,
+            etj_provider: "Harris_ETJ"
+          }).eq("id", application_id);
+          
+          flags.push("etj_provider_boundary_only");
+        }
       } else {
         console.log('No city-specific endpoints, using statewide fallback');
         flags.push("texas_statewide_tceq");
