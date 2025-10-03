@@ -122,6 +122,7 @@ export type Database = {
           traffic_year: number | null
           truck_percent: number | null
           updated_at: string
+          utilities_map_url: string | null
           utilities_output: string | null
           utility_access: string[] | null
           utm_campaign: string | null
@@ -241,6 +242,7 @@ export type Database = {
           traffic_year?: number | null
           truck_percent?: number | null
           updated_at?: string
+          utilities_map_url?: string | null
           utilities_output?: string | null
           utility_access?: string[] | null
           utm_campaign?: string | null
@@ -360,6 +362,7 @@ export type Database = {
           traffic_year?: number | null
           truck_percent?: number | null
           updated_at?: string
+          utilities_map_url?: string | null
           utilities_output?: string | null
           utility_access?: string[] | null
           utm_campaign?: string | null
