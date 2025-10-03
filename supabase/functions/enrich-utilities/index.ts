@@ -85,10 +85,10 @@ serve(async (req) => {
         geometryType: "esriGeometryPoint",
         inSR: "4326",
         spatialRel: "esriSpatialRelIntersects",
-        distance: "500",
-        units: "esriFeet",
         outFields: fields.join(","),
         returnGeometry: "false",
+        distance: "1000",
+        units: "esriSRUnit_Foot",
       });
       
       console.log(`Querying ${utilityType}:`, url);
