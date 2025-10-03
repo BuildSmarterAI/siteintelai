@@ -75,9 +75,10 @@ serve(async (req) => {
       );
     }
 
-    // Helper function for ArcGIS query
-    const queryArcGIS = async (url: string, fields: string[]) => {
+    // Helper function for ArcGIS query with better error handling
+    const queryArcGIS = async (url: string, fields: string[], utilityType: string) => {
       if (!url) return [];
+      
       const params = new URLSearchParams({
         f: "json",
         geometry: `${geo_lng},${geo_lat}`,
@@ -90,19 +91,39 @@ serve(async (req) => {
         returnGeometry: "false",
       });
       
-      console.log('Querying:', url);
-      const resp = await fetch(`${url}?${params.toString()}`);
-      const json = await resp.json();
-      console.log('Response features:', json.features?.length || 0);
-      return json.features?.map((f: any) => f.attributes) ?? [];
+      console.log(`Querying ${utilityType}:`, url);
+      
+      try {
+        const resp = await fetch(`${url}?${params.toString()}`, {
+          signal: AbortSignal.timeout(15000) // 15 second timeout
+        });
+        
+        if (!resp.ok) {
+          console.error(`${utilityType} API returned status:`, resp.status);
+          return [];
+        }
+        
+        const json = await resp.json();
+        
+        if (json.error) {
+          console.error(`${utilityType} API error:`, json.error);
+          return [];
+        }
+        
+        console.log(`${utilityType} features:`, json.features?.length || 0);
+        return json.features?.map((f: any) => f.attributes) ?? [];
+      } catch (error) {
+        console.error(`${utilityType} query failed:`, error instanceof Error ? error.message : String(error));
+        return []; // Return empty array instead of throwing
+      }
     };
 
-    // 3. Run queries
-    const water = await queryArcGIS(endpoints.water, ["DIAMETER", "MATERIAL", "STATUS"]);
-    const sewer = await queryArcGIS(endpoints.sewer, ["DIAMETER", "MATERIAL", "STATUS"]);
-    const storm = endpoints.storm
-      ? await queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"])
-      : [];
+    // 3. Run queries with error handling
+    const [water, sewer, storm] = await Promise.all([
+      queryArcGIS(endpoints.water, ["DIAMETER", "MATERIAL", "STATUS"], "water"),
+      queryArcGIS(endpoints.sewer, ["DIAMETER", "MATERIAL", "STATUS"], "sewer"),
+      endpoints.storm ? queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"], "storm") : Promise.resolve([])
+    ]);
 
     // 4. Format JSON for Supabase
     const formatLines = (arr: any[]) =>
