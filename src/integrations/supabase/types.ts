@@ -374,6 +374,36 @@ export type Database = {
         }
         Relationships: []
       }
+      utility_endpoints: {
+        Row: {
+          geometry_type: string
+          id: string
+          notes: string | null
+          out_fields: string[] | null
+          provider_name: string
+          provider_type: string
+          url: string
+        }
+        Insert: {
+          geometry_type: string
+          id?: string
+          notes?: string | null
+          out_fields?: string[] | null
+          provider_name: string
+          provider_type: string
+          url: string
+        }
+        Update: {
+          geometry_type?: string
+          id?: string
+          notes?: string | null
+          out_fields?: string[] | null
+          provider_name?: string
+          provider_type?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
