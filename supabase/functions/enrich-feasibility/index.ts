@@ -208,7 +208,7 @@ const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
 const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
 // TxDOT Official Traffic Data Endpoints
-const TXDOT_AADT_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0/query";
+const TXDOT_AADT_URL = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
 const TXDOT_ROADWAYS_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadways/FeatureServer/0/query";
 const TXDOT_CONGESTION_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Congestion/FeatureServer/0/query";
 const TXDOT_TRUCK_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/ArcGIS/rest/services/TxDOT_Truck_Percent_SRD/FeatureServer/0/query";
@@ -515,8 +515,13 @@ async function fetchTrafficData(lat: number, lng: number): Promise<any> {
 
     // Try TxDOT AADT service first (primary source)
     try {
-      const params = new URLSearchParams(commonParams as any);
-      const resp = await fetch(`${TXDOT_AADT_URL}?${params}`, {
+      // Use specific outFields for TxDOT official AADT endpoint
+      const txdotParams = new URLSearchParams({
+        ...commonParams as any,
+        outFields: 'AADT,Year,SEGID,RTE_NM,RTE_PRFX,DIRECTION,OBJECTID'
+      });
+      
+      const resp = await fetch(`${TXDOT_AADT_URL}?${txdotParams}`, {
         headers: { 'Accept': 'application/json' }
       });
       
@@ -540,10 +545,10 @@ async function fetchTrafficData(lat: number, lng: number): Promise<any> {
             const geom = feature.geometry;
             const distFt = geom?.x && geom?.y ? haversineFt(lat, lng, geom.y, geom.x) : null;
             
-            // TxDOT AADT confirmed field mappings
-            const aadt = attrs.AADT_CUR || attrs.AADT || attrs.CUR_AADT || null;
-            const year = attrs.ADT_YEAR || attrs.AADT_YEAR || attrs.YEAR || 2024;
-            const segmentId = attrs.OBJECTID || attrs.SECTION_ID || attrs.RTE_ID || null;
+            // TxDOT official AADT field mappings (prioritize official field names)
+            const aadt = attrs.AADT || attrs.AADT_CUR || attrs.CUR_AADT || null;
+            const year = attrs.Year || attrs.ADT_YEAR || attrs.AADT_YEAR || 2024;
+            const segmentId = attrs.SEGID || attrs.OBJECTID || attrs.SECTION_ID || null;
             const roadName = attrs.RTE_NM || attrs.ROUTE_NAME || attrs.RD_NAME || null;
             const roadPrefix = attrs.RTE_PRFX || null;
             const direction = attrs.DIRECTION || attrs.DIR || null;
@@ -573,6 +578,8 @@ async function fetchTrafficData(lat: number, lng: number): Promise<any> {
                 truck_percent: null // Will be populated below
               };
             }
+          } else {
+            console.log('No TxDOT traffic count features within search radius');
           }
         }
       }
@@ -1625,7 +1632,8 @@ serve(async (req) => {
     console.log('Traffic result:', trafficData);
     Object.assign(enrichedData, trafficData);
     if (!trafficData.traffic_aadt && !trafficData.traffic_road_name) {
-      dataFlags.push('traffic_missing');
+      dataFlags.push('traffic_not_found');
+      console.log('No TxDOT traffic counts within 1000 ft. Manual verification recommended.');
     }
 
     console.log('Fetching mobility data (highways, transit)...');
