@@ -31,6 +31,7 @@ export type Database = {
           city: string | null
           company: string
           conclusion_output: string | null
+          congestion_level: string | null
           consent_contact: boolean
           consent_terms_privacy: boolean
           costs_output: string | null
@@ -119,6 +120,7 @@ export type Database = {
           traffic_road_name: string | null
           traffic_segment_id: string | null
           traffic_year: number | null
+          truck_percent: number | null
           updated_at: string
           utilities_output: string | null
           utility_access: string[] | null
@@ -148,6 +150,7 @@ export type Database = {
           city?: string | null
           company: string
           conclusion_output?: string | null
+          congestion_level?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
           costs_output?: string | null
@@ -236,6 +239,7 @@ export type Database = {
           traffic_road_name?: string | null
           traffic_segment_id?: string | null
           traffic_year?: number | null
+          truck_percent?: number | null
           updated_at?: string
           utilities_output?: string | null
           utility_access?: string[] | null
@@ -265,6 +269,7 @@ export type Database = {
           city?: string | null
           company?: string
           conclusion_output?: string | null
+          congestion_level?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
           costs_output?: string | null
@@ -353,6 +358,7 @@ export type Database = {
           traffic_road_name?: string | null
           traffic_segment_id?: string | null
           traffic_year?: number | null
+          truck_percent?: number | null
           updated_at?: string
           utilities_output?: string | null
           utility_access?: string[] | null
