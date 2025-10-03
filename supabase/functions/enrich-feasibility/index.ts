@@ -1505,59 +1505,44 @@ serve(async (req) => {
     // Step 4: Query FEMA flood data (Floodplain & Elevation - Part 1)
     console.log('Fetching FEMA flood zone data...');
     try {
-      // First check if NFHL data is available for this location
-      const availParams = new URLSearchParams({
+      // Query FEMA NFHL Layer 28 (Flood Hazard Zones) for zone and BFE
+      const femaParams = new URLSearchParams({
+        f: 'json',
         geometry: `${geoLng},${geoLat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
+        outFields: 'FLD_ZONE,STATIC_BFE,DFIRM_ID',
+        returnGeometry: 'false'
       });
 
-      const availResp = await fetch(`${FEMA_NFHL_AVAILABILITY_URL}?${availParams}`, {
+      const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
         headers: { 'Accept': 'application/json' }
       });
-      const availData = await safeJsonParse(availResp, 'FEMA availability check');
-      
-      if (availData?.features && availData.features.length > 0) {
-        console.log('FEMA NFHL data available, querying flood zones...');
+      const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
+
+      if (femaData?.features && femaData.features.length > 0) {
+        const attrs = femaData.features[0].attributes;
         
-        // Query flood hazard zones (Layer 28)
-        const femaParams = new URLSearchParams({
-          geometry: `${geoLng},${geoLat}`,
-          geometryType: 'esriGeometryPoint',
-          inSR: '4326',
-          spatialRel: 'esriSpatialRelIntersects',
-          outFields: 'FLD_ZONE,BFE,STATIC_BFE,DFIRM_ID,PANEL_TYP,ZONE_SUBTY',
-          returnGeometry: 'false',
-          f: 'json'
-        });
-
-        const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
-          headers: { 'Accept': 'application/json' }
-        });
-        const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
-
-        if (femaData?.features && femaData.features.length > 0) {
-          const attrs = femaData.features[0].attributes;
-          
-          // Map FEMA fields to schema
-          enrichedData.floodplain_zone = attrs.FLD_ZONE || attrs.ZONE_SUBTY || null;
-          enrichedData.base_flood_elevation = attrs.BFE || attrs.STATIC_BFE || null;
-          enrichedData.fema_panel_id = attrs.DFIRM_ID || attrs.PANEL_TYP || null;
-          
-          console.log('FEMA flood data found:', {
-            floodplain_zone: enrichedData.floodplain_zone,
-            base_flood_elevation: enrichedData.base_flood_elevation,
-            fema_panel_id: enrichedData.fema_panel_id,
-            raw_attrs: attrs
-          });
-        } else {
-          console.log('No flood zone features found at this location');
-          dataFlags.push('floodplain_missing');
+        enrichedData.floodplain_zone = attrs.FLD_ZONE || null;
+        enrichedData.base_flood_elevation = attrs.STATIC_BFE || null;
+        enrichedData.fema_panel_id = attrs.DFIRM_ID || null;
+        
+        // Add flag if zone exists but BFE is not available (common in Zone X)
+        if (enrichedData.floodplain_zone && !enrichedData.base_flood_elevation) {
+          dataFlags.push('bfe_not_available');
+          console.log(`FEMA zone ${enrichedData.floodplain_zone} found but no BFE published`);
         }
+        
+        console.log('FEMA flood data found:', {
+          floodplain_zone: enrichedData.floodplain_zone,
+          base_flood_elevation: enrichedData.base_flood_elevation,
+          fema_panel_id: enrichedData.fema_panel_id
+        });
+      } else {
+        console.log('No flood zone features found at this location');
+        dataFlags.push('floodplain_missing');
+      }
       } else {
         console.log('FEMA NFHL data not available for this location');
         dataFlags.push('floodplain_missing');
