@@ -1,0 +1,71 @@
+{
+  "houston": {
+    "water": {
+      "name": "COH Water Distribution Mains",
+      "url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "geometryType": "esriGeometryPolyline"
+    },
+    "sewer": {
+      "name": "COH Sanitary Sewer Lines",
+      "url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewerLines/MapServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "geometryType": "esriGeometryPolyline"
+    },
+    "storm": {
+      "name": "COH Storm Sewer Lines",
+      "url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewerLines/MapServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "geometryType": "esriGeometryPolyline"
+    }
+  },
+  "austin": {
+    "water": {
+      "name": "AWU Waterlines",
+      "url": "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "STATUS", "INSTALL_YEAR"],
+      "geometryType": "esriGeometryPolyline"
+    },
+    "sewer": {
+      "name": "AWU Wastewaterlines",
+      "url": "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Wastewaterlines/FeatureServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "STATUS", "INSTALL_YEAR"],
+      "geometryType": "esriGeometryPolyline"
+    },
+    "reclaimed": {
+      "name": "AWU Reclaimed Waterlines",
+      "url": "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_ReclaimedWaterlines/FeatureServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "geometryType": "esriGeometryPolyline"
+    }
+  },
+  "harris_county_etj": {
+    "mud": {
+      "name": "Harris County MUD Boundaries",
+      "url": "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/MUD_Boundaries/FeatureServer/0/query",
+      "outFields": ["DISTRICT_NA", "DISTRICT_NO", "AGENCY"],
+      "geometryType": "esriGeometryPolygon"
+    },
+    "wcid": {
+      "name": "Harris County WCID Boundaries",
+      "url": "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/WCID_Boundaries/FeatureServer/0/query",
+      "outFields": ["DISTRICT_NA", "DISTRICT_NO"],
+      "geometryType": "esriGeometryPolygon"
+    },
+    "tirz": {
+      "name": "Houston TIRZ Boundaries",
+      "url": "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/TIRZ_Boundaries/FeatureServer/0/query",
+      "outFields": ["TIRZ_NUM", "TIRZ_NAME"],
+      "geometryType": "esriGeometryPolygon"
+    }
+  },
+  "texas_statewide": {
+    "tceq": {
+      "name": "TCEQ Water Districts Map Viewer",
+      "url": "https://www.tceq.texas.gov/gis/iwudview.html",
+      "outFields": [],
+      "geometryType": "esriGeometryPolygon",
+      "notes": "Fallback: covers all Texas MUDs, WCIDs, SUDs. Not a REST API, but can be downloaded as shapefiles."
+    }
+  }
+}
