@@ -188,15 +188,118 @@ export default function ThankYou() {
             </Card>
           </div>
 
-          {/* Utility Results */}
+          {/* Enriched Data Results */}
           {applicationData && (
-            <div className="mb-8">
+            <div className="space-y-6 mb-8">
+              {/* Utility Results */}
               <UtilityResults
                 waterLines={applicationData.water_lines}
                 sewerLines={applicationData.sewer_lines}
                 stormLines={applicationData.storm_lines}
                 dataFlags={applicationData.data_flags || []}
               />
+
+              {/* FEMA Flood Data */}
+              {(applicationData.floodplain_zone || applicationData.base_flood_elevation) && (
+                <Card className="shadow-lg">
+                  <CardContent className="p-6">
+                    <h3 className="font-headline text-xl font-bold text-charcoal mb-4">
+                      FEMA Flood Zone Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {applicationData.floodplain_zone && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">Flood Zone</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.floodplain_zone}</p>
+                        </div>
+                      )}
+                      {applicationData.base_flood_elevation && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">Base Flood Elevation</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.base_flood_elevation} ft</p>
+                        </div>
+                      )}
+                      {applicationData.fema_panel_id && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">FEMA Panel ID</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.fema_panel_id}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* TxDOT Traffic Data */}
+              {(applicationData.traffic_aadt || applicationData.traffic_road_name) && (
+                <Card className="shadow-lg">
+                  <CardContent className="p-6">
+                    <h3 className="font-headline text-xl font-bold text-charcoal mb-4">
+                      Traffic Count Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      {applicationData.traffic_road_name && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">Road Name</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.traffic_road_name}</p>
+                        </div>
+                      )}
+                      {applicationData.traffic_aadt && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">AADT (Vehicles/Day)</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.traffic_aadt.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {applicationData.traffic_year && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">Count Year</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.traffic_year}</p>
+                        </div>
+                      )}
+                      {applicationData.traffic_distance_ft && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">Distance from Site</p>
+                          <p className="font-body font-semibold text-charcoal">{Math.round(applicationData.traffic_distance_ft)} ft</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* MUD District / ETJ Provider */}
+              {(applicationData.mud_district || applicationData.etj_provider) && (
+                <Card className="shadow-lg">
+                  <CardContent className="p-6">
+                    <h3 className="font-headline text-xl font-bold text-charcoal mb-4">
+                      Service Provider Information
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {applicationData.mud_district && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">MUD District</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.mud_district}</p>
+                        </div>
+                      )}
+                      {applicationData.etj_provider && (
+                        <div>
+                          <p className="font-body text-sm text-charcoal/60 mb-1">ETJ Provider</p>
+                          <p className="font-body font-semibold text-charcoal">{applicationData.etj_provider}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Loading State */}
+              {loading && (
+                <Card className="shadow-lg">
+                  <CardContent className="p-6 text-center">
+                    <p className="font-body text-charcoal/60">Loading enrichment data...</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
