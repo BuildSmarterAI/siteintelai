@@ -968,7 +968,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
     power_kv_nearby: null
   };
 
-  const searchRadius = 500; // 500 feet radius
+  const searchRadius = 2000; // Increased to 2000 feet radius for better coverage
 
   try {
     // Fetch water lines if endpoint exists
@@ -989,6 +989,13 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
 
       const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParams}`);
       const waterData = await safeJsonParse(waterResp, 'Water lines query');
+      
+      console.log('Water lines API response:', {
+        status: waterResp.status,
+        hasFeatures: !!waterData?.features,
+        featureCount: waterData?.features?.length || 0,
+        error: waterData?.error
+      });
       
       if (waterData?.features && waterData.features.length > 0) {
         utilities.water_lines = waterData.features.map((f: any) => {
@@ -1032,6 +1039,13 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
       const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParams}`);
       const sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
       
+      console.log('Sewer lines API response:', {
+        status: sewerResp.status,
+        hasFeatures: !!sewerData?.features,
+        featureCount: sewerData?.features?.length || 0,
+        error: sewerData?.error
+      });
+      
       if (sewerData?.features && sewerData.features.length > 0) {
         utilities.sewer_lines = sewerData.features.map((f: any) => {
           const attrs = f.attributes || {};
@@ -1073,6 +1087,13 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
 
       const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParams}`);
       const stormData = await safeJsonParse(stormResp, 'Storm lines query');
+      
+      console.log('Storm lines API response:', {
+        status: stormResp.status,
+        hasFeatures: !!stormData?.features,
+        featureCount: stormData?.features?.length || 0,
+        error: stormData?.error
+      });
       
       if (stormData?.features && stormData.features.length > 0) {
         utilities.storm_lines = stormData.features.map((f: any) => {
