@@ -85,16 +85,17 @@ serve(async (req) => {
         geometryType: "esriGeometryPoint",
         inSR: "4326",
         spatialRel: "esriSpatialRelIntersects",
-        outFields: fields.join(","),
+        outFields: fields.length ? fields.join(",") : "*",
         returnGeometry: "false",
         distance: "1000",
         units: "esriSRUnit_Foot",
       });
       
-      console.log(`Querying ${utilityType}:`, url);
+      const queryUrl = `${url}?${params.toString()}`;
+      console.log(`ArcGIS Query URL (${utilityType}):`, queryUrl);
       
       try {
-        const resp = await fetch(`${url}?${params.toString()}`, {
+        const resp = await fetch(queryUrl, {
           signal: AbortSignal.timeout(15000) // 15 second timeout
         });
         
@@ -105,12 +106,15 @@ serve(async (req) => {
         
         const json = await resp.json();
         
+        // Diagnostic logging: see raw response in Supabase logs
+        console.log(`ArcGIS Response (${utilityType}):`, JSON.stringify(json, null, 2));
+        
         if (json.error) {
           console.error(`${utilityType} API error:`, json.error);
           return [];
         }
         
-        console.log(`${utilityType} features:`, json.features?.length || 0);
+        console.log(`${utilityType} features found:`, json.features?.length || 0);
         return json.features?.map((f: any) => f.attributes) ?? [];
       } catch (error) {
         console.error(`${utilityType} query failed:`, error instanceof Error ? error.message : String(error));
