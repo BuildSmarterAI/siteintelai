@@ -482,91 +482,27 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
   }
 }
 
-// Helper function to fetch TxDOT traffic data
-async function fetchTrafficData(lat: number, lng: number): Promise<any> {
-  try {
-    console.log('Fetching traffic data from TxDOT AADT service...');
-    
-    const params = new URLSearchParams({
-      f: "json",
-      geometry: `${lng},${lat}`,
-      geometryType: "esriGeometryPoint",
-      inSR: "4326",
-      spatialRel: "esriSpatialRelIntersects",
-      outFields: "AADT,Year,SEGID",
-      returnGeometry: "false",
-      distance: "1000",
-      units: "esriSRUnit_Foot"
-    });
-    
-    const resp = await fetch(`${TXDOT_AADT_URL}?${params.toString()}`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    
-    if (!resp.ok) {
-      console.error(`TxDOT query failed: ${resp.status}`);
-      return {
-        traffic_aadt: null,
-        traffic_year: null,
-        traffic_segment_id: null,
-        traffic_distance_ft: null,
-        traffic_road_name: null,
-        traffic_direction: null,
-        traffic_map_url: null,
-        congestion_level: null,
-        truck_percent: null
-      };
-    }
-    
-    const json = await resp.json();
-    const attrs = json.features?.[0]?.attributes;
-    
-    if (attrs) {
-      console.log('TxDOT traffic data found:', {
-        aadt: attrs.AADT,
-        year: attrs.Year,
-        segid: attrs.SEGID
-      });
-      
-      return {
-        traffic_aadt: attrs.AADT || null,
-        traffic_year: attrs.Year || null,
-        traffic_segment_id: attrs.SEGID || null,
-        traffic_distance_ft: null,
-        traffic_road_name: null,
-        traffic_direction: null,
-        traffic_map_url: attrs.AADT ? TXDOT_AADT_URL.replace('/query', '') : null,
-        congestion_level: null,
-        truck_percent: null
-      };
-    } else {
-      console.log('No TxDOT traffic data found within 1000ft');
-      return {
-        traffic_aadt: null,
-        traffic_year: null,
-        traffic_segment_id: null,
-        traffic_distance_ft: null,
-        traffic_road_name: null,
-        traffic_direction: null,
-        traffic_map_url: null,
-        congestion_level: null,
-        truck_percent: null
-      };
-    }
-  } catch (error) {
-    console.error('TxDOT traffic fetch error:', error);
-    return {
-      traffic_aadt: null,
-      traffic_year: null,
-      traffic_segment_id: null,
-      traffic_distance_ft: null,
-      traffic_road_name: null,
-      traffic_direction: null,
-      traffic_map_url: null,
-      congestion_level: null,
-      truck_percent: null
-    };
-  }
+// TxDOT AADT REST Endpoint
+const TXDOT_URL = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
+
+// Generic query to TxDOT traffic layer
+async function queryTxDOT(lat: number, lng: number) {
+  const params = new URLSearchParams({
+    f: "json",
+    geometry: `${lng},${lat}`,
+    geometryType: "esriGeometryPoint",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: "AADT,Year,SEGID",
+    returnGeometry: "false",
+    distance: "1000",              // Buffer: within 1000 ft
+    units: "esriSRUnit_Foot"
+  });
+
+  const resp = await fetch(`${TXDOT_URL}?${params.toString()}`);
+  if (!resp.ok) throw new Error(`TxDOT query failed: ${resp.status}`);
+  const json = await resp.json();
+  return json.features?.[0]?.attributes || null;
 }
 
 // Helper function to fetch Google Maps highway/transit data
@@ -1403,12 +1339,20 @@ serve(async (req) => {
 
     // Step 7: Traffic & Mobility
     console.log('Fetching traffic data...');
-    const trafficData = await fetchTrafficData(geoLat, geoLng);
-    console.log('Traffic result:', trafficData);
-    Object.assign(enrichedData, trafficData);
-    if (!trafficData.traffic_aadt) {
-      dataFlags.push('traffic_not_found');
-      console.log('No TxDOT traffic counts within 1000 ft.');
+    try {
+      const trafficAttrs = await queryTxDOT(geoLat, geoLng);
+      
+      enrichedData.traffic_aadt = trafficAttrs?.AADT || null;
+      enrichedData.traffic_year = trafficAttrs?.Year || null;
+      enrichedData.traffic_segment_id = trafficAttrs?.SEGID || null;
+      
+      if (!trafficAttrs?.AADT) {
+        dataFlags.push('traffic_not_found');
+        console.log('No TxDOT traffic counts within 1000 ft.');
+      }
+    } catch (err) {
+      console.error('TxDOT AADT enrichment failed:', err.message);
+      dataFlags.push('traffic_api_unreachable');
     }
 
     console.log('Fetching mobility data (highways, transit)...');
