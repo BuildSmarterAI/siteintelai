@@ -137,7 +137,28 @@ export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }
       />
 
       {/* Additional Context */}
-      {dataFlags?.includes('utilities_not_found') && (
+      {dataFlags?.includes('utilities_api_unreachable') && (
+        <Card className="border-2 border-red-500/30 bg-red-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0 mt-1" />
+              <div>
+                <h4 className="font-headline text-lg font-bold text-charcoal mb-2">
+                  Utility Data Temporarily Unavailable
+                </h4>
+                <p className="font-body text-sm text-charcoal/70 mb-3">
+                  The city's utility GIS servers are currently unreachable. This is typically a temporary issue with the city's API infrastructure.
+                </p>
+                <p className="font-body text-sm text-charcoal/70">
+                  <strong>Recommended Action:</strong> Try refreshing the data in a few minutes, or contact the local public works department directly for utility information.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {dataFlags?.includes('utilities_not_found') && !dataFlags?.includes('utilities_api_unreachable') && (
         <Card className="border-2 border-yellow-500/30 bg-yellow-50">
           <CardContent className="p-6">
             <div className="flex items-start gap-3">
@@ -147,7 +168,7 @@ export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }
                   Utilities Information Not Available
                 </h4>
                 <p className="font-body text-sm text-charcoal/70 mb-3">
-                  Utility infrastructure data is not available in the city's public GIS system for this location. 
+                  Utility infrastructure data is not available in the city's public GIS system for this location.
                   This may indicate the property is served by a Municipal Utility District (MUD) or Water Control & Improvement District (WCID).
                 </p>
                 <p className="font-body text-sm text-charcoal/70">

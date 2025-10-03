@@ -126,8 +126,8 @@ serve(async (req) => {
     }
 
     // Helper function for ArcGIS query with better error handling
-    const queryArcGIS = async (url: string, fields: string[], utilityType: string) => {
-      if (!url) return [];
+    const queryArcGIS = async (url: string, fields: string[], utilityType: string): Promise<{ features: any[], unreachable: boolean }> => {
+      if (!url) return { features: [], unreachable: false };
       
       const params = new URLSearchParams({
         f: "json",
@@ -151,7 +151,7 @@ serve(async (req) => {
         
         if (!resp.ok) {
           console.error(`${utilityType} API returned status:`, resp.status);
-          return [];
+          return { features: [], unreachable: false };
         }
         
         const json = await resp.json();
@@ -161,32 +161,55 @@ serve(async (req) => {
         
         if (json.error) {
           console.error(`${utilityType} API error:`, json.error);
-          return [];
+          return { features: [], unreachable: false };
         }
         
         console.log(`${utilityType} features found:`, json.features?.length || 0);
-        return json.features ?? [];
+        return { features: json.features ?? [], unreachable: false };
       } catch (error) {
-        console.error(`${utilityType} query failed:`, error instanceof Error ? error.message : String(error));
-        return []; // Return empty array instead of throwing
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        console.error(`${utilityType} query failed:`, errorMsg);
+        
+        // Check if it's a network/DNS error (API unreachable)
+        const isUnreachable = errorMsg.includes('dns error') || 
+                             errorMsg.includes('failed to lookup') ||
+                             errorMsg.includes('Connection refused') ||
+                             errorMsg.includes('timeout');
+        
+        return { features: [], unreachable: isUnreachable };
       }
     };
 
     // 3. Run queries with error handling
-    const [waterResults, sewerResults, stormResults] = await Promise.all([
+    const [waterResult, sewerResult, stormResult] = await Promise.all([
       queryArcGIS(endpoints.water, ["DIAMETER", "MATERIAL", "STATUS"], "water"),
       queryArcGIS(endpoints.sewer, ["DIAMETER", "MATERIAL", "STATUS"], "sewer"),
-      endpoints.storm ? queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"], "storm") : Promise.resolve([])
+      endpoints.storm ? queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"], "storm") : Promise.resolve({ features: [], unreachable: false })
     ]);
+
+    const waterResults = waterResult.features;
+    const sewerResults = sewerResult.features;
+    const stormResults = stormResult.features;
+
+    // Check if any APIs were unreachable
+    const apiUnreachable = waterResult.unreachable || sewerResult.unreachable || stormResult.unreachable;
+    
+    // Determine data flags
+    let flags: string[] = [];
+    if (apiUnreachable) {
+      flags.push("utilities_api_unreachable");
+      console.log("⚠️ Utility APIs are unreachable (DNS/network error)");
+    } else if (!waterResults.length && !sewerResults.length && !stormResults.length) {
+      flags.push("utilities_not_found");
+      console.log("⚠️ No utility lines found in API response");
+    }
 
     // 4. Update row with formatted lines including distance
     const { error: updateError } = await supabase.from("applications").update({
       water_lines: formatLines(waterResults, geo_lat, geo_lng),
       sewer_lines: formatLines(sewerResults, geo_lat, geo_lng),
       storm_lines: formatLines(stormResults, geo_lat, geo_lng),
-      data_flags: (waterResults.length || sewerResults.length || stormResults.length)
-        ? []
-        : ["utilities_not_found"]
+      data_flags: flags
     }).eq("id", application_id);
 
     if (updateError) {
