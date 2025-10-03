@@ -50,6 +50,7 @@ export type Database = {
           entitlement_notes: string | null
           environmental_constraints: string[] | null
           environmental_sites: Json | null
+          etj_provider: string | null
           executive_summary_output: string | null
           existing_improvements: string
           fema_panel_id: string | null
@@ -72,6 +73,7 @@ export type Database = {
           market_output: string | null
           marketing_opt_in: boolean
           median_income: number | null
+          mud_district: string | null
           nda_confidentiality: boolean
           nearest_highway: string | null
           nearest_transit_stop: string | null
@@ -170,6 +172,7 @@ export type Database = {
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
+          etj_provider?: string | null
           executive_summary_output?: string | null
           existing_improvements: string
           fema_panel_id?: string | null
@@ -192,6 +195,7 @@ export type Database = {
           market_output?: string | null
           marketing_opt_in?: boolean
           median_income?: number | null
+          mud_district?: string | null
           nda_confidentiality?: boolean
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
@@ -290,6 +294,7 @@ export type Database = {
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
+          etj_provider?: string | null
           executive_summary_output?: string | null
           existing_improvements?: string
           fema_panel_id?: string | null
@@ -312,6 +317,7 @@ export type Database = {
           market_output?: string | null
           marketing_opt_in?: boolean
           median_income?: number | null
+          mud_district?: string | null
           nda_confidentiality?: boolean
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
