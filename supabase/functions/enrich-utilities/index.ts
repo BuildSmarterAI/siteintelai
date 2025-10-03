@@ -11,6 +11,56 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Haversine formula for distance (ft) between two lat/lng points
+function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371000; // meters
+  const toRad = (x: number) => (x * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c * 3.28084; // meters → feet
+}
+
+// Compute minimum distance from point → polyline
+function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
+  let minDist = Infinity;
+
+  for (const path of paths) {
+    for (let i = 0; i < path.length - 1; i++) {
+      const [x1, y1] = path[i];       // lon, lat
+      const [x2, y2] = path[i + 1];
+      const d1 = haversineDistance(lat, lng, y1, x1);
+      const d2 = haversineDistance(lat, lng, y2, x2);
+      minDist = Math.min(minDist, d1, d2);
+    }
+  }
+  return Math.round(minDist);
+}
+
+// Format ArcGIS features → JSON for Supabase
+function formatLines(features: any[], geo_lat: number, geo_lng: number) {
+  return features.map((f) => {
+    const attrs = f.attributes || {};
+    const geom = f.geometry || {};
+    const distance_ft = geom.paths
+      ? minDistanceToLine(geo_lat, geo_lng, geom.paths)
+      : null;
+
+    return {
+      diameter: attrs.DIAMETER || null,
+      material: attrs.MATERIAL || null,
+      status: attrs.STATUS || null,
+      distance_ft
+    };
+  });
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -86,7 +136,7 @@ serve(async (req) => {
         inSR: "4326",
         spatialRel: "esriSpatialRelIntersects",
         outFields: fields.length ? fields.join(",") : "*",
-        returnGeometry: "false",
+        returnGeometry: "true",
         distance: "1000",
         units: "esriSRUnit_Foot",
       });
@@ -115,7 +165,7 @@ serve(async (req) => {
         }
         
         console.log(`${utilityType} features found:`, json.features?.length || 0);
-        return json.features?.map((f: any) => f.attributes) ?? [];
+        return json.features ?? [];
       } catch (error) {
         console.error(`${utilityType} query failed:`, error instanceof Error ? error.message : String(error));
         return []; // Return empty array instead of throwing
@@ -129,19 +179,11 @@ serve(async (req) => {
       endpoints.storm ? queryArcGIS(endpoints.storm, ["DIAMETER", "MATERIAL", "STATUS"], "storm") : Promise.resolve([])
     ]);
 
-    // 4. Format JSON for Supabase
-    const formatLines = (arr: any[]) =>
-      arr.map((a) => ({
-        diameter: a.DIAMETER || null,
-        material: a.MATERIAL || null,
-        status: a.STATUS || null,
-      }));
-
-    // 5. Update row
+    // 4. Update row with formatted lines including distance
     const { error: updateError } = await supabase.from("applications").update({
-      water_lines: formatLines(waterResults),
-      sewer_lines: formatLines(sewerResults),
-      storm_lines: formatLines(stormResults),
+      water_lines: formatLines(waterResults, geo_lat, geo_lng),
+      sewer_lines: formatLines(sewerResults, geo_lat, geo_lng),
+      storm_lines: formatLines(stormResults, geo_lat, geo_lng),
       data_flags: (waterResults.length || sewerResults.length || stormResults.length)
         ? []
         : ["utilities_not_found"]
