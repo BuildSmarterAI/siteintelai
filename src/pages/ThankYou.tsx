@@ -1,9 +1,59 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Calendar, Clock, Phone, ArrowRight, Zap, Database, Users } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { UtilityResults } from "@/components/UtilityResults";
 
 export default function ThankYou() {
+  const [searchParams] = useSearchParams();
+  const applicationId = searchParams.get('id');
+  const [applicationData, setApplicationData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (applicationId) {
+      const fetchApplication = async () => {
+        const { data, error } = await supabase
+          .from('applications')
+          .select('*')
+          .eq('id', applicationId)
+          .maybeSingle();
+        
+        if (data && !error) {
+          setApplicationData(data);
+        }
+        setLoading(false);
+      };
+
+      fetchApplication();
+
+      // Subscribe to real-time updates for this application
+      const channel = supabase
+        .channel('application-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'applications',
+            filter: `id=eq.${applicationId}`
+          },
+          (payload) => {
+            setApplicationData(payload.new);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    } else {
+      setLoading(false);
+    }
+  }, [applicationId]);
+
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-6 lg:px-8 py-20">
@@ -137,6 +187,18 @@ export default function ThankYou() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Utility Results */}
+          {applicationData && (
+            <div className="mb-8">
+              <UtilityResults
+                waterLines={applicationData.water_lines}
+                sewerLines={applicationData.sewer_lines}
+                stormLines={applicationData.storm_lines}
+                dataFlags={applicationData.data_flags || []}
+              />
+            </div>
+          )}
 
           {/* Trust Reminders */}
           <Card className="bg-navy/5 border-2 border-navy/20 mb-8">

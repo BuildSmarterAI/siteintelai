@@ -286,6 +286,21 @@ serve(async (req) => {
         } else {
           console.log('Enrichment invoked successfully:', enrichResp?.success ?? enrichResp);
         }
+
+        // Also call enrich-utilities to populate water/sewer/storm lines
+        if (geo_lat && geo_lng) {
+          console.log('Invoking enrich-utilities for application:', data.id);
+          const { data: utilResp, error: utilErr } = await supabase.functions.invoke('enrich-utilities', {
+            body: {
+              application_id: data.id
+            }
+          });
+          if (utilErr) {
+            console.error('Utilities enrichment error:', utilErr);
+          } else {
+            console.log('Utilities enrichment completed:', utilResp?.status ?? utilResp);
+          }
+        }
       } else {
         console.log('Skipping enrichment: no address available');
       }
