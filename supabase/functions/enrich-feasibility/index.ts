@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import proj4 from 'https://cdn.skypack.dev/proj4@2.8.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1233,10 +1234,23 @@ serve(async (req) => {
         endpoints.acreage_field
       ].filter(Boolean).join(',');
       
+      // For Harris County, convert to EPSG:2278 (Texas South Central Feet)
+      let geometryCoords = `${geoLng},${geoLat}`;
+      let spatialReference = '4326';
+      
+      if (countyName === 'Harris County') {
+        const wgs84 = 'EPSG:4326';
+        const epsg2278 = '+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs';
+        const [x2278, y2278] = proj4(wgs84, epsg2278, [geoLng, geoLat]);
+        geometryCoords = `${x2278},${y2278}`;
+        spatialReference = '2278';
+        console.log(`Converted coordinates to EPSG:2278: ${geometryCoords}`);
+      }
+      
       const parcelParams = new URLSearchParams({
-        geometry: `${geoLng},${geoLat}`,
+        geometry: geometryCoords,
         geometryType: 'esriGeometryPoint',
-        inSR: '4326',
+        inSR: spatialReference,
         spatialRel: 'esriSpatialRelIntersects',
         outFields: outFieldsList || '*',
         returnGeometry: 'false',
