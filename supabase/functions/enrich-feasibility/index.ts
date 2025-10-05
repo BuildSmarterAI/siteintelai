@@ -1237,6 +1237,7 @@ serve(async (req) => {
       // For Harris County, convert to EPSG:2278 (Texas South Central Feet)
       let geometryCoords = `${geoLng},${geoLat}`;
       let spatialReference = '4326';
+      let additionalParams: Record<string, string> = {};
       
       if (countyName === 'Harris County') {
         const wgs84 = 'EPSG:4326';
@@ -1244,6 +1245,9 @@ serve(async (req) => {
         const [x2278, y2278] = proj4(wgs84, epsg2278, [geoLng, geoLat]);
         geometryCoords = `${x2278},${y2278}`;
         spatialReference = '2278';
+        // Add 50ft buffer for Harris County to account for coordinate precision
+        additionalParams.distance = '50';
+        additionalParams.units = 'esriSRUnit_Foot';
         console.log(`Converted coordinates to EPSG:2278: ${geometryCoords}`);
       }
       
@@ -1254,7 +1258,8 @@ serve(async (req) => {
         spatialRel: 'esriSpatialRelIntersects',
         outFields: outFieldsList || '*',
         returnGeometry: 'false',
-        f: 'json'
+        f: 'json',
+        ...additionalParams
       });
 
       let parcelData = null;
