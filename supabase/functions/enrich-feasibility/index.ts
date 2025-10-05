@@ -201,6 +201,36 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 // API Endpoints - Official Sources
 const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query"; // Flood Hazard Zones
 const FEMA_NFHL_AVAILABILITY_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"; // Check data availability
+
+/**
+ * Retry helper with exponential backoff for flaky APIs
+ * FEMA endpoints occasionally return 404 or timeout - retry 3 times with backoff
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  backoffMs: number[] = [500, 1000, 2000],
+  context: string = 'API call'
+): Promise<T> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      const isLastAttempt = attempt === retries - 1;
+      
+      if (isLastAttempt) {
+        console.error(`${context} failed after ${retries} attempts:`, error.message);
+        throw error;
+      }
+      
+      const delay = backoffMs[attempt] || backoffMs[backoffMs.length - 1];
+      console.log(`${context} attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw new Error(`${context} exhausted all retries`);
+}
 const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php";
 const USFWS_WETLANDS_URL = "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/1/query";
 const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest";
@@ -485,8 +515,21 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
 // TxDOT AADT REST Endpoint
 const TXDOT_URL = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
 
-// Generic query to TxDOT traffic layer
-async function queryTxDOT(lat: number, lng: number) {
+// Major Texas urban areas requiring larger traffic search radius
+const MAJOR_URBAN_AREAS = ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth', 'El Paso', 'Arlington', 'Plano', 'Irving'];
+
+/**
+ * Query TxDOT traffic layer with adaptive search radius
+ * Urban areas use 2500ft radius due to sensor spacing
+ * Rural/suburban areas use 1000ft radius
+ */
+async function queryTxDOT(lat: number, lng: number, city?: string) {
+  // Use larger radius for major urban areas where sensors are more spread out
+  const isUrban = city && MAJOR_URBAN_AREAS.some(urban => city.includes(urban));
+  const searchRadius = isUrban ? "2500" : "1000";
+  
+  console.log(`TxDOT search radius: ${searchRadius}ft for ${city || 'unknown city'} (${isUrban ? 'urban' : 'standard'})`);
+
   const params = new URLSearchParams({
     f: "json",
     geometry: `${lng},${lat}`,
@@ -495,7 +538,7 @@ async function queryTxDOT(lat: number, lng: number) {
     spatialRel: "esriSpatialRelIntersects",
     outFields: "AADT,Year,SEGID",
     returnGeometry: "false",
-    distance: "1000",              // Buffer: within 1000 ft
+    distance: searchRadius,
     units: "esriSRUnit_Foot"
   });
 
@@ -674,7 +717,11 @@ async function fallbackRoadFromOSM(lat: number, lng: number) {
 }
 
 // Helper function to fetch utility infrastructure from city GIS
-async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise<any> {
+/**
+ * For Houston utilities, route through proxy to bypass DNS block
+ * cohgis.houstontx.gov is unreachable from Supabase edge runtime
+ */
+async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy: boolean = false): Promise<any> {
   const utilities: any = {
     water_lines: null,
     sewer_lines: null,
@@ -685,12 +732,17 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
   };
 
   const searchRadius = 2000; // Increased to 2000 feet radius for better coverage
+  
+  // Get Supabase client for proxy calls
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     // Fetch water lines if endpoint exists
     if (endpoints.water_lines_url) {
       console.log('Fetching water lines from:', endpoints.water_lines_url);
-      const waterParams = new URLSearchParams({
+      const waterParams = {
         geometry: `${lng},${lat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
@@ -701,13 +753,30 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
         outFields: '*',
         returnGeometry: 'false',
         f: 'json'
-      });
+      };
 
-      const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParams}`);
-      const waterData = await safeJsonParse(waterResp, 'Water lines query');
+      let waterData;
+      
+      if (useProxy) {
+        // Route through utility-proxy edge function
+        console.log('Using proxy for Houston utilities...');
+        const { data, error } = await supabase.functions.invoke('utility-proxy', {
+          body: {
+            url: endpoints.water_lines_url,
+            params: waterParams
+          }
+        });
+        
+        if (error) throw error;
+        waterData = data;
+      } else {
+        // Direct call
+        const waterParamsUrl = new URLSearchParams(waterParams as any);
+        const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParamsUrl}`);
+        waterData = await safeJsonParse(waterResp, 'Water lines query');
+      }
       
       console.log('Water lines API response:', {
-        status: waterResp.status,
         hasFeatures: !!waterData?.features,
         featureCount: waterData?.features?.length || 0,
         error: waterData?.error
@@ -739,7 +808,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
     // Fetch sewer lines if endpoint exists
     if (endpoints.sewer_lines_url) {
       console.log('Fetching sewer lines from:', endpoints.sewer_lines_url);
-      const sewerParams = new URLSearchParams({
+      const sewerParams = {
         geometry: `${lng},${lat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
@@ -750,13 +819,27 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
         outFields: '*',
         returnGeometry: 'false',
         f: 'json'
-      });
+      };
 
-      const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParams}`);
-      const sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
+      let sewerData;
+      
+      if (useProxy) {
+        const { data, error } = await supabase.functions.invoke('utility-proxy', {
+          body: {
+            url: endpoints.sewer_lines_url,
+            params: sewerParams
+          }
+        });
+        
+        if (error) throw error;
+        sewerData = data;
+      } else {
+        const sewerParamsUrl = new URLSearchParams(sewerParams as any);
+        const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParamsUrl}`);
+        sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
+      }
       
       console.log('Sewer lines API response:', {
-        status: sewerResp.status,
         hasFeatures: !!sewerData?.features,
         featureCount: sewerData?.features?.length || 0,
         error: sewerData?.error
@@ -788,7 +871,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
     // Fetch storm lines if endpoint exists
     if (endpoints.storm_lines_url) {
       console.log('Fetching storm lines from:', endpoints.storm_lines_url);
-      const stormParams = new URLSearchParams({
+      const stormParams = {
         geometry: `${lng},${lat}`,
         geometryType: 'esriGeometryPoint',
         inSR: '4326',
@@ -799,13 +882,27 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any): Promise
         outFields: '*',
         returnGeometry: 'false',
         f: 'json'
-      });
+      };
 
-      const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParams}`);
-      const stormData = await safeJsonParse(stormResp, 'Storm lines query');
+      let stormData;
+      
+      if (useProxy) {
+        const { data, error } = await supabase.functions.invoke('utility-proxy', {
+          body: {
+            url: endpoints.storm_lines_url,
+            params: stormParams
+          }
+        });
+        
+        if (error) throw error;
+        stormData = data;
+      } else {
+        const stormParamsUrl = new URLSearchParams(stormParams as any);
+        const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParamsUrl}`);
+        stormData = await safeJsonParse(stormResp, 'Storm lines query');
+      }
       
       console.log('Storm lines API response:', {
-        status: stormResp.status,
         hasFeatures: !!stormData?.features,
         featureCount: stormData?.features?.length || 0,
         error: stormData?.error
@@ -1179,8 +1276,28 @@ serve(async (req) => {
       dataFlags.push('parcel_query_failed');
     }
 
-    // Step 4: Query zoning data (skip for Fort Bend County)
-    if (endpoints.zoning_url) {
+    // Step 4: Query zoning data
+    console.log('Fetching zoning data...');
+    
+    /**
+     * HOUSTON ZONING BYPASS
+     * =====================
+     * Houston is unique among major US cities - it has NO formal zoning ordinances.
+     * Instead, land use is regulated through:
+     * - Deed restrictions (private covenants between property owners)
+     * - Building codes and setback requirements
+     * - Parking ordinances
+     * - Use-based regulations (e.g., incompatible use restrictions)
+     * 
+     * For Houston properties, we return descriptive text rather than a zoning code.
+     * Other Texas cities use traditional Euclidean zoning (residential, commercial, industrial).
+     */
+    if (cityName.toLowerCase().includes('houston')) {
+      // Houston has no zoning - provide context instead
+      enrichedData.zoning_code = 'No formal zoning (Houston)';
+      enrichedData.overlay_district = 'Deed-restricted area - check HOA/deed covenants';
+      console.log('Houston detected: Applying zoning bypass (no formal zoning ordinances)');
+    } else if (endpoints.zoning_url) {
       try {
         const zoningParams = new URLSearchParams({
           geometry: `${geoLng},${geoLat}`,
@@ -1220,26 +1337,29 @@ serve(async (req) => {
 
     // Step 4: Query FEMA flood data (Floodplain & Elevation - Part 1)
     console.log('Fetching FEMA flood zone data...');
+    
     try {
-      // Query FEMA NFHL Layer 28 (Flood Hazard Zones) for zone and BFE
-      const femaParams = new URLSearchParams({
-        f: 'json',
-        geometry: `${geoLng},${geoLat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        outFields: 'FLD_ZONE,STATIC_BFE,PANEL',
-        returnGeometry: 'false'
-      });
+      // Use retry logic for FEMA API (known to be flaky with 404s and timeouts)
+      await retryWithBackoff(async () => {
+        // Query FEMA NFHL Layer 28 (Flood Hazard Zones) for zone and BFE
+        const femaParams = new URLSearchParams({
+          f: 'json',
+          geometry: `${geoLng},${geoLat}`,
+          geometryType: 'esriGeometryPoint',
+          inSR: '4326',
+          spatialRel: 'esriSpatialRelIntersects',
+          outFields: 'FLD_ZONE,STATIC_BFE,PANEL',
+          returnGeometry: 'false'
+        });
 
-      const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      if (!femaResp.ok) {
-        console.error(`FEMA API failed: ${femaResp.status}`);
-        dataFlags.push('floodplain_missing');
-      } else {
+        const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (!femaResp.ok) {
+          throw new Error(`FEMA API returned ${femaResp.status}`);
+        }
+        
         const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
 
         if (femaData?.features && femaData.features.length > 0) {
@@ -1264,9 +1384,10 @@ serve(async (req) => {
           console.log('No flood zone features found at this location');
           dataFlags.push('floodplain_missing');
         }
-      }
+      }, 3, [500, 1000, 2000], 'FEMA NFHL query');
+      
     } catch (error) {
-      console.error('FEMA query error:', error);
+      console.error('FEMA query failed after retries:', error);
       dataFlags.push('floodplain_missing');
     }
 
@@ -1318,7 +1439,14 @@ serve(async (req) => {
 
     // Step 6: Utilities / Infrastructure
     console.log('Fetching utility infrastructure data...');
-    const utilities = await fetchUtilities(geoLat, geoLng, endpoints);
+    
+    // Use proxy for Houston utilities to bypass DNS block (cohgis.houstontx.gov unreachable)
+    const useProxy = cityName.toLowerCase().includes('houston');
+    if (useProxy) {
+      console.log('Houston detected: routing utility requests through proxy');
+    }
+    
+    const utilities = await fetchUtilities(geoLat, geoLng, endpoints, useProxy);
     console.log('Utilities fetched summary:', {
       water: utilities.water_lines?.length || 0,
       sewer: utilities.sewer_lines?.length || 0,
@@ -1340,7 +1468,8 @@ serve(async (req) => {
     // Step 7: Traffic & Mobility
     console.log('Fetching traffic data...');
     try {
-      const trafficAttrs = await queryTxDOT(geoLat, geoLng);
+      // Pass city name to enable adaptive search radius (2500ft for urban, 1000ft for rural)
+      const trafficAttrs = await queryTxDOT(geoLat, geoLng, cityName);
       
       enrichedData.traffic_aadt = trafficAttrs?.AADT || null;
       enrichedData.traffic_year = trafficAttrs?.Year || null;
@@ -1348,7 +1477,7 @@ serve(async (req) => {
       
       if (!trafficAttrs?.AADT) {
         dataFlags.push('traffic_not_found');
-        console.log('No TxDOT traffic counts within 1000 ft.');
+        console.log('No TxDOT traffic counts within search radius.');
       }
     } catch (err) {
       console.error('TxDOT AADT enrichment failed:', err.message);
