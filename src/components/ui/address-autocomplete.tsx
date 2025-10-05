@@ -211,7 +211,8 @@ export function AddressAutocomplete({
         if (enrichError) throw enrichError;
 
         if (enrichData?.success) {
-          setEnrichmentStatus('success');
+          const hasFlags = Array.isArray(enrichData.data_flags) && enrichData.data_flags.length > 0;
+          setEnrichmentStatus(hasFlags ? 'partial' : 'success');
           onEnrichmentComplete?.(enrichData);
         } else {
           setEnrichmentStatus('error');
@@ -346,12 +347,21 @@ export function AddressAutocomplete({
         </div>
       )}
 
+      {enrichmentStatus === 'partial' && (
+        <div className="mt-2 flex items-center gap-2 text-sm text-amber-600">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
+          </svg>
+          <span>Auto-fill partially loaded — some fields may need manual entry.</span>
+        </div>
+      )}
+
       {enrichmentStatus === 'error' && (
         <div className="mt-2 flex items-center gap-2 text-sm text-yellow-600">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
           </svg>
-          <span>Manual entry required ⚠️</span>
+          <span>Auto-fill unavailable — please enter details manually.</span>
         </div>
       )}
 

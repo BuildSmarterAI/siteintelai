@@ -513,38 +513,46 @@ export default function Application() {
                                  }));
                                }
                              }}
-                             onEnrichmentComplete={(data) => {
-                               if (data?.success && data?.data) {
-                                 setEnrichedData(data.data);
-                                 // Auto-fill both visible and hidden enriched fields
-                                 setFormData(prev => ({
-                                   ...prev,
-                                   // Visible fields
-                                   parcelId: data.data.parcel_id || prev.parcelId,
-                                   zoning: data.data.zoning_code || prev.zoning,
-                                   lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize,
-                                   // Hidden enriched fields
-                                   situsAddress: data.data.situs_address || prev.situsAddress,
-                                   administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                                   parcelOwner: data.data.parcel_owner || prev.parcelOwner,
-                                   acreageCad: data.data.acreage_cad || prev.acreageCad,
-                                   zoningCode: data.data.zoning_code || prev.zoningCode,
-                                   overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
-                                   floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
-                                   baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
-                                 }));
-                                 toast({
-                                   title: "GIS Data Loaded ✅",
-                                   description: "Property information has been automatically filled from public records.",
-                                 });
-                               } else if (!data?.success) {
-                                 toast({
-                                   title: "Manual Entry Required ⚠️",
-                                   description: data?.error || "Unable to load GIS data for this location.",
-                                   variant: "destructive"
-                                 });
-                               }
-                             }}
+                              onEnrichmentComplete={(data) => {
+                                if (data?.success && data?.data) {
+                                  setEnrichedData(data.data);
+                                  // Auto-fill both visible and hidden enriched fields
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    // Visible fields
+                                    parcelId: data.data.parcel_id || prev.parcelId,
+                                    zoning: data.data.zoning_code || prev.zoning,
+                                    lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize,
+                                    // Hidden enriched fields
+                                    situsAddress: data.data.situs_address || prev.situsAddress,
+                                    administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                                    parcelOwner: data.data.parcel_owner || prev.parcelOwner,
+                                    acreageCad: data.data.acreage_cad || prev.acreageCad,
+                                    zoningCode: data.data.zoning_code || prev.zoningCode,
+                                    overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
+                                    floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
+                                    baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
+                                  }));
+
+                                  const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
+                                  if (hasFlags) {
+                                    toast({
+                                      title: "GIS Data Partially Loaded",
+                                      description: "Some fields could not be auto-filled. You can proceed with manual entry.",
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "GIS Data Loaded ✅",
+                                      description: "Property information has been automatically filled from public records.",
+                                    });
+                                  }
+                                } else if (!data?.success) {
+                                  toast({
+                                    title: "Auto-fill unavailable",
+                                    description: data?.error || "Unable to load GIS data for this location.",
+                                  });
+                                }
+                              }}
                              placeholder="123 Main Street, City, State, ZIP"
                              label="Property Address"
                              error={errors.propertyAddress}
