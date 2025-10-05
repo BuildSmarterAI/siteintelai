@@ -1575,34 +1575,6 @@ serve(async (req) => {
     }
     enrichedData.employment_clusters = employmentClusters;
     
-    // Estimate drive time populations (using radius approximations)
-    // 15 min drive ≈ 5-8 miles radius, 30 min drive ≈ 12-18 miles radius
-    if (enrichedData.population_5mi) {
-      enrichedData.drive_time_15min_population = Math.round(enrichedData.population_5mi * 2.5);
-      enrichedData.drive_time_30min_population = Math.round(enrichedData.population_5mi * 8);
-    }
-    
-    // Identify major employment clusters (simplified - major cities)
-    const employmentClusters = [];
-    const cityLower = enrichedData.city?.toLowerCase() || '';
-    if (cityLower.includes('houston')) {
-      employmentClusters.push(
-        { name: 'Texas Medical Center', distance_mi: 5, jobs: 106000 },
-        { name: 'Downtown Houston', distance_mi: 2, jobs: 150000 },
-        { name: 'Energy Corridor', distance_mi: 15, jobs: 80000 }
-      );
-    } else if (cityLower.includes('dallas')) {
-      employmentClusters.push(
-        { name: 'Downtown Dallas', distance_mi: 3, jobs: 125000 },
-        { name: 'Las Colinas', distance_mi: 10, jobs: 95000 }
-      );
-    } else if (cityLower.includes('austin')) {
-      employmentClusters.push(
-        { name: 'Downtown Austin', distance_mi: 5, jobs: 85000 },
-        { name: 'Domain', distance_mi: 8, jobs: 45000 }
-      );
-    }
-    enrichedData.employment_clusters = employmentClusters;
 
     // Step 9: Financial / Incentives
     console.log('Fetching property tax data...');
