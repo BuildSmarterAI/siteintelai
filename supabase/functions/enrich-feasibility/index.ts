@@ -1292,7 +1292,7 @@ serve(async (req) => {
      * For Houston properties, we return descriptive text rather than a zoning code.
      * Other Texas cities use traditional Euclidean zoning (residential, commercial, industrial).
      */
-    if (cityName.toLowerCase().includes('houston')) {
+    if (enrichedData.city?.toLowerCase().includes('houston')) {
       // Houston has no zoning - provide context instead
       enrichedData.zoning_code = 'No formal zoning (Houston)';
       enrichedData.overlay_district = 'Deed-restricted area - check HOA/deed covenants';
@@ -1441,7 +1441,7 @@ serve(async (req) => {
     console.log('Fetching utility infrastructure data...');
     
     // Use proxy for Houston utilities to bypass DNS block (cohgis.houstontx.gov unreachable)
-    const useProxy = cityName.toLowerCase().includes('houston');
+    const useProxy = enrichedData.city?.toLowerCase().includes('houston');
     if (useProxy) {
       console.log('Houston detected: routing utility requests through proxy');
     }
@@ -1469,7 +1469,7 @@ serve(async (req) => {
     console.log('Fetching traffic data...');
     try {
       // Pass city name to enable adaptive search radius (2500ft for urban, 1000ft for rural)
-      const trafficAttrs = await queryTxDOT(geoLat, geoLng, cityName);
+      const trafficAttrs = await queryTxDOT(geoLat, geoLng, enrichedData.city);
       
       enrichedData.traffic_aadt = trafficAttrs?.AADT || null;
       enrichedData.traffic_year = trafficAttrs?.Year || null;
