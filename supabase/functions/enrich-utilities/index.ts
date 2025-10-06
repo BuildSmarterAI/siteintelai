@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import proj4 from "https://cdn.skypack.dev/proj4@2.8.0";
 
 // Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -83,13 +84,27 @@ const queryArcGIS = async (
     retry_attempts: number;
     retry_delays_ms: number[];
     search_radius_ft: number;
+    crs?: number; // Optional CRS (e.g., 2278 for Texas South Central)
   }
 ) => {
+  // Convert coordinates if CRS is specified (e.g., EPSG:2278 for Houston)
+  let geometryCoords = `${geo_lng},${geo_lat}`;
+  let spatialReference = "4326";
+  
+  if (config.crs === 2278) {
+    const wgs84 = "EPSG:4326";
+    const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
+    const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
+    geometryCoords = `${x2278},${y2278}`;
+    spatialReference = "2278";
+    console.log(`${utilityType}: Converted to EPSG:2278: ${geometryCoords}`);
+  }
+  
   const params = new URLSearchParams({
     f: "json",
-    geometry: `${geo_lng},${geo_lat}`,
+    geometry: geometryCoords,
     geometryType: "esriGeometryPoint",
-    inSR: "4326",
+    inSR: spatialReference,
     spatialRel: "esriSpatialRelIntersects",
     outFields: fields.join(","),
     returnGeometry: "true",
@@ -275,19 +290,22 @@ serve(async (req) => {
           timeout_ms: eps.water.timeout_ms,
           retry_attempts: eps.water.retry_attempts,
           retry_delays_ms: eps.water.retry_delays_ms,
-          search_radius_ft: eps.water.search_radius_ft
+          search_radius_ft: eps.water.search_radius_ft,
+          crs: eps.water.crs || 2278
         });
         sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
-          search_radius_ft: eps.sewer.search_radius_ft
+          search_radius_ft: eps.sewer.search_radius_ft,
+          crs: eps.sewer.crs || 2278
         });
         storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
           timeout_ms: eps.storm.timeout_ms,
           retry_attempts: eps.storm.retry_attempts,
           retry_delays_ms: eps.storm.retry_delays_ms,
-          search_radius_ft: eps.storm.search_radius_ft
+          search_radius_ft: eps.storm.search_radius_ft,
+          crs: eps.storm.crs || 2278
         });
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');
@@ -296,20 +314,23 @@ serve(async (req) => {
           timeout_ms: eps.water.timeout_ms,
           retry_attempts: eps.water.retry_attempts,
           retry_delays_ms: eps.water.retry_delays_ms,
-          search_radius_ft: eps.water.search_radius_ft
+          search_radius_ft: eps.water.search_radius_ft,
+          crs: eps.water.crs // Austin uses WGS84 (4326) by default
         });
         sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "austin_sewer", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
-          search_radius_ft: eps.sewer.search_radius_ft
+          search_radius_ft: eps.sewer.search_radius_ft,
+          crs: eps.sewer.crs
         });
         if (eps.reclaimed) {
           storm = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "austin_reclaimed", {
             timeout_ms: eps.reclaimed.timeout_ms,
             retry_attempts: eps.reclaimed.retry_attempts,
             retry_delays_ms: eps.reclaimed.retry_delays_ms,
-            search_radius_ft: eps.reclaimed.search_radius_ft
+            search_radius_ft: eps.reclaimed.search_radius_ft,
+            crs: eps.reclaimed.crs
           });
         }
       } else if (county?.toLowerCase().includes("harris")) {
