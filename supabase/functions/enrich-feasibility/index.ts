@@ -1515,7 +1515,17 @@ serve(async (req) => {
         // Map fields using confirmed field names from endpoint catalog
         enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || null;
         enrichedData.parcel_owner = attrs[endpoints.owner_field] || null;
-        enrichedData.acreage_cad = parseFloat(attrs[endpoints.acreage_field]) || null;
+        
+        // Parse acreage - HCAD returns strings like "1.4624 AC\r\n"
+        const acreageRaw = attrs[endpoints.acreage_field];
+        if (acreageRaw) {
+          // Extract numeric value, handling formats like "1.4624 AC\r\n" or "1.4624"
+          const acreageMatch = String(acreageRaw).match(/[\d.]+/);
+          enrichedData.acreage_cad = acreageMatch ? parseFloat(acreageMatch[0]) : null;
+          console.log(`Acreage parsed: raw="${acreageRaw}" -> ${enrichedData.acreage_cad}`);
+        } else {
+          enrichedData.acreage_cad = null;
+        }
         
         // For Harris County, concatenate address components
         if (countyName === 'Harris County') {
