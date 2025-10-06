@@ -33,7 +33,7 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     acreage_field: "Acreage",
     // Address components (no single site_addr_1 field exists)
     address_fields: "site_str_num,site_str_name,site_str_sfx,site_city,site_zip",
-    county_field: "state_class",
+    county_field: "site_county",
     // Legal description fields (no single legal_desc field exists)
     legal_fields: "legal_dscr_1,legal_dscr_2,legal_dscr_3,legal_dscr_4",
     zoning_field: "ZONECODE",
@@ -1383,7 +1383,7 @@ serve(async (req) => {
           'site_str_sfx',
           'site_city',
           'site_zip',
-          'state_class',
+          'site_county',
           'legal_dscr_1',
           'legal_dscr_2',
           'legal_dscr_3',
