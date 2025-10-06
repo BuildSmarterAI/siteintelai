@@ -605,8 +605,8 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
   }
 }
 
-// TxDOT AADT REST Endpoint
-const TXDOT_URL = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
+// TxDOT AADT REST Endpoint (correct point layer)
+const TXDOT_AADT_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0/query";
 
 // Helper function to calculate distance in feet between two lat/lng points
 function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -621,117 +621,106 @@ function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): n
 }
 
 /**
- * Query traffic data using spatial buffer approach
- * Priority: 1) Houston Geohub (for Houston area), 2) TxDOT AADT
+ * Query traffic data from TxDOT AADT using Turf.js for accurate distance calculations
  */
 async function queryTrafficData(lat: number, lng: number, city?: string): Promise<any> {
-  console.log(`🚗 Starting traffic query for ${city || 'unknown'} at ${lat}, ${lng}`);
+  console.log(`🚗 Starting TxDOT AADT query at ${lat}, ${lng}`);
   
-  // SKIP Houston Geohub for now - appears to be timing out
-  // Try TxDOT AADT with simple spatial query
+  // Import Turf.js for geospatial calculations
+  const turf = await import('https://esm.sh/@turf/turf@7.1.0');
+  
   try {
-    console.log('📍 Attempting TxDOT traffic query...');
-    
-    const isUrban = city && ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth'].includes(city);
-    const searchRadiusFt = isUrban ? 5280 : 10560; // 1 or 2 miles
-    console.log(`📏 Search radius: ${searchRadiusFt}ft (${isUrban ? 'urban' : 'rural'})`);
-    
-    // Use envelope geometry
-    const delta = searchRadiusFt / 364000; // Convert feet to degrees
+    // Build a small envelope buffer around the parcel point (in degrees)
+    const bufferDeg = 0.015; // ~1 mile radius
     const envelope = {
-      xmin: lng - delta,
-      ymin: lat - delta,
-      xmax: lng + delta,
-      ymax: lat + delta
+      xmin: lng - bufferDeg,
+      ymin: lat - bufferDeg,
+      xmax: lng + bufferDeg,
+      ymax: lat + bufferDeg
     };
     
-    console.log(`📦 TxDOT envelope bounds:`, JSON.stringify(envelope));
-    
+    console.log(`📦 Query envelope:`, JSON.stringify(envelope));
+
+    // Build query URL
     const params = new URLSearchParams({
       geometry: JSON.stringify(envelope),
-      geometryType: "esriGeometryEnvelope",
-      inSR: "4326",
-      spatialRel: "esriSpatialRelIntersects",
-      outFields: "*", // Get all fields to see what's available
-      returnGeometry: "true",
-      outSR: "4326",
-      f: "json"
+      geometryType: 'esriGeometryEnvelope',
+      inSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'OBJECTID,RTE_NM,AADT_CUR,EXT_DATE',
+      outSR: '4326',
+      returnGeometry: 'true',
+      f: 'json'
     });
-    
-    const url = `${TXDOT_URL}?${params.toString()}`;
-    console.log(`🌐 TxDOT URL length: ${url.length} chars`);
-    
-    const resp = await fetch(url);
-    console.log(`📥 TxDOT response status: ${resp.status}`);
-    
+    const queryUrl = `${TXDOT_AADT_URL}?${params.toString()}`;
+    console.log(`🌐 Query URL length: ${queryUrl.length} chars`);
+
+    // Fetch from TxDOT
+    const resp = await fetch(queryUrl);
     if (!resp.ok) {
-      const errorText = await resp.text();
-      console.error(`❌ TxDOT HTTP ${resp.status}: ${errorText.substring(0, 300)}`);
+      console.error(`❌ TxDOT HTTP ${resp.status}: ${resp.statusText}`);
       return null;
     }
     
     const json = await resp.json();
     const features = json.features || [];
-    
     console.log(`📊 TxDOT returned ${features.length} features`);
-    
-    if (features.length > 0) {
-      // Log first feature to see structure
-      console.log(`🔍 First feature attributes:`, JSON.stringify(features[0].attributes).substring(0, 200));
-      console.log(`🔍 First feature geometry type:`, features[0].geometry ? Object.keys(features[0].geometry).join(',') : 'none');
-      
-      // Find nearest feature
-      let nearest = null;
-      let minDist = Infinity;
-      
-      for (const feature of features) {
-        const geom = feature.geometry;
-        if (!geom) continue;
-        
-        let fLat, fLng;
-        
-        // Handle different geometry types
-        if (geom.x !== undefined && geom.y !== undefined) {
-          fLng = geom.x;
-          fLat = geom.y;
-        } else if (geom.paths && geom.paths[0] && geom.paths[0].length > 0) {
-          const midIdx = Math.floor(geom.paths[0].length / 2);
-          [fLng, fLat] = geom.paths[0][midIdx];
-        } else if (geom.rings && geom.rings[0] && geom.rings[0].length > 0) {
-          [fLng, fLat] = geom.rings[0][0];
-        } else {
-          continue;
-        }
-        
-        const dist = distanceFeet(lat, lng, fLat, fLng);
-        
-        if (dist <= searchRadiusFt && dist < minDist) {
-          minDist = dist;
-          const attrs = feature.attributes;
-          nearest = {
-            aadt: attrs?.AADT || attrs?.aadt || attrs?.ADT,
-            year: attrs?.Year || attrs?.year || attrs?.YEAR,
-            stationId: attrs?.SEGID || attrs?.OBJECTID || attrs?.StationID,
-            distance: dist,
-            roadName: attrs?.RTE_NM || attrs?.ROADNAME || attrs?.RoadName
-          };
-        }
-      }
-      
-      if (nearest) {
-        console.log(`✅ Found traffic: ${nearest.aadt} AADT (year: ${nearest.year}) at ${Math.round(nearest.distance)}ft on ${nearest.roadName || 'unknown'}`);
-        if (nearest.aadt) {
-          return nearest;
-        } else {
-          console.log(`⚠️ No AADT value in nearest feature`);
-        }
-      }
-      
-      console.log(`⚠️ No features with AADT within ${searchRadiusFt}ft (checked ${features.length} features)`);
+
+    if (features.length === 0) {
+      console.log('⚠️ No features returned; consider expanding envelope');
+      return null;
     }
+
+    // Choose best / nearest feature using Turf.js
+    const parcelPoint = turf.point([lng, lat]);
+    let best = null;
+    let bestDist = Infinity;
+
+    for (const feat of features) {
+      if (!feat.geometry || !feat.geometry.paths || !feat.geometry.paths[0]) {
+        continue;
+      }
+      
+      // Geometry is polyline; compute nearest point on that line to parcel point
+      const line = turf.lineString(feat.geometry.paths[0].map((pt: number[]) => [pt[0], pt[1]]));
+      const nearest = turf.nearestPointOnLine(line, parcelPoint);
+      const dist = turf.distance(parcelPoint, nearest, { units: 'meters' });
+      
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = { feat, dist };
+      }
+    }
+
+    if (!best) {
+      console.log('❌ No valid line geometries found');
+      return null;
+    }
+
+    const { feat, dist } = best;
+    const attrs = feat.attributes;
+
+    // Parse year from EXT_DATE (if present)
+    let year = null;
+    if (attrs.EXT_DATE) {
+      const dt = new Date(attrs.EXT_DATE);
+      if (!isNaN(dt.getFullYear())) {
+        year = dt.getFullYear();
+      }
+    }
+
+    const distFeet = dist * 3.28084; // meters → feet
+    const aadt = attrs.AADT_CUR ?? null;
     
-    console.log(`❌ No TxDOT traffic within ${searchRadiusFt}ft`);
-    return null;
+    console.log(`✅ Matched nearest segment: ${aadt} AADT (${year}) at ${Math.round(distFeet)}ft on ${attrs.RTE_NM || 'unknown'}`);
+
+    return {
+      aadt,
+      year,
+      stationId: attrs.OBJECTID ?? null,
+      distance: distFeet,
+      roadName: attrs.RTE_NM ?? null
+    };
     
   } catch (error) {
     console.error(`💥 TxDOT error:`, error.message || String(error));
