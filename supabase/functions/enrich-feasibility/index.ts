@@ -551,15 +551,14 @@ async function queryTxDOT(lat: number, lng: number, city?: string) {
   console.log(`TxDOT search radius: ${searchRadius}ft for ${city || 'unknown city'} (${isUrban ? 'urban' : 'standard'})`);
 
   const params = new URLSearchParams({
-    f: "json",
     geometry: `${lng},${lat}`,
     geometryType: "esriGeometryPoint",
     inSR: "4326",
     spatialRel: "esriSpatialRelIntersects",
+    distance: searchRadius,
     outFields: "AADT,Year,SEGID",
     returnGeometry: "false",
-    distance: searchRadius,
-    units: "esriSRUnit_Foot"
+    f: "json"
   });
 
   const resp = await fetch(`${TXDOT_URL}?${params.toString()}`);
@@ -1315,18 +1314,20 @@ serve(async (req) => {
         const [x2278, y2278] = proj4(wgs84, epsg2278, [geoLng, geoLat]);
         geometryCoords = `${x2278},${y2278}`;
         spatialReference = '2278';
-        // Add 50ft buffer for Harris County to account for coordinate precision
-        additionalParams.distance = '50';
-        additionalParams.units = 'esriSRUnit_Foot';
         console.log(`Converted coordinates to EPSG:2278: ${geometryCoords}`);
       }
+      
+      // Build comprehensive outFields including SITUS_ADDR for Harris County
+      const comprehensiveOutFields = countyName === 'Harris County' 
+        ? `${outFieldsList},SITUS_ADDR`
+        : outFieldsList || '*';
       
       const parcelParams = new URLSearchParams({
         geometry: geometryCoords,
         geometryType: 'esriGeometryPoint',
         inSR: spatialReference,
         spatialRel: 'esriSpatialRelIntersects',
-        outFields: outFieldsList || '*',
+        outFields: comprehensiveOutFields,
         returnGeometry: 'false',
         f: 'json',
         ...additionalParams
@@ -1453,7 +1454,7 @@ serve(async (req) => {
           geometryType: 'esriGeometryPoint',
           inSR: '4326',
           spatialRel: 'esriSpatialRelIntersects',
-          outFields: 'FLD_ZONE,STATIC_BFE,PANEL',
+          outFields: 'FLD_ZONE,BFE,STATIC_BFE,PANEL',
           returnGeometry: 'false'
         });
 
@@ -1474,7 +1475,7 @@ serve(async (req) => {
           const attrs = femaData.features[0].attributes;
           
           enrichedData.floodplain_zone = attrs.FLD_ZONE || null;
-          enrichedData.base_flood_elevation = attrs.STATIC_BFE || null;
+          enrichedData.base_flood_elevation = attrs.BFE || attrs.STATIC_BFE || null;
           enrichedData.fema_panel_id = attrs.PANEL || null;
           
           // Add flag if zone exists but BFE is not available (common in Zone X)
