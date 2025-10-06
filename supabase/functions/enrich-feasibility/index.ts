@@ -28,7 +28,7 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
     // HCAD-specific field mappings (confirmed from service metadata)
     parcel_id_field: "HCAD_NUM",
-    owner_field: "OWNER_NAME",
+    owner_field: "owner_name_1",  // Fixed: was OWNER_NAME, should be owner_name_1
     acreage_field: "StatedArea",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
