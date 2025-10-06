@@ -11,43 +11,43 @@
   },
   "houston": {
     "water": {
-      "name": "HW Water UNPublic (GeoGIMS)",
-      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
-      "outFields": ["*"],
+      "name": "HW Water UNPublic (GeoGIMS Test)",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
+      "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "STATUS", "PIPE_LENGTH"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using GeoGIMS production service - WaterLine layer",
-      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=*&f=json"
+      "notes": "Using GeoGIMS test server - WaterLine layer (4) from Geocortex directory",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
     },
     "sewer": {
-      "name": "HW Wastewater UNPublic (GeoGIMS)",
-      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query",
-      "outFields": ["*"],
+      "name": "HW Wastewater UNPublic (GeoGIMS Test)",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query",
+      "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "STATUS", "PIPE_LENGTH"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using GeoGIMS production service - Sewer Line layer",
-      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=*&f=json"
+      "notes": "Using GeoGIMS test server - Sewer Line layer (4) from Geocortex directory",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
     },
     "storm": {
       "name": "TDO StormWater Maintenance (GeoGIMS)",
-      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query",
-      "outFields": ["*"],
+      "url": "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query",
+      "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "STATUS", "PIPE_LENGTH"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using GeoGIMS production service - StormDrainage Utilities layer",
-      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=*&f=json"
+      "notes": "Using GeoGIMS MS server - StormDrainage Utilities layer (1) from Geocortex directory",
+      "test_url": "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
     }
   },
   "austin": {

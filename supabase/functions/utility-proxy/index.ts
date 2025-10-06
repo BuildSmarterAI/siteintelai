@@ -41,7 +41,8 @@ serve(async (req) => {
       'mycity.houstontx.gov',
       'mycity2.houstontx.gov',
       'geogimsprod.houstontx.gov',
-      'geogimstest.houstontx.gov'
+      'geogimstest.houstontx.gov',
+      'geogimsms.houstontx.gov'
     ];
 
     const targetUrl = new URL(url);
