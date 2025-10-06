@@ -621,26 +621,33 @@ function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): n
 }
 
 /**
- * Query traffic data using spatial buffer approach
+ * Query traffic data using spatial buffer approach with server-side filtering
  * Priority: 1) Houston Geohub (for Houston area), 2) TxDOT AADT
  */
 async function queryTrafficData(lat: number, lng: number, city?: string): Promise<any> {
   console.log(`Querying traffic data for ${city || 'unknown'} at ${lat}, ${lng}`);
   
-  // Try Houston Geohub first for Houston area
+  // Try Houston Geohub first for Houston area - use server-side filtering
   if (city && city.toLowerCase().includes('houston')) {
     try {
       const radius = 0.005; // ~500m in degrees
-      const geohubUrl = `https://geohub.houstontx.gov/datasets/traffic-counts-local-street-adt.geojson`;
+      // Use $where parameter for server-side spatial filtering
+      const whereClause = `within_buffer(location, ${lat}, ${lng}, ${radius})`;
+      const selectFields = 'ADT,Year,StationID,RoadName,Street,OBJECTID';
+      const geohubUrl = `https://geohub.houstontx.gov/datasets/traffic-counts-local-street-adt.geojson?$where=${encodeURIComponent(whereClause)}&$select=${selectFields}`;
       
-      console.log(`Querying Houston Geohub traffic data with ${radius}° buffer`);
-      const resp = await fetch(geohubUrl);
+      console.log(`Querying Houston Geohub with server-side buffer: ${radius}°`);
+      const resp = await fetch(geohubUrl, { 
+        headers: { 'Accept': 'application/json' } 
+      });
       
       if (resp.ok) {
         const geojson = await resp.json();
         const features = geojson.features || [];
         
-        // Filter features within buffer and find nearest
+        console.log(`Houston Geohub returned ${features.length} features`);
+        
+        // Find nearest feature
         let nearest = null;
         let minDist = Infinity;
         
@@ -651,8 +658,7 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
           const [fLng, fLat] = coords;
           const dist = distanceFeet(lat, lng, fLat, fLng);
           
-          // Check if within ~1500 feet
-          if (dist < 1500 && dist < minDist) {
+          if (dist < minDist) {
             minDist = dist;
             nearest = {
               aadt: feature.properties?.ADT || feature.properties?.AADT,
@@ -669,35 +675,51 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
           return nearest;
         }
         
-        console.log('No Houston Geohub traffic within 1500ft buffer');
+        console.log('No Houston Geohub traffic within buffer');
+      } else {
+        console.log(`Houston Geohub returned status ${resp.status}`);
       }
     } catch (error) {
       console.error('Houston Geohub error:', error);
     }
   }
   
-  // Fallback to TxDOT AADT with spatial query
+  // Fallback to TxDOT AADT with envelope spatial query
   try {
     const isUrban = city && ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth'].includes(city);
     const searchRadius = isUrban ? '3000' : '5000'; // feet
-    console.log(`Trying TxDOT with ${searchRadius}ft radius`);
+    console.log(`Trying TxDOT with ${searchRadius}ft envelope query`);
+    
+    // Use envelope geometry for better spatial query
+    const delta = 0.01; // ~1km buffer in degrees
+    const envelope = {
+      xmin: lng - delta,
+      ymin: lat - delta,
+      xmax: lng + delta,
+      ymax: lat + delta
+    };
     
     const params = new URLSearchParams({
-      geometry: `${lng},${lat}`,
-      geometryType: "esriGeometryPoint",
+      geometry: JSON.stringify(envelope),
+      geometryType: "esriGeometryEnvelope",
       inSR: "4326",
       spatialRel: "esriSpatialRelIntersects",
-      distance: searchRadius,
-      outFields: "AADT,Year,SEGID,RTE_NM",
+      outFields: "AADT,Year,SEGID,RTE_NM,OBJECTID",
       returnGeometry: "true",
+      outSR: "4326",
       f: "json"
     });
     
     const resp = await fetch(`${TXDOT_URL}?${params.toString()}`);
-    if (!resp.ok) throw new Error(`TxDOT ${resp.status}`);
+    if (!resp.ok) {
+      console.log(`TxDOT returned status ${resp.status}`);
+      throw new Error(`TxDOT ${resp.status}`);
+    }
     
     const json = await resp.json();
     const features = json.features || [];
+    
+    console.log(`TxDOT returned ${features.length} features`);
     
     if (features.length > 0) {
       // Find nearest feature by computing distance to geometry
@@ -709,10 +731,10 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
         let fLat, fLng;
         
         // Handle point or polyline geometry
-        if (geom.x && geom.y) {
+        if (geom.x !== undefined && geom.y !== undefined) {
           fLng = geom.x;
           fLat = geom.y;
-        } else if (geom.paths && geom.paths[0]) {
+        } else if (geom.paths && geom.paths[0] && geom.paths[0].length > 0) {
           // Get midpoint of first path
           const midIdx = Math.floor(geom.paths[0].length / 2);
           [fLng, fLat] = geom.paths[0][midIdx];
@@ -722,12 +744,14 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
         
         const dist = distanceFeet(lat, lng, fLat, fLng);
         
-        if (dist < minDist) {
+        // Only consider features within search radius
+        const maxDistFt = parseInt(searchRadius);
+        if (dist <= maxDistFt && dist < minDist) {
           minDist = dist;
           nearest = {
             aadt: feature.attributes?.AADT,
             year: feature.attributes?.Year,
-            stationId: feature.attributes?.SEGID,
+            stationId: feature.attributes?.SEGID || feature.attributes?.OBJECTID,
             distance: dist,
             roadName: feature.attributes?.RTE_NM
           };
@@ -740,9 +764,13 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
       }
     }
     
-    console.log('No TxDOT traffic within search radius');
+    console.log(`No TxDOT traffic within ${searchRadius}ft radius`);
   } catch (error) {
     console.error('TxDOT error:', error);
+  }
+  
+  return null;
+}
   }
   
   return null;
