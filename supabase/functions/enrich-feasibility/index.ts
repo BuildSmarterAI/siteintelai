@@ -28,8 +28,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
     // HCAD-specific field mappings (confirmed from service metadata)
     parcel_id_field: "HCAD_NUM",
-    owner_field: "owner_name_1",  // Fixed: was OWNER_NAME, should be owner_name_1
+    owner_field: "owner_name_1",
     acreage_field: "StatedArea",
+    // HCAD doesn't have SITUS_ADDR - address is split into multiple fields
+    site_address_fields: "site_str_num,site_str_name,site_str_sfx,site_str_sfx_dir,site_city,site_zip",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
     // Houston utility endpoints - using GeoGIMS test/ms servers (discovered from Geocortex directory)
@@ -1317,9 +1319,9 @@ serve(async (req) => {
         console.log(`Converted coordinates to EPSG:2278: ${geometryCoords} from WGS84: ${geoLng},${geoLat}`);
       }
       
-      // Build comprehensive outFields including SITUS_ADDR for Harris County
+      // Build comprehensive outFields - for Harris County, use individual address fields instead of SITUS_ADDR
       const comprehensiveOutFields = countyName === 'Harris County' 
-        ? `${outFieldsList},SITUS_ADDR`
+        ? `${outFieldsList},site_str_num,site_str_name,site_str_sfx,site_str_sfx_dir,site_city,site_zip`
         : outFieldsList || '*';
       
       const parcelParams = new URLSearchParams({
@@ -1364,10 +1366,23 @@ serve(async (req) => {
         enrichedData.parcel_owner = attrs[endpoints.owner_field] || null;
         enrichedData.acreage_cad = attrs[endpoints.acreage_field] || null;
         
+        // For Harris County, build situs_address from individual components
+        if (countyName === 'Harris County') {
+          const parts = [];
+          if (attrs.site_str_num) parts.push(attrs.site_str_num);
+          if (attrs.site_str_name) parts.push(attrs.site_str_name);
+          if (attrs.site_str_sfx) parts.push(attrs.site_str_sfx);
+          if (attrs.site_str_sfx_dir) parts.push(attrs.site_str_sfx_dir);
+          const street = parts.join(' ');
+          const cityZip = [attrs.site_city, attrs.site_zip].filter(Boolean).join(', ');
+          enrichedData.situs_address = [street, cityZip].filter(Boolean).join(', ') || null;
+        }
+        
         console.log('Parcel data mapped:', {
           parcel_id: enrichedData.parcel_id,
           parcel_owner: enrichedData.parcel_owner,
           acreage_cad: enrichedData.acreage_cad,
+          situs_address: enrichedData.situs_address,
           source_fields: {
             parcel_id_field: endpoints.parcel_id_field,
             owner_field: endpoints.owner_field,
