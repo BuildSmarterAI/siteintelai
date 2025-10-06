@@ -46,8 +46,11 @@ This document maps each external API to the database fields it populates in the 
 Each Texas county has its own CAD (Central Appraisal District) GIS service:
 
 #### Harris County
-- **Endpoint**: `https://maps.hcad.org/arcgis/rest/services/Parcels/MapServer/0/query`
-- **Fields**: `ACCOUNT`, `OWNER`, `ACRES`
+- **Endpoint**: `https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query`
+- **Fields**: `HCAD_NUM`, `OWNER_NAME`, `StatedArea`, `SITUS_ADDR`
+- **Coordinate System**: EPSG:2278 (Texas South Central Feet)
+- **Note**: Requires WGS84 → EPSG:2278 transformation using proj4 before querying
+- **Buffer**: 50ft search radius to account for coordinate precision
 
 #### Fort Bend County
 - **Endpoint**: `https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query`
@@ -102,11 +105,23 @@ Each Texas county has its own CAD (Central Appraisal District) GIS service:
 ## 🔹 4. Floodplain & Elevation
 
 ### FEMA National Flood Hazard Layer (NFHL)
-- **Endpoint**: `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query`
-- **Purpose**: Flood zone classification
+- **Endpoint**: `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query`
+- **Purpose**: Flood zone classification (Layer 0 - updated from deprecated Layer 28)
+- **Retry Logic**: 3 attempts with exponential backoff (500ms → 1000ms → 2000ms)
 - **Populates**:
   - `floodplain_zone` - FEMA flood zone (AE, VE, X, etc.)
   - `base_flood_elevation` - BFE in feet
+  - `fema_panel_id` - FEMA panel identifier
+  - `api_meta.fema_nfhl` - Response status, record count, layer index
+
+### OpenFEMA Disaster Declarations API
+- **Endpoint**: `https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries`
+- **Purpose**: Historical flood event context
+- **Query Method**: `geo.intersects(geometry,geography'POINT(lng lat)')`
+- **Populates**:
+  - `historical_flood_events` - Count of flood-specific disaster declarations
+  - `api_meta.openfema_disasters` - Total events, flood events, latency
+- **Cache Strategy**: 24 hours by tract/0.01° bbox (recommended)
 
 ### USGS Elevation Point Query Service
 - **Endpoint**: `https://nationalmap.gov/epqs/pqs.php`
@@ -132,9 +147,9 @@ Each Texas county has its own CAD (Central Appraisal District) GIS service:
   - `soil_slope_percent` - Slope percentage
   - `soil_drainage_class` - Drainage classification
 
-### EPA Facility Registry Service (FRS)
-- **Endpoint**: `https://enviro.epa.gov/frs/frs_rest_services`
-- **Purpose**: Known contaminated sites
+### EPA EFService (Envirofacts)
+- **Endpoint**: `https://enviro.epa.gov/efservice/FRS_INTEREST/latitude/{lat}/longitude/{lng}/JSON`
+- **Purpose**: Known contaminated sites (updated endpoint replacing deprecated FRS REST service)
 - **Populates**:
   - `environmental_sites` - JSONB array of EPA sites
     ```json
@@ -183,6 +198,7 @@ Examples:
 ### FCC Broadband Map API
 - **Endpoint**: `https://broadbandmap.fcc.gov/api/nationwide`
 - **Purpose**: Internet service availability
+- **HTTP/2 Workaround**: Uses HTTP/1.1 fallback via `Connection: keep-alive` header to avoid stream errors
 - **Populates**:
   - `fiber_available` - Boolean for fiber availability
   - `broadband_providers` - JSONB array of providers
@@ -202,8 +218,11 @@ Examples:
 ## 🔹 7. Traffic & Mobility
 
 ### TxDOT AADT Traffic Counts REST API
-- **Endpoint**: `https://gis-txdot.opendata.arcgis.com/datasets/txdot::aadt-traffic-counts/api`
+- **Endpoint**: `https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query`
 - **Purpose**: Traffic volume data
+- **Search Radius**: 
+  - Urban cores (Houston, Dallas, Austin, etc.): 3000ft
+  - Standard areas: 1000ft
 - **Populates**:
   - `traffic_aadt` - Annual Average Daily Traffic count
   - `traffic_year` - Year of traffic count
@@ -314,13 +333,37 @@ All AI outputs are generated using **Lovable AI** (Google Gemini models) based o
 ## Implementation Notes
 
 ### Error Handling
-All API calls include try/catch blocks and populate `data_flags` array with any failures:
-- `geocoding_failed`
-- `parcel_not_found`
-- `zoning_not_available`
-- `fema_not_found`
-- `traffic_data_not_found`
-- `demographics_not_found`
+All API calls include try/catch blocks and populate `data_flags` array with any failures. Standardized error flags include:
+- `fema_nfhl_unavailable` - FEMA NFHL endpoint failed after retries
+- `utilities_api_unreachable` - Houston GIS DNS resolution failure (Supabase edge runtime limitation)
+- `openfema_no_match` - No disaster declarations found at location
+- `parcel_projection_error` - Coordinate transformation failure (EPSG:2278)
+- `parcel_not_found` - No parcel features returned
+- `floodplain_missing` - No FEMA flood zone data available
+- `utilities_not_found` - No utility line data returned
+- `traffic_not_found` - No TxDOT traffic counts within search radius
+
+### Observability (v1.3+)
+New `api_meta` JSONB column tracks per-API response metadata:
+```json
+{
+  "fema_nfhl": {
+    "status": 200,
+    "layer": 0,
+    "record_count": 1
+  },
+  "openfema_disasters": {
+    "latency_ms": 1250,
+    "total_events": 15,
+    "flood_events": 8
+  }
+}
+```
+
+New `enrichment_status` field tracks overall completion:
+- `complete` - All APIs returned data successfully
+- `partial` - 1-2 data flags present
+- `failed` - 3+ data flags present
 
 ### Rate Limiting
 - Google APIs: Subject to daily quota limits
