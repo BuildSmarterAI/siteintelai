@@ -39,7 +39,9 @@ serve(async (req) => {
       'cohgis.houstontx.gov',
       'gis.houstontx.gov',
       'mycity.houstontx.gov',
-      'mycity2.houstontx.gov'
+      'mycity2.houstontx.gov',
+      'geogimsprod.houstontx.gov',
+      'geogimstest.houstontx.gov'
     ];
 
     const targetUrl = new URL(url);

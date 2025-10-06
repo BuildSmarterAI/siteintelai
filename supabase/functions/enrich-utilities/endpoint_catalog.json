@@ -11,43 +11,43 @@
   },
   "houston": {
     "water": {
-      "name": "COH Water Distribution Mains",
-      "url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
-      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "name": "HW Water UNPublic (GeoGIMS)",
+      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
+      "outFields": ["*"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using mycity2 subdomain for better DNS resolution from Supabase edge runtime",
-      "test_url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
+      "notes": "Using GeoGIMS production service - WaterLine layer",
+      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=*&f=json"
     },
     "sewer": {
-      "name": "COH Sanitary Sewer Lines",
-      "url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
-      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "name": "HW Wastewater UNPublic (GeoGIMS)",
+      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query",
+      "outFields": ["*"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using mycity2 subdomain for better DNS resolution",
-      "test_url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
+      "notes": "Using GeoGIMS production service - Sewer Line layer",
+      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=*&f=json"
     },
     "storm": {
-      "name": "COH Storm Sewer Lines",
-      "url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_StormSewer/MapServer/0/query",
-      "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
+      "name": "TDO StormWater Maintenance (GeoGIMS)",
+      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query",
+      "outFields": ["*"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using mycity2 subdomain for better DNS resolution",
-      "test_url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_StormSewer/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
+      "notes": "Using GeoGIMS production service - StormDrainage Utilities layer",
+      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=*&f=json"
     }
   },
   "austin": {

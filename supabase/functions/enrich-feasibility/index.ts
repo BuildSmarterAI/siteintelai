@@ -32,10 +32,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     acreage_field: "StatedArea",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
-    // Houston utility endpoints - using mycity2 subdomain (better DNS resolution)
-    water_lines_url: "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
-    sewer_lines_url: "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
-    storm_lines_url: "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_StormSewer/MapServer/0/query"
+    // Houston utility endpoints - using GeoGIMS production services
+    water_lines_url: "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
+    sewer_lines_url: "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query",
+    storm_lines_url: "https://geogimsprod.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query"
   },
   "Fort Bend County": {
     // FBCAD parcel service (confirmed working)
