@@ -1,0 +1,104 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BuildSmarter Feasibility Geospatial Intelligence Schema",
+  "description": "Defines the structure for spatial metadata attached to each parcel analyzed in BuildSmarter™ Feasibility reports.",
+  "type": "object",
+  "properties": {
+    "parcel_id": {
+      "type": "string",
+      "description": "Unique identifier for the parcel (from CAD or Unified Parcels)."
+    },
+    "location": {
+      "type": "object",
+      "description": "Parcel centroid coordinates.",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" }
+      },
+      "required": ["lat", "lng"]
+    },
+    "county_boundary": {
+      "type": "object",
+      "description": "Identifies the county polygon containing the parcel.",
+      "properties": {
+        "county_name": { "type": "string" },
+        "source": { "type": "string", "enum": ["HCAD", "FBCAD", "MCAD"] },
+        "geometry_ref": { 
+          "type": "string", 
+          "description": "UUID reference to stored county geometry in Supabase." 
+        },
+        "updated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "fema_flood_risk": {
+      "type": "object",
+      "description": "FEMA NFHL flood hazard attributes for the parcel location.",
+      "properties": {
+        "in_flood_zone": { "type": "boolean" },
+        "zone_code": {
+          "type": "string",
+          "description": "Flood zone designation (e.g., AE, VE, X, AO, A99)."
+        },
+        "bfe": {
+          "type": "number",
+          "description": "Base Flood Elevation in feet (if available)."
+        },
+        "source": { "type": "string", "enum": ["OpenFEMA", "NFHL"] },
+        "geometry_ref": { "type": "string" },
+        "last_refreshed": { "type": "string", "format": "date-time" }
+      }
+    },
+    "traffic_exposure": {
+      "type": "object",
+      "description": "TxDOT AADT traffic volume metrics near the parcel.",
+      "properties": {
+        "nearest_segment_id": { "type": "integer" },
+        "roadway_name": { "type": "string" },
+        "aadt": { 
+          "type": "integer", 
+          "description": "Average Annual Daily Traffic count." 
+        },
+        "year": { "type": "integer" },
+        "distance_to_segment_ft": { 
+          "type": "number", 
+          "description": "Linear distance from parcel centroid to segment centerline." 
+        },
+        "source": { "type": "string", "enum": ["TxDOT"] },
+        "geometry_ref": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "geospatial_score": {
+      "type": "object",
+      "description": "Composite feasibility score derived from county, flood, and traffic data.",
+      "properties": {
+        "jurisdiction_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized confidence (0–1) of correct jurisdictional match."
+        },
+        "flood_risk_index": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = minimal risk, 1 = severe flood exposure."
+        },
+        "traffic_visibility_index": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "0 = isolated location, 1 = high traffic visibility."
+        },
+        "overall_geospatial_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Weighted total geospatial suitability score."
+        },
+        "scoring_notes": { "type": "string" }
+      }
+    }
+  },
+  "required": ["parcel_id", "location"]
+}

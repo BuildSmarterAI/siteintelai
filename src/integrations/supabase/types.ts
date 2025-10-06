@@ -416,6 +416,53 @@ export type Database = {
         }
         Relationships: []
       }
+      feasibility_geospatial: {
+        Row: {
+          application_id: string | null
+          county_boundary: Json | null
+          created_at: string
+          fema_flood_risk: Json | null
+          geospatial_score: Json | null
+          id: string
+          location: Json
+          parcel_id: string
+          traffic_exposure: Json | null
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          county_boundary?: Json | null
+          created_at?: string
+          fema_flood_risk?: Json | null
+          geospatial_score?: Json | null
+          id?: string
+          location: Json
+          parcel_id: string
+          traffic_exposure?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          county_boundary?: Json | null
+          created_at?: string
+          fema_flood_risk?: Json | null
+          geospatial_score?: Json | null
+          id?: string
+          location?: Json
+          parcel_id?: string
+          traffic_exposure?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feasibility_geospatial_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fema_flood_zones: {
         Row: {
           created_at: string

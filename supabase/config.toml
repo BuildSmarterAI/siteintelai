@@ -15,3 +15,6 @@ verify_jwt = false
 
 [functions.fetch-geospatial-layers]
 verify_jwt = false
+
+[functions.compute-geospatial-score]
+verify_jwt = false
