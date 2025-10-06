@@ -1324,12 +1324,14 @@ serve(async (req) => {
         ? `${outFieldsList},site_str_num,site_str_name,site_str_sfx,site_str_sfx_dir,site_city,site_zip`
         : outFieldsList || '*';
       
+      // Build parcel query params - add where=1=1 for ArcGIS servers that require it
       const parcelParams = new URLSearchParams({
         geometry: geometryCoords,
         geometryType: 'esriGeometryPoint',
         inSR: spatialReference,
         spatialRel: 'esriSpatialRelIntersects',
         outFields: comprehensiveOutFields,
+        where: '1=1',  // Required by some ArcGIS services even with standardized queries
         returnGeometry: 'false',
         f: 'json',
         ...additionalParams
@@ -1337,10 +1339,12 @@ serve(async (req) => {
 
       let parcelData = null;
       
-      // Query parcel data from primary endpoint
+      // Query parcel data from primary endpoint with fallback variants
       if (endpoints.parcel_url) {
         console.log('Querying parcel data from:', endpoints.parcel_url);
         console.log('Parcel query params:', parcelParams.toString());
+        
+        // Try primary query first
         try {
           const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
           parcelData = await safeJsonParse(parcelResp, 'Parcel query');
@@ -1350,8 +1354,33 @@ serve(async (req) => {
             featureCount: parcelData?.features?.length || 0,
             error: parcelData?.error
           });
+          
+          // If primary query fails and we're in Harris County, try buffered query
+          if (!parcelData?.features?.[0] && countyName === 'Harris County') {
+            console.log('No features found, trying buffered query (1 foot radius)...');
+            const bufferedParams = new URLSearchParams({
+              geometry: geometryCoords,
+              geometryType: 'esriGeometryPoint',
+              inSR: spatialReference,
+              spatialRel: 'esriSpatialRelIntersects',
+              outFields: comprehensiveOutFields,
+              where: '1=1',
+              distance: '1',
+              units: 'esriSRUnit_Foot',
+              returnGeometry: 'false',
+              f: 'json'
+            });
+            
+            const bufferedResp = await fetch(`${endpoints.parcel_url}?${bufferedParams}`);
+            const bufferedData = await safeJsonParse(bufferedResp, 'Buffered parcel query');
+            if (bufferedData?.features?.[0]) {
+              console.log('✅ Buffered query succeeded');
+              parcelData = bufferedData;
+            }
+          }
+          
           if (parcelData?.features?.[0]) {
-            console.log('Parcel data found');
+            console.log('✅ Parcel data found');
           }
         } catch (parcelError) {
           console.error('Parcel query failed:', parcelError);
