@@ -771,10 +771,6 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
   
   return null;
 }
-  }
-  
-  return null;
-}
 
 // Helper function to fetch historical flood events from OpenFEMA
 async function fetchHistoricalFloodEvents(lat: number, lng: number): Promise<any> {
