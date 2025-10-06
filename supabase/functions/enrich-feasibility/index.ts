@@ -324,7 +324,7 @@ const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
 const FCC_BROADBAND_URL = "https://broadbandmap.fcc.gov/api/nationwide";
 // TxDOT Official Traffic Data Endpoints
-const TXDOT_AADT_URL = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
+const TXDOT_AADT_URL_LEGACY = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
 const TXDOT_ROADWAYS_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadways/FeatureServer/0/query";
 const TXDOT_CONGESTION_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Congestion/FeatureServer/0/query";
 const TXDOT_TRUCK_URL = "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/ArcGIS/rest/services/TxDOT_Truck_Percent_SRD/FeatureServer/0/query";
