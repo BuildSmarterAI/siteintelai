@@ -66,7 +66,7 @@ export type Database = {
           growth_rate_5yr: number | null
           heard_about: string
           highest_best_use_output: string | null
-          historical_flood_events: number | null
+          historical_flood_events: Json | null
           households_5mi: number | null
           id: string
           known_risks: string[] | null
@@ -190,7 +190,7 @@ export type Database = {
           growth_rate_5yr?: number | null
           heard_about: string
           highest_best_use_output?: string | null
-          historical_flood_events?: number | null
+          historical_flood_events?: Json | null
           households_5mi?: number | null
           id?: string
           known_risks?: string[] | null
@@ -314,7 +314,7 @@ export type Database = {
           growth_rate_5yr?: number | null
           heard_about?: string
           highest_best_use_output?: string | null
-          historical_flood_events?: number | null
+          historical_flood_events?: Json | null
           households_5mi?: number | null
           id?: string
           known_risks?: string[] | null
