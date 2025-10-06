@@ -23,15 +23,16 @@ const ERROR_FLAGS = {
 // County endpoint catalog - Texas major counties (Top 10 by development activity)
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
-    // HCAD parcel service (confirmed working)
-    parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
+    // Unified Parcels Layer 7 (current authoritative source)
+    parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/Parcels/FeatureServer/7/query",
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
-    // HCAD-specific field mappings (confirmed from service metadata)
-    parcel_id_field: "HCAD_NUM",
-    owner_field: "owner_name_1",
-    acreage_field: "StatedArea",
-    // HCAD doesn't have SITUS_ADDR - address is split into multiple fields
-    site_address_fields: "site_str_num,site_str_name,site_str_sfx,site_str_sfx_dir,site_city,site_zip",
+    // Unified Parcels field mappings (Layer 7)
+    parcel_id_field: "TAX_ID",
+    owner_field: "OWNER",
+    acreage_field: "ACREAGE",
+    address_field: "ADDRESS",
+    county_field: "COUNTY",
+    legal_field: "LEGAL",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
     // Houston utility endpoints - using GeoGIMS test/ms servers (discovered from Geocortex directory)
@@ -1302,39 +1303,37 @@ serve(async (req) => {
         endpoints.parcel_id_field,
         endpoints.parcel_id_alt_field,
         endpoints.owner_field,
-        endpoints.acreage_field
+        endpoints.acreage_field,
+        endpoints.address_field,
+        endpoints.county_field,
+        endpoints.legal_field
       ].filter(Boolean).join(',');
       
-      // For Harris County, convert to EPSG:2278 (Texas South Central Feet)
+      // For Harris County Unified Parcels (Layer 7), use WGS84 / GeoJSON
       let geometryCoords = `${geoLng},${geoLat}`;
       let spatialReference = '4326';
-      let additionalParams: Record<string, string> = {};
+      let outputFormat = 'json';
+      let returnGeometry = 'false';
       
+      // Harris County Unified Parcels uses GeoJSON with WGS84
       if (countyName === 'Harris County') {
-        const wgs84 = 'EPSG:4326';
-        const epsg2278 = '+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs';
-        const [x2278, y2278] = proj4(wgs84, epsg2278, [geoLng, geoLat]);
-        geometryCoords = `${x2278},${y2278}`;
-        spatialReference = '2278';
-        console.log(`Converted coordinates to EPSG:2278: ${geometryCoords} from WGS84: ${geoLng},${geoLat}`);
+        outputFormat = 'geojson';
+        returnGeometry = 'true';  // Get polygon geometry in GeoJSON
+        console.log(`Using GeoJSON format for Harris County Unified Parcels at ${geoLng},${geoLat}`);
       }
       
-      // Build comprehensive outFields - for Harris County, use individual address fields instead of SITUS_ADDR
-      const comprehensiveOutFields = countyName === 'Harris County' 
-        ? `${outFieldsList},site_str_num,site_str_name,site_str_sfx,site_str_sfx_dir,site_city,site_zip`
-        : outFieldsList || '*';
+      // Build comprehensive outFields
+      const comprehensiveOutFields = outFieldsList || '*';
       
-      // Build parcel query params - add where=1=1 for ArcGIS servers that require it
+      // Build parcel query params - use GeoJSON for Harris County
       const parcelParams = new URLSearchParams({
         geometry: geometryCoords,
         geometryType: 'esriGeometryPoint',
-        inSR: spatialReference,
         spatialRel: 'esriSpatialRelIntersects',
         outFields: comprehensiveOutFields,
-        where: '1=1',  // Required by some ArcGIS services even with standardized queries
-        returnGeometry: 'false',
-        f: 'json',
-        ...additionalParams
+        outSR: spatialReference,
+        returnGeometry: returnGeometry,
+        f: outputFormat
       });
 
       let parcelData = null;
@@ -1357,18 +1356,17 @@ serve(async (req) => {
           
           // If primary query fails and we're in Harris County, try buffered query
           if (!parcelData?.features?.[0] && countyName === 'Harris County') {
-            console.log('No features found, trying buffered query (1 foot radius)...');
+            console.log('No features found, trying buffered query (50 feet radius)...');
             const bufferedParams = new URLSearchParams({
               geometry: geometryCoords,
               geometryType: 'esriGeometryPoint',
-              inSR: spatialReference,
               spatialRel: 'esriSpatialRelIntersects',
               outFields: comprehensiveOutFields,
-              where: '1=1',
-              distance: '1',
+              outSR: spatialReference,
+              distance: '50',
               units: 'esriSRUnit_Foot',
-              returnGeometry: 'false',
-              f: 'json'
+              returnGeometry: 'true',
+              f: 'geojson'
             });
             
             const bufferedResp = await fetch(`${endpoints.parcel_url}?${bufferedParams}`);
@@ -1388,23 +1386,20 @@ serve(async (req) => {
       }
 
       if (parcelData?.features?.[0]) {
-        const attrs = parcelData.features[0].attributes;
+        // For GeoJSON format (Harris County), properties are in .properties, not .attributes
+        const feature = parcelData.features[0];
+        const attrs = feature.properties || feature.attributes;
         
         // Map fields using confirmed field names from endpoint catalog
         enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || null;
         enrichedData.parcel_owner = attrs[endpoints.owner_field] || null;
-        enrichedData.acreage_cad = attrs[endpoints.acreage_field] || null;
+        enrichedData.acreage_cad = parseFloat(attrs[endpoints.acreage_field]) || null;
+        enrichedData.situs_address = attrs[endpoints.address_field] || null;
+        enrichedData.administrative_area_level_2 = attrs[endpoints.county_field] || null;
         
-        // For Harris County, build situs_address from individual components
-        if (countyName === 'Harris County') {
-          const parts = [];
-          if (attrs.site_str_num) parts.push(attrs.site_str_num);
-          if (attrs.site_str_name) parts.push(attrs.site_str_name);
-          if (attrs.site_str_sfx) parts.push(attrs.site_str_sfx);
-          if (attrs.site_str_sfx_dir) parts.push(attrs.site_str_sfx_dir);
-          const street = parts.join(' ');
-          const cityZip = [attrs.site_city, attrs.site_zip].filter(Boolean).join(', ');
-          enrichedData.situs_address = [street, cityZip].filter(Boolean).join(', ') || null;
+        // Store geometry if available (GeoJSON polygon)
+        if (feature.geometry) {
+          enrichedData.geom = feature.geometry;
         }
         
         console.log('Parcel data mapped:', {
@@ -1412,10 +1407,14 @@ serve(async (req) => {
           parcel_owner: enrichedData.parcel_owner,
           acreage_cad: enrichedData.acreage_cad,
           situs_address: enrichedData.situs_address,
+          county: enrichedData.administrative_area_level_2,
+          has_geometry: !!feature.geometry,
           source_fields: {
             parcel_id_field: endpoints.parcel_id_field,
             owner_field: endpoints.owner_field,
-            acreage_field: endpoints.acreage_field
+            acreage_field: endpoints.acreage_field,
+            address_field: endpoints.address_field,
+            county_field: endpoints.county_field
           }
         });
         
