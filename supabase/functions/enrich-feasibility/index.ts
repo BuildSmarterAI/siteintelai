@@ -23,16 +23,17 @@ const ERROR_FLAGS = {
 // County endpoint catalog - Texas major counties (Top 10 by development activity)
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
-    // Unified Parcels Layer 7 (current authoritative source)
-    parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/Parcels/FeatureServer/7/query",
+    // HCAD Parcels MapServer Layer 0 (authoritative parcel source)
+    parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
-    // Unified Parcels field mappings (Layer 7)
-    parcel_id_field: "TAX_ID",
-    owner_field: "OWNER",
-    acreage_field: "ACREAGE",
-    address_field: "ADDRESS",
-    county_field: "COUNTY",
-    legal_field: "LEGAL",
+    // HCAD Parcels field mappings (Layer 0)
+    parcel_id_field: "HCAD_NUM",
+    parcel_id_alt_field: "acct_num",
+    owner_field: "owner_name_1",
+    acreage_field: "Acreage",
+    address_field: "site_addr_1",
+    county_field: "state_class",
+    legal_field: "legal_desc",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
     // Houston utility endpoints - using GeoGIMS test/ms servers (discovered from Geocortex directory)
@@ -1384,34 +1385,28 @@ serve(async (req) => {
       let useEnvelope = false;
       let envelopeGeometry = '';
       
-      // Harris County: Use Locator_Parcels for improved accuracy
+      // Harris County: Use envelope buffer with WGS84 (let service handle transformation)
       if (countyName === 'Harris County') {
-        const parcelGeocode = await geocodeHoustonParcel(addressInput);
+        // Create a small envelope buffer around the point (roughly 50 feet in degrees)
+        // At Houston's latitude (~29.7°), 1 degree lat ≈ 364,000 ft, 1 degree lng ≈ 315,000 ft
+        // 50 feet ≈ 0.00015 degrees
+        const bufferDegrees = 0.00015;
+        const xmin = geoLng - bufferDegrees;
+        const ymin = geoLat - bufferDegrees;
+        const xmax = geoLng + bufferDegrees;
+        const ymax = geoLat + bufferDegrees;
         
-        if (parcelGeocode) {
-          // Use precise parcel coordinates from GeocodeServer (EPSG:2278)
-          geometryCoords = `${parcelGeocode.x},${parcelGeocode.y}`;
-          spatialReference = '2278';
-          outputFormat = 'geojson';
-          returnGeometry = 'true';  // Get polygon geometry in GeoJSON
-          useEnvelope = true;
-          
-          // Construct envelope geometry for more precise matching
-          envelopeGeometry = `${parcelGeocode.xmin},${parcelGeocode.ymin},${parcelGeocode.xmax},${parcelGeocode.ymax}`;
-          
-          console.log(`Using Houston Locator_Parcels coordinates:`, {
-            x: parcelGeocode.x,
-            y: parcelGeocode.y,
-            match_addr: parcelGeocode.match_addr,
-            score: parcelGeocode.score,
-            envelope: envelopeGeometry
-          });
-        } else {
-          // Fallback to WGS84 coordinates if Locator_Parcels fails
-          outputFormat = 'geojson';
-          returnGeometry = 'true';
-          console.log(`Houston Locator_Parcels failed, using WGS84 fallback at ${geoLng},${geoLat}`);
-        }
+        useEnvelope = true;
+        envelopeGeometry = `${xmin},${ymin},${xmax},${ymax}`;
+        spatialReference = '4326'; // Use WGS84, let service transform to EPSG:2278
+        outputFormat = 'json';
+        returnGeometry = 'true';
+        
+        console.log(`Using HCAD envelope query with inSR=4326:`, {
+          envelope: envelopeGeometry,
+          center: { lat: geoLat, lng: geoLng },
+          buffer_ft: 50
+        });
       }
       
       // Build comprehensive outFields
@@ -1429,12 +1424,13 @@ serve(async (req) => {
       if (useEnvelope && envelopeGeometry) {
         parcelParams.geometry = envelopeGeometry;
         parcelParams.geometryType = 'esriGeometryEnvelope';
-        parcelParams.inSR = spatialReference;
+        parcelParams.inSR = spatialReference; // Service will transform from WGS84 to EPSG:2278
         parcelParams.outSR = '4326';  // Return in WGS84 for consistency
       } else {
         parcelParams.geometry = geometryCoords;
         parcelParams.geometryType = 'esriGeometryPoint';
-        parcelParams.outSR = spatialReference;
+        parcelParams.inSR = spatialReference;
+        parcelParams.outSR = '4326';
       }
 
       let parcelData = null;
