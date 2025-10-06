@@ -608,36 +608,144 @@ async function fetchBroadband(lat: number, lng: number): Promise<any> {
 // TxDOT AADT REST Endpoint
 const TXDOT_URL = "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/AADT/FeatureServer/0/query";
 
-// Major Texas urban areas requiring larger traffic search radius
-const MAJOR_URBAN_AREAS = ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth', 'El Paso', 'Arlington', 'Plano', 'Irving'];
+// Helper function to calculate distance in feet between two lat/lng points
+function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 20925656.2; // Earth radius in feet
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLng/2) * Math.sin(dLng/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
 
 /**
- * Query TxDOT traffic layer with adaptive search radius
- * Urban cores use 3000ft radius due to sensor spacing
- * Rural/suburban areas use 1000ft radius
+ * Query traffic data using spatial buffer approach
+ * Priority: 1) Houston Geohub (for Houston area), 2) TxDOT AADT
  */
-async function queryTxDOT(lat: number, lng: number, city?: string) {
-  // Use larger radius for major urban areas where sensors are more spread out
-  const isUrban = city && MAJOR_URBAN_AREAS.some(urban => city.includes(urban));
-  const searchRadius = isUrban ? "3000" : "1000"; // Increased to 3000ft for urban
+async function queryTrafficData(lat: number, lng: number, city?: string): Promise<any> {
+  console.log(`Querying traffic data for ${city || 'unknown'} at ${lat}, ${lng}`);
   
-  console.log(`TxDOT search radius: ${searchRadius}ft for ${city || 'unknown city'} (${isUrban ? 'urban' : 'standard'})`);
-
-  const params = new URLSearchParams({
-    geometry: `${lng},${lat}`,
-    geometryType: "esriGeometryPoint",
-    inSR: "4326",
-    spatialRel: "esriSpatialRelIntersects",
-    distance: searchRadius,
-    outFields: "AADT,Year,SEGID",
-    returnGeometry: "false",
-    f: "json"
-  });
-
-  const resp = await fetch(`${TXDOT_URL}?${params.toString()}`);
-  if (!resp.ok) throw new Error(`TxDOT query failed: ${resp.status}`);
-  const json = await resp.json();
-  return json.features?.[0]?.attributes || null;
+  // Try Houston Geohub first for Houston area
+  if (city && city.toLowerCase().includes('houston')) {
+    try {
+      const radius = 0.005; // ~500m in degrees
+      const geohubUrl = `https://geohub.houstontx.gov/datasets/traffic-counts-local-street-adt.geojson`;
+      
+      console.log(`Querying Houston Geohub traffic data with ${radius}° buffer`);
+      const resp = await fetch(geohubUrl);
+      
+      if (resp.ok) {
+        const geojson = await resp.json();
+        const features = geojson.features || [];
+        
+        // Filter features within buffer and find nearest
+        let nearest = null;
+        let minDist = Infinity;
+        
+        for (const feature of features) {
+          const coords = feature.geometry?.coordinates;
+          if (!coords) continue;
+          
+          const [fLng, fLat] = coords;
+          const dist = distanceFeet(lat, lng, fLat, fLng);
+          
+          // Check if within ~1500 feet
+          if (dist < 1500 && dist < minDist) {
+            minDist = dist;
+            nearest = {
+              aadt: feature.properties?.ADT || feature.properties?.AADT,
+              year: feature.properties?.Year,
+              stationId: feature.properties?.StationID || feature.properties?.OBJECTID,
+              distance: dist,
+              roadName: feature.properties?.RoadName || feature.properties?.Street
+            };
+          }
+        }
+        
+        if (nearest) {
+          console.log(`✅ Houston traffic: ${nearest.aadt} AADT at ${Math.round(nearest.distance)}ft`);
+          return nearest;
+        }
+        
+        console.log('No Houston Geohub traffic within 1500ft buffer');
+      }
+    } catch (error) {
+      console.error('Houston Geohub error:', error);
+    }
+  }
+  
+  // Fallback to TxDOT AADT with spatial query
+  try {
+    const isUrban = city && ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort Worth'].includes(city);
+    const searchRadius = isUrban ? '3000' : '5000'; // feet
+    console.log(`Trying TxDOT with ${searchRadius}ft radius`);
+    
+    const params = new URLSearchParams({
+      geometry: `${lng},${lat}`,
+      geometryType: "esriGeometryPoint",
+      inSR: "4326",
+      spatialRel: "esriSpatialRelIntersects",
+      distance: searchRadius,
+      outFields: "AADT,Year,SEGID,RTE_NM",
+      returnGeometry: "true",
+      f: "json"
+    });
+    
+    const resp = await fetch(`${TXDOT_URL}?${params.toString()}`);
+    if (!resp.ok) throw new Error(`TxDOT ${resp.status}`);
+    
+    const json = await resp.json();
+    const features = json.features || [];
+    
+    if (features.length > 0) {
+      // Find nearest feature by computing distance to geometry
+      let nearest = null;
+      let minDist = Infinity;
+      
+      for (const feature of features) {
+        const geom = feature.geometry;
+        let fLat, fLng;
+        
+        // Handle point or polyline geometry
+        if (geom.x && geom.y) {
+          fLng = geom.x;
+          fLat = geom.y;
+        } else if (geom.paths && geom.paths[0]) {
+          // Get midpoint of first path
+          const midIdx = Math.floor(geom.paths[0].length / 2);
+          [fLng, fLat] = geom.paths[0][midIdx];
+        } else {
+          continue;
+        }
+        
+        const dist = distanceFeet(lat, lng, fLat, fLng);
+        
+        if (dist < minDist) {
+          minDist = dist;
+          nearest = {
+            aadt: feature.attributes?.AADT,
+            year: feature.attributes?.Year,
+            stationId: feature.attributes?.SEGID,
+            distance: dist,
+            roadName: feature.attributes?.RTE_NM
+          };
+        }
+      }
+      
+      if (nearest) {
+        console.log(`✅ TxDOT traffic: ${nearest.aadt} AADT at ${Math.round(nearest.distance)}ft`);
+        return nearest;
+      }
+    }
+    
+    console.log('No TxDOT traffic within search radius');
+  } catch (error) {
+    console.error('TxDOT error:', error);
+  }
+  
+  return null;
 }
 
 // Helper function to fetch historical flood events from OpenFEMA
@@ -1823,35 +1931,33 @@ serve(async (req) => {
     // Step 7: Traffic & Mobility
     console.log('Fetching traffic data...');
     try {
-      // Pass city name to enable adaptive search radius (2500ft for urban, 1000ft for rural)
-      const trafficAttrs = await queryTxDOT(geoLat, geoLng, enrichedData.city);
+      const trafficData = await queryTrafficData(geoLat, geoLng, enrichedData.city);
       
-      enrichedData.traffic_aadt = trafficAttrs?.AADT || null;
-      enrichedData.traffic_year = trafficAttrs?.Year || null;
-      enrichedData.traffic_segment_id = trafficAttrs?.SEGID || null;
-      enrichedData.traffic_distance_ft = trafficAttrs?.distance_ft;
-      enrichedData.traffic_road_name = trafficAttrs?.road_name;
-      enrichedData.traffic_direction = trafficAttrs?.direction;
-      
-      // Calculate truck percentage and congestion level from AADT
-      if (enrichedData.traffic_aadt) {
-        // Typical truck percentage: 5-8% urban, 15-25% highway/rural
-        enrichedData.truck_percent = enrichedData.traffic_aadt > 50000 ? 8 : 5;
+      if (trafficData) {
+        enrichedData.traffic_aadt = trafficData.aadt || null;
+        enrichedData.traffic_year = trafficData.year || null;
+        enrichedData.traffic_segment_id = trafficData.stationId || null;
+        enrichedData.traffic_distance_ft = trafficData.distance ? Math.round(trafficData.distance) : null;
+        enrichedData.traffic_road_name = trafficData.roadName || null;
         
-        // Congestion level based on AADT (simplified LOS)
-        const aadt = enrichedData.traffic_aadt;
-        if (aadt < 10000) enrichedData.congestion_level = 'Low';
-        else if (aadt < 25000) enrichedData.congestion_level = 'Moderate';
-        else if (aadt < 50000) enrichedData.congestion_level = 'High';
-        else enrichedData.congestion_level = 'Very High';
-      }
-      
-      if (!trafficAttrs?.AADT) {
+        // Calculate truck percentage and congestion level from AADT
+        if (enrichedData.traffic_aadt) {
+          // Typical truck percentage: 5-8% urban, 15-25% highway/rural
+          enrichedData.truck_percent = enrichedData.traffic_aadt > 50000 ? 8 : 5;
+          
+          // Congestion level based on AADT (simplified LOS)
+          const aadt = enrichedData.traffic_aadt;
+          if (aadt < 10000) enrichedData.congestion_level = 'Low';
+          else if (aadt < 25000) enrichedData.congestion_level = 'Moderate';
+          else if (aadt < 50000) enrichedData.congestion_level = 'High';
+          else enrichedData.congestion_level = 'Very High';
+        }
+      } else {
         dataFlags.push('traffic_not_found');
-        console.log('No TxDOT traffic counts within search radius.');
+        console.log('❌ No traffic data found within search radius');
       }
     } catch (err) {
-      console.error('TxDOT AADT enrichment failed:', err.message);
+      console.error('Traffic enrichment failed:', err);
       dataFlags.push('traffic_api_unreachable');
     }
 
