@@ -389,6 +389,99 @@ export type Database = {
         }
         Relationships: []
       }
+      county_boundaries: {
+        Row: {
+          county_name: string
+          created_at: string
+          geometry: Json
+          id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          county_name: string
+          created_at?: string
+          geometry: Json
+          id?: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          county_name?: string
+          created_at?: string
+          geometry?: Json
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fema_flood_zones: {
+        Row: {
+          created_at: string
+          fema_id: string
+          geometry: Json
+          id: string
+          source: string
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          created_at?: string
+          fema_id: string
+          geometry: Json
+          id?: string
+          source: string
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          created_at?: string
+          fema_id?: string
+          geometry?: Json
+          id?: string
+          source?: string
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: []
+      }
+      txdot_traffic_segments: {
+        Row: {
+          aadt: number | null
+          created_at: string
+          geometry: Json
+          id: string
+          roadway: string | null
+          segment_id: string
+          source: string
+          updated_at: string
+          year: number | null
+        }
+        Insert: {
+          aadt?: number | null
+          created_at?: string
+          geometry: Json
+          id?: string
+          roadway?: string | null
+          segment_id: string
+          source: string
+          updated_at?: string
+          year?: number | null
+        }
+        Update: {
+          aadt?: number | null
+          created_at?: string
+          geometry?: Json
+          id?: string
+          roadway?: string | null
+          segment_id?: string
+          source?: string
+          updated_at?: string
+          year?: number | null
+        }
+        Relationships: []
+      }
       utility_endpoints: {
         Row: {
           geometry_type: string
