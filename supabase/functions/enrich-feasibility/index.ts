@@ -8,6 +8,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Standardized error flag constants
+const ERROR_FLAGS = {
+  FEMA_UNAVAILABLE: 'fema_nfhl_unavailable',
+  UTILITIES_UNREACHABLE: 'utilities_api_unreachable',
+  OPENFEMA_NO_MATCH: 'openfema_no_match',
+  PARCEL_PROJECTION_ERROR: 'parcel_projection_error',
+  PARCEL_NOT_FOUND: 'parcel_not_found',
+  FLOODPLAIN_MISSING: 'floodplain_missing',
+  UTILITIES_NOT_FOUND: 'utilities_not_found',
+  TRAFFIC_NOT_FOUND: 'traffic_not_found'
+};
+
 // County endpoint catalog - Texas major counties (Top 10 by development activity)
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
@@ -200,8 +212,8 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 };
 
 // API Endpoints - Official Sources
-const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query"; // Flood Hazard Zones
-const FEMA_NFHL_AVAILABILITY_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"; // Check data availability
+const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"; // Flood Hazard Zones (layer 0, not deprecated 28)
+const OPENFEMA_DISASTERS_URL = "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries"; // Historical flood events
 
 /**
  * Retry helper with exponential backoff for flaky APIs
@@ -448,16 +460,17 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
 // Helper function to fetch EPA environmental sites
 async function fetchEnvironmentalSites(lat: number, lng: number, county: string): Promise<any[]> {
   try {
-    // EPA FRS API - search within county
+    // EPA EFService (newer endpoint) - query by lat/lng
     const response = await fetch(
-      `${EPA_FRS_URL}?county=${encodeURIComponent(county)}&state=TX&output=JSON`
+      `https://enviro.epa.gov/efservice/FRS_INTEREST/latitude/${lat}/longitude/${lng}/JSON`,
+      { headers: { 'Accept': 'application/json' } }
     );
     const data = await safeJsonParse(response, 'EPA environmental sites query');
     
-    const sites = (data?.Results?.FRSFacility || []).slice(0, 10).map((site: any) => ({
-      site_name: site.RegistryName,
-      program: site.ProgramSystemAcronym,
-      status: site.FacilityStatusCode
+    const sites = (data || []).slice(0, 10).map((site: any) => ({
+      site_name: site.REGISTRY_NAME || site.SITE_NAME,
+      program: site.PROGRAM_SYSTEM_ACRONYM,
+      status: site.FACILITY_STATUS
     }));
     
     return sites;
@@ -470,13 +483,19 @@ async function fetchEnvironmentalSites(lat: number, lng: number, county: string)
 // Helper function to fetch FCC broadband data
 async function fetchBroadband(lat: number, lng: number): Promise<any> {
   try {
-    // FCC Broadband Map API - nationwide dataset
+    // FCC Broadband Map API - nationwide dataset with HTTP/1.1 fallback
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     const response = await fetch(
       `${FCC_BROADBAND_URL}?latitude=${lat}&longitude=${lng}`,
-      { signal: controller.signal }
+      { 
+        signal: controller.signal,
+        headers: { 
+          'Accept': 'application/json',
+          'Connection': 'keep-alive' // Force HTTP/1.1 to avoid HTTP/2 stream errors
+        }
+      }
     );
     clearTimeout(timeoutId);
     
@@ -521,13 +540,13 @@ const MAJOR_URBAN_AREAS = ['Houston', 'Dallas', 'Austin', 'San Antonio', 'Fort W
 
 /**
  * Query TxDOT traffic layer with adaptive search radius
- * Urban areas use 2500ft radius due to sensor spacing
+ * Urban cores use 3000ft radius due to sensor spacing
  * Rural/suburban areas use 1000ft radius
  */
 async function queryTxDOT(lat: number, lng: number, city?: string) {
   // Use larger radius for major urban areas where sensors are more spread out
   const isUrban = city && MAJOR_URBAN_AREAS.some(urban => city.includes(urban));
-  const searchRadius = isUrban ? "2500" : "1000";
+  const searchRadius = isUrban ? "3000" : "1000"; // Increased to 3000ft for urban
   
   console.log(`TxDOT search radius: ${searchRadius}ft for ${city || 'unknown city'} (${isUrban ? 'urban' : 'standard'})`);
 
@@ -547,6 +566,56 @@ async function queryTxDOT(lat: number, lng: number, city?: string) {
   if (!resp.ok) throw new Error(`TxDOT query failed: ${resp.status}`);
   const json = await resp.json();
   return json.features?.[0]?.attributes || null;
+}
+
+// Helper function to fetch historical flood events from OpenFEMA
+async function fetchHistoricalFloodEvents(lat: number, lng: number): Promise<any> {
+  try {
+    // Query OpenFEMA Disaster Declarations API
+    const point = `POINT(${lng} ${lat})`;
+    const filterParam = `geo.intersects(geometry,geography'${point}')`;
+    
+    const url = `${OPENFEMA_DISASTERS_URL}?$filter=${encodeURIComponent(filterParam)}&$select=state,incidentType,declarationDate,placeCode&$top=200&$format=json`;
+    
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      console.log(`OpenFEMA API returned ${response.status}`);
+      return { total_events: 0, by_type: {} };
+    }
+    
+    const data = await response.json();
+    const disasters = data?.DisasterDeclarationsSummaries || [];
+    
+    // Aggregate by incident type
+    const byType: Record<string, { count: number, latest_date: string }> = {};
+    
+    disasters.forEach((d: any) => {
+      const type = d.incidentType || 'Unknown';
+      if (!byType[type]) {
+        byType[type] = { count: 0, latest_date: d.declarationDate };
+      }
+      byType[type].count++;
+      
+      // Track latest date
+      if (d.declarationDate > byType[type].latest_date) {
+        byType[type].latest_date = d.declarationDate;
+      }
+    });
+    
+    console.log(`OpenFEMA: Found ${disasters.length} disaster events`);
+    
+    return {
+      total_events: disasters.length,
+      by_type: byType,
+      flood_events: byType['Flood']?.count || 0
+    };
+  } catch (error) {
+    console.error('OpenFEMA fetch error:', error);
+    return { total_events: 0, by_type: {}, flood_events: 0 };
+  }
 }
 
 // Helper function to fetch Google Maps highway/transit data
@@ -1097,6 +1166,7 @@ serve(async (req) => {
 
     const dataFlags: string[] = [];
     const enrichedData: any = {};
+    const apiMeta: any = {}; // Track API response metadata
 
     let geoLat: number | null = null;
     let geoLng: number | null = null;
@@ -1376,7 +1446,7 @@ serve(async (req) => {
     try {
       // Use retry logic for FEMA API (known to be flaky with 404s and timeouts)
       await retryWithBackoff(async () => {
-        // Query FEMA NFHL Layer 28 (Flood Hazard Zones) for zone and BFE
+        // Query FEMA NFHL Layer 0 (updated endpoint, not deprecated 28)
         const femaParams = new URLSearchParams({
           f: 'json',
           geometry: `${geoLng},${geoLat}`,
@@ -1391,6 +1461,8 @@ serve(async (req) => {
           headers: { 'Accept': 'application/json' }
         });
         
+        apiMeta.fema_nfhl = { status: femaResp.status, layer: 0 }; // Track response
+        
         if (!femaResp.ok) {
           throw new Error(`FEMA API returned ${femaResp.status}`);
         }
@@ -1398,6 +1470,7 @@ serve(async (req) => {
         const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
 
         if (femaData?.features && femaData.features.length > 0) {
+          apiMeta.fema_nfhl.record_count = femaData.features.length;
           const attrs = femaData.features[0].attributes;
           
           enrichedData.floodplain_zone = attrs.FLD_ZONE || null;
@@ -1410,25 +1483,13 @@ serve(async (req) => {
             console.log(`FEMA zone ${enrichedData.floodplain_zone} found but no BFE published`);
           }
           
-          // Estimate historical flood events based on flood zone
-          if (enrichedData.floodplain_zone) {
-            const zoneRisk = enrichedData.floodplain_zone.toUpperCase();
-            if (zoneRisk.startsWith('A') || zoneRisk.startsWith('V')) {
-              enrichedData.historical_flood_events = 3; // High risk zones
-            } else if (zoneRisk.includes('X') && (zoneRisk.includes('SHADED') || zoneRisk.includes('0.2'))) {
-              enrichedData.historical_flood_events = 1; // Moderate risk
-            } else {
-              enrichedData.historical_flood_events = 0; // Minimal risk
-            }
-          }
-          
           console.log('FEMA flood data found:', {
             floodplain_zone: enrichedData.floodplain_zone,
             base_flood_elevation: enrichedData.base_flood_elevation,
-            fema_panel_id: enrichedData.fema_panel_id,
-            historical_flood_events: enrichedData.historical_flood_events
+            fema_panel_id: enrichedData.fema_panel_id
           });
         } else {
+          apiMeta.fema_nfhl.record_count = 0;
           console.log('No flood zone features found at this location');
           dataFlags.push('floodplain_missing');
         }
@@ -1436,7 +1497,28 @@ serve(async (req) => {
       
     } catch (error) {
       console.error('FEMA query failed after retries:', error);
-      dataFlags.push('floodplain_missing');
+      dataFlags.push('fema_nfhl_unavailable');
+      apiMeta.fema_nfhl = { error: error.message };
+    }
+    
+    // Fetch historical flood events from OpenFEMA
+    try {
+      console.log('Fetching historical flood events from OpenFEMA...');
+      const startTime = Date.now();
+      const floodHistory = await fetchHistoricalFloodEvents(geoLat, geoLng);
+      apiMeta.openfema_disasters = { 
+        latency_ms: Date.now() - startTime,
+        total_events: floodHistory.total_events,
+        flood_events: floodHistory.flood_events
+      };
+      
+      enrichedData.historical_flood_events = floodHistory.flood_events;
+      console.log(`Found ${floodHistory.flood_events} historical flood events`);
+    } catch (error) {
+      console.error('OpenFEMA query failed:', error);
+      dataFlags.push('openfema_no_match');
+      apiMeta.openfema_disasters = { error: error.message };
+      enrichedData.historical_flood_events = 0;
     }
 
     // Step 4 continued: Fetch elevation data (Floodplain & Elevation - Part 2)
@@ -1711,6 +1793,11 @@ serve(async (req) => {
         enterprise_zone: enrichedData.enterprise_zone || false,
         foreign_trade_zone: enrichedData.foreign_trade_zone || false,
         average_permit_time_months: enrichedData.average_permit_time_months,
+        
+        // Observability
+        api_meta: apiMeta,
+        enrichment_status: dataFlags.length === 0 ? 'complete' : 
+                          dataFlags.length < 3 ? 'partial' : 'failed',
         
         // Data quality flags
         data_flags: dataFlags

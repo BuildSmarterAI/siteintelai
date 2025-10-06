@@ -21,6 +21,7 @@ export type Database = {
           additional_notes: string | null
           administrative_area_level_1: string | null
           aerial_imagery_url: string | null
+          api_meta: Json | null
           attachments: Json | null
           average_permit_time_months: number | null
           base_flood_elevation: number | null
@@ -46,6 +47,7 @@ export type Database = {
           elevation: number | null
           email: string
           employment_clusters: Json | null
+          enrichment_status: string | null
           enterprise_zone: boolean | null
           entitlement_notes: string | null
           environmental_constraints: string[] | null
@@ -143,6 +145,7 @@ export type Database = {
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          api_meta?: Json | null
           attachments?: Json | null
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
@@ -168,6 +171,7 @@ export type Database = {
           elevation?: number | null
           email: string
           employment_clusters?: Json | null
+          enrichment_status?: string | null
           enterprise_zone?: boolean | null
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
@@ -265,6 +269,7 @@ export type Database = {
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          api_meta?: Json | null
           attachments?: Json | null
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
@@ -290,6 +295,7 @@ export type Database = {
           elevation?: number | null
           email?: string
           employment_clusters?: Json | null
+          enrichment_status?: string | null
           enterprise_zone?: boolean | null
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
