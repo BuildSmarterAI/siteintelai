@@ -14,6 +14,18 @@ const corsHeaders = {
 // Load endpoint catalog
 import endpointCatalog from "./endpoint_catalog.json" assert { type: "json" };
 
+// API metadata tracker
+interface ApiMetadata {
+  api: string;
+  url: string;
+  status: number;
+  elapsed_ms: number;
+  timestamp: string;
+  error?: string;
+}
+
+const apiMeta: ApiMetadata[] = [];
+
 // Distance calculator (ft) between lat/lng
 function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371000; // meters
@@ -59,56 +71,128 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number) {
   });
 }
 
-// Generic ArcGIS query for polylines
-const queryArcGIS = async (url: string, fields: string[], geo_lat: number, geo_lng: number, utilityType: string) => {
-  try {
-    const params = new URLSearchParams({
-      f: "json",
-      geometry: `${geo_lng},${geo_lat}`,
-      geometryType: "esriGeometryPoint",
-      inSR: "4326",
-      spatialRel: "esriSpatialRelIntersects",
-      outFields: fields.join(","),
-      returnGeometry: "true",
-      distance: "1000",
-      units: "esriSRUnit_Foot"
-    });
-    
-    const queryUrl = `${url}?${params.toString()}`;
-    console.log(`Querying ${utilityType}:`, queryUrl);
-    
-    const resp = await fetch(queryUrl, {
-      signal: AbortSignal.timeout(15000)
-    });
-    
-    if (!resp.ok) {
-      console.error(`${utilityType} API returned status:`, resp.status);
-      throw new Error(`HTTP ${resp.status}`);
-    }
-    
-    const json = await resp.json();
-    console.log(`${utilityType} features found:`, json.features?.length || 0);
-    
-    if (json.error) {
-      console.error(`${utilityType} API error:`, json.error);
-      throw new Error(json.error.message || "ArcGIS API error");
-    }
-    
-    return json.features ?? [];
-  } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error(`${utilityType} query failed:`, errorMsg);
-    
-    // Check if API is unreachable
-    if (errorMsg.includes('dns error') || 
-        errorMsg.includes('failed to lookup') ||
-        errorMsg.includes('Connection refused') ||
-        errorMsg.includes('timeout')) {
-      throw new Error("api_unreachable");
-    }
-    
-    throw err;
+// Generic ArcGIS query with retry logic and metadata tracking
+const queryArcGIS = async (
+  url: string, 
+  fields: string[], 
+  geo_lat: number, 
+  geo_lng: number, 
+  utilityType: string,
+  config: {
+    timeout_ms: number;
+    retry_attempts: number;
+    retry_delays_ms: number[];
+    search_radius_ft: number;
   }
+) => {
+  const params = new URLSearchParams({
+    f: "json",
+    geometry: `${geo_lng},${geo_lat}`,
+    geometryType: "esriGeometryPoint",
+    inSR: "4326",
+    spatialRel: "esriSpatialRelIntersects",
+    outFields: fields.join(","),
+    returnGeometry: "true",
+    distance: String(config.search_radius_ft),
+    units: "esriSRUnit_Foot"
+  });
+  
+  const queryUrl = `${url}?${params.toString()}`;
+  console.log(`Querying ${utilityType}:`, queryUrl);
+  
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= config.retry_attempts; attempt++) {
+    const startTime = Date.now();
+    let status = 0;
+    
+    try {
+      const resp = await fetch(queryUrl, {
+        signal: AbortSignal.timeout(config.timeout_ms)
+      });
+      
+      status = resp.status;
+      const elapsed_ms = Date.now() - startTime;
+      
+      if (!resp.ok) {
+        console.error(`${utilityType} API returned status:`, status);
+        
+        apiMeta.push({
+          api: utilityType,
+          url: queryUrl,
+          status,
+          elapsed_ms,
+          timestamp: new Date().toISOString(),
+          error: `HTTP ${status}`
+        });
+        
+        throw new Error(`HTTP ${status}`);
+      }
+      
+      const json = await resp.json();
+      console.log(`${utilityType} features found:`, json.features?.length || 0);
+      
+      if (json.error) {
+        console.error(`${utilityType} API error:`, json.error);
+        
+        apiMeta.push({
+          api: utilityType,
+          url: queryUrl,
+          status,
+          elapsed_ms,
+          timestamp: new Date().toISOString(),
+          error: json.error.message || "ArcGIS API error"
+        });
+        
+        throw new Error(json.error.message || "ArcGIS API error");
+      }
+      
+      // Success - log metadata
+      apiMeta.push({
+        api: utilityType,
+        url: queryUrl,
+        status,
+        elapsed_ms,
+        timestamp: new Date().toISOString()
+      });
+      
+      return json.features ?? [];
+      
+    } catch (err) {
+      const elapsed_ms = Date.now() - startTime;
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      lastError = err instanceof Error ? err : new Error(String(err));
+      
+      console.error(`${utilityType} attempt ${attempt + 1}/${config.retry_attempts + 1} failed:`, errorMsg);
+      
+      // Check if API is unreachable
+      if (errorMsg.includes('dns error') || 
+          errorMsg.includes('failed to lookup') ||
+          errorMsg.includes('Connection refused') ||
+          errorMsg.includes('timeout')) {
+        
+        apiMeta.push({
+          api: utilityType,
+          url: queryUrl,
+          status: status || 0,
+          elapsed_ms,
+          timestamp: new Date().toISOString(),
+          error: "api_unreachable"
+        });
+        
+        throw new Error("api_unreachable");
+      }
+      
+      // If we have more attempts, wait before retrying
+      if (attempt < config.retry_attempts && config.retry_delays_ms[attempt]) {
+        console.log(`Retrying ${utilityType} in ${config.retry_delays_ms[attempt]}ms...`);
+        await new Promise(resolve => setTimeout(resolve, config.retry_delays_ms[attempt]));
+      }
+    }
+  }
+  
+  // All retries exhausted
+  throw lastError || new Error(`Failed after ${config.retry_attempts + 1} attempts`);
 };
 
 // Query for polygon features (MUD boundaries, ETJ, etc.)
@@ -187,16 +271,46 @@ serve(async (req) => {
       if (cityLower.includes("houston")) {
         console.log('Using Houston endpoints');
         const eps = endpointCatalog.houston;
-        water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "water");
-        sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "sewer");
-        storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "storm");
+        water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
+          timeout_ms: eps.water.timeout_ms,
+          retry_attempts: eps.water.retry_attempts,
+          retry_delays_ms: eps.water.retry_delays_ms,
+          search_radius_ft: eps.water.search_radius_ft
+        });
+        sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer", {
+          timeout_ms: eps.sewer.timeout_ms,
+          retry_attempts: eps.sewer.retry_attempts,
+          retry_delays_ms: eps.sewer.retry_delays_ms,
+          search_radius_ft: eps.sewer.search_radius_ft
+        });
+        storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
+          timeout_ms: eps.storm.timeout_ms,
+          retry_attempts: eps.storm.retry_attempts,
+          retry_delays_ms: eps.storm.retry_delays_ms,
+          search_radius_ft: eps.storm.search_radius_ft
+        });
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');
         const eps = endpointCatalog.austin;
-        water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "water");
-        sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "sewer");
+        water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "austin_water", {
+          timeout_ms: eps.water.timeout_ms,
+          retry_attempts: eps.water.retry_attempts,
+          retry_delays_ms: eps.water.retry_delays_ms,
+          search_radius_ft: eps.water.search_radius_ft
+        });
+        sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "austin_sewer", {
+          timeout_ms: eps.sewer.timeout_ms,
+          retry_attempts: eps.sewer.retry_attempts,
+          retry_delays_ms: eps.sewer.retry_delays_ms,
+          search_radius_ft: eps.sewer.search_radius_ft
+        });
         if (eps.reclaimed) {
-          storm = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "reclaimed");
+          storm = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "austin_reclaimed", {
+            timeout_ms: eps.reclaimed.timeout_ms,
+            retry_attempts: eps.reclaimed.retry_attempts,
+            retry_delays_ms: eps.reclaimed.retry_delays_ms,
+            search_radius_ft: eps.reclaimed.search_radius_ft
+          });
         }
       } else if (county?.toLowerCase().includes("harris")) {
         console.log('Harris County - checking MUD districts');
@@ -257,12 +371,17 @@ serve(async (req) => {
       flags.push("utilities_not_found");
     }
 
-    // 4. Save results
+    // 4. Save results with api_meta and enrichment_status
+    const enrichmentStatus = apiUnreachable ? "failed" : 
+                            (water.length || sewer.length || storm.length) ? "complete" : "partial";
+    
     const { error: updateError } = await supabase.from("applications").update({
       water_lines: formatLines(water, geo_lat, geo_lng),
       sewer_lines: formatLines(sewer, geo_lat, geo_lng),
       storm_lines: formatLines(storm, geo_lat, geo_lng),
-      data_flags: flags
+      data_flags: flags,
+      api_meta: apiMeta,
+      enrichment_status: enrichmentStatus
     }).eq("id", application_id);
 
     if (updateError) {
