@@ -26,14 +26,16 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     // HCAD Parcels MapServer Layer 0 (authoritative parcel source)
     parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
-    // HCAD Parcels field mappings (Layer 0)
+    // HCAD Parcels field mappings (Layer 0) - using actual field names
     parcel_id_field: "HCAD_NUM",
     parcel_id_alt_field: "acct_num",
     owner_field: "owner_name_1",
     acreage_field: "Acreage",
-    address_field: "site_addr_1",
+    // Address components (no single site_addr_1 field exists)
+    address_fields: "site_str_num,site_str_name,site_str_sfx,site_city,site_zip",
     county_field: "state_class",
-    legal_field: "legal_desc",
+    // Legal description fields (no single legal_desc field exists)
+    legal_fields: "legal_dscr_1,legal_dscr_2,legal_dscr_3,legal_dscr_4",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
     // Houston utility endpoints - using GeoGIMS test/ms servers (discovered from Geocortex directory)
@@ -1367,15 +1369,38 @@ serve(async (req) => {
     // Step 3: Query parcel data (with Fort Bend fallback logic)
     try {
       // Build outFields based on county configuration
-      const outFieldsList = [
-        endpoints.parcel_id_field,
-        endpoints.parcel_id_alt_field,
-        endpoints.owner_field,
-        endpoints.acreage_field,
-        endpoints.address_field,
-        endpoints.county_field,
-        endpoints.legal_field
-      ].filter(Boolean).join(',');
+      // For Harris County, use composite fields
+      let outFieldsList;
+      if (countyName === 'Harris County') {
+        // HCAD specific fields (address is split, legal is split)
+        outFieldsList = [
+          'HCAD_NUM',
+          'acct_num',
+          'owner_name_1',
+          'Acreage',
+          'site_str_num',
+          'site_str_name',
+          'site_str_sfx',
+          'site_city',
+          'site_zip',
+          'state_class',
+          'legal_dscr_1',
+          'legal_dscr_2',
+          'legal_dscr_3',
+          'legal_dscr_4'
+        ].join(',');
+      } else {
+        // Other counties: use configured field names
+        outFieldsList = [
+          endpoints.parcel_id_field,
+          endpoints.parcel_id_alt_field,
+          endpoints.owner_field,
+          endpoints.acreage_field,
+          endpoints.address_field,
+          endpoints.county_field,
+          endpoints.legal_field
+        ].filter(Boolean).join(',');
+      }
       
       // For Harris County, use Locator_Parcels GeocodeServer for precise coordinates
       let geometryCoords = `${geoLng},${geoLat}`;
@@ -1491,7 +1516,32 @@ serve(async (req) => {
         enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || null;
         enrichedData.parcel_owner = attrs[endpoints.owner_field] || null;
         enrichedData.acreage_cad = parseFloat(attrs[endpoints.acreage_field]) || null;
-        enrichedData.situs_address = attrs[endpoints.address_field] || null;
+        
+        // For Harris County, concatenate address components
+        if (countyName === 'Harris County') {
+          const addressParts = [
+            attrs.site_str_num,
+            attrs.site_str_name,
+            attrs.site_str_sfx,
+            attrs.site_city,
+            'TX',
+            attrs.site_zip
+          ].filter(Boolean);
+          enrichedData.situs_address = addressParts.length > 0 ? addressParts.join(' ') : null;
+          
+          // Concatenate legal description
+          const legalParts = [
+            attrs.legal_dscr_1,
+            attrs.legal_dscr_2,
+            attrs.legal_dscr_3,
+            attrs.legal_dscr_4
+          ].filter(Boolean);
+          enrichedData.legal_description = legalParts.length > 0 ? legalParts.join(' ') : null;
+        } else {
+          enrichedData.situs_address = attrs[endpoints.address_field] || null;
+          enrichedData.legal_description = attrs[endpoints.legal_field] || null;
+        }
+        
         enrichedData.administrative_area_level_2 = attrs[endpoints.county_field] || null;
         
         // Store geometry if available (GeoJSON polygon)
@@ -1504,6 +1554,7 @@ serve(async (req) => {
           parcel_owner: enrichedData.parcel_owner,
           acreage_cad: enrichedData.acreage_cad,
           situs_address: enrichedData.situs_address,
+          legal_description: enrichedData.legal_description,
           county: enrichedData.administrative_area_level_2,
           has_geometry: !!feature.geometry,
           source_fields: {
