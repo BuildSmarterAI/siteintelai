@@ -1378,6 +1378,8 @@ serve(async (req) => {
           'acct_num',
           'owner_name_1',
           'Acreage',
+          'acreage_1',
+          'land_sqft',
           'site_str_num',
           'site_str_name',
           'site_str_sfx',
@@ -1516,16 +1518,25 @@ serve(async (req) => {
         enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || null;
         enrichedData.parcel_owner = attrs[endpoints.owner_field] || null;
         
-        // Parse acreage - HCAD returns strings like "1.4624 AC\r\n"
+        // Parse acreage - HCAD returns strings like "1.4624 AC\r\n"; add fallbacks
+        let parsedAcreage: number | null = null;
         const acreageRaw = attrs[endpoints.acreage_field];
         if (acreageRaw) {
-          // Extract numeric value, handling formats like "1.4624 AC\r\n" or "1.4624"
           const acreageMatch = String(acreageRaw).match(/[\d.]+/);
-          enrichedData.acreage_cad = acreageMatch ? parseFloat(acreageMatch[0]) : null;
-          console.log(`Acreage parsed: raw="${acreageRaw}" -> ${enrichedData.acreage_cad}`);
-        } else {
-          enrichedData.acreage_cad = null;
+          parsedAcreage = acreageMatch ? parseFloat(acreageMatch[0]) : null;
         }
+        // Fallback to numeric acreage_1
+        if (parsedAcreage == null && attrs.acreage_1 != null) {
+          const a1 = Number(attrs.acreage_1);
+          parsedAcreage = Number.isFinite(a1) ? a1 : null;
+        }
+        // Fallback to land_sqft -> acres
+        if (parsedAcreage == null && attrs.land_sqft != null) {
+          const sqft = Number(attrs.land_sqft);
+          parsedAcreage = Number.isFinite(sqft) ? +(sqft / 43560).toFixed(4) : null;
+        }
+        enrichedData.acreage_cad = parsedAcreage;
+        console.log('Acreage resolution:', { raw: acreageRaw, acreage_1: attrs.acreage_1, land_sqft: attrs.land_sqft, resolved: parsedAcreage });
         
         // For Harris County, concatenate address components
         if (countyName === 'Harris County') {
