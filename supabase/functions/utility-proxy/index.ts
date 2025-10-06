@@ -37,7 +37,9 @@ serve(async (req) => {
     // Whitelist: Only allow Houston GIS endpoints
     const allowedHosts = [
       'cohgis.houstontx.gov',
-      'gis.houstontx.gov'
+      'gis.houstontx.gov',
+      'mycity.houstontx.gov',
+      'mycity2.houstontx.gov'
     ];
 
     const targetUrl = new URL(url);

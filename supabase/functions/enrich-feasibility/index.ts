@@ -32,10 +32,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     acreage_field: "StatedArea",
     zoning_field: "ZONECODE",
     overlay_field: "OVERLAY",
-    // Houston utility endpoints - using City of Houston official GIS services
-    water_lines_url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
-    sewer_lines_url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
-    storm_lines_url: "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewer/MapServer/0/query"
+    // Houston utility endpoints - using mycity2 subdomain (better DNS resolution)
+    water_lines_url: "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
+    sewer_lines_url: "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
+    storm_lines_url: "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_StormSewer/MapServer/0/query"
   },
   "Fort Bend County": {
     // FBCAD parcel service (confirmed working)
@@ -1314,7 +1314,7 @@ serve(async (req) => {
         const [x2278, y2278] = proj4(wgs84, epsg2278, [geoLng, geoLat]);
         geometryCoords = `${x2278},${y2278}`;
         spatialReference = '2278';
-        console.log(`Converted coordinates to EPSG:2278: ${geometryCoords}`);
+        console.log(`Converted coordinates to EPSG:2278: ${geometryCoords} from WGS84: ${geoLng},${geoLat}`);
       }
       
       // Build comprehensive outFields including SITUS_ADDR for Harris County
@@ -1338,9 +1338,16 @@ serve(async (req) => {
       // Query parcel data from primary endpoint
       if (endpoints.parcel_url) {
         console.log('Querying parcel data from:', endpoints.parcel_url);
+        console.log('Parcel query params:', parcelParams.toString());
         try {
           const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
           parcelData = await safeJsonParse(parcelResp, 'Parcel query');
+          console.log('Parcel API response:', { 
+            status: parcelResp.status,
+            hasFeatures: !!parcelData?.features,
+            featureCount: parcelData?.features?.length || 0,
+            error: parcelData?.error
+          });
           if (parcelData?.features?.[0]) {
             console.log('Parcel data found');
           }
@@ -1462,9 +1469,11 @@ serve(async (req) => {
           headers: { 'Accept': 'application/json' }
         });
         
-        apiMeta.fema_nfhl = { status: femaResp.status, layer: 0 }; // Track response
+        apiMeta.fema_nfhl = { status: femaResp.status, layer: 0, coords: `${geoLng},${geoLat}` }; // Track response
         
         if (!femaResp.ok) {
+          const errorText = await femaResp.text();
+          console.error(`FEMA API error ${femaResp.status}:`, errorText.substring(0, 200));
           throw new Error(`FEMA API returned ${femaResp.status}`);
         }
         
@@ -1571,11 +1580,9 @@ serve(async (req) => {
     // Step 6: Utilities / Infrastructure
     console.log('Fetching utility infrastructure data...');
     
-    // Use proxy for Houston utilities to bypass DNS block (cohgis.houstontx.gov unreachable)
-    const useProxy = enrichedData.city?.toLowerCase().includes('houston');
-    if (useProxy) {
-      console.log('Houston detected: routing utility requests through proxy');
-    }
+    // Try direct connection first (mycity2 subdomain should work)
+    // Proxy fallback removed as mycity2.houstontx.gov should be DNS-resolvable
+    const useProxy = false; // Disabled proxy, using mycity2 subdomain instead
     
     const utilities = await fetchUtilities(geoLat, geoLng, endpoints, useProxy);
     console.log('Utilities fetched summary:', {

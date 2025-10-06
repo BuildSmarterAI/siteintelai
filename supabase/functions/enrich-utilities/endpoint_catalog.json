@@ -12,7 +12,7 @@
   "houston": {
     "water": {
       "name": "COH Water Distribution Mains",
-      "url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
+      "url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query",
       "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
@@ -20,12 +20,12 @@
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "DNS resolution fails from Supabase edge runtime - requires external proxy or Houston GIS DNS update",
-      "test_url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
+      "notes": "Using mycity2 subdomain for better DNS resolution from Supabase edge runtime",
+      "test_url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_WaterDistributionMains/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
     },
     "sewer": {
       "name": "COH Sanitary Sewer Lines",
-      "url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewerLines/MapServer/0/query",
+      "url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query",
       "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
@@ -33,12 +33,12 @@
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "DNS resolution may fail from Supabase edge runtime",
-      "test_url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_SanitarySewerLines/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
+      "notes": "Using mycity2 subdomain for better DNS resolution",
+      "test_url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_SanitarySewer/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
     },
     "storm": {
       "name": "COH Storm Sewer Lines",
-      "url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewerLines/MapServer/0/query",
+      "url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_StormSewer/MapServer/0/query",
       "outFields": ["DIAMETER", "MATERIAL", "STATUS"],
       "geometryType": "esriGeometryPolyline",
       "crs": "EPSG:4326",
@@ -46,8 +46,8 @@
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "DNS resolution may fail from Supabase edge runtime",
-      "test_url": "https://cohgis.houstontx.gov/arcgis/rest/services/COH_Public/COH_StormSewerLines/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
+      "notes": "Using mycity2 subdomain for better DNS resolution",
+      "test_url": "https://mycity2.houstontx.gov/pubgis03/rest/services/COH_Public/COH_StormSewer/MapServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,STATUS&f=json"
     }
   },
   "austin": {
