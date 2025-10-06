@@ -247,6 +247,73 @@ async function retryWithBackoff<T>(
   
   throw new Error(`${context} exhausted all retries`);
 }
+
+/**
+ * Houston Locator_Parcels GeocodeServer
+ * Converts a single-line address into parcel coordinates and bounding box geometry
+ * Returns X, Y coordinates and Xmin, Xmax, Ymin, Ymax in EPSG:2278 (Texas South Central Feet)
+ */
+async function geocodeHoustonParcel(address: string): Promise<{
+  match_addr: string;
+  score: number;
+  x: number;
+  y: number;
+  xmin: number;
+  xmax: number;
+  ymin: number;
+  ymax: number;
+} | null> {
+  try {
+    const baseUrl = "https://www.gis.hctx.net/arcgis/rest/services/Locator_Parcels/GeocodeServer/findAddressCandidates";
+    const params = new URLSearchParams({
+      SingleLine: address,
+      f: 'json',
+      outSR: '2278'  // Texas South Central Feet
+    });
+    
+    const url = `${baseUrl}?${params}`;
+    console.log(`Geocoding Houston parcel address: ${address}`);
+    
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.candidates && data.candidates.length > 0) {
+      // Filter by score >= 80 per Locator properties
+      const bestMatch = data.candidates.find((c: any) => c.score >= 80);
+      
+      if (bestMatch) {
+        const result = {
+          match_addr: bestMatch.address,
+          score: bestMatch.score,
+          x: bestMatch.location.x,
+          y: bestMatch.location.y,
+          xmin: bestMatch.extent.xmin,
+          xmax: bestMatch.extent.xmax,
+          ymin: bestMatch.extent.ymin,
+          ymax: bestMatch.extent.ymax
+        };
+        
+        console.log('Houston parcel geocode result:', {
+          match_addr: result.match_addr,
+          score: result.score,
+          x: result.x,
+          y: result.y
+        });
+        
+        return result;
+      } else {
+        console.log('No Houston parcel match with score >= 80');
+        return null;
+      }
+    }
+    
+    console.log('No Houston parcel geocoding candidates found');
+    return null;
+  } catch (error) {
+    console.error('Houston parcel geocoding error:', error);
+    return null;
+  }
+}
 const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php";
 const USFWS_WETLANDS_URL = "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/1/query";
 const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest";
@@ -1309,43 +1376,77 @@ serve(async (req) => {
         endpoints.legal_field
       ].filter(Boolean).join(',');
       
-      // For Harris County Unified Parcels (Layer 7), use WGS84 / GeoJSON
+      // For Harris County, use Locator_Parcels GeocodeServer for precise coordinates
       let geometryCoords = `${geoLng},${geoLat}`;
       let spatialReference = '4326';
       let outputFormat = 'json';
       let returnGeometry = 'false';
+      let useEnvelope = false;
+      let envelopeGeometry = '';
       
-      // Harris County Unified Parcels uses GeoJSON with WGS84
+      // Harris County: Use Locator_Parcels for improved accuracy
       if (countyName === 'Harris County') {
-        outputFormat = 'geojson';
-        returnGeometry = 'true';  // Get polygon geometry in GeoJSON
-        console.log(`Using GeoJSON format for Harris County Unified Parcels at ${geoLng},${geoLat}`);
+        const parcelGeocode = await geocodeHoustonParcel(addressInput);
+        
+        if (parcelGeocode) {
+          // Use precise parcel coordinates from GeocodeServer (EPSG:2278)
+          geometryCoords = `${parcelGeocode.x},${parcelGeocode.y}`;
+          spatialReference = '2278';
+          outputFormat = 'geojson';
+          returnGeometry = 'true';  // Get polygon geometry in GeoJSON
+          useEnvelope = true;
+          
+          // Construct envelope geometry for more precise matching
+          envelopeGeometry = `${parcelGeocode.xmin},${parcelGeocode.ymin},${parcelGeocode.xmax},${parcelGeocode.ymax}`;
+          
+          console.log(`Using Houston Locator_Parcels coordinates:`, {
+            x: parcelGeocode.x,
+            y: parcelGeocode.y,
+            match_addr: parcelGeocode.match_addr,
+            score: parcelGeocode.score,
+            envelope: envelopeGeometry
+          });
+        } else {
+          // Fallback to WGS84 coordinates if Locator_Parcels fails
+          outputFormat = 'geojson';
+          returnGeometry = 'true';
+          console.log(`Houston Locator_Parcels failed, using WGS84 fallback at ${geoLng},${geoLat}`);
+        }
       }
       
       // Build comprehensive outFields
       const comprehensiveOutFields = outFieldsList || '*';
       
-      // Build parcel query params - use GeoJSON for Harris County
-      const parcelParams = new URLSearchParams({
-        geometry: geometryCoords,
-        geometryType: 'esriGeometryPoint',
+      // Build parcel query params
+      const parcelParams: Record<string, string> = {
         spatialRel: 'esriSpatialRelIntersects',
         outFields: comprehensiveOutFields,
-        outSR: spatialReference,
         returnGeometry: returnGeometry,
         f: outputFormat
-      });
+      };
+      
+      // Use envelope or point geometry
+      if (useEnvelope && envelopeGeometry) {
+        parcelParams.geometry = envelopeGeometry;
+        parcelParams.geometryType = 'esriGeometryEnvelope';
+        parcelParams.inSR = spatialReference;
+        parcelParams.outSR = '4326';  // Return in WGS84 for consistency
+      } else {
+        parcelParams.geometry = geometryCoords;
+        parcelParams.geometryType = 'esriGeometryPoint';
+        parcelParams.outSR = spatialReference;
+      }
 
       let parcelData = null;
       
       // Query parcel data from primary endpoint with fallback variants
       if (endpoints.parcel_url) {
         console.log('Querying parcel data from:', endpoints.parcel_url);
-        console.log('Parcel query params:', parcelParams.toString());
+        console.log('Parcel query params:', new URLSearchParams(parcelParams).toString());
         
         // Try primary query first
         try {
-          const parcelResp = await fetch(`${endpoints.parcel_url}?${parcelParams}`);
+          const parcelResp = await fetch(`${endpoints.parcel_url}?${new URLSearchParams(parcelParams)}`);
           parcelData = await safeJsonParse(parcelResp, 'Parcel query');
           console.log('Parcel API response:', { 
             status: parcelResp.status,
@@ -1354,10 +1455,10 @@ serve(async (req) => {
             error: parcelData?.error
           });
           
-          // If primary query fails and we're in Harris County, try buffered query
-          if (!parcelData?.features?.[0] && countyName === 'Harris County') {
-            console.log('No features found, trying buffered query (50 feet radius)...');
-            const bufferedParams = new URLSearchParams({
+          // If primary query fails for Harris County, try buffered point query
+          if (!parcelData?.features?.[0] && countyName === 'Harris County' && !useEnvelope) {
+            console.log('No features found, trying buffered point query (50 feet radius)...');
+            const bufferedParams: Record<string, string> = {
               geometry: geometryCoords,
               geometryType: 'esriGeometryPoint',
               spatialRel: 'esriSpatialRelIntersects',
@@ -1367,9 +1468,9 @@ serve(async (req) => {
               units: 'esriSRUnit_Foot',
               returnGeometry: 'true',
               f: 'geojson'
-            });
+            };
             
-            const bufferedResp = await fetch(`${endpoints.parcel_url}?${bufferedParams}`);
+            const bufferedResp = await fetch(`${endpoints.parcel_url}?${new URLSearchParams(bufferedParams)}`);
             const bufferedData = await safeJsonParse(bufferedResp, 'Buffered parcel query');
             if (bufferedData?.features?.[0]) {
               console.log('✅ Buffered query succeeded');
