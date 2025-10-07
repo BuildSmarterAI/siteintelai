@@ -52,7 +52,7 @@ export default function Dashboard() {
         .from('reports')
         .select(`
           *,
-          applications!application_id (
+          applications!reports_application_id_fkey (
             formatted_address,
             property_address
           )
