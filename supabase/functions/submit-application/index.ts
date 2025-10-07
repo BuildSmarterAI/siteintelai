@@ -308,6 +308,24 @@ serve(async (req) => {
       console.error('Failed to invoke enrichment:', invokeError);
     }
 
+    // Trigger AI report generation (fire and forget - won't block response)
+    try {
+      supabase.functions.invoke('generate-ai-report', {
+        body: { 
+          application_id: data.id,
+          report_type: 'full_report'
+        }
+      }).then(result => {
+        if (result.error) {
+          console.error('[submit-application] AI report generation error:', result.error);
+        } else {
+          console.log('[submit-application] AI report generation triggered');
+        }
+      });
+    } catch (aiError) {
+      console.error('Failed to trigger AI report:', aiError);
+    }
+
     // Return success response
     return new Response(JSON.stringify({
       id: data.id,

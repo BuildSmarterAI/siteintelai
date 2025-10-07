@@ -416,6 +416,41 @@ export type Database = {
         }
         Relationships: []
       }
+      credits_usage: {
+        Row: {
+          application_id: string | null
+          cost: number
+          created_at: string
+          id: string
+          report_type: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          cost: number
+          created_at?: string
+          id?: string
+          report_type: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          cost?: number
+          created_at?: string
+          id?: string
+          report_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credits_usage_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feasibility_geospatial: {
         Row: {
           application_id: string | null
@@ -493,6 +528,122 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          application_id: string
+          created_at: string
+          error_message: string | null
+          feasibility_score: number | null
+          id: string
+          json_data: Json | null
+          pdf_url: string | null
+          report_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          error_message?: string | null
+          feasibility_score?: number | null
+          id?: string
+          json_data?: Json | null
+          pdf_url?: string | null
+          report_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          error_message?: string | null
+          feasibility_score?: number | null
+          id?: string
+          json_data?: Json | null
+          pdf_url?: string | null
+          report_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_tiers: {
+        Row: {
+          api_access: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          price_monthly: number
+          quickchecks_unlimited: boolean | null
+          reports_per_month: number | null
+        }
+        Insert: {
+          api_access?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          price_monthly: number
+          quickchecks_unlimited?: boolean | null
+          reports_per_month?: number | null
+        }
+        Update: {
+          api_access?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_monthly?: number
+          quickchecks_unlimited?: boolean | null
+          reports_per_month?: number | null
+        }
+        Relationships: []
+      }
       txdot_traffic_segments: {
         Row: {
           aadt: number | null
@@ -529,6 +680,74 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          id: string
+          period_end: string | null
+          period_start: string
+          quickchecks_used: number | null
+          reports_used: number | null
+          status: string
+          tier_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          quickchecks_used?: number | null
+          reports_used?: number | null
+          status?: string
+          tier_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          quickchecks_used?: number | null
+          reports_used?: number | null
+          status?: string
+          tier_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       utility_endpoints: {
         Row: {
           geometry_type: string
@@ -564,10 +783,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -694,6 +919,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user", "enterprise"],
+    },
   },
 } as const

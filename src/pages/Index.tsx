@@ -16,10 +16,14 @@ import { FinalCTA } from "@/components/sections/FinalCTA";
 import { Footer } from "@/components/sections/Footer";
 import { MobileCTA } from "@/components/sections/MobileCTA";
 import { StickyCTA } from "@/components/sections/StickyCTA";
+import { AuthButton } from "@/components/AuthButton";
 
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <div className="absolute top-4 right-4 z-50">
+        <AuthButton />
+      </div>
       <Hero />
       <AssociationLogos />
       <Problem />
