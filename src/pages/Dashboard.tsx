@@ -145,7 +145,9 @@ export default function Dashboard() {
                         {report.status}
                       </Badge>
                       {report.status === 'completed' && (
-                        <Button size="sm">View Report</Button>
+                        <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                          View Report
+                        </Button>
                       )}
                     </div>
                   </div>
