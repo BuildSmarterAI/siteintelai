@@ -21,6 +21,7 @@ export type Database = {
           additional_notes: string | null
           administrative_area_level_1: string | null
           aerial_imagery_url: string | null
+          ai_context: Json | null
           api_meta: Json | null
           attachments: Json | null
           average_permit_time_months: number | null
@@ -47,6 +48,7 @@ export type Database = {
           elevation: number | null
           email: string
           employment_clusters: Json | null
+          enrichment_metadata: Json | null
           enrichment_status: string
           enterprise_zone: boolean | null
           entitlement_notes: string | null
@@ -101,6 +103,7 @@ export type Database = {
           quality_level: string
           report_url: string | null
           schedule_output: string | null
+          scoring_weights: Json | null
           sewer_capacity_mgd: number | null
           sewer_lines: Json | null
           situs_address: string | null
@@ -146,6 +149,7 @@ export type Database = {
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          ai_context?: Json | null
           api_meta?: Json | null
           attachments?: Json | null
           average_permit_time_months?: number | null
@@ -172,6 +176,7 @@ export type Database = {
           elevation?: number | null
           email: string
           employment_clusters?: Json | null
+          enrichment_metadata?: Json | null
           enrichment_status?: string
           enterprise_zone?: boolean | null
           entitlement_notes?: string | null
@@ -226,6 +231,7 @@ export type Database = {
           quality_level: string
           report_url?: string | null
           schedule_output?: string | null
+          scoring_weights?: Json | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
           situs_address?: string | null
@@ -271,6 +277,7 @@ export type Database = {
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          ai_context?: Json | null
           api_meta?: Json | null
           attachments?: Json | null
           average_permit_time_months?: number | null
@@ -297,6 +304,7 @@ export type Database = {
           elevation?: number | null
           email?: string
           employment_clusters?: Json | null
+          enrichment_metadata?: Json | null
           enrichment_status?: string
           enterprise_zone?: boolean | null
           entitlement_notes?: string | null
@@ -351,6 +359,7 @@ export type Database = {
           quality_level?: string
           report_url?: string | null
           schedule_output?: string | null
+          scoring_weights?: Json | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
           situs_address?: string | null
@@ -625,6 +634,8 @@ export type Database = {
       }
       reports: {
         Row: {
+          ai_completion_tokens: number | null
+          ai_prompt_tokens: number | null
           application_id: string
           created_at: string
           error_message: string | null
@@ -633,11 +644,15 @@ export type Database = {
           json_data: Json | null
           pdf_url: string | null
           report_type: string
+          score_band: string | null
           status: string
           updated_at: string
           user_id: string
+          validation_status: string | null
         }
         Insert: {
+          ai_completion_tokens?: number | null
+          ai_prompt_tokens?: number | null
           application_id: string
           created_at?: string
           error_message?: string | null
@@ -646,11 +661,15 @@ export type Database = {
           json_data?: Json | null
           pdf_url?: string | null
           report_type: string
+          score_band?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          validation_status?: string | null
         }
         Update: {
+          ai_completion_tokens?: number | null
+          ai_prompt_tokens?: number | null
           application_id?: string
           created_at?: string
           error_message?: string | null
@@ -659,9 +678,11 @@ export type Database = {
           json_data?: Json | null
           pdf_url?: string | null
           report_type?: string
+          score_band?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          validation_status?: string | null
         }
         Relationships: [
           {

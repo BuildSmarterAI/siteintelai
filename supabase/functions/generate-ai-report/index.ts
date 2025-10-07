@@ -128,29 +128,111 @@ serve(async (req) => {
 
 function buildSystemPrompt(reportType: string): string {
   if (reportType === 'quickcheck') {
-    return `You are an AI feasibility analyst. Generate a concise QuickCheck summary focusing ONLY on:
-- Zoning classification and primary use
-- Flood risk zone and base flood elevation
-- Major red flags or opportunities
+    return `You are BuildSmarter™ AI, a feasibility analyst specializing in Texas commercial real estate.
 
-Output format: JSON with keys: zoning_summary, flood_summary, quick_verdict (Buildable/Caution/Not Recommended)`;
+CRITICAL GUIDELINES:
+- Output ONLY valid JSON
+- Use US customary units (feet, acres, miles)
+- Cite sources for every claim (e.g., "Per FEMA NFHL...", "TxDOT AADT shows...")
+- Never invent data
+- Round to 2 decimals max
+
+QuickCheck JSON schema:
+{
+  "summary": {
+    "feasibility_score": number (0-100),
+    "score_band": "A"|"B"|"C",
+    "executive_summary": "2-3 sentence verdict"
+  },
+  "zoning": {
+    "zoning_summary": "Current zoning and primary permitted uses",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "flood": {
+    "flood_summary": "Zone, BFE, risk level",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "data_sources": [
+    {"provider": "...", "dataset": "...", "accessed": "YYYY-MM-DD"}
+  ]
+}`;
   }
 
-  return `You are an AI feasibility analyst for commercial real estate development in Texas. 
-Generate a comprehensive, lender-ready feasibility report based on authoritative data sources.
+  return `You are BuildSmarter™ AI, a feasibility analyst for commercial real estate development in Texas.
 
-Output format: JSON with the following sections (each as markdown text):
-- executive_summary: 2-3 paragraphs summarizing buildability, risks, and opportunities
-- property_overview: Parcel details, ownership, acreage, location context
-- zoning_analysis: Zoning code, permitted uses, overlay districts, entitlement notes
-- utilities_analysis: Water, sewer, storm infrastructure proximity and capacity
-- environmental_analysis: Flood zones, wetlands, soil conditions, historical flood events
-- traffic_market: AADT counts, nearby highways, population demographics
-- financial_jurisdictional: Tax rates, opportunity zones, permitting timeline
-- highest_best_use: Recommended development types with reasoning
-- feasibility_verdict: Clear recommendation with risk factors
+CRITICAL GUIDELINES:
+- Output ONLY valid JSON (no markdown, no preamble)
+- Use US customary units exclusively (feet, acres, miles, sq ft)
+- Cite authoritative sources for every statement (FEMA NFHL, TxDOT, HCAD, etc.)
+- Never hallucinate data - use only provided sources
+- Round to 2 decimals maximum
+- Do not fabricate URLs or dates
 
-Always cite data sources (e.g., "Per FEMA NFHL...", "TxDOT AADT data shows...")`;
+Full Report JSON schema:
+{
+  "summary": {
+    "feasibility_score": number (0-100, calculated deterministically),
+    "score_band": "A"|"B"|"C" (A: 80+, B: 60-79, C: <60),
+    "executive_summary": "markdown paragraph",
+    "key_risks": ["risk 1", "risk 2"],
+    "key_opportunities": ["opportunity 1", "opportunity 2"]
+  },
+  "zoning": {
+    "verdict": "markdown analysis",
+    "code": "actual zoning code",
+    "overlay_districts": ["district 1"],
+    "permitted_uses": ["use 1", "use 2"],
+    "component_score": number (0-100),
+    "citations": [{"source": "HCAD", "url": "..."}]
+  },
+  "flood": {
+    "verdict": "markdown analysis",
+    "zone": "actual FEMA zone",
+    "base_flood_elevation_ft": number,
+    "site_elevation_ft": number,
+    "component_score": number (0-100),
+    "citations": [{"source": "FEMA NFHL", "url": "..."}]
+  },
+  "utilities": {
+    "verdict": "markdown analysis",
+    "water_proximity_ft": number,
+    "sewer_proximity_ft": number,
+    "storm_proximity_ft": number,
+    "component_score": number (0-100),
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "environmental": {
+    "verdict": "markdown analysis",
+    "wetlands": "present|absent",
+    "soil_type": "...",
+    "contaminated_sites": ["site 1"],
+    "component_score": number (0-100),
+    "citations": [{"source": "USFWS", "url": "..."}]
+  },
+  "cost_schedule": {
+    "verdict": "markdown analysis",
+    "estimated_timeline_months": number,
+    "permitting_complexity": "low|medium|high",
+    "component_score": number (0-100),
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "data_sources": [
+    {"provider": "FEMA", "dataset": "NFHL", "accessed": "YYYY-MM-DD"}
+  ],
+  "figures": [
+    {"title": "...", "caption": "...", "type": "map|chart|photo", "url": "..."}
+  ]
+}
+
+SCORING RULES (deterministic):
+- Zoning: 100 if commercial/mixed, 50 if residential, 0 if agricultural
+- Flood: 100 if Zone X, 50 if Zone AE with elevation>BFE, 0 if in floodway
+- Utilities: 100 if all within 500ft, 50 if within 1000ft, 0 if >1000ft
+- Environmental: 100 if no wetlands/contamination, 50 if minor issues, 0 if major
+- Schedule: Based on permitting complexity
+- Market: Based on AADT and population density
+
+Never use placeholders or "TBD" - use actual data or mark as "data unavailable".`;
 }
 
 function buildUserPrompt(application: any, reportType: string): string {
@@ -185,20 +267,112 @@ function buildUserPrompt(application: any, reportType: string): string {
 }
 
 function calculateFeasibilityScore(application: any, reportData: any): number {
-  let score = 50; // Base score
+  // Get weights from application or use defaults
+  const weights = application.scoring_weights || {
+    zoning: 25,
+    flood: 20,
+    utilities: 20,
+    environmental: 15,
+    schedule: 10,
+    market: 10
+  };
 
-  // Positive factors
-  if (application.zoning_code && !application.zoning_code.includes('VACANT')) score += 10;
-  if (!application.floodplain_zone || application.floodplain_zone === 'X') score += 15;
-  if (application.water_lines?.length > 0) score += 5;
-  if (application.sewer_lines?.length > 0) score += 5;
-  if (application.traffic_aadt && application.traffic_aadt > 10000) score += 10;
-  if (application.population_5mi && application.population_5mi > 50000) score += 5;
+  // Calculate component scores deterministically
+  const componentScores = {
+    zoning: calculateZoningScore(application),
+    flood: calculateFloodScore(application),
+    utilities: calculateUtilitiesScore(application),
+    environmental: calculateEnvironmentalScore(application),
+    schedule: calculateScheduleScore(application),
+    market: calculateMarketScore(application)
+  };
 
-  // Negative factors
-  if (application.floodplain_zone === 'A' || application.floodplain_zone === 'AE') score -= 20;
-  if (application.wetlands_type && application.wetlands_type !== 'None') score -= 10;
-  if (application.environmental_sites && application.environmental_sites.length > 0) score -= 10;
+  // Weighted sum
+  const totalScore = Object.entries(componentScores).reduce((sum, [key, score]) => {
+    return sum + (score * weights[key] / 100);
+  }, 0);
 
-  return Math.max(0, Math.min(100, score));
+  return Math.round(Math.max(0, Math.min(100, totalScore)));
+}
+
+function calculateZoningScore(app: any): number {
+  const zoning = app.zoning_code?.toLowerCase() || '';
+  
+  if (zoning.includes('commercial') || zoning.includes('mixed') || zoning.includes('c-')) return 100;
+  if (zoning.includes('industrial') || zoning.includes('i-')) return 90;
+  if (zoning.includes('residential') || zoning.includes('r-')) return 50;
+  if (zoning.includes('agricultural') || zoning.includes('a-')) return 20;
+  
+  return 50; // Unknown
+}
+
+function calculateFloodScore(app: any): number {
+  const zone = app.floodplain_zone?.toUpperCase() || '';
+  const siteElev = app.elevation || 0;
+  const bfe = app.base_flood_elevation || 0;
+  
+  if (zone === 'X' || zone === 'C' || !zone) return 100;
+  if (zone === 'AE' || zone === 'A') {
+    if (siteElev > bfe + 2) return 80; // 2ft freeboard
+    if (siteElev > bfe) return 60;
+    return 20;
+  }
+  if (zone.includes('FLOODWAY')) return 0;
+  
+  return 40;
+}
+
+function calculateUtilitiesScore(app: any): number {
+  const hasWater = app.water_lines && app.water_lines.length > 0;
+  const hasSewer = app.sewer_lines && app.sewer_lines.length > 0;
+  const hasStorm = app.storm_lines && app.storm_lines.length > 0;
+  
+  let score = 0;
+  if (hasWater) score += 35;
+  if (hasSewer) score += 40;
+  if (hasStorm) score += 25;
+  
+  return score;
+}
+
+function calculateEnvironmentalScore(app: any): number {
+  let score = 100;
+  
+  if (app.wetlands_type && app.wetlands_type !== 'None') score -= 30;
+  if (app.environmental_sites && app.environmental_sites.length > 0) {
+    score -= app.environmental_sites.length * 20;
+  }
+  
+  return Math.max(0, score);
+}
+
+function calculateScheduleScore(app: any): number {
+  // Based on complexity indicators
+  const hasOverlay = app.overlay_district && app.overlay_district !== 'None';
+  const inFloodzone = app.floodplain_zone && app.floodplain_zone !== 'X';
+  
+  let score = 100;
+  if (hasOverlay) score -= 20;
+  if (inFloodzone) score -= 15;
+  
+  return Math.max(0, score);
+}
+
+function calculateMarketScore(app: any): number {
+  const aadt = app.traffic_aadt || 0;
+  const pop5mi = app.population_5mi || 0;
+  
+  let score = 0;
+  
+  // Traffic score (max 50)
+  if (aadt > 20000) score += 50;
+  else if (aadt > 10000) score += 35;
+  else if (aadt > 5000) score += 20;
+  
+  // Population score (max 50)
+  if (pop5mi > 100000) score += 50;
+  else if (pop5mi > 50000) score += 35;
+  else if (pop5mi > 20000) score += 20;
+  
+  return Math.min(100, score);
 }

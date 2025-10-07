@@ -1,14 +1,92 @@
-# API Integration Mapping - BuildSmarter Feasibility Platform
+# API Integration Mapping – BuildSmarter™ Feasibility
 
 **Last Updated:** 2025-10-07  
 **Project ID:** mcmfwlgovubpdcfiqfvk  
-**Environment:** Production
+**Environment:** Production  
+**Implementation Status:** ✅ Fully Operational
 
 ---
 
 ## 🎯 Overview
 
-This document maps all API integrations, edge functions, and data flows in the BuildSmarter feasibility analysis platform. The system orchestrates Google Places API, ArcGIS REST Services, and internal enrichment pipelines to deliver comprehensive property feasibility reports.
+This document consolidates all API integrations, enrichment workflows, data flow, AI pipeline, GIS spatial analysis, and UI components for the BuildSmarter™ Feasibility platform.
+
+### System Architecture
+
+**Technology Stack:**
+- **Frontend**: React 18.3 + Vite + TypeScript + Tailwind CSS + shadcn/ui
+- **Backend**: Supabase (PostgreSQL + Edge Functions)
+- **Mapping**: Leaflet for interactive geospatial visualization
+- **AI**: Lovable AI Gateway (Google Gemini 2.5 Flash)
+- **External APIs**: Google Places, ArcGIS REST Services, FEMA, TxDOT
+
+**Key Components:**
+1. **Frontend (React + Vite)**: User intake, progress tracking, report viewing
+2. **Supabase Edge Functions**: Enrichment pipeline, AI generation, geospatial processing
+3. **Database (PostgreSQL)**: Applications, reports, geospatial layers, utility endpoints
+4. **External APIs**: Google Places, FEMA, TxDOT, utility providers
+5. **AI Pipeline**: Lovable AI for deterministic feasibility report generation
+
+### UI Components Created
+
+#### ProgressModal
+**Purpose**: Real-time job status tracking during report generation  
+**Features**:
+- Supabase realtime subscriptions for live updates
+- Visual progress indicators (0-100%)
+- Stage-based messaging (Queued → Enriching → AI → Rendering → Complete)
+- Error handling with retry support
+
+**Usage**:
+```tsx
+<ProgressModal
+  applicationId={appId}
+  isOpen={true}
+  onComplete={(reportId) => navigate(`/report/${reportId}`)}
+/>
+```
+
+#### MapCanvas
+**Purpose**: Interactive geospatial visualization using Leaflet  
+**Features**:
+- Displays parcels, flood zones, utilities, traffic segments
+- Color-coded overlays (flood zones red/yellow, utilities by type)
+- Popup tooltips with data details
+- Responsive zoom and pan controls
+
+**Usage**:
+```tsx
+<MapCanvas
+  center={[29.7604, -95.3698]}
+  zoom={15}
+  parcel={parcelData}
+  floodZones={floodData}
+  utilities={utilityData}
+  traffic={trafficData}
+/>
+```
+
+#### ScoreCircle
+**Purpose**: Visual display of feasibility score with letter grade  
+**Features**:
+- Circular progress indicator (0-100)
+- Color-coded grades (A=green, B=yellow, C=red)
+- Sizes: sm, md, lg
+- Animated transitions
+
+**Usage**:
+```tsx
+<ScoreCircle score={85} size="lg" showLabel={true} />
+```
+
+#### ReportViewer
+**Purpose**: Comprehensive report display page  
+**Features**:
+- Executive summary with score and key insights
+- Interactive map showing property location
+- Tabbed analysis sections (Zoning, Flood, Utilities, Environmental)
+- PDF download functionality
+- Component score badges
 
 ---
 
