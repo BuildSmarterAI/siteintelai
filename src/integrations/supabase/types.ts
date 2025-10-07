@@ -545,6 +545,51 @@ export type Database = {
         }
         Relationships: []
       }
+      jobs_enrichment: {
+        Row: {
+          application_id: string
+          error_message: string | null
+          finished_at: string | null
+          id: number
+          job_status: string | null
+          provider_calls: Json | null
+          started_at: string | null
+        }
+        Insert: {
+          application_id: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: number
+          job_status?: string | null
+          provider_calls?: Json | null
+          started_at?: string | null
+        }
+        Update: {
+          application_id?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: number
+          job_status?: string | null
+          provider_calls?: Json | null
+          started_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_enrichment_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_enrichment_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
