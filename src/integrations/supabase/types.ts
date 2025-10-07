@@ -452,6 +452,13 @@ export type Database = {
             referencedRelation: "applications"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credits_usage_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
         ]
       }
       feasibility_geospatial: {
@@ -498,6 +505,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "applications"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feasibility_geospatial_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
           },
         ]
       }
@@ -606,11 +620,32 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_reports_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_reports_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
             foreignKeyName: "reports_application_id_fkey"
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
           },
         ]
       }
@@ -783,7 +818,123 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_parcels: {
+        Row: {
+          acreage_cad: number | null
+          application_id: string | null
+          city: string | null
+          county: string | null
+          created_at: string | null
+          elevation: number | null
+          existing_improvements: string | null
+          formatted_address: string | null
+          geo_lat: number | null
+          geo_lng: number | null
+          lot_size_unit: string | null
+          lot_size_value: number | null
+          neighborhood: string | null
+          overlay_district: string | null
+          ownership_status: string | null
+          parcel_id: string | null
+          property_address: Json | null
+          updated_at: string | null
+          zoning_code: string | null
+        }
+        Insert: {
+          acreage_cad?: number | null
+          application_id?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          elevation?: number | null
+          existing_improvements?: string | null
+          formatted_address?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
+          lot_size_unit?: string | null
+          lot_size_value?: number | null
+          neighborhood?: string | null
+          overlay_district?: string | null
+          ownership_status?: string | null
+          parcel_id?: string | null
+          property_address?: Json | null
+          updated_at?: string | null
+          zoning_code?: string | null
+        }
+        Update: {
+          acreage_cad?: number | null
+          application_id?: string | null
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          elevation?: number | null
+          existing_improvements?: string | null
+          formatted_address?: string | null
+          geo_lat?: number | null
+          geo_lng?: number | null
+          lot_size_unit?: string | null
+          lot_size_value?: number | null
+          neighborhood?: string | null
+          overlay_district?: string | null
+          ownership_status?: string | null
+          parcel_id?: string | null
+          property_address?: Json | null
+          updated_at?: string | null
+          zoning_code?: string | null
+        }
+        Relationships: []
+      }
+      v_reports_public: {
+        Row: {
+          application_id: string | null
+          city: string | null
+          county: string | null
+          created_at: string | null
+          feasibility_score: number | null
+          formatted_address: string | null
+          id: string | null
+          json_data: Json | null
+          lot_size_unit: string | null
+          lot_size_value: number | null
+          pdf_url: string | null
+          report_type: string | null
+          score_band: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          zoning_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_reports_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_reports_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
     }
     Functions: {
       has_role: {
@@ -791,6 +942,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      validate_report_json_schema: {
+        Args: { data: Json }
         Returns: boolean
       }
     }
