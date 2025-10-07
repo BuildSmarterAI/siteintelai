@@ -47,7 +47,7 @@ export type Database = {
           elevation: number | null
           email: string
           employment_clusters: Json | null
-          enrichment_status: string | null
+          enrichment_status: string
           enterprise_zone: boolean | null
           entitlement_notes: string | null
           environmental_constraints: string[] | null
@@ -126,6 +126,7 @@ export type Database = {
           traffic_year: number | null
           truck_percent: number | null
           updated_at: string
+          user_id: string | null
           utilities_map_url: string | null
           utilities_output: string | null
           utility_access: string[] | null
@@ -171,7 +172,7 @@ export type Database = {
           elevation?: number | null
           email: string
           employment_clusters?: Json | null
-          enrichment_status?: string | null
+          enrichment_status?: string
           enterprise_zone?: boolean | null
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
@@ -250,6 +251,7 @@ export type Database = {
           traffic_year?: number | null
           truck_percent?: number | null
           updated_at?: string
+          user_id?: string | null
           utilities_map_url?: string | null
           utilities_output?: string | null
           utility_access?: string[] | null
@@ -295,7 +297,7 @@ export type Database = {
           elevation?: number | null
           email?: string
           employment_clusters?: Json | null
-          enrichment_status?: string | null
+          enrichment_status?: string
           enterprise_zone?: boolean | null
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
@@ -374,6 +376,7 @@ export type Database = {
           traffic_year?: number | null
           truck_percent?: number | null
           updated_at?: string
+          user_id?: string | null
           utilities_map_url?: string | null
           utilities_output?: string | null
           utility_access?: string[] | null

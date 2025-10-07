@@ -88,7 +88,7 @@ serve(async (req) => {
       .from('reports')
       .insert({
         application_id,
-        user_id: application.created_by || null,
+        user_id: application.user_id || null,
         report_type,
         json_data: reportData,
         feasibility_score: feasibilityScore,

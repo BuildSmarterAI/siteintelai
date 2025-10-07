@@ -19,6 +19,16 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get user from authorization header (if authenticated)
+    const authHeader = req.headers.get('authorization');
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id || null;
+    }
+
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
@@ -178,6 +188,9 @@ serve(async (req) => {
 
     // Prepare the application data
     const applicationData = {
+      // Link to authenticated user if available
+      user_id: userId,
+      
       // Step 1: Contact Information
       full_name: requestData.fullName,
       company: requestData.company,
