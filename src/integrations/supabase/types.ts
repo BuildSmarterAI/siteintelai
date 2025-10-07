@@ -647,7 +647,7 @@ export type Database = {
           score_band: string | null
           status: string
           updated_at: string
-          user_id: string
+          user_id: string | null
           validation_status: string | null
         }
         Insert: {
@@ -664,7 +664,7 @@ export type Database = {
           score_band?: string | null
           status?: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           validation_status?: string | null
         }
         Update: {
@@ -681,7 +681,7 @@ export type Database = {
           score_band?: string | null
           status?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           validation_status?: string | null
         }
         Relationships: [
