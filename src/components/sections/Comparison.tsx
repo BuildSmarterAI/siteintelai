@@ -20,8 +20,8 @@ export const Comparison = () => {
     <section className="bg-white py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 md:mb-16">
-          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6 tracking-wider uppercase">
-            THE COST OF RISK VS. THE VALUE OF CLARITY
+          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6">
+            The Cost of Risk vs. The Value of Clarity
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal max-w-4xl mx-auto leading-relaxed">
             Skipping feasibility can sink your project. BuildSmarter™ transforms unknowns into lender-ready confidence.

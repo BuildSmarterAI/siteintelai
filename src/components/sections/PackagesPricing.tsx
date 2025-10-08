@@ -36,8 +36,8 @@ export const PackagesPricing = () => {
     <section className="bg-light-gray py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 md:mb-16">
-          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6 tracking-wider uppercase">
-            CHOOSE THE LEVEL OF FEASIBILITY THAT FITS YOUR PROJECT
+          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6">
+            Choose the Level of Feasibility That Fits Your Project
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal max-w-5xl mx-auto leading-relaxed">
             Whether you need a fast go/no-go or a lender-ready report, BuildSmarter™ has an option designed for your property and timeline.

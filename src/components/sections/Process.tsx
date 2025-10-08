@@ -39,8 +39,8 @@ export const Process = () => {
     <section className="bg-white py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 md:mb-16">
-          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6 tracking-wider uppercase">
-            THE AI-POWERED 4-STEP PIPELINE
+          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6">
+            The AI-Powered 4-Step Pipeline
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal/80 leading-relaxed">
             From address input to lender-ready report in 10 minutes.

@@ -37,7 +37,7 @@ export const InteractiveCalculator = () => {
     <section className="bg-gradient-to-br from-navy/5 to-maxx-red/5 py-20">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-4 tracking-wide uppercase">
+          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-4">
             Calculate Your Potential Savings
           </h3>
           <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto">

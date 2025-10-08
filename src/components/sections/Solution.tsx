@@ -37,8 +37,8 @@ export const Solution = () => {
     <section className="bg-light-gray py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-10 md:mb-16">
-          <h3 className="font-headline text-3xl md:text-4xl text-charcoal mb-6 md:mb-6 tracking-wider uppercase">
-            ACCELERATE DECISIONS. PROTECT CAPITAL. EARN CONFIDENCE.
+          <h3 className="font-headline text-3xl md:text-4xl text-charcoal mb-6 md:mb-6">
+            Accelerate Decisions. Protect Capital. Earn Confidence.
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal max-w-4xl mx-auto leading-relaxed">
             Our lender-ready feasibility reports validate every CRE property in under 3 weeks—delivering the clarity you need before capital is at risk.

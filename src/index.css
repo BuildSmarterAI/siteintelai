@@ -127,8 +127,8 @@ All colors MUST be HSL.
   }
 }
 
-/* Modern typography imports */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700&display=swap');
+/* BuildSmarter™ Brand Typography */
+/* Satoshi from Fontshare, Inter from Google Fonts, IBM Plex Mono from Google Fonts */
 
 @layer base {
   * {
@@ -140,23 +140,29 @@ All colors MUST be HSL.
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
+  /* BuildSmarter™ Typography System */
   .font-headline {
-    font-family: 'Inter', sans-serif;
-    font-weight: 800;
-    text-transform: uppercase;
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    font-weight: 700; /* Satoshi Bold/Semibold */
     letter-spacing: -0.02em;
     line-height: 1.1;
   }
   
   .font-body {
     font-family: 'Inter', sans-serif;
-    font-weight: 400;
+    font-weight: 400; /* Inter Regular */
     line-height: 1.6;
+  }
+  
+  .font-mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 400; /* IBM Plex Mono Regular */
+    line-height: 1.5;
   }
   
   .font-cta {
     font-family: 'Poppins', sans-serif;
-    font-weight: 600;
+    font-weight: 600; /* Poppins SemiBold */
     letter-spacing: -0.005em;
   }
   

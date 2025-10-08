@@ -81,8 +81,8 @@ export const WhoWeServe = () => {
     <section className="bg-white py-20 md:py-25">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 md:mb-16">
-          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6 tracking-wider uppercase">
-            BUILT FOR TEXAS CRE DECISION-MAKERS
+          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6">
+            Built for Texas CRE Decision-Makers
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal max-w-4xl mx-auto leading-relaxed">
             From developers to investors, BuildSmarter™ Feasibility helps every CRE leader protect capital and move projects forward with confidence.

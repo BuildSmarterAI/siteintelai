@@ -8,7 +8,7 @@ export const WebhookSetup = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="font-headline text-3xl md:text-4xl font-black text-charcoal mb-4 uppercase tracking-wide">
+            <h2 className="font-headline text-3xl md:text-4xl font-black text-charcoal mb-4">
               Automation Integration Setup
             </h2>
             <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto">

@@ -79,8 +79,8 @@ export const InteractiveProcess = () => {
     <section className="bg-white py-20">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
-          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-4 tracking-wide uppercase">
-            INSIDE THE AI PIPELINE
+          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-4">
+            Inside the AI Pipeline
           </h3>
           <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto mb-8">
             Click through each step to see how we generate lender-ready reports in 10 minutes

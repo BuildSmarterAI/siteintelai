@@ -128,10 +128,10 @@ export default {
         "slide-up": "slide-up 0.8s ease-out",
       },
       fontFamily: {
-        headline: ['Inter', 'sans-serif'],      /* Satoshi-like (using Inter Bold as fallback) */
-        body: ['Inter', 'sans-serif'],           /* Inter Regular */
-        mono: ['IBM Plex Mono', 'monospace'],    /* Data/Code */
-        cta: ['Poppins', 'sans-serif'],          /* CTA emphasis */
+        headline: ['Satoshi', 'Inter', 'sans-serif'],      /* Satoshi Semibold for headlines */
+        body: ['Inter', 'sans-serif'],                      /* Inter Regular for body */
+        mono: ['IBM Plex Mono', 'monospace'],               /* IBM Plex Mono for data/code */
+        cta: ['Poppins', 'sans-serif'],                     /* Poppins for CTA buttons */
       },
     },
   },

@@ -29,8 +29,8 @@ export const Problem = () => {
     <section className="bg-white py-20 lg:py-20">
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 lg:mb-16">
-          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-3 lg:mb-4 tracking-wide uppercase">
-            THE RISKS HIDING IN EVERY CRE PROPERTY
+          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-3 lg:mb-4">
+            The Risks Hiding in Every CRE Property
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal/80 max-w-4xl mx-auto leading-relaxed">
             Skipping feasibility quietly erodes IRR, derails schedules, and jeopardizes financing.
