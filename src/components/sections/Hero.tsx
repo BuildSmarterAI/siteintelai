@@ -229,22 +229,14 @@ export const Hero = () => {
                 <img src={buildSmarterLogo} alt="BuildSmarter" className="h-8 md:h-10" />
               </motion.div>
 
-              {/* Tagline */}
-              <motion.p
-                className="text-xs md:text-sm tracking-widest text-[#06B6D4] uppercase mb-4 font-medium"
-                variants={headlineVariants}
-              >
-                AI-Powered Feasibility Intelligence — Built from Real-World Data
-              </motion.p>
-
               {/* Headline */}
               <motion.h1
                 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline font-bold text-white leading-tight mb-6"
                 variants={headlineVariants}
               >
-                Verified Feasibility Intelligence.
+                BuildSmarter™ Feasibility.
                 <br />
-                <span className="text-[#FF7A00]">Exclusive Clarity</span> from Public Data.
+                <span className="text-[#FF7A00]">Verified Intelligence</span> for Every Site, Every Cost, Every Decision.
               </motion.h1>
 
               {/* Subheadline */}
@@ -252,7 +244,7 @@ export const Hero = () => {
                 className="text-base md:text-lg lg:text-xl text-[#CBD5E1] leading-relaxed mb-10 font-body"
                 variants={subheadVariants}
               >
-                BuildSmarter™ fuses thousands of municipal, cost, and infrastructure datasets into a proprietary intelligence engine—delivering instant feasibility clarity on what can be built, what it costs, and where risks live.
+                BuildSmarter™ Feasibility transforms complex public, municipal, and construction data into a single verified source of truth—helping you make faster, safer, and more profitable decisions.
               </motion.p>
 
               {/* CTA Group */}
@@ -273,7 +265,7 @@ export const Hero = () => {
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <span className="relative z-10">Run a Free QuickCheck →</span>
+                    <span className="relative z-10">Run a Feasibility QuickCheck →</span>
                     {/* Shimmer effect */}
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
@@ -288,7 +280,7 @@ export const Hero = () => {
                 
                 {/* Microcopy with Phase 4: Number Counter */}
                 <p className="mt-3 text-sm text-[#CBD5E1]/70">
-                  Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Instant report · No commitment
+                  Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Cost-calibrated from real projects · 10-minute turnaround
                 </p>
               </motion.div>
 
@@ -404,6 +396,16 @@ export const Hero = () => {
                   </Tooltip>
                 </motion.div>
               </TooltipProvider>
+
+              {/* Below-the-Fold Follow-Up Line */}
+              <motion.p
+                className="mt-8 pt-6 border-t border-white/10 text-xs md:text-sm text-[#CBD5E1]/50 italic"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1.6, duration: 0.4 }}
+              >
+                Powered by BuildSmarter's proprietary intelligence engine that fuses 20+ verified datasets into one model for true development clarity.
+              </motion.p>
             </motion.div>
           </div>
         </div>
