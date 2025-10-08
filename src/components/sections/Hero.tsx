@@ -265,7 +265,7 @@ export const Hero = () => {
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <span className="relative z-10">Run a Feasibility QuickCheck →</span>
+                    <span className="relative z-10">Generate My Feasibility Report</span>
                     {/* Shimmer effect */}
                     <motion.div
                       className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
