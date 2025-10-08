@@ -452,17 +452,40 @@ function generateReportHTML(report: any, application: any, jsonData: any): strin
 }
 
 async function convertHTMLtoPDF(html: string): Promise<Uint8Array> {
-  // Placeholder: In production, use Puppeteer or external PDF service
-  // For now, return HTML as bytes (will need actual PDF conversion)
-  const encoder = new TextEncoder();
-  return encoder.encode(html);
+  const pdfShiftApiKey = Deno.env.get('PDFSHIFT_API_KEY');
   
-  // TODO: Implement actual PDF conversion
-  // Example with external service:
-  // const response = await fetch('https://api.html2pdf.app/v1/generate', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify({ html, format: 'Letter' })
-  // });
-  // return new Uint8Array(await response.arrayBuffer());
+  if (!pdfShiftApiKey) {
+    throw new Error('PDFSHIFT_API_KEY environment variable is not set');
+  }
+
+  console.log('[generate-pdf] Converting HTML to PDF using PDFShift...');
+
+  const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Basic ${btoa(`api:${pdfShiftApiKey}`)}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      source: html,
+      landscape: false,
+      use_print: false,
+      format: 'Letter',
+      margin: {
+        top: '0.75in',
+        bottom: '0.75in',
+        left: '0.75in',
+        right: '0.75in'
+      }
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('[generate-pdf] PDFShift error:', errorText);
+    throw new Error(`PDFShift API error: ${response.status} - ${errorText}`);
+  }
+
+  console.log('[generate-pdf] PDF conversion successful');
+  return new Uint8Array(await response.arrayBuffer());
 }
