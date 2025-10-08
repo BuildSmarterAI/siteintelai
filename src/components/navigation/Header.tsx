@@ -81,7 +81,7 @@ export const Header = () => {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-8">
           <NavLink to="/feasibility" className={navLinkClass}>
             Feasibility
           </NavLink>
@@ -96,7 +96,7 @@ export const Header = () => {
               Industries
               <ChevronDown className="h-4 w-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-[#0A0F2C]/95 backdrop-blur-md border-white/10 z-50">
+            <DropdownMenuContent className="bg-[#0A0F2C] backdrop-blur-md border-white/10 z-[100]">
               {industries.map((item) => (
                 <DropdownMenuItem key={item.href} asChild>
                   <Link
@@ -116,7 +116,7 @@ export const Header = () => {
               Resources
               <ChevronDown className="h-4 w-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-[#0A0F2C]/95 backdrop-blur-md border-white/10 z-50">
+            <DropdownMenuContent className="bg-[#0A0F2C] backdrop-blur-md border-white/10 z-[100]">
               {resources.map((item) => (
                 <DropdownMenuItem key={item.href} asChild>
                   <Link
@@ -136,7 +136,7 @@ export const Header = () => {
         </nav>
 
         {/* CTA + Account */}
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-4">
           <Button
             asChild
             className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_4px_20px_rgba(255,122,0,0.4)] text-white font-semibold rounded-full px-6 relative overflow-hidden group"
@@ -167,7 +167,7 @@ export const Header = () => {
 
         {/* Mobile Menu */}
         <Sheet>
-          <SheetTrigger asChild className="lg:hidden">
+          <SheetTrigger asChild className="md:hidden">
             <Button variant="ghost" size="icon" className="text-white">
               <Menu className="h-6 w-6" />
             </Button>
