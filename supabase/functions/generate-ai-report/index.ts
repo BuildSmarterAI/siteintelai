@@ -74,9 +74,13 @@ serve(async (req) => {
     // Parse AI response (expecting JSON)
     let reportData;
     try {
-      reportData = JSON.parse(aiOutput);
+      // Strip markdown code fences if present
+      const cleanedOutput = stripMarkdownCodeFences(aiOutput);
+      reportData = JSON.parse(cleanedOutput);
+      console.log('[generate-ai-report] Successfully parsed AI JSON output');
     } catch (e) {
-      console.error('[generate-ai-report] Failed to parse AI output as JSON, using text wrapper');
+      console.error('[generate-ai-report] Failed to parse AI output as JSON');
+      console.error('[generate-ai-report] First 500 chars:', aiOutput.substring(0, 500));
       reportData = { rawText: aiOutput };
     }
 
@@ -375,4 +379,13 @@ function calculateMarketScore(app: any): number {
   else if (pop5mi > 20000) score += 20;
   
   return Math.min(100, score);
+}
+
+function stripMarkdownCodeFences(text: string): string {
+  // Remove ```json ... ``` or ``` ... ```
+  const jsonMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (jsonMatch) {
+    return jsonMatch[1].trim();
+  }
+  return text.trim();
 }

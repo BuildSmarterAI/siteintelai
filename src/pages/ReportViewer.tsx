@@ -85,11 +85,23 @@ export default function ReportViewer() {
   }
 
   const reportData = report.json_data || {};
-  const summary = reportData.summary || {};
-  const zoning = reportData.zoning || {};
-  const flood = reportData.flood || {};
-  const utilities = reportData.utilities || {};
-  const environmental = reportData.environmental || {};
+  
+  // Handle legacy reports with rawText wrapper
+  let parsedData = reportData;
+  if (reportData.rawText && !reportData.summary) {
+    try {
+      const stripped = reportData.rawText.replace(/```(?:json)?\s*\n?/g, '').replace(/```$/g, '');
+      parsedData = JSON.parse(stripped);
+    } catch (e) {
+      console.error('Failed to parse legacy rawText format');
+    }
+  }
+  
+  const summary = parsedData.summary || {};
+  const zoning = parsedData.zoning || {};
+  const flood = parsedData.flood || {};
+  const utilities = parsedData.utilities || {};
+  const environmental = parsedData.environmental || {};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
