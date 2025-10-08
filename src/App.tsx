@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Header } from "./components/navigation/Header";
+import { Footer } from "./components/navigation/Footer";
 import Index from "./pages/Index";
 import Application from "./pages/Application";
 import ThankYou from "./pages/ThankYou";
@@ -10,6 +12,12 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ReportViewer from "./pages/ReportViewer";
+import Feasibility from "./pages/Feasibility";
+import HowItWorks from "./pages/HowItWorks";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Developers from "./pages/industries/Developers";
+import Blog from "./pages/resources/Blog";
 
 const queryClient = new QueryClient();
 
@@ -19,16 +27,32 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/application" element={<Application />} />
-          <Route path="/thank-you" element={<ThankYou />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/report/:reportId" element={<ReportViewer />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Header />
+        <div className="pt-24">
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/application" element={<Application />} />
+            <Route path="/thank-you" element={<ThankYou />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/report/:reportId" element={<ReportViewer />} />
+            <Route path="/feasibility" element={<Feasibility />} />
+            <Route path="/how-it-works" element={<HowItWorks />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/industries/developers" element={<Developers />} />
+            <Route path="/industries/lenders" element={<Developers />} />
+            <Route path="/industries/design-build" element={<Developers />} />
+            <Route path="/industries/municipalities" element={<Developers />} />
+            <Route path="/resources/blog" element={<Blog />} />
+            <Route path="/resources/case-studies" element={<Blog />} />
+            <Route path="/resources/documentation" element={<Blog />} />
+            <Route path="/resources/api" element={<Blog />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+        <Footer />
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
