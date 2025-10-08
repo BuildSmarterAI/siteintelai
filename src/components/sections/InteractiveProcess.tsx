@@ -9,53 +9,53 @@ export const InteractiveProcess = () => {
 
   const steps = [
     {
-      title: "Site Submission",
-      duration: "1 Day",
-      description: "Upload your property details, development plans, and project requirements through our secure portal.",
+      title: "Input Site",
+      duration: "60 Seconds",
+      description: "Enter your property address or parcel ID. Our system instantly validates the location and prepares for data retrieval.",
       details: [
-        "Property address and legal description",
-        "Development scope and intended use",
-        "Timeline and budget parameters",
-        "Financing requirements"
+        "Property address or parcel ID",
+        "Development type (retail, multifamily, etc.)",
+        "Optional: Project scope",
+        "Instant validation"
       ],
       icon: MapPin,
       color: "maxx-red"
     },
     {
-      title: "Research & Analysis",
-      duration: "3-5 Days", 
-      description: "Our team conducts comprehensive zoning, utility, and regulatory analysis using proprietary databases.",
+      title: "AI Data Retrieval",
+      duration: "2-3 Minutes", 
+      description: "AI queries official government APIs in real-time: FEMA NFHL, ArcGIS county parcels, TxDOT, EPA, and USFWS datasets.",
       details: [
-        "Zoning compliance verification",
-        "Utility capacity assessment", 
-        "Regulatory requirement review",
-        "Market comparables analysis"
+        "FEMA flood zone data (NFHL)",
+        "ArcGIS parcel boundaries", 
+        "TxDOT infrastructure data",
+        "EPA environmental records"
       ],
       icon: FileText,
       color: "navy"
     },
     {
-      title: "Risk Assessment",
-      duration: "2-3 Days",
-      description: "Identify potential roadblocks, costs, and timeline impacts with actionable recommendations.",
+      title: "Automated Report Generation",
+      duration: "5-6 Minutes",
+      description: "AI processes retrieved data, calculates feasibility score (0-100), and generates structured JSON with full source citations.",
       details: [
-        "Entitlement risk evaluation",
-        "Infrastructure gap analysis",
-        "Cost impact projections",
-        "Timeline risk factors"
+        "Feasibility score calculation",
+        "Risk factor analysis",
+        "Cost and timeline projections",
+        "Source citation mapping"
       ],
       icon: Shield,
       color: "charcoal"
     },
     {
-      title: "Delivery & Review",
-      duration: "1 Day",
-      description: "Receive your comprehensive feasibility report with executive summary and action plan.",
+      title: "Instant PDF Output",
+      duration: "1-2 Minutes",
+      description: "Receive your lender-ready PDF report. Every section cites its data source with API endpoint for verification.",
       details: [
-        "Executive summary dashboard",
-        "Detailed findings report",
-        "Risk mitigation strategies",
-        "Next steps roadmap"
+        "Executive summary with AI score",
+        "Detailed findings by category",
+        "Full source citations",
+        "Downloadable PDF + JSON"
       ],
       icon: TrendingUp,
       color: "green-600"
@@ -80,10 +80,10 @@ export const InteractiveProcess = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-16">
           <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-4 tracking-wide uppercase">
-            Interactive Process Walkthrough
+            INSIDE THE AI PIPELINE
           </h3>
           <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto mb-8">
-            Click through each step to see exactly how we deliver your feasibility analysis
+            Click through each step to see how we generate lender-ready reports in 10 minutes
           </p>
         </div>
 
@@ -207,17 +207,18 @@ export const InteractiveProcess = () => {
             <div className="text-center mt-12 animate-fade-in">
               <div className="bg-gradient-to-r from-maxx-red to-navy text-white p-8 rounded-lg">
                 <h4 className="font-headline text-2xl font-bold mb-4">
-                  Ready to Start Your Feasibility Review?
+                  Ready to Get Your Report?
                 </h4>
                 <p className="font-body text-lg mb-6 text-white/90">
-                  Get this same comprehensive analysis for your property in just 1-4 weeks.
+                  Run a Free QuickCheck or purchase a Professional Report in 10 minutes.
                 </p>
                 <Button 
                   variant="secondary"
                   size="lg"
                   className="px-8 py-4 text-lg font-cta bg-white text-charcoal hover:bg-white/90"
+                  onClick={() => window.location.href = '/application?step=2'}
                 >
-                  Start My Review Now
+                  Run Free QuickCheck →
                 </Button>
               </div>
             </div>

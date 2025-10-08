@@ -30,10 +30,10 @@ export const StickyCTA = () => {
           <div className="container mx-auto flex items-center justify-between">
             <div className="flex-1">
               <h4 className="font-headline font-bold text-lg mb-2">
-                Don't Risk Your Next CRE Investment
+                $10K Feasibility in 10 Minutes—Verified by FEMA
               </h4>
               <p className="font-body text-sm text-white/90">
-                Get BuildSmarter™ Feasibility analysis and protect your IRR from hidden risks.
+                Run a Free QuickCheck or get a lender-ready Professional Report for $795.
               </p>
             </div>
             <div className="flex items-center gap-4 ml-6">
@@ -41,9 +41,9 @@ export const StickyCTA = () => {
                 variant="secondary"
                 size="lg"
                 className="px-6 py-3 font-cta bg-white text-charcoal hover:bg-white/90"
-                onClick={() => window.location.href = '/application'}
+                onClick={() => window.location.href = '/application?step=2'}
               >
-                Start My Review
+                Run Free QuickCheck →
               </Button>
               <button
                 onClick={() => setIsExpanded(false)}
@@ -65,10 +65,10 @@ export const StickyCTA = () => {
               className="flex-1 text-left group"
             >
               <div className="font-headline font-bold text-base group-hover:text-white/90 transition-colors">
-                Ready to Start Your Feasibility Review?
+                10-Minute Feasibility Reports
               </div>
               <div className="font-body text-sm text-white/80">
-                Click to learn more →
+                Free QuickCheck available →
               </div>
             </button>
             
@@ -76,9 +76,9 @@ export const StickyCTA = () => {
               <Button 
                 variant="secondary"
                 className="px-4 py-2 font-cta bg-white text-charcoal hover:bg-white/90 text-sm"
-                onClick={() => window.location.href = '/application'}
+                onClick={() => window.location.href = '/application?step=2'}
               >
-                Get Started
+                Free QuickCheck
               </Button>
               <button
                 onClick={scrollToTop}

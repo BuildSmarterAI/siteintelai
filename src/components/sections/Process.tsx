@@ -11,21 +11,27 @@ export const Process = () => {
   const steps = [
     {
       icon: ClipboardList,
-      iconColor: "text-navy",
-      title: "Apply in 60 Seconds",
-      description: "Submit your property details in a short application form. Takes less than a minute to get started."
+      iconColor: "text-maxx-red",
+      title: "1. Input Site",
+      description: "Enter property address or parcel ID. Takes 60 seconds."
     },
     {
       icon: Search,
-      iconColor: "text-maxx-red",
-      title: "Expert Review & Analysis",
-      description: "Our team validates zoning overlays, entitlements, utility capacity, and cost benchmarks using Texas-specific data."
+      iconColor: "text-navy",
+      title: "2. AI Data Retrieval",
+      description: "Our AI queries FEMA NFHL, ArcGIS, TxDOT, EPA, and USFWS APIs in real-time to gather official datasets."
     },
     {
       icon: FileText,
       iconColor: "text-green-600",
-      title: "Lender-Ready Report",
-      description: "Within 1–3 weeks, receive a feasibility package with findings + a consultation call to discuss go/no-go options."
+      title: "3. Automated Report Generation",
+      description: "AI processes data, calculates feasibility score (0-100), and generates JSON with full source citations."
+    },
+    {
+      icon: FileText,
+      iconColor: "text-charcoal",
+      title: "4. Instant PDF Output",
+      description: "Receive lender-ready PDF report with cited data in 10 minutes. Every section includes source endpoints for verification."
     }
   ];
 
@@ -34,10 +40,10 @@ export const Process = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 md:mb-16">
           <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6 tracking-wider uppercase">
-            HOW BUILDSMARTER™ WORKS
+            THE AI-POWERED 4-STEP PIPELINE
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal/80 leading-relaxed">
-            A clear 3-step path from application to lender-ready clarity.
+            From address input to lender-ready report in 10 minutes.
           </h4>
         </div>
         

@@ -9,11 +9,11 @@ export const FinalCTA = () => {
         </h2>
         
         <p className="font-body text-xl text-maxx-red-foreground/90 mb-2 max-w-3xl mx-auto leading-relaxed">
-          Validate your next Texas CRE deal with institutional-grade intelligence.
+          $10K feasibility in 10 minutes. Verified by FEMA, cited for lenders.
         </p>
         
         <p className="font-body text-sm text-maxx-red-foreground/80 mb-8 font-semibold">
-          Only 5 projects accepted monthly – secure your spot.
+          Free QuickCheck available. Professional Reports start at $795.
         </p>
         
         <div className="mb-6">
@@ -21,13 +21,14 @@ export const FinalCTA = () => {
             variant="outline"
             size="lg"
             className="bg-maxx-red-foreground text-maxx-red border-maxx-red-foreground hover:bg-maxx-red-foreground/90 text-lg px-8 py-4 h-auto font-cta font-semibold"
+            onClick={() => window.location.href = '/application?step=2'}
           >
-            Get My Lender-Ready Report
+            Run Free QuickCheck →
           </Button>
         </div>
         
         <p className="font-body text-sm text-maxx-red-foreground/80">
-          2-3 week delivery. Institutional-grade analysis.
+          10-minute delivery. AI-powered. Data-cited.
         </p>
       </div>
     </section>

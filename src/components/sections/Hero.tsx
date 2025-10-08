@@ -148,42 +148,42 @@ export const Hero = () => {
             
             {/* Modern headline with refined typography */}
             <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white mb-6 lg:mb-8 leading-tight tracking-tight">
-              <span className="block text-white">
-                BuildSmarter™
-              </span>
-              <span className="block text-white/95 font-light text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2">
-                Feasibility Intelligence
-              </span>
               <span className="block bg-gradient-to-r from-maxx-red to-red-500 bg-clip-text text-transparent font-bold">
-                Before You Buy—Before You Build.
+                $10K Feasibility in 10 Minutes—Verified by FEMA.
               </span>
             </h1>
             
             {/* Modern subheadline */}
             <h2 className="font-body text-lg lg:text-xl text-white/90 leading-relaxed max-w-2xl mb-8 lg:mb-10 fade-in-up" style={{ animationDelay: '0.4s' }}>
-              BuildSmarter™ Feasibility delivers lender-ready property reports in 2–3 weeks, not 2–3 months. Each report identifies zoning restrictions, utility capacity, floodplain risks, soils, costs, and permitting delays before you commit capital.
+              AI-generated, lender-ready feasibility reports using official FEMA, ArcGIS, and TxDOT data. Every BuildSmarter™ report cites its source for lender verification.
             </h2>
             
             {/* Modern CTA section */}
-            <div className="fade-in-up" style={{ animationDelay: '0.6s' }}>
-              <div className="mb-6">
-                <Button 
-                  variant="maxx-red" 
-                  size="lg" 
-                  className="font-cta text-lg px-10 py-4 h-auto w-full sm:w-auto rounded-xl hover-lift group"
-                  onClick={() => window.location.href = '/application?step=2'}
-                  style={{ boxShadow: 'var(--shadow-glow)' }}
-                >
-                  <span className="group-hover:scale-105 transition-transform duration-200">
-                    Start My Feasibility Review
-                  </span>
-                </Button>
-              </div>
+            <div className="fade-in-up flex flex-col sm:flex-row gap-4 items-start sm:items-center" style={{ animationDelay: '0.6s' }}>
+              <Button 
+                variant="maxx-red" 
+                size="lg" 
+                className="font-cta text-lg px-10 py-4 h-auto w-full sm:w-auto rounded-xl hover-lift group"
+                onClick={() => window.location.href = '/application?step=2'}
+                style={{ boxShadow: 'var(--shadow-glow)' }}
+              >
+                <span className="group-hover:scale-105 transition-transform duration-200">
+                  Run Free QuickCheck →
+                </span>
+              </Button>
               
-              <p className="font-body text-white/80 text-sm">
-                Advanced analysis • 60 seconds • No commitment required
-              </p>
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="font-cta text-lg px-8 py-4 h-auto w-full sm:w-auto rounded-xl border-2 border-white text-white hover:bg-white hover:text-charcoal transition-all duration-300"
+              >
+                Watch Demo
+              </Button>
             </div>
+            
+            <p className="font-body text-white/80 text-sm mt-6">
+              Data-cited for lenders • 10-minute turnaround • No commitment required
+            </p>
             
           </div>
         </div>

@@ -4,28 +4,31 @@ import { Badge } from "@/components/ui/badge";
 export const PackagesPricing = () => {
   const packages = [
     {
-      name: "QuickCheck™",
-      price: "$4,500",
-      timeline: "1 week",
-      description: "High-level zoning + cost scan in 1 week.",
-      benefit: "Best for early due diligence on potential acquisitions.",
-      popular: false
+      name: "Free QuickCheck™",
+      price: "$0",
+      timeline: "60 seconds",
+      description: "Preview zoning & flood data with AI score.",
+      benefit: "Perfect for initial property screening and quick go/no-go decisions.",
+      popular: false,
+      features: ["Zoning overview", "Flood zone status", "AI feasibility score (0-100)", "Instant results"]
     },
     {
-      name: "SiteFit™", 
-      price: "$10,000",
-      timeline: "2 weeks",
-      description: "Comprehensive zoning, utilities, cost, and risk analysis in 2 weeks.",
-      benefit: "Ideal for developers and investors seeking lender-ready clarity.",
-      popular: true
+      name: "Professional Report", 
+      price: "$795",
+      timeline: "10 minutes",
+      description: "Full PDF + JSON with cited FEMA & ArcGIS data.",
+      benefit: "Lender-ready feasibility report with comprehensive analysis and source citations.",
+      popular: true,
+      features: ["Complete PDF report", "JSON data export", "FEMA NFHL citations", "ArcGIS parcel data", "10-minute turnaround"]
     },
     {
-      name: "FullFeasibility™",
-      price: "$18,500", 
-      timeline: "3–4 weeks",
-      description: "Deep-dive feasibility including zoning, entitlements, utilities, environmental red flags, and timeline modeling (3–4 weeks).",
-      benefit: "Built for complex, high-stakes projects requiring investment committee approval.",
-      popular: false
+      name: "Pro Subscription",
+      price: "$1,950/mo", 
+      timeline: "Ongoing",
+      description: "10 reports per month with dashboard analytics.",
+      benefit: "For active investors and developers managing multiple properties.",
+      popular: false,
+      features: ["10 reports/month", "Priority processing", "Dashboard analytics", "Email support", "API access"]
     }
   ];
 
@@ -72,9 +75,17 @@ export const PackagesPricing = () => {
                     <p className="font-body text-base text-charcoal leading-relaxed">
                       {pkg.description}
                     </p>
-                    <p className="font-body text-sm text-charcoal/80 leading-relaxed">
+                    <p className="font-body text-sm text-charcoal/80 leading-relaxed mb-4">
                       {pkg.benefit}
                     </p>
+                    <ul className="space-y-2">
+                      {pkg.features.map((feature, idx) => (
+                        <li key={idx} className="font-body text-sm text-charcoal/70 flex items-start">
+                          <span className="text-maxx-red mr-2">✓</span>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </div>

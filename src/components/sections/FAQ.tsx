@@ -17,7 +17,7 @@ export const FAQ = () => {
     },
     {
       question: "How fast can I get results?",
-      answer: "QuickCheck: 1 week. SiteFit: 2 weeks. FullFeasibility: 3–4 weeks. Designed to match deal flow timelines."
+      answer: "Free QuickCheck: 60 seconds. Professional Report: 10 minutes. Pro Subscription includes 10 reports per month with priority processing."
     },
     {
       question: "Do I lose my fee if I hire Maxx Builders?",
