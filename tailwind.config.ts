@@ -20,7 +20,29 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         
-        /* Brand Colors */
+        /* BuildSmarter Official Brand Colors */
+        "feasibility-orange": {
+          DEFAULT: "hsl(var(--feasibility-orange))",
+          foreground: "hsl(var(--cloud-white))",
+        },
+        "midnight-blue": {
+          DEFAULT: "hsl(var(--midnight-blue))",
+          foreground: "hsl(var(--cloud-white))",
+        },
+        "slate-gray": {
+          DEFAULT: "hsl(var(--slate-gray))",
+          foreground: "hsl(var(--cloud-white))",
+        },
+        "cloud-white": {
+          DEFAULT: "hsl(var(--cloud-white))",
+          foreground: "hsl(var(--slate-gray))",
+        },
+        "data-cyan": {
+          DEFAULT: "hsl(var(--data-cyan))",
+          foreground: "hsl(var(--cloud-white))",
+        },
+        
+        /* Legacy Aliases */
         charcoal: {
           DEFAULT: "hsl(var(--charcoal))",
           foreground: "hsl(var(--charcoal-foreground))",
@@ -106,9 +128,10 @@ export default {
         "slide-up": "slide-up 0.8s ease-out",
       },
       fontFamily: {
-        headline: ['Yantramanav', 'sans-serif'],
-        body: ['IBM Plex Sans', 'sans-serif'],
-        cta: ['Poppins', 'sans-serif'],
+        headline: ['Inter', 'sans-serif'],      /* Satoshi-like (using Inter Bold as fallback) */
+        body: ['Inter', 'sans-serif'],           /* Inter Regular */
+        mono: ['IBM Plex Mono', 'monospace'],    /* Data/Code */
+        cta: ['Poppins', 'sans-serif'],          /* CTA emphasis */
       },
     },
   },

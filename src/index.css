@@ -12,29 +12,36 @@ All colors MUST be HSL.
     --background: 0 0% 99%;
     --foreground: 220 14% 11%;
     
-    /* Modern brand colors with enhanced depth */
-    --charcoal: 220 20% 14%;
-    --charcoal-foreground: 0 0% 98%;
+    /* BuildSmarter Brand Colors - Official Brand Kit */
+    --feasibility-orange: 24 100% 50%;     /* #FF7A00 */
+    --midnight-blue: 226 63% 11%;           /* #0A0F2C */
+    --slate-gray: 217 11% 25%;              /* #374151 */
+    --cloud-white: 210 17% 98%;             /* #F9FAFB */
+    --data-cyan: 191 91% 43%;               /* #06B6D4 */
     
-    --navy: 240 80% 18%;
-    --navy-foreground: 0 0% 98%;
+    /* Legacy color mappings for backward compatibility */
+    --charcoal: 217 11% 25%;
+    --charcoal-foreground: 210 17% 98%;
     
-    --maxx-red: 4 85% 48%;
-    --maxx-red-foreground: 0 0% 98%;
+    --navy: 226 63% 11%;
+    --navy-foreground: 210 17% 98%;
+    
+    --maxx-red: 24 100% 50%;
+    --maxx-red-foreground: 210 17% 98%;
     
     /* Sophisticated neutral palette */
-    --light-gray: 0 0% 98%;
-    --mid-gray: 220 8% 46%;
+    --light-gray: 210 17% 98%;
+    --mid-gray: 217 9% 45%;
     
-    /* Enhanced semantic tokens */
-    --primary: 220 20% 14%;
-    --primary-foreground: 0 0% 98%;
+    /* Enhanced semantic tokens - BuildSmarter Design System */
+    --primary: 226 63% 11%;                 /* Midnight Blue */
+    --primary-foreground: 210 17% 98%;
     
-    --secondary: 240 10% 95%;
-    --secondary-foreground: 220 14% 11%;
+    --secondary: 210 17% 98%;               /* Cloud White */
+    --secondary-foreground: 217 11% 25%;
     
-    --accent: 4 85% 48%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 24 100% 50%;                  /* Feasibility Orange */
+    --accent-foreground: 210 17% 98%;
     
     --card: 0 0% 100%;
     --card-foreground: 220 14% 11%;
@@ -63,19 +70,21 @@ All colors MUST be HSL.
     --sidebar-border: 240 6% 90%;
     --sidebar-ring: 4 85% 48%;
     
-    /* Modern gradients and effects */
-    --gradient-primary: linear-gradient(135deg, hsl(220 20% 14%), hsl(240 80% 18%));
-    --gradient-accent: linear-gradient(135deg, hsl(4 85% 48%), hsl(14 85% 55%));
-    --gradient-hero: linear-gradient(135deg, hsl(220 20% 14% / 0.95), hsl(240 80% 18% / 0.85));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100% / 0.8), hsl(240 5% 96% / 0.4));
-    --gradient-glass: linear-gradient(145deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
+    /* BuildSmarter Gradients - Brand System */
+    --gradient-primary: linear-gradient(135deg, hsl(226 63% 11%), hsl(226 63% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(24 100% 50%), hsl(24 100% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(226 63% 11% / 0.95), hsl(226 63% 18% / 0.90));
+    --gradient-data: linear-gradient(135deg, hsl(191 91% 43%), hsl(191 91% 53%));
+    --gradient-card: linear-gradient(145deg, hsl(210 17% 100% / 0.9), hsl(210 17% 98% / 0.6));
+    --gradient-glass: linear-gradient(145deg, hsl(210 17% 100% / 0.12), hsl(210 17% 100% / 0.06));
     
-    /* Modern shadows */
-    --shadow-soft: 0 4px 20px -4px hsl(220 20% 14% / 0.08);
-    --shadow-medium: 0 10px 40px -8px hsl(220 20% 14% / 0.12);
-    --shadow-strong: 0 20px 60px -12px hsl(220 20% 14% / 0.16);
-    --shadow-glow: 0 0 40px hsl(4 85% 48% / 0.15);
-    --shadow-glass: 0 8px 32px 0 hsl(0 0% 0% / 0.06);
+    /* BuildSmarter Shadows - Enterprise Grade */
+    --shadow-soft: 0 4px 20px -4px hsl(226 63% 11% / 0.08);
+    --shadow-medium: 0 10px 40px -8px hsl(226 63% 11% / 0.12);
+    --shadow-strong: 0 20px 60px -12px hsl(226 63% 11% / 0.16);
+    --shadow-glow: 0 0 40px hsl(24 100% 50% / 0.18);
+    --shadow-glass: 0 8px 32px 0 hsl(226 63% 11% / 0.04);
+    --shadow-data: 0 0 30px hsl(191 91% 43% / 0.12);
     
     /* Smooth transitions */
     --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -165,12 +174,12 @@ All colors MUST be HSL.
     border: 1px solid hsl(0 0% 100% / 0.1);
   }
   
-  /* Modern gradient patterns */
+  /* BuildSmarter Gradient Mesh - Data-Inspired Pattern */
   .gradient-mesh {
     background: 
-      radial-gradient(circle at 20% 80%, hsl(240 80% 18% / 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, hsl(4 85% 48% / 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 40% 40%, hsl(220 20% 14% / 0.05) 0%, transparent 50%);
+      radial-gradient(circle at 20% 80%, hsl(226 63% 11% / 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, hsl(24 100% 50% / 0.10) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, hsl(191 91% 43% / 0.06) 0%, transparent 50%);
   }
   
   /* Enhanced animations */
