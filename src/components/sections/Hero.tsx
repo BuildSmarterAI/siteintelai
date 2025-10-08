@@ -1,9 +1,37 @@
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Layers, DollarSign, ShieldCheck, BarChart3 } from "lucide-react";
 import buildSmarterLogo from "@/assets/buildsmarter-logo-new.png";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCounter } from "@/hooks/useCounter";
+import { useState, useRef } from "react";
 
 export const Hero = () => {
+  // Phase 1: Magnetic CTA - Mouse tracking
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Phase 4: Number Counter
+  const dataSourceCount = useCounter(20, 2000, 1300);
+
+  // Phase 5: Parallax Scroll
+  const { scrollY } = useScroll();
+  const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
+  const gridY = useTransform(scrollY, [0, 500], [0, 100]);
+
+  // Magnetic button handler
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    setMousePosition({ x: x * 0.3, y: y * 0.3 });
+  };
+
+  const handleMouseLeave = () => {
+    setMousePosition({ x: 0, y: 0 });
+  };
+
   // Animation variants - v6.1 timing
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -82,7 +110,7 @@ export const Hero = () => {
       initial="hidden"
       animate="visible"
     >
-      {/* Animated grid lines background */}
+      {/* Animated grid lines background with parallax */}
       <motion.div
         className="absolute inset-0 opacity-0"
         variants={gridVariants}
@@ -90,17 +118,74 @@ export const Hero = () => {
           backgroundImage: `linear-gradient(to right, rgba(6, 182, 212, 0.08) 1px, transparent 1px),
                           linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 1px, transparent 1px)`,
           backgroundSize: '60px 60px',
+          y: gridY,
         }}
-      />
+      >
+        {/* Phase 2: Grid scan effect */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-b from-transparent via-[#06B6D4]/20 to-transparent h-32"
+          animate={{
+            y: ['-100%', '200%'],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "linear",
+            repeatDelay: 5,
+          }}
+        />
+      </motion.div>
 
-      {/* Animated map background - right side */}
-      <div className="absolute right-0 top-0 h-full w-full lg:w-1/2 opacity-20">
+      {/* Animated map background - right side with parallax */}
+      <motion.div 
+        className="absolute right-0 top-0 h-full w-full lg:w-1/2 opacity-20"
+        style={{ y: backgroundY }}
+      >
         <div className="relative h-full w-full">
+          {/* Phase 2: Data Stream Visualization */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            <defs>
+              <linearGradient id="streamGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
+                <stop offset="50%" stopColor="rgba(6, 182, 212, 0.6)" />
+                <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
+              </linearGradient>
+            </defs>
+            {[...Array(8)].map((_, i) => {
+              const startX = Math.random() * 80 + 10;
+              const startY = Math.random() * 80 + 10;
+              const endX = Math.random() * 80 + 10;
+              const endY = Math.random() * 80 + 10;
+              return (
+                <motion.line
+                  key={i}
+                  x1={`${startX}%`}
+                  y1={`${startY}%`}
+                  x2={`${endX}%`}
+                  y2={`${endY}%`}
+                  stroke="url(#streamGradient)"
+                  strokeWidth="1"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ 
+                    pathLength: [0, 1, 0],
+                    opacity: [0, 0.8, 0]
+                  }}
+                  transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    delay: 0.9 + i * 0.5,
+                    ease: "easeInOut",
+                  }}
+                />
+              );
+            })}
+          </svg>
+
           {/* Simulated data nodes with pulse animation */}
           {[...Array(12)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute h-2 w-2 rounded-full bg-[#06B6D4]"
+              className="absolute h-2 w-2 rounded-full bg-[#06B6D4] shadow-[0_0_10px_rgba(6,182,212,0.5)]"
               style={{
                 top: `${Math.random() * 80 + 10}%`,
                 left: `${Math.random() * 80 + 10}%`,
@@ -118,7 +203,7 @@ export const Hero = () => {
             />
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Content wrapper with glass card effect */}
       <div className="relative z-10 flex w-full items-center">
@@ -172,83 +257,153 @@ export const Hero = () => {
 
               {/* CTA Group */}
               <motion.div variants={ctaVariants}>
-                <Button
-                  size="lg"
-                  className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 text-lg shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-250 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2"
-                  onClick={() => (window.location.href = "/application?step=2")}
+                {/* Phase 1: Magnetic CTA */}
+                <motion.div
+                  animate={{
+                    x: mousePosition.x,
+                    y: mousePosition.y,
+                  }}
+                  transition={{ type: "spring", stiffness: 150, damping: 15 }}
                 >
-                  <span className="relative z-10">Run a Free QuickCheck →</span>
-                  {/* Shimmer effect */}
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                    initial={{ x: '-100%' }}
-                    whileHover={{
-                      x: '100%',
-                      transition: { duration: 0.5, ease: 'easeInOut' }
-                    }}
-                  />
-                </Button>
+                  <Button
+                    ref={buttonRef}
+                    size="lg"
+                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 text-lg shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-250 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2"
+                    onClick={() => (window.location.href = "/application?step=2")}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <span className="relative z-10">Run a Free QuickCheck →</span>
+                    {/* Shimmer effect */}
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      initial={{ x: '-100%' }}
+                      whileHover={{
+                        x: '100%',
+                        transition: { duration: 0.5, ease: 'easeInOut' }
+                      }}
+                    />
+                  </Button>
+                </motion.div>
                 
-                {/* Microcopy */}
+                {/* Microcopy with Phase 4: Number Counter */}
                 <p className="mt-3 text-sm text-[#CBD5E1]/70">
-                  Verified from 20+ trusted data sources · Instant report · No commitment
+                  Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Instant report · No commitment
                 </p>
               </motion.div>
 
-              {/* Value Icons Strip */}
-              <motion.div
-                className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 text-[#CBD5E1] text-sm"
-                initial="hidden"
-                animate="visible"
-              >
+              {/* Phase 3: Value Icons Strip with Hover Interactions */}
+              <TooltipProvider>
                 <motion.div
-                  className="flex items-start gap-3"
-                  custom={0}
-                  variants={valueIconVariants}
+                  className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 text-[#CBD5E1] text-sm"
+                  initial="hidden"
+                  animate="visible"
                 >
-                  <Layers className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-semibold text-white">Proprietary Data Fusion</div>
-                    <div className="text-xs text-[#CBD5E1]/60 mt-0.5">20+ verified datasets unified</div>
-                  </div>
-                </motion.div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.div
+                        className="flex items-start gap-3 cursor-pointer"
+                        custom={0}
+                        variants={valueIconVariants}
+                        whileHover={{ scale: 1.05, x: 4 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      >
+                        <motion.div
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <Layers className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
+                        </motion.div>
+                        <div>
+                          <div className="font-semibold text-white">Proprietary Data Fusion</div>
+                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">20+ verified datasets unified</div>
+                        </div>
+                      </motion.div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                      <p className="text-xs">Municipal records, zoning maps, utility data, and more</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-                <motion.div
-                  className="flex items-start gap-3"
-                  custom={1}
-                  variants={valueIconVariants}
-                >
-                  <DollarSign className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-semibold text-white">Cost Intelligence</div>
-                    <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Construction-cost benchmarks</div>
-                  </div>
-                </motion.div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.div
+                        className="flex items-start gap-3 cursor-pointer"
+                        custom={1}
+                        variants={valueIconVariants}
+                        whileHover={{ scale: 1.05, x: 4 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      >
+                        <motion.div
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <DollarSign className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
+                        </motion.div>
+                        <div>
+                          <div className="font-semibold text-white">Cost Intelligence</div>
+                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Construction-cost benchmarks</div>
+                        </div>
+                      </motion.div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                      <p className="text-xs">Real-time material costs, labor rates, and project estimates</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-                <motion.div
-                  className="flex items-start gap-3"
-                  custom={2}
-                  variants={valueIconVariants}
-                >
-                  <ShieldCheck className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-semibold text-white">Risk Transparency</div>
-                    <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Instant constraint exposure</div>
-                  </div>
-                </motion.div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.div
+                        className="flex items-start gap-3 cursor-pointer"
+                        custom={2}
+                        variants={valueIconVariants}
+                        whileHover={{ scale: 1.05, x: 4 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      >
+                        <motion.div
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <ShieldCheck className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
+                        </motion.div>
+                        <div>
+                          <div className="font-semibold text-white">Risk Transparency</div>
+                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Instant constraint exposure</div>
+                        </div>
+                      </motion.div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                      <p className="text-xs">Flood zones, easements, environmental restrictions</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-                <motion.div
-                  className="flex items-start gap-3"
-                  custom={3}
-                  variants={valueIconVariants}
-                >
-                  <BarChart3 className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                  <div>
-                    <div className="font-semibold text-white">Decision Clarity</div>
-                    <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Quantified feasibility scores</div>
-                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.div
+                        className="flex items-start gap-3 cursor-pointer"
+                        custom={3}
+                        variants={valueIconVariants}
+                        whileHover={{ scale: 1.05, x: 4 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      >
+                        <motion.div
+                          whileHover={{ rotate: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <BarChart3 className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
+                        </motion.div>
+                        <div>
+                          <div className="font-semibold text-white">Decision Clarity</div>
+                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Quantified feasibility scores</div>
+                        </div>
+                      </motion.div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                      <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </motion.div>
-              </motion.div>
+              </TooltipProvider>
             </motion.div>
           </div>
         </div>
