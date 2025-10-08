@@ -61,7 +61,7 @@ export const Header = () => {
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
           ? "h-[72px] backdrop-blur-md bg-[#0A0F2C]/80 border-b border-white/10"
-          : "h-[96px] bg-transparent"
+          : "h-[96px] backdrop-blur-md bg-[#0A0F2C]/80 border-b border-white/10"
       }`}
       initial={{ y: 0 }}
       animate={{ y: isVisible ? 0 : -100 }}
