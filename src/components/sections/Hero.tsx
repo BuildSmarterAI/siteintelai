@@ -1,193 +1,205 @@
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { motion } from "framer-motion";
+import { ShieldCheck, Timer, Database } from "lucide-react";
 import aerialPropertySite from "@/assets/aerial-property-site.jpg";
 import buildsmarterLogo from "@/assets/buildsmarter-logo-new.png";
 
-interface TooltipState {
-  visible: boolean;
-  content: string;
-  title: string;
-}
-
 export const Hero = () => {
-  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, content: "", title: "" });
-
-  const showTooltip = (title: string, content: string) => {
-    setTooltip({ visible: true, title, content });
-  };
-
-  const hideTooltip = () => {
-    setTooltip({ visible: false, content: "", title: "" });
-  };
-
   return (
-    <section className="relative min-h-screen flex items-center overflow-hidden py-20 lg:py-16 gradient-mesh">
-      {/* Modern background with enhanced visual depth */}
-      <div className="absolute inset-0">
-        <img 
-          src={aerialPropertySite} 
-          alt="Aerial view of commercial real estate development site showing zoning and utility risks" 
-          className="w-full h-full object-cover opacity-30 saturate-50 scale-105"
-        />
-        {/* Modern gradient overlay with depth */}
-        <div className="absolute inset-0" style={{ background: 'var(--gradient-hero)' }} />
-        <div className="absolute inset-0 bg-gradient-to-t from-charcoal/20 via-transparent to-charcoal/10" />
-      </div>
-      
-      {/* Desktop Professional Markers (Hidden on Mobile) */}
-      <div className="absolute inset-0 pointer-events-none hidden lg:block">
-        {/* Modern risk indicator - Zoning */}
-        <div 
-          className="absolute top-[25%] right-[20%] pointer-events-auto group cursor-pointer"
-          onMouseEnter={() => showTooltip("Rezoning Required", "Rezoning required. Adds 9–12 month delay.")}
-          onMouseLeave={hideTooltip}
-        >
-          <div className="relative">
-            <div className="w-6 h-6 bg-gradient-to-br from-maxx-red to-red-600 rounded-full shadow-lg ring-4 ring-maxx-red/30 border-2 border-white/90 hover:scale-110 transition-all duration-300" style={{ boxShadow: 'var(--shadow-glow)' }}>
-              <div className="absolute inset-1 bg-white/20 rounded-full animate-pulse" />
-            </div>
-            <div className="absolute -bottom-8 -left-12 glass-subtle text-white px-3 py-1.5 rounded-xl text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-1">
-              Rezoning Delay
-              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/20 rotate-45 backdrop-blur-sm"></div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Modern risk indicator - Utilities */}
-        <div 
-          className="absolute top-[45%] right-[15%] pointer-events-auto group cursor-pointer"
-          onMouseEnter={() => showTooltip("Sewer Capacity Risk", "Insufficient capacity. Upgrade could cost $250K+.")}
-          onMouseLeave={hideTooltip}
-        >
-          <div className="relative">
-            <div className="w-6 h-6 bg-gradient-to-br from-navy to-blue-700 rounded-full shadow-lg ring-4 ring-navy/30 border-2 border-white/90 hover:scale-110 transition-all duration-300" style={{ boxShadow: 'var(--shadow-medium)' }}>
-              <div className="absolute inset-1 bg-white/20 rounded-full animate-pulse" />
-            </div>
-            <div className="absolute -bottom-8 -left-10 glass-subtle text-white px-3 py-1.5 rounded-xl text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-1">
-              Utility Risk
-              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/20 rotate-45 backdrop-blur-sm"></div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Modern zone restriction indicator */}
-        <div 
-          className="absolute bottom-[35%] right-[25%] pointer-events-auto group cursor-pointer"
-          onMouseEnter={() => showTooltip("Development Restriction", "Restricted development zone. Reduces buildable area.")}
-          onMouseLeave={hideTooltip}
-        >
-          <div className="relative">
-            <div className="w-20 h-14 border-2 border-maxx-red/60 border-dashed bg-gradient-to-br from-maxx-red/10 to-maxx-red/5 rounded-lg backdrop-blur-sm shadow-lg opacity-80 group-hover:opacity-100 transition-all duration-300 group-hover:scale-105 hover-lift"></div>
-            <div className="absolute -top-8 -left-8 glass-subtle text-white px-3 py-1.5 rounded-xl text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300">
-              Restricted Zone
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/20 rotate-45 backdrop-blur-sm"></div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Modern budget alert indicator */}
-        <div 
-          className="absolute top-[35%] right-[35%] pointer-events-auto group cursor-pointer"
-          onMouseEnter={() => showTooltip("Cost Benchmark Alert", "Outdated $/SF data. Budget 15–20% over plan.")}
-          onMouseLeave={hideTooltip}
-        >
-          <div className="relative">
-            <div className="w-6 h-6 bg-gradient-to-br from-charcoal to-gray-800 rounded-full shadow-lg ring-4 ring-charcoal/30 border-2 border-white/90 hover:scale-110 transition-all duration-300" style={{ boxShadow: 'var(--shadow-medium)' }}>
-              <div className="absolute inset-1 bg-white/20 rounded-full animate-pulse" />
-            </div>
-            <div className="absolute -bottom-8 -left-12 glass-subtle text-white px-3 py-1.5 rounded-xl text-xs font-medium shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:translate-y-1">
-              Budget Alert
-              <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-white/20 rotate-45 backdrop-blur-sm"></div>
-            </div>
-          </div>
-        </div>
+    <motion.section
+      className="relative flex min-h-screen items-center overflow-hidden"
+      style={{
+        background: "linear-gradient(135deg, #0A0F2C 0%, #11224F 50%, rgba(255, 122, 0, 0.2) 100%)",
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* Background gradient mesh - Layer 0 */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-gradient-to-br from-midnight-blue/50 via-transparent to-feasibility-orange/10" />
+        <div className="absolute inset-0" style={{
+          backgroundImage: `radial-gradient(circle at 20% 80%, rgba(10, 15, 44, 0.12) 0%, transparent 50%),
+                           radial-gradient(circle at 80% 20%, rgba(255, 122, 0, 0.10) 0%, transparent 50%),
+                           radial-gradient(circle at 50% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 50%)`,
+        }} />
       </div>
 
-      {/* Modern mobile risk indicators */}
-      <div className="absolute inset-0 pointer-events-none lg:hidden">
-        {/* Primary Risk - Rezoning */}
-        <div className="absolute top-[20%] right-[8%] glass-card text-white px-4 py-3 rounded-xl text-sm font-medium shadow-xl max-w-[160px] scale-in">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-maxx-red rounded-full animate-pulse flex-shrink-0" style={{ boxShadow: 'var(--shadow-glow)' }}></div>
-            <span>Rezoning: +9–12 Month Delay</span>
-          </div>
-        </div>
-        
-        {/* Secondary Risk - Budget Alert */}
-        <div className="absolute bottom-[35%] right-[10%] glass-card text-white px-4 py-3 rounded-xl text-sm font-medium shadow-xl max-w-[140px] scale-in" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse flex-shrink-0"></div>
-            <span>Budget Alert: 15–20% Over Plan</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Modern desktop tooltip */}
-      {tooltip.visible && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none hidden lg:block">
-          <div className="glass-card p-5 max-w-xs scale-in" style={{ boxShadow: 'var(--shadow-strong)' }}>
-            <h4 className="font-headline font-bold text-white text-sm uppercase mb-3 tracking-wide">{tooltip.title}</h4>
-            <p className="font-body text-white/90 text-sm leading-relaxed">{tooltip.content}</p>
-          </div>
-        </div>
-      )}
-      
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-20">
-        <div className="max-w-2xl lg:max-w-4xl">
-          {/* Modern logo presentation */}
-          <div className="mb-8 lg:mb-12 fade-in-up">
-            <img 
-              src={buildsmarterLogo} 
-              alt="BuildSmarter Feasibility" 
-              className="h-20 sm:h-24 md:h-28 lg:h-32 xl:h-36 object-contain hover-lift"
-            />
-          </div>
+      {/* Animated parcel map - Layer 1 (Right 7 cols) */}
+      <motion.div
+        className="absolute right-0 top-0 h-full w-full lg:w-7/12"
+        initial={{ scale: 0.9, filter: "blur(10px)", opacity: 0 }}
+        animate={{ scale: 1, filter: "blur(0px)", opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+      >
+        <div className="relative h-full w-full">
+          <img
+            src={aerialPropertySite}
+            alt="Real-time feasibility data visualization"
+            className="h-full w-full object-cover opacity-40"
+          />
+          {/* Parcel grid overlay with glow */}
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-data-cyan/5 to-midnight-blue/80" />
           
-          {/* Modern content container with glassmorphism */}
-          <div className="glass-card p-8 sm:p-10 lg:p-12 rounded-2xl fade-in-up" style={{ animationDelay: '0.2s' }}>
-            
-            {/* Modern headline with refined typography */}
-            <h1 className="font-headline text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-white mb-6 lg:mb-8 leading-tight tracking-tight">
-              <span className="block bg-gradient-to-r from-maxx-red to-red-500 bg-clip-text text-transparent font-bold">
-                $10K Feasibility in 10 Minutes—Verified by FEMA.
+          {/* Animated data pings */}
+          <motion.div
+            className="absolute top-1/4 right-1/4 h-4 w-4 rounded-full bg-data-cyan"
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.6, 1, 0.6],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            style={{ boxShadow: "0 0 20px rgba(6, 182, 212, 0.6)" }}
+          />
+          <motion.div
+            className="absolute bottom-1/3 right-1/2 h-3 w-3 rounded-full bg-feasibility-orange"
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 1, 0.5],
+            }}
+            transition={{
+              duration: 3,
+              delay: 0.5,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+            style={{ boxShadow: "0 0 20px rgba(255, 122, 0, 0.6)" }}
+          />
+        </div>
+      </motion.div>
+
+      {/* Glass overlay card - Layer 2 (Left 5 cols) */}
+      <div className="container relative z-10 mx-auto px-6 lg:px-20">
+        <div className="max-w-2xl lg:w-5/12">
+          {/* Logo */}
+          <motion.div
+            className="mb-8 lg:mb-10"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <img
+              src={buildsmarterLogo}
+              alt="BuildSmarter Feasibility"
+              className="h-20 sm:h-24 lg:h-28 object-contain"
+            />
+          </motion.div>
+
+          {/* Glass card for content */}
+          <div className="rounded-2xl border border-white/20 bg-gradient-to-br from-white/90 to-cloud-white/80 p-8 lg:p-10 backdrop-blur-xl shadow-2xl">
+            {/* Eyebrow tagline with verified icon */}
+            <motion.div
+              className="mb-4 flex items-center gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+            >
+              <ShieldCheck className="h-4 w-4 text-data-cyan" />
+              <p className="text-sm font-medium uppercase tracking-widest text-data-cyan">
+                AI-Powered Development Intelligence
+              </p>
+            </motion.div>
+
+            {/* H1 Headline */}
+            <motion.h1
+              className="mb-6 font-headline text-4xl font-bold leading-tight text-midnight-blue lg:text-5xl xl:text-6xl"
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.6 }}
+            >
+              10-Minute Feasibility.{" "}
+              <span className="bg-gradient-to-r from-feasibility-orange to-feasibility-orange/70 bg-clip-text text-transparent">
+                100% Verified Data.
               </span>
-            </h1>
-            
-            {/* Modern subheadline */}
-            <h2 className="font-body text-lg lg:text-xl text-white/90 leading-relaxed max-w-2xl mb-8 lg:mb-10 fade-in-up" style={{ animationDelay: '0.4s' }}>
-              AI-generated, lender-ready feasibility reports using official FEMA, ArcGIS, and TxDOT data. Every BuildSmarter™ report cites its source for lender verification.
-            </h2>
-            
-            {/* Modern CTA section */}
-            <div className="fade-in-up flex flex-col sm:flex-row gap-4 items-start sm:items-center" style={{ animationDelay: '0.6s' }}>
-              <Button 
-                variant="maxx-red" 
-                size="lg" 
-                className="font-cta text-lg px-10 py-4 h-auto w-full sm:w-auto rounded-xl hover-lift group"
-                onClick={() => window.location.href = '/application?step=2'}
-                style={{ boxShadow: 'var(--shadow-glow)' }}
+            </motion.h1>
+
+            {/* Subheadline */}
+            <motion.p
+              className="mb-8 font-body text-base leading-relaxed text-slate-gray lg:text-lg"
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ duration: 0.2, delay: 0.9 }}
+            >
+              BuildSmarter™ analyzes every parcel, flood zone, and utility line in real time—transforming
+              weeks of consultant work into a single automated report, trusted by lenders and developers.
+            </motion.p>
+
+            {/* CTA Group - Layer 3 */}
+            <motion.div
+              className="flex flex-col gap-4 sm:flex-row sm:items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.2, delay: 1.1 }}
+            >
+              <Button
+                variant="maxx-red"
+                size="lg"
+                className="group relative overflow-hidden font-cta text-lg shadow-glow transition-all duration-300 hover:shadow-2xl"
+                onClick={() => (window.location.href = "/application?step=2")}
               >
-                <span className="group-hover:scale-105 transition-transform duration-200">
+                <span className="relative z-10 flex items-center gap-2">
                   Run Free QuickCheck →
                 </span>
+                {/* Inner glow ripple on hover */}
+                <span className="absolute inset-0 bg-gradient-to-r from-feasibility-orange to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-30" />
               </Button>
-              
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="font-cta text-lg px-8 py-4 h-auto w-full sm:w-auto rounded-xl border-2 border-white text-white hover:bg-white hover:text-charcoal transition-all duration-300"
+
+              <Button
+                variant="outline"
+                size="lg"
+                className="group relative border-2 border-data-cyan font-cta text-lg text-data-cyan transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)]"
               >
-                Watch Demo
+                <span className="flex items-center gap-2">See a Real Report</span>
+                {/* Cyan edge glow expands */}
+                <span className="absolute inset-0 rounded-lg border-2 border-data-cyan opacity-0 transition-all duration-300 group-hover:inset-[-2px] group-hover:opacity-100" />
               </Button>
+            </motion.div>
+
+            {/* Dataset badges - staggered animation */}
+            <div className="mt-10 flex flex-wrap items-center gap-6 opacity-70 transition-opacity duration-300 hover:opacity-100">
+              {[
+                { name: "FEMA", delay: 0 },
+                { name: "ArcGIS", delay: 0.1 },
+                { name: "TxDOT", delay: 0.2 },
+                { name: "EPA", delay: 0.3 },
+                { name: "Census", delay: 0.4 },
+              ].map((dataset, i) => (
+                <motion.div
+                  key={dataset.name}
+                  className="flex items-center gap-2 rounded-lg border border-slate-gray/20 bg-white/50 px-3 py-1.5 backdrop-blur-sm transition-all duration-300 hover:border-data-cyan/40 hover:bg-white/80"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{
+                    duration: 0.3,
+                    delay: 1.3 + dataset.delay,
+                  }}
+                >
+                  <Database className="h-3 w-3 text-slate-gray" />
+                  <span className="text-xs font-medium text-slate-gray">{dataset.name}</span>
+                </motion.div>
+              ))}
             </div>
-            
-            <p className="font-body text-white/80 text-sm mt-6">
-              Data-cited for lenders • 10-minute turnaround • No commitment required
-            </p>
-            
+
+            {/* Floating timer icon */}
+            <motion.div
+              className="mt-6 flex items-center gap-2 text-xs text-slate-gray/60"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.5 }}
+            >
+              <Timer className="h-3 w-3" />
+              <span>Data-cited for lenders • 10-minute turnaround • No commitment required</span>
+            </motion.div>
           </div>
         </div>
       </div>
-    </section>
+
+      {/* Background watermark - Database icon */}
+      <Database className="absolute bottom-20 right-20 hidden h-64 w-64 text-midnight-blue opacity-5 lg:block" />
+    </motion.section>
   );
 };
