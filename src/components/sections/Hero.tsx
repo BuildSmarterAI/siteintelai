@@ -105,36 +105,138 @@ export const Hero = () => {
 
   return (
     <motion.section
-      className="relative flex min-h-screen overflow-hidden bg-gradient-to-tr from-[#0A0F2C] via-[#11224F] to-[#FF7A00]/15"
+      className="relative flex min-h-screen overflow-hidden bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* Animated grid lines background with parallax */}
+      {/* Signature Animated Background - Parcel Grid with Verification */}
       <motion.div
         className="absolute inset-0 opacity-0"
         variants={gridVariants}
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(6, 182, 212, 0.08) 1px, transparent 1px),
-                          linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px',
+          backgroundImage: `linear-gradient(to right, rgba(6, 182, 212, 0.08) 2px, transparent 2px),
+                          linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 2px, transparent 2px)`,
+          backgroundSize: '80px 80px',
           y: gridY,
         }}
       >
-        {/* Phase 2: Grid scan effect */}
+        {/* Global Verification Sweep - Orange gradient wave */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-b from-transparent via-[#06B6D4]/20 to-transparent h-32"
+          className="absolute inset-0 h-full w-[200%] bg-gradient-to-r from-transparent via-[#FF7A00]/15 to-transparent"
           animate={{
-            y: ['-100%', '200%'],
+            x: ['-100%', '100%'],
           }}
           transition={{
-            duration: 8,
+            duration: 10,
             repeat: Infinity,
-            ease: "linear",
-            repeatDelay: 5,
+            ease: [0.45, 0, 0.2, 1],
+            repeatDelay: 0,
           }}
         />
+
+        {/* Parcel Verification Nodes with Connections */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <defs>
+            <linearGradient id="verificationGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
+              <stop offset="50%" stopColor="rgba(6, 182, 212, 0.8)" />
+              <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
+            </linearGradient>
+            <radialGradient id="orangeGlow">
+              <stop offset="0%" stopColor="rgba(255, 122, 0, 0.4)" />
+              <stop offset="100%" stopColor="rgba(255, 122, 0, 0)" />
+            </radialGradient>
+          </defs>
+          
+          {/* Connection Lines between nodes */}
+          {[...Array(15)].map((_, i) => {
+            const startX = 15 + (i % 4) * 25;
+            const startY = 20 + Math.floor(i / 4) * 25;
+            const endX = startX + (Math.random() > 0.5 ? 25 : -25);
+            const endY = startY + (Math.random() > 0.5 ? 25 : -25);
+            return (
+              <motion.path
+                key={`line-${i}`}
+                d={`M ${startX}% ${startY}% Q ${(startX + endX) / 2}% ${(startY + endY) / 2 - 5}% ${endX}% ${endY}%`}
+                stroke="url(#verificationGlow)"
+                strokeWidth="1.5"
+                fill="none"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ 
+                  pathLength: [0, 1, 1],
+                  opacity: [0, 0.9, 0]
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  delay: i * 0.4,
+                  ease: [0.45, 0, 0.2, 1],
+                }}
+              />
+            );
+          })}
+        </svg>
       </motion.div>
+
+      {/* Data Verification Nodes */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(20)].map((_, i) => {
+          const x = 10 + (i % 5) * 20;
+          const y = 15 + Math.floor(i / 5) * 22;
+          const delay = i * 0.5;
+          
+          return (
+            <motion.div
+              key={`node-${i}`}
+              className="absolute"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+              }}
+            >
+              {/* Orange verification glow */}
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  background: 'radial-gradient(circle, rgba(255, 122, 0, 0.3) 0%, rgba(255, 122, 0, 0) 70%)',
+                  transform: 'translate(-50%, -50%)',
+                }}
+                animate={{
+                  scale: [0, 1.2, 0],
+                  opacity: [0, 0.6, 0],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  delay: delay,
+                  ease: [0.45, 0, 0.2, 1],
+                }}
+              />
+              
+              {/* Cyan node */}
+              <motion.div
+                className="absolute w-[6px] h-[6px] rounded-full bg-[#06B6D4] shadow-[0_0_10px_rgba(6,182,212,0.8)]"
+                style={{
+                  transform: 'translate(-50%, -50%)',
+                }}
+                animate={{
+                  opacity: [0.4, 1, 0.4],
+                  scale: [1, 1.3, 1],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  delay: delay,
+                  ease: [0.45, 0, 0.2, 1],
+                }}
+              />
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Animated map background - right side with parallax */}
       <motion.div 
