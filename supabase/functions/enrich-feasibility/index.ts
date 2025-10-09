@@ -406,18 +406,24 @@ async function fetchElevation(lat: number, lng: number): Promise<number | null> 
 }
 
 // Helper function to fetch wetlands data from USFWS National Wetlands Inventory
-async function fetchWetlands(lat: number, lng: number): Promise<{ type: string; raw: any } | null> {
+// PRIORITY: Wetlands have HIGH regulatory impact - Section 404 permits required
+async function fetchWetlands(lat: number, lng: number): Promise<{ 
+  type: string; 
+  regulatory_impact: 'high' | 'moderate' | 'low' | 'none';
+  permit_required: boolean;
+  raw: any 
+} | null> {
   try {
-    // Create 50-foot buffer around the point (converted to degrees)
-    // Approximately 50 feet = 0.00015 degrees at Houston latitude (~29°N)
-    const bufferDegrees = 50 / 364000; // More precise: 1 degree ≈ 364,000 feet at 29°N
+    // Create 100-foot buffer (expanded from 50ft for regulatory compliance)
+    // Section 404 Clean Water Act requires permits for filling wetlands
+    const bufferDegrees = 100 / 364000; // 1 degree ≈ 364,000 feet at 29°N
     
     const minLat = lat - bufferDegrees;
     const maxLat = lat + bufferDegrees;
     const minLon = lng - bufferDegrees;
     const maxLon = lng + bufferDegrees;
     
-    // Build polygon geometry for ArcGIS query (50ft buffer as requested)
+    // Build polygon geometry for 100ft buffer
     const polygonGeometry = JSON.stringify({
       rings: [[
         [minLon, minLat],
@@ -433,17 +439,22 @@ async function fetchWetlands(lat: number, lng: number): Promise<{ type: string; 
       geometry: polygonGeometry,
       geometryType: 'esriGeometryPolygon',
       spatialRel: 'esriSpatialRelIntersects',
-      outFields: 'WETLAND_TYPE,ATTRIBUTE,ACRES',
+      outFields: 'WETLAND_TYPE,ATTRIBUTE,ACRES,WETLAND_CODE,SYSTEM,SUBSYSTEM,CLASS',
       returnGeometry: 'true',
       f: 'json'
     });
     
-    const response = await fetch(`${USFWS_WETLANDS_URL}?${params}`, {
-      headers: { 'Accept': 'application/json' }
-    });
+    const response = await retryWithBackoff(
+      () => fetch(`${USFWS_WETLANDS_URL}?${params}`, {
+        headers: { 'Accept': 'application/json' },
+        signal: AbortSignal.timeout(15000) // 15 second timeout
+      }),
+      3, // 3 retries
+      1000 // 1 second base delay
+    );
     
     if (!response.ok) {
-      console.error('USFWS Wetlands API error:', response.status);
+      console.error('USFWS Wetlands API error:', response.status, response.statusText);
       return null;
     }
     
@@ -459,35 +470,88 @@ async function fetchWetlands(lat: number, lng: number): Promise<{ type: string; 
     if (data?.features && data.features.length > 0) {
       const feature = data.features[0];
       const attrs = feature.attributes;
-      const wetlandType = attrs.WETLAND_TYPE || attrs.ATTRIBUTE || 'Unknown';
       
-      console.log('Wetlands found:', { 
-        type: wetlandType, 
+      // Determine wetland type and regulatory classification
+      const wetlandType = attrs.WETLAND_TYPE || attrs.ATTRIBUTE || attrs.WETLAND_CODE || 'Unknown';
+      const wetlandSystem = attrs.SYSTEM || '';
+      const acres = attrs.ACRES || 0;
+      
+      // Assess regulatory impact based on wetland characteristics
+      let regulatoryImpact: 'high' | 'moderate' | 'low' | 'none' = 'moderate';
+      let permitRequired = true;
+      
+      // High regulatory impact: Palustrine/Estuarine wetlands, >0.5 acres
+      if ((wetlandSystem.toLowerCase().includes('palustrine') || 
+           wetlandSystem.toLowerCase().includes('estuarine')) && acres > 0.5) {
+        regulatoryImpact = 'high';
+        permitRequired = true;
+      } 
+      // Moderate: Smaller wetlands or temporary/seasonal
+      else if (acres > 0.1 || wetlandType.toLowerCase().includes('temporary')) {
+        regulatoryImpact = 'moderate';
+        permitRequired = true;
+      }
+      // Low: Very small isolated wetlands
+      else if (acres < 0.1) {
+        regulatoryImpact = 'low';
+        permitRequired = true; // Still technically require permit
+      }
+      
+      console.log('⚠️ WETLANDS DETECTED - HIGH REGULATORY IMPACT', { 
+        type: wetlandType,
+        system: wetlandSystem,
+        acres: acres,
         featureCount: data.features.length,
-        acres: attrs.ACRES
+        regulatoryImpact,
+        permitRequired
       });
       
       return {
-        type: wetlandType,
+        type: `${wetlandType}${wetlandSystem ? ` (${wetlandSystem})` : ''}`,
+        regulatory_impact: regulatoryImpact,
+        permit_required: permitRequired,
         raw: {
           queried_at: new Date().toISOString(),
           features_found: data.features.length,
-          buffer_ft: 50,
+          buffer_ft: 100,
           endpoint: USFWS_WETLANDS_URL,
-          response: data
+          total_acres: acres,
+          wetland_code: attrs.WETLAND_CODE,
+          system: wetlandSystem,
+          subsystem: attrs.SUBSYSTEM,
+          class: attrs.CLASS,
+          regulatory_notes: permitRequired 
+            ? 'Section 404 Clean Water Act permit likely required. Consult wetland delineation specialist.'
+            : 'Low impact wetland - verify with local authorities',
+          response: {
+            feature_count: data.features.length,
+            primary_wetland: {
+              type: wetlandType,
+              acres: acres,
+              system: wetlandSystem
+            }
+          }
         }
       };
     }
     
-    console.log('No wetlands features found within 50ft of location');
+    console.log('✅ No wetlands detected within 100ft buffer');
     return {
       type: 'None detected',
+      regulatory_impact: 'none',
+      permit_required: false,
       raw: {
         queried_at: new Date().toISOString(),
         features_found: 0,
-        buffer_ft: 50,
+        buffer_ft: 100,
         endpoint: USFWS_WETLANDS_URL
       }
+    };
+  } catch (error) {
+    console.error('❌ Wetlands fetch critical error:', error);
+    return null;
+  }
+}
     };
   } catch (error) {
     console.error('Wetlands fetch error:', error);
@@ -2259,20 +2323,34 @@ serve(async (req) => {
     }
 
     // Step 5: Environmental Constraints
-    console.log('Fetching wetlands data...');
+    // ⭐ PRIORITY: Wetlands check (HIGH REGULATORY IMPACT - Section 404 permits)
+    console.log('⚠️ PRIORITY CHECK: Fetching wetlands data (regulatory compliance)...');
     try {
       const wetlands = await fetchWetlands(geoLat, geoLng);
       if (wetlands) {
         enrichedData.wetlands_type = wetlands.type;
         apiMeta.usfws_wetlands = wetlands.raw;
+        
+        // Flag high-impact wetlands for immediate attention
+        if (wetlands.permit_required) {
+          dataFlags.push('wetlands_permit_required');
+          console.log('🚨 REGULATORY ALERT: Wetlands permit required - Section 404 CWA');
+        }
+        
+        if (wetlands.regulatory_impact === 'high') {
+          dataFlags.push('wetlands_high_impact');
+          console.log('🚨 HIGH IMPACT WETLAND: Significant permitting delays expected');
+        }
       } else {
         enrichedData.wetlands_type = 'None detected';
         dataFlags.push(ERROR_FLAGS.WETLANDS_API_ERROR);
+        console.error('⚠️ Wetlands API failed - manual verification required');
       }
     } catch (wetlandsError) {
-      console.error('Wetlands API error:', wetlandsError);
+      console.error('❌ CRITICAL: Wetlands API error:', wetlandsError);
       dataFlags.push(ERROR_FLAGS.WETLANDS_API_ERROR);
-      enrichedData.wetlands_type = 'API Error';
+      enrichedData.wetlands_type = 'API Error - Manual Verification Required';
+      // Don't fail entire enrichment due to wetlands error, but flag it prominently
     }
 
     console.log('Fetching soil data...');

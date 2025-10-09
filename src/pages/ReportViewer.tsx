@@ -1264,25 +1264,53 @@ export default function ReportViewer() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* ⭐ PHASE 2: Enhanced Environmental Data Display */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Wetlands */}
-                  {report.applications?.wetlands_type && (
-                    <div className="p-4 bg-muted/30 rounded-lg border">
-                      <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-blue-600" />
-                        Wetlands Status
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {report.applications.wetlands_type}
-                      </p>
-                      {report.applications.wetlands_type !== 'None detected' && 
-                       report.applications.wetlands_type !== 'API Error' && (
-                        <Badge variant="destructive" className="mt-2">Wetlands Present</Badge>
-                      )}
-                    </div>
-                  )}
+                {/* ⭐ PRIORITY: Wetlands - HIGH REGULATORY IMPACT */}
+                {report.applications?.wetlands_type && (
+                  <div className={`p-4 rounded-lg border-2 ${
+                    report.applications.wetlands_type === 'None detected' 
+                      ? 'bg-green-50 dark:bg-green-950/20 border-green-500'
+                      : 'bg-red-50 dark:bg-red-950/20 border-red-500'
+                  }`}>
+                    <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                      <MapPin className={`h-5 w-5 ${
+                        report.applications.wetlands_type === 'None detected' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`} />
+                      <span className={
+                        report.applications.wetlands_type === 'None detected' 
+                          ? 'text-green-700 dark:text-green-400' 
+                          : 'text-red-700 dark:text-red-400'
+                      }>
+                        Wetlands Status (Regulatory Priority)
+                      </span>
+                    </h4>
+                    <p className="text-sm font-medium mb-2">
+                      {report.applications.wetlands_type}
+                    </p>
+                    {report.applications.wetlands_type !== 'None detected' && 
+                     report.applications.wetlands_type !== 'API Error' &&
+                     !report.applications.wetlands_type.includes('Manual Verification') && (
+                      <div className="mt-3 space-y-2">
+                        <Badge variant="destructive" className="text-xs">
+                          🚨 Section 404 CWA Permit Required
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-2 p-2 bg-background rounded border">
+                          <strong>Regulatory Impact:</strong> Wetland delineation and Army Corps of Engineers permit required. 
+                          Expect 6-12 month permitting timeline. Consult wetland specialist immediately.
+                        </p>
+                      </div>
+                    )}
+                    {report.applications.wetlands_type === 'None detected' && (
+                      <Badge variant="default" className="mt-2 bg-green-600">
+                        ✅ No Wetlands Detected
+                      </Badge>
+                    )}
+                  </div>
+                )}
 
+
+                <div className="grid grid-cols-1 gap-6">
                   {/* Soil Characteristics */}
                   {(report.applications?.soil_series || report.applications?.soil_drainage_class || 
                     report.applications?.soil_slope_percent) && (
@@ -1302,13 +1330,13 @@ export default function ReportViewer() {
                             <span className="font-medium">Drainage:</span> {report.applications.soil_drainage_class}
                           </p>
                         )}
-                        {report.applications.soil_slope_percent && (
+                        {report.applications.soil_slope_percent !== null && report.applications.soil_slope_percent !== undefined && (
                           <p className="text-muted-foreground">
                             <span className="font-medium">Slope:</span> {report.applications.soil_slope_percent}%
                           </p>
                         )}
                       </div>
-                      {report.applications.soil_slope_percent > 5 && (
+                      {report.applications.soil_slope_percent && report.applications.soil_slope_percent > 5 && (
                         <Badge variant="secondary" className="mt-2">
                           Engineering Required (Slope &gt; 5%)
                         </Badge>
