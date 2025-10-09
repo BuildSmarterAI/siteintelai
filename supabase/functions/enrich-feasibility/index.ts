@@ -1610,16 +1610,16 @@ serve(async (req) => {
             error: parcelData?.error
           });
           
-          // If primary query fails for Harris County, try buffered point query
+          // If primary query fails for Harris County, try buffered point query with smart selection
           if (!parcelData?.features?.[0] && countyName === 'Harris County' && !useEnvelope) {
-            console.log('No features found, trying buffered point query (50 feet radius)...');
+            console.log('No features found, trying buffered point query (250 feet radius for better coverage)...');
             const bufferedParams: Record<string, string> = {
               geometry: geometryCoords,
               geometryType: 'esriGeometryPoint',
               spatialRel: 'esriSpatialRelIntersects',
               outFields: comprehensiveOutFields,
               outSR: spatialReference,
-              distance: '50',
+              distance: '250',
               units: 'esriSRUnit_Foot',
               returnGeometry: 'true',
               f: 'geojson'
@@ -1628,7 +1628,7 @@ serve(async (req) => {
             const bufferedResp = await fetch(`${endpoints.parcel_url}?${new URLSearchParams(bufferedParams)}`);
             const bufferedData = await safeJsonParse(bufferedResp, 'Buffered parcel query');
             if (bufferedData?.features?.[0]) {
-              console.log('✅ Buffered query succeeded');
+              console.log(`✅ Buffered query found ${bufferedData.features.length} parcel(s)`);
               parcelData = bufferedData;
             }
           }
@@ -1642,9 +1642,105 @@ serve(async (req) => {
       }
 
       if (parcelData?.features?.[0]) {
-        // For GeoJSON format (Harris County), properties are in .properties, not .attributes
-        const feature = parcelData.features[0];
-        const attrs = feature.properties || feature.attributes;
+        let selectedFeature = parcelData.features[0];
+        let selectionMetadata: any = { method: 'single_result' };
+        
+        // For Harris County with multiple parcels, use smart selection
+        if (countyName === 'Harris County' && parcelData.features.length > 1) {
+          console.log(`🎯 HCAD returned ${parcelData.features.length} parcels, selecting best match...`);
+          
+          // Extract house number from user's input address
+          const userHouseNumber = formattedAddress.match(/^\d+/)?.[0] || '';
+          console.log('User address house number:', userHouseNumber);
+          
+          // Score and rank parcels
+          const scoredParcels = parcelData.features.map((feature: any) => {
+            const attrs = feature.properties || feature.attributes;
+            let score = 0;
+            const reasons: string[] = [];
+            
+            // Calculate parcel centroid from geometry
+            let centroidLat = geoLat;
+            let centroidLng = geoLng;
+            if (feature.geometry?.coordinates?.[0]?.[0]) {
+              // For polygon, calculate centroid
+              const coords = feature.geometry.coordinates[0];
+              const sumLat = coords.reduce((sum: number, c: number[]) => sum + c[1], 0);
+              const sumLng = coords.reduce((sum: number, c: number[]) => sum + c[0], 0);
+              centroidLat = sumLat / coords.length;
+              centroidLng = sumLng / coords.length;
+            }
+            const distanceFt = haversineFt(geoLat, geoLng, centroidLat, centroidLng);
+            
+            // Parse acreage for scoring
+            let acreage = 0;
+            const acreageRaw = attrs.Acreage || attrs.acreage_1;
+            if (acreageRaw) {
+              const match = String(acreageRaw).match(/[\d.]+/);
+              acreage = match ? parseFloat(match[0]) : 0;
+            }
+            if (acreage === 0 && attrs.land_sqft) {
+              acreage = Number(attrs.land_sqft) / 43560;
+            }
+            
+            // Scoring criteria:
+            // 1. Exact house number match: +1000 points
+            const siteStrNum = attrs.site_str_num ? String(attrs.site_str_num).trim() : '';
+            if (userHouseNumber && siteStrNum === userHouseNumber) {
+              score += 1000;
+              reasons.push('exact_house_match');
+            }
+            
+            // 2. Distance from query point: closer is better (max 500 points at 0ft, 0 points at 250ft)
+            const distanceScore = Math.max(0, 500 - (distanceFt / 250) * 500);
+            score += distanceScore;
+            reasons.push(`distance_${Math.round(distanceFt)}ft`);
+            
+            // 3. Smaller parcels preferred: up to 200 points for parcels < 5 acres
+            if (acreage > 0 && acreage < 5) {
+              const sizeScore = 200 * (1 - acreage / 5);
+              score += sizeScore;
+              reasons.push(`size_${acreage.toFixed(2)}ac`);
+            }
+            
+            return {
+              feature,
+              score,
+              reasons,
+              metadata: {
+                hcad_num: attrs.HCAD_NUM,
+                acct_num: attrs.acct_num,
+                site_str_num: siteStrNum,
+                acreage: acreage.toFixed(4),
+                land_sqft: attrs.land_sqft,
+                distance_ft: Math.round(distanceFt),
+                owner: attrs.owner_name_1
+              }
+            };
+          });
+          
+          // Sort by score descending
+          scoredParcels.sort((a, b) => b.score - a.score);
+          
+          selectedFeature = scoredParcels[0].feature;
+          selectionMetadata = {
+            method: 'scored_selection',
+            total_candidates: parcelData.features.length,
+            winner_score: Math.round(scoredParcels[0].score),
+            winner_reasons: scoredParcels[0].reasons,
+            winner_metadata: scoredParcels[0].metadata,
+            all_candidates: scoredParcels.map(p => ({
+              score: Math.round(p.score),
+              metadata: p.metadata
+            }))
+          };
+          
+          console.log('🏆 Selected parcel:', selectionMetadata.winner_metadata);
+          console.log('📊 All candidates:', selectionMetadata.all_candidates);
+        }
+        
+        // Extract attributes from selected feature
+        const attrs = selectedFeature.properties || selectedFeature.attributes;
         
         // Map fields using confirmed field names from endpoint catalog
         enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || null;
@@ -1668,7 +1764,15 @@ serve(async (req) => {
           parsedAcreage = Number.isFinite(sqft) ? +(sqft / 43560).toFixed(4) : null;
         }
         enrichedData.acreage_cad = parsedAcreage;
-        console.log('Acreage resolution:', { raw: acreageRaw, acreage_1: attrs.acreage_1, land_sqft: attrs.land_sqft, resolved: parsedAcreage });
+        enrichedData.lot_size_value = parsedAcreage;
+        enrichedData.lot_size_unit = 'acres';
+        
+        console.log('Acreage resolution:', { 
+          raw: acreageRaw, 
+          acreage_1: attrs.acreage_1, 
+          land_sqft: attrs.land_sqft, 
+          resolved: parsedAcreage 
+        });
         
         // For Harris County, concatenate address components
         if (countyName === 'Harris County') {
@@ -1690,6 +1794,20 @@ serve(async (req) => {
             attrs.legal_dscr_4
           ].filter(Boolean);
           enrichedData.legal_description = legalParts.length > 0 ? legalParts.join(' ') : null;
+          
+          // Store HCAD selection metadata
+          apiMeta.hcad_parcel = {
+            queried_at: new Date().toISOString(),
+            query_url: `${endpoints.parcel_url}?${new URLSearchParams(parcelParams)}`,
+            selection: selectionMetadata,
+            parcel_data: {
+              hcad_num: attrs.HCAD_NUM,
+              acct_num: attrs.acct_num,
+              land_sqft: attrs.land_sqft,
+              acreage_string: acreageRaw,
+              site_address: enrichedData.situs_address
+            }
+          };
         } else {
           enrichedData.situs_address = attrs[endpoints.address_field] || null;
           enrichedData.legal_description = attrs[endpoints.legal_field] || null;
@@ -1698,18 +1816,20 @@ serve(async (req) => {
         enrichedData.administrative_area_level_2 = attrs[endpoints.county_field] || null;
         
         // Store geometry if available (GeoJSON polygon)
-        if (feature.geometry) {
-          enrichedData.geom = feature.geometry;
+        if (selectedFeature.geometry) {
+          enrichedData.geom = selectedFeature.geometry;
         }
         
         console.log('Parcel data mapped:', {
           parcel_id: enrichedData.parcel_id,
           parcel_owner: enrichedData.parcel_owner,
           acreage_cad: enrichedData.acreage_cad,
+          lot_size_value: enrichedData.lot_size_value,
+          lot_size_unit: enrichedData.lot_size_unit,
           situs_address: enrichedData.situs_address,
           legal_description: enrichedData.legal_description,
           county: enrichedData.administrative_area_level_2,
-          has_geometry: !!feature.geometry,
+          has_geometry: !!selectedFeature.geometry,
           source_fields: {
             parcel_id_field: endpoints.parcel_id_field,
             owner_field: endpoints.owner_field,
