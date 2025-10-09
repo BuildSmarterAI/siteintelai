@@ -106,6 +106,10 @@ interface Report {
     // Lot size fields
     lot_size_value?: number | null;
     lot_size_unit?: string | null;
+    // Permitting fields
+    average_permit_time_months?: number | null;
+    city?: string | null;
+    county?: string | null;
   };
 }
 
@@ -212,6 +216,9 @@ export default function ReportViewer() {
             historical_flood_events,
             lot_size_value,
             lot_size_unit,
+            average_permit_time_months,
+            city,
+            county,
             updated_at,
             user_id
           )
@@ -1048,6 +1055,163 @@ export default function ReportViewer() {
                         />
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⭐ NEW: Permitting Timeline Section */}
+        {report.applications?.average_permit_time_months && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Landmark className="h-5 w-5" />
+                Permitting Timeline & Approvals
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Timeline Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-6 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-5 w-5 text-primary" />
+                      <span className="text-sm font-medium text-muted-foreground">Average Approval Time</span>
+                    </div>
+                    <p className="text-4xl font-bold text-primary">
+                      {report.applications.average_permit_time_months}
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">months</p>
+                  </div>
+
+                  {report.applications.city && (
+                    <div className="p-6 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Building2 className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Jurisdiction</span>
+                      </div>
+                      <p className="text-lg font-semibold">{report.applications.city}</p>
+                      <p className="text-sm text-muted-foreground">{report.applications.county} County</p>
+                    </div>
+                  )}
+
+                  {report.json_data?.cost_schedule?.permitting_complexity && (
+                    <div className="p-6 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileText className="h-5 w-5 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Complexity Level</span>
+                      </div>
+                      <Badge variant={
+                        report.json_data.cost_schedule.permitting_complexity === 'low' ? 'default' :
+                        report.json_data.cost_schedule.permitting_complexity === 'moderate' ? 'secondary' :
+                        'destructive'
+                      } className="text-lg px-4 py-1">
+                        {report.json_data.cost_schedule.permitting_complexity?.toUpperCase()}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Approval Process Timeline */}
+                <div className="pt-4 border-t">
+                  <h4 className="font-semibold mb-4 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Estimated Approval Process
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">1</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">Pre-Application Review</p>
+                        <p className="text-xs text-muted-foreground">Initial consultation with planning department</p>
+                        <p className="text-xs font-medium mt-1">Est. 2-4 weeks</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">2</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">Site Plan & Zoning Review</p>
+                        <p className="text-xs text-muted-foreground">Compliance verification and initial approvals</p>
+                        <p className="text-xs font-medium mt-1">Est. {Math.ceil(report.applications.average_permit_time_months! * 0.3)} months</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">3</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">Building Permit Application</p>
+                        <p className="text-xs text-muted-foreground">Construction documents review and approval</p>
+                        <p className="text-xs font-medium mt-1">Est. {Math.ceil(report.applications.average_permit_time_months! * 0.5)} months</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-muted/30 rounded">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold">4</div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">Final Inspections & Approvals</p>
+                        <p className="text-xs text-muted-foreground">Certificate of Occupancy issuance</p>
+                        <p className="text-xs font-medium mt-1">Est. {Math.floor(report.applications.average_permit_time_months! * 0.2)} months</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Required Submittals */}
+                <div className="pt-4 border-t">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Typical Required Submittals
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Site plan and survey</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Architectural drawings</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Engineering plans (civil, structural, MEP)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Drainage and utility plans</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Environmental studies (if required)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Traffic impact analysis (if required)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Landscape and lighting plans</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-primary"></div>
+                      <span>Fire protection and life safety plans</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                {report.applications.city && (
+                  <div className="pt-4 border-t bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
+                      <Building2 className="h-4 w-4" />
+                      Permitting Office Contact
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      For specific requirements and timeline verification, contact:
+                    </p>
+                    <p className="text-sm font-medium">{report.applications.city} Planning & Development</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Recommend scheduling a pre-application meeting to discuss project-specific requirements
+                    </p>
                   </div>
                 )}
               </div>
