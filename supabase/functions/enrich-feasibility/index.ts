@@ -1788,7 +1788,7 @@ serve(async (req) => {
       }
       
       // Build comprehensive outFields
-      const comprehensiveOutFields = outFieldsList || '*';
+      const comprehensiveOutFields = countyName === 'Harris County' ? '*' : (outFieldsList || '*');
       
       // Build parcel query params
       const parcelParams: Record<string, string> = {
@@ -2224,23 +2224,39 @@ serve(async (req) => {
         // Extract attributes from selected feature
         const attrs = selectedFeature.properties || selectedFeature.attributes;
         
-        // Map fields using confirmed field names from endpoint catalog
-        enrichedData.parcel_id = attrs[endpoints.parcel_id_field] || null;
-        enrichedData.parcel_owner = attrs[endpoints.owner_field] || null;
+        // Map fields with robust fallbacks for HCAD and other counties
+        const resolvedParcelId = [
+          attrs.HCAD_NUM,
+          attrs.acct_num,
+          attrs.ACCOUNT,
+          attrs.ACCOUNT_NUM,
+          attrs.ACCOUNTNO,
+          attrs.PARCEL,
+          attrs.PARCEL_ID,
+          attrs[endpoints.parcel_id_field]
+        ].find((v) => v != null && String(v).trim() !== '');
+        enrichedData.parcel_id = resolvedParcelId ? String(resolvedParcelId) : null;
+
+        const resolvedOwner = [
+          attrs.owner_name_1,
+          attrs.OWNER,
+          attrs.OWNER_NAME,
+          attrs.OWNER_NM,
+          attrs[endpoints.owner_field]
+        ].find((v) => v != null && String(v).trim() !== '');
+        enrichedData.parcel_owner = resolvedOwner ? String(resolvedOwner) : null;
         
-        // Parse acreage - HCAD returns strings like "1.4624 AC\r\n"; add fallbacks
+        // Parse acreage - support string (e.g., "1.4624 AC") and numeric fields with fallbacks
         let parsedAcreage: number | null = null;
-        const acreageRaw = attrs[endpoints.acreage_field];
-        if (acreageRaw) {
-          const acreageMatch = String(acreageRaw).match(/[\d.]+/);
-          parsedAcreage = acreageMatch ? parseFloat(acreageMatch[0]) : null;
+        const acreageRaw = (attrs[endpoints.acreage_field] ?? attrs.Acreage ?? attrs.ACRES);
+        if (acreageRaw != null) {
+          const match = String(acreageRaw).match(/[\d.]+/);
+          parsedAcreage = match ? parseFloat(match[0]) : null;
         }
-        // Fallback to numeric acreage_1
         if (parsedAcreage == null && attrs.acreage_1 != null) {
           const a1 = Number(attrs.acreage_1);
           parsedAcreage = Number.isFinite(a1) ? a1 : null;
         }
-        // Fallback to land_sqft -> acres
         if (parsedAcreage == null && attrs.land_sqft != null) {
           const sqft = Number(attrs.land_sqft);
           parsedAcreage = Number.isFinite(sqft) ? +(sqft / 43560).toFixed(4) : null;
@@ -2335,6 +2351,7 @@ serve(async (req) => {
             query_url: `${endpoints.parcel_url}?${new URLSearchParams(parcelParams)}`,
             attempts: parcelAttempts,
             selection: selectionMetadata,
+            attributes_sample: Object.keys(attrs || {}).slice(0, 20),
             parcel_data: {
               hcad_num: attrs.HCAD_NUM,
               acct_num: attrs.acct_num,
