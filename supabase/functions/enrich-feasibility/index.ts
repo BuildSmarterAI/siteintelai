@@ -1650,7 +1650,8 @@ serve(async (req) => {
           console.log(`🎯 HCAD returned ${parcelData.features.length} parcels, selecting best match...`);
           
           // Extract house number from user's input address
-          const userHouseNumber = formattedAddress.match(/^\d+/)?.[0] || '';
+          const inputAddr = (address || enrichedData.situs_address || '').toString();
+          const userHouseNumber = inputAddr.match(/^\d+/)?.[0] || '';
           console.log('User address house number:', userHouseNumber);
           
           // Score and rank parcels
@@ -2302,6 +2303,7 @@ serve(async (req) => {
       success: true,
       county: countyName,
       data: enrichedData,
+      api_meta: apiMeta,
       data_flags: dataFlags
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
