@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
-import { Loader2, Download, FileText, MapPin, Zap } from "lucide-react";
+import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface Report {
@@ -24,6 +24,10 @@ interface Report {
     parcel_id: string;
     zoning_code: string;
     floodplain_zone: string;
+    traffic_aadt: number | null;
+    traffic_year: number | null;
+    traffic_road_name: string | null;
+    employment_clusters: any | null;
   };
 }
 
@@ -51,7 +55,11 @@ export default function ReportViewer() {
             geo_lng,
             parcel_id,
             zoning_code,
-            floodplain_zone
+            floodplain_zone,
+            traffic_aadt,
+            traffic_year,
+            traffic_road_name,
+            employment_clusters
           )
         `)
         .eq('id', reportId)
@@ -102,6 +110,8 @@ export default function ReportViewer() {
   const flood = parsedData.flood || {};
   const utilities = parsedData.utilities || {};
   const environmental = parsedData.environmental || {};
+  const traffic = parsedData.traffic || {};
+  const marketDemographics = parsedData.market_demographics || {};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
@@ -212,11 +222,13 @@ export default function ReportViewer() {
 
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="zoning">Zoning</TabsTrigger>
             <TabsTrigger value="flood">Flood Risk</TabsTrigger>
             <TabsTrigger value="utilities">Utilities</TabsTrigger>
             <TabsTrigger value="environmental">Environmental</TabsTrigger>
+            <TabsTrigger value="traffic">Traffic & Access</TabsTrigger>
+            <TabsTrigger value="market">Market Demographics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="zoning" className="mt-6">
@@ -286,6 +298,153 @@ export default function ReportViewer() {
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
                 <div dangerouslySetInnerHTML={{ __html: environmental.verdict || '<p>No environmental analysis available.</p>' }} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="traffic" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="h-5 w-5" />
+                  Traffic & Access Analysis
+                </CardTitle>
+                <div className="flex gap-2 mt-2">
+                  {traffic.component_score && (
+                    <Badge>Score: {traffic.component_score}</Badge>
+                  )}
+                  {report.applications?.traffic_aadt && (
+                    <Badge 
+                      variant={
+                        report.applications.traffic_aadt > 20000 
+                          ? 'default' 
+                          : report.applications.traffic_aadt > 10000 
+                          ? 'secondary' 
+                          : 'outline'
+                      }
+                    >
+                      {report.applications.traffic_aadt.toLocaleString()} AADT
+                    </Badge>
+                  )}
+                  {report.applications?.traffic_road_name && (
+                    <Badge variant="outline">{report.applications.traffic_road_name}</Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {report.applications?.traffic_aadt ? (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <Card className="border-muted">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Car className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Daily Traffic</span>
+                        </div>
+                        <p className="text-2xl font-bold">{report.applications.traffic_aadt.toLocaleString()}</p>
+                        <p className="text-xs text-muted-foreground">vehicles per day</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="border-muted">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Traffic Level</span>
+                        </div>
+                        <p className="text-2xl font-bold">
+                          {report.applications.traffic_aadt > 20000 
+                            ? 'High' 
+                            : report.applications.traffic_aadt > 10000 
+                            ? 'Medium' 
+                            : 'Low'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">exposure rating</p>
+                      </CardContent>
+                    </Card>
+                    
+                    {report.applications?.traffic_year && (
+                      <Card className="border-muted">
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">Data Year</span>
+                          </div>
+                          <p className="text-2xl font-bold">{report.applications.traffic_year}</p>
+                          <p className="text-xs text-muted-foreground">TxDOT traffic count</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                    Traffic data not available for this property
+                  </div>
+                )}
+                
+                <div className="prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: traffic.verdict || '<p>Traffic analysis not available. This may be added in future reports.</p>' }} />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="market" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Market Demographics
+                </CardTitle>
+                {marketDemographics.component_score && (
+                  <Badge className="mt-2">Score: {marketDemographics.component_score}</Badge>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {report.applications?.employment_clusters && 
+                 Array.isArray(report.applications.employment_clusters) && 
+                 report.applications.employment_clusters.length > 0 ? (
+                  <div className="mb-6">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Nearby Employment Centers
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {report.applications.employment_clusters.map((cluster: any, i: number) => (
+                        <Card key={i} className="border-muted">
+                          <CardContent className="pt-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <h5 className="font-medium text-sm">{cluster.name || `Employment Center ${i + 1}`}</h5>
+                              <Badge variant="outline" className="text-xs">
+                                {cluster.distance ? `${cluster.distance.toFixed(1)} mi` : 'N/A'}
+                              </Badge>
+                            </div>
+                            <p className="text-2xl font-bold text-primary">
+                              {cluster.jobs ? cluster.jobs.toLocaleString() : 'N/A'}
+                            </p>
+                            <p className="text-xs text-muted-foreground">jobs available</p>
+                            {cluster.industries && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {cluster.industries.slice(0, 3).map((industry: string, idx: number) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs">
+                                    {industry}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                    Employment cluster data not available for this property
+                  </div>
+                )}
+                
+                <div className="prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>' }} />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
