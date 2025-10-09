@@ -19,9 +19,12 @@ export const Hero = () => {
   const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
   const gridY = useTransform(scrollY, [0, 500], [0, 100]);
 
-  // Magnetic button handler
+  // Motion preference detection
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Magnetic button handler with motion preference check
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!buttonRef.current) return;
+    if (!buttonRef.current || prefersReducedMotion) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
@@ -98,7 +101,7 @@ export const Hero = () => {
       opacity: 1,
       transition: {
         duration: 0.3,
-        delay: 1.3 + i * 0.1,
+        delay: 1.3 + i * 0.15,
       },
     }),
   };
@@ -122,18 +125,20 @@ export const Hero = () => {
         }}
       >
         {/* Global Verification Sweep - Orange gradient wave */}
-        <motion.div
-          className="absolute inset-0 h-full w-[200%] bg-gradient-to-r from-transparent via-[#FF7A00]/15 to-transparent"
-          animate={{
-            x: ['-100%', '100%'],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: [0.45, 0, 0.2, 1],
-            repeatDelay: 0,
-          }}
-        />
+        {!prefersReducedMotion && (
+          <motion.div
+            className="absolute inset-0 h-full w-[200%] bg-gradient-to-r from-transparent via-[#FF7A00]/15 to-transparent will-change-transform"
+            animate={{
+              x: ['-100%', '100%'],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: [0.45, 0, 0.2, 1],
+              repeatDelay: 0,
+            }}
+          />
+        )}
 
         {/* Parcel Verification Nodes with Connections */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none">
@@ -150,7 +155,7 @@ export const Hero = () => {
           </defs>
           
           {/* Connection Lines between nodes */}
-          {[...Array(15)].map((_, i) => {
+          {[...Array(window.innerWidth < 768 ? 6 : 15)].map((_, i) => {
             const startX = 15 + (i % 4) * 25;
             const startY = 20 + Math.floor(i / 4) * 25;
             const endX = startX + (Math.random() > 0.5 ? 25 : -25);
@@ -179,9 +184,9 @@ export const Hero = () => {
         </svg>
       </motion.div>
 
-      {/* Data Verification Nodes */}
+        {/* Data Verification Nodes */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(20)].map((_, i) => {
+        {[...Array(window.innerWidth < 768 ? 8 : 20)].map((_, i) => {
           const x = 10 + (i % 5) * 20;
           const y = 15 + Math.floor(i / 5) * 22;
           const delay = i * 0.5;
@@ -240,8 +245,8 @@ export const Hero = () => {
 
       {/* Animated map background - right side with parallax */}
       <motion.div 
-        className="absolute right-0 top-0 h-full w-full lg:w-1/2 opacity-20"
-        style={{ y: backgroundY }}
+        className="absolute right-0 top-0 h-full w-full lg:w-1/2 opacity-20 will-change-transform"
+        style={{ y: prefersReducedMotion ? 0 : backgroundY }}
       >
         <div className="relative h-full w-full">
           {/* Phase 2: Data Stream Visualization */}
@@ -311,15 +316,15 @@ export const Hero = () => {
       <div className="relative z-10 flex w-full items-center">
         <div className="container mx-auto px-6 lg:px-20">
           <div className="max-w-3xl">
-            {/* Frosted glass card */}
+          {/* Frosted glass card */}
             <motion.div
-              className="rounded-3xl bg-white/10 backdrop-blur-xl border border-[#06B6D4]/20 p-8 md:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
+              className="rounded-3xl bg-white/15 backdrop-blur-xl border border-[#06B6D4]/20 p-8 md:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
               style={{
                 boxShadow: '0 8px 32px 0 rgba(10, 15, 44, 0.37), inset 0 0 60px rgba(255, 122, 0, 0.05)',
               }}
             >
-              {/* Inner glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FF7A00]/5 to-transparent pointer-events-none" />
+              {/* Inner glow effect with darker overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0A0F2C]/40 to-transparent pointer-events-none" />
 
               {/* Logo */}
               <motion.div
@@ -333,7 +338,7 @@ export const Hero = () => {
 
               {/* Headline */}
               <motion.h1
-                className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-headline font-bold text-white leading-tight mb-6"
+                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
                 variants={headlineVariants}
               >
                 BuildSmarter™ Feasibility.
@@ -343,7 +348,7 @@ export const Hero = () => {
 
               {/* Subheadline */}
               <motion.p
-                className="text-base md:text-lg lg:text-xl text-[#CBD5E1] leading-relaxed mb-10 font-body"
+                className="text-lg md:text-xl lg:text-2xl text-[#CBD5E1]/90 leading-relaxed mb-10 font-body"
                 variants={subheadVariants}
               >
                 BuildSmarter™ Feasibility transforms complex public, municipal, and construction data into a single verified source of truth—helping you make faster, safer, and more profitable decisions.
@@ -354,34 +359,36 @@ export const Hero = () => {
                 {/* Phase 1: Magnetic CTA */}
                 <motion.div
                   animate={{
-                    x: mousePosition.x,
-                    y: mousePosition.y,
+                    x: prefersReducedMotion ? 0 : mousePosition.x,
+                    y: prefersReducedMotion ? 0 : mousePosition.y,
                   }}
                   transition={{ type: "spring", stiffness: 150, damping: 15 }}
                 >
                   <Button
                     ref={buttonRef}
                     size="lg"
-                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 text-lg shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-250 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2"
+                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 md:py-7 text-lg min-h-[3rem] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-250 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none"
                     onClick={() => (window.location.href = "/application?step=2")}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <span className="relative z-10">Generate My Feasibility Report</span>
+                    <span className="relative z-10">Get Your Full Report</span>
                     {/* Shimmer effect */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                      initial={{ x: '-100%' }}
-                      whileHover={{
-                        x: '100%',
-                        transition: { duration: 0.5, ease: 'easeInOut' }
-                      }}
-                    />
+                    {!prefersReducedMotion && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: '-100%' }}
+                        whileHover={{
+                          x: '100%',
+                          transition: { duration: 0.5, ease: 'easeInOut' }
+                        }}
+                      />
+                    )}
                   </Button>
                 </motion.div>
                 
                 {/* Microcopy with Phase 4: Number Counter */}
-                <p className="mt-3 text-sm text-[#CBD5E1]/70">
+                <p className="mt-3 text-sm text-[#CBD5E1]/90">
                   Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Cost-calibrated from real projects · 10-minute turnaround
                 </p>
               </motion.div>
@@ -389,7 +396,7 @@ export const Hero = () => {
               {/* Phase 3: Value Icons Strip with Hover Interactions */}
               <TooltipProvider>
                 <motion.div
-                  className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-4 text-[#CBD5E1] text-sm"
+                  className="mt-10 pt-8 border-t border-[#CBD5E1]/20 grid grid-cols-1 md:grid-cols-2 gap-4 text-[#CBD5E1] text-sm"
                   initial="hidden"
                   animate="visible"
                 >

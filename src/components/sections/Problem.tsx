@@ -26,13 +26,13 @@ export const Problem = () => {
   ];
 
   return (
-    <section className="bg-white py-20 lg:py-20">
+    <section className="bg-white py-16 md:py-24 lg:py-32">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-12 lg:mb-16">
-          <h3 className="font-headline text-3xl md:text-4xl lg:text-5xl text-charcoal mb-3 lg:mb-4">
+        <div className="text-center mb-16 lg:mb-20">
+          <h3 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-4 lg:mb-6">
             The Risks Hiding in Every CRE Property
           </h3>
-          <h4 className="font-body text-lg md:text-xl text-charcoal/80 max-w-4xl mx-auto leading-relaxed">
+          <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-4xl mx-auto leading-relaxed">
             Skipping feasibility quietly erodes IRR, derails schedules, and jeopardizes financing.
           </h4>
         </div>
@@ -41,8 +41,8 @@ export const Problem = () => {
           {painPoints.map((point, index) => {
             const IconComponent = point.icon;
             return (
-              <div key={index} className="group transform hover:scale-105 transition-all duration-300">
-                <div className="bg-charcoal/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal/20 hover:bg-charcoal/10 hover:border-maxx-red/30 hover:shadow-xl transition-all duration-300 h-full">
+              <div key={index} className="group">
+                <div className="bg-charcoal/5 backdrop-blur-sm rounded-lg p-6 border border-charcoal/20 hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] hover:bg-charcoal/10 hover:border-maxx-red/30 transition-all duration-300 h-full">
                   <div className="text-center">
                     <div className="inline-flex w-16 h-16 bg-gradient-to-br from-maxx-red/20 to-navy/20 rounded-lg items-center justify-center border border-maxx-red/30 mb-4 group-hover:scale-110 transition-transform duration-300">
                       <IconComponent 

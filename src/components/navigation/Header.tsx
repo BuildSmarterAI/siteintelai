@@ -139,10 +139,11 @@ export const Header = () => {
         <div className="hidden md:flex items-center gap-4">
           <Button
             asChild
-            className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_4px_20px_rgba(255,122,0,0.4)] text-white font-semibold rounded-full px-6 relative overflow-hidden group"
+            variant="outline"
+            className="border-[#06B6D4]/50 text-white hover:bg-[#06B6D4]/10 hover:border-[#06B6D4] rounded-full px-6 relative overflow-hidden group"
           >
             <Link to="/application?step=2">
-              <span className="relative z-10">Run a Feasibility QuickCheck →</span>
+              <span className="relative z-10">Run Free QuickCheck →</span>
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                 initial={{ x: '-100%' }}

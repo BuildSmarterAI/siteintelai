@@ -33,13 +33,13 @@ export const PackagesPricing = () => {
   ];
 
   return (
-    <section className="bg-light-gray py-20 md:py-25">
+    <section className="bg-light-gray py-16 md:py-24 lg:py-32">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-12 md:mb-16">
-          <h3 className="font-headline text-2xl md:text-3xl text-charcoal mb-4 md:mb-6">
+        <div className="text-center mb-16 lg:mb-20">
+          <h3 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-6 lg:mb-8">
             Choose the Level of Feasibility That Fits Your Project
           </h3>
-          <h4 className="font-body text-lg md:text-xl text-charcoal max-w-5xl mx-auto leading-relaxed">
+          <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-5xl mx-auto leading-relaxed">
             Whether you need a fast go/no-go or a lender-ready report, BuildSmarter™ has an option designed for your property and timeline.
           </h4>
         </div>
@@ -49,14 +49,14 @@ export const PackagesPricing = () => {
             <div key={index} className="relative group">
               {pkg.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                  <Badge className="bg-navy text-navy-foreground px-4 py-1 text-sm font-medium">
+                  <Badge className="bg-navy text-navy-foreground px-4 py-1 text-sm font-medium animate-pulse">
                     Most Popular
                   </Badge>
                 </div>
               )}
               
-              <div className={`bg-white border rounded-lg h-full transition-all duration-300 hover:shadow-xl hover:border-maxx-red ${
-                pkg.popular ? 'border-navy/20 shadow-md' : 'border-gray-200'
+              <div className={`bg-white border rounded-lg h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] hover:border-maxx-red ${
+                pkg.popular ? 'ring-2 ring-navy shadow-xl bg-gradient-to-br from-navy/5 to-white' : 'border-gray-200'
               }`}>
                 <div className="p-6 md:p-8">
                   <div className="text-center mb-6">
