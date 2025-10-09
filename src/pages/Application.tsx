@@ -522,7 +522,8 @@ export default function Application() {
                                     // Visible fields
                                     parcelId: data.data.parcel_id || prev.parcelId,
                                     zoning: data.data.zoning_code || prev.zoning,
-                                    lotSize: data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize,
+                                    lotSize: data.data.lot_size_value ? String(data.data.lot_size_value) : (data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize),
+                                    lotSizeUnit: data.data.lot_size_unit || prev.lotSizeUnit,
                                     // Hidden enriched fields
                                     situsAddress: data.data.situs_address || prev.situsAddress,
                                     administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
