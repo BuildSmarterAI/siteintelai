@@ -1771,10 +1771,10 @@ serve(async (req) => {
       
       // Harris County: Use envelope buffer with WGS84 (let service handle transformation)
       if (countyName === 'Harris County') {
-        // Create a larger envelope buffer around the point (roughly 200 feet in degrees)
+        // Create a small envelope buffer around the point (roughly 50 feet in degrees)
         // At Houston's latitude (~29.7°), 1 degree lat ≈ 364,000 ft, 1 degree lng ≈ 315,000 ft
-        // 200 feet ≈ 0.0006 degrees (increased from 50 feet for better coverage)
-        const bufferDegrees = 0.0006;
+        // 50 feet ≈ 0.00015 degrees
+        const bufferDegrees = 0.00015;
         const xmin = geoLng - bufferDegrees;
         const ymin = geoLat - bufferDegrees;
         const xmax = geoLng + bufferDegrees;
@@ -1789,7 +1789,7 @@ serve(async (req) => {
         console.log(`Using HCAD envelope query with inSR=4326:`, {
           envelope: envelopeGeometry,
           center: { lat: geoLat, lng: geoLng },
-          buffer_ft: 200
+          buffer_ft: 50
         });
       }
       
@@ -1818,52 +1818,215 @@ serve(async (req) => {
       }
 
       let parcelData = null;
+      const parcelAttempts: any[] = [];
       
-      // Query parcel data from primary endpoint with fallback variants
+      // Query parcel data from primary endpoint with 3-tier fallback and retry logic
       if (endpoints.parcel_url) {
         console.log('Querying parcel data from:', endpoints.parcel_url);
         console.log('Parcel query params:', new URLSearchParams(parcelParams).toString());
         
-        // Try primary query first
+        // 🔄 Tier 1: Primary envelope/point query with retry logic
         try {
-          const parcelResp = await fetch(`${endpoints.parcel_url}?${new URLSearchParams(parcelParams)}`);
-          parcelData = await safeJsonParse(parcelResp, 'Parcel query');
-          console.log('Parcel API response:', { 
-            status: parcelResp.status,
+          parcelData = await retryWithBackoff(
+            async () => {
+              const controller = new AbortController();
+              const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+              
+              try {
+                const parcelResp = await fetch(
+                  `${endpoints.parcel_url}?${new URLSearchParams(parcelParams)}`,
+                  { signal: controller.signal }
+                );
+                clearTimeout(timeout);
+                
+                const data = await safeJsonParse(parcelResp, 'Parcel query');
+                
+                parcelAttempts.push({
+                  tier: 1,
+                  method: useEnvelope ? 'envelope' : 'point',
+                  radius_ft: useEnvelope ? 50 : 0,
+                  timestamp: new Date().toISOString(),
+                  status: parcelResp.status,
+                  feature_count: data?.features?.length || 0,
+                  success: !!data?.features?.[0]
+                });
+                
+                return data;
+              } catch (err) {
+                clearTimeout(timeout);
+                throw err;
+              }
+            },
+            3,
+            [1000, 2000, 4000],
+            'HCAD Tier 1 (Primary)'
+          );
+          
+          console.log('Tier 1 parcel API response:', { 
             hasFeatures: !!parcelData?.features,
             featureCount: parcelData?.features?.length || 0,
             error: parcelData?.error
           });
+        } catch (tier1Error) {
+          console.error('Tier 1 parcel query failed after retries:', tier1Error);
+          parcelAttempts.push({
+            tier: 1,
+            method: useEnvelope ? 'envelope' : 'point',
+            error: tier1Error.message,
+            timestamp: new Date().toISOString(),
+            success: false
+          });
+        }
+        
+        // 🔄 Tier 2: Buffered point query (500 feet) - only for Harris County when Tier 1 fails
+        if (!parcelData?.features?.[0] && countyName === 'Harris County') {
+          console.log('🔄 Tier 2: Trying 500-foot buffered point query...');
           
-          // If primary query fails for Harris County, try buffered point query with smart selection
-          if (!parcelData?.features?.[0] && countyName === 'Harris County') {
-            console.log('No features found, trying buffered point query (500 feet radius for better coverage)...');
-            const bufferedParams: Record<string, string> = {
-              geometry: geometryCoords,
-              geometryType: 'esriGeometryPoint',
-              spatialRel: 'esriSpatialRelIntersects',
-              outFields: comprehensiveOutFields,
-              inSR: '4326',
-              outSR: '4326',
-              distance: '500',
-              units: 'esriSRUnit_Foot',
-              returnGeometry: 'true',
-              f: 'json'
-            };
+          try {
+            const bufferedData = await retryWithBackoff(
+              async () => {
+                const bufferedParams: Record<string, string> = {
+                  geometry: geometryCoords,
+                  geometryType: 'esriGeometryPoint',
+                  spatialRel: 'esriSpatialRelIntersects',
+                  outFields: comprehensiveOutFields,
+                  inSR: '4326',
+                  outSR: '4326',
+                  distance: '500',
+                  units: 'esriSRUnit_Foot',
+                  returnGeometry: 'true',
+                  f: 'geojson'
+                };
+                
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                
+                try {
+                  const bufferedResp = await fetch(
+                    `${endpoints.parcel_url}?${new URLSearchParams(bufferedParams)}`,
+                    { signal: controller.signal }
+                  );
+                  clearTimeout(timeout);
+                  
+                  const data = await safeJsonParse(bufferedResp, 'Buffered parcel query');
+                  
+                  parcelAttempts.push({
+                    tier: 2,
+                    method: 'buffered_point',
+                    radius_ft: 500,
+                    timestamp: new Date().toISOString(),
+                    status: bufferedResp.status,
+                    feature_count: data?.features?.length || 0,
+                    success: !!data?.features?.[0]
+                  });
+                  
+                  return data;
+                } catch (err) {
+                  clearTimeout(timeout);
+                  throw err;
+                }
+              },
+              3,
+              [1000, 2000, 4000],
+              'HCAD Tier 2 (500ft buffer)'
+            );
             
-            const bufferedResp = await fetch(`${endpoints.parcel_url}?${new URLSearchParams(bufferedParams)}`);
-            const bufferedData = await safeJsonParse(bufferedResp, 'Buffered parcel query');
             if (bufferedData?.features?.[0]) {
-              console.log(`✅ Buffered query found ${bufferedData.features.length} parcel(s)`);
+              console.log(`✅ Tier 2 found ${bufferedData.features.length} parcel(s)`);
               parcelData = bufferedData;
             }
+          } catch (tier2Error) {
+            console.error('Tier 2 buffered query failed after retries:', tier2Error);
+            parcelAttempts.push({
+              tier: 2,
+              method: 'buffered_point',
+              radius_ft: 500,
+              error: tier2Error.message,
+              timestamp: new Date().toISOString(),
+              success: false
+            });
           }
+        }
+        
+        // 🔄 Tier 3: Extended buffered query (1000 feet) - last resort for Harris County
+        if (!parcelData?.features?.[0] && countyName === 'Harris County') {
+          console.log('🔄 Tier 3: Trying 1000-foot extended buffered query (last resort)...');
           
-          if (parcelData?.features?.[0]) {
-            console.log('✅ Parcel data found');
+          try {
+            const extendedData = await retryWithBackoff(
+              async () => {
+                const extendedParams: Record<string, string> = {
+                  geometry: geometryCoords,
+                  geometryType: 'esriGeometryPoint',
+                  spatialRel: 'esriSpatialRelIntersects',
+                  outFields: comprehensiveOutFields,
+                  inSR: '4326',
+                  outSR: '4326',
+                  distance: '1000',
+                  units: 'esriSRUnit_Foot',
+                  returnGeometry: 'true',
+                  f: 'geojson'
+                };
+                
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                
+                try {
+                  const extendedResp = await fetch(
+                    `${endpoints.parcel_url}?${new URLSearchParams(extendedParams)}`,
+                    { signal: controller.signal }
+                  );
+                  clearTimeout(timeout);
+                  
+                  const data = await safeJsonParse(extendedResp, 'Extended buffered parcel query');
+                  
+                  parcelAttempts.push({
+                    tier: 3,
+                    method: 'buffered_point',
+                    radius_ft: 1000,
+                    timestamp: new Date().toISOString(),
+                    status: extendedResp.status,
+                    feature_count: data?.features?.length || 0,
+                    success: !!data?.features?.[0]
+                  });
+                  
+                  return data;
+                } catch (err) {
+                  clearTimeout(timeout);
+                  throw err;
+                }
+              },
+              3,
+              [1000, 2000, 4000],
+              'HCAD Tier 3 (1000ft buffer)'
+            );
+            
+            if (extendedData?.features?.[0]) {
+              console.log(`✅ Tier 3 found ${extendedData.features.length} parcel(s) - using nearest match`);
+              parcelData = extendedData;
+            }
+          } catch (tier3Error) {
+            console.error('Tier 3 extended query failed after retries:', tier3Error);
+            parcelAttempts.push({
+              tier: 3,
+              method: 'buffered_point',
+              radius_ft: 1000,
+              error: tier3Error.message,
+              timestamp: new Date().toISOString(),
+              success: false
+            });
           }
-        } catch (parcelError) {
-          console.error('Parcel query failed:', parcelError);
+        }
+        
+        // Final status log
+        if (parcelData?.features?.[0]) {
+          const successfulTier = parcelAttempts.find(a => a.success);
+          console.log(`✅ Parcel data found via Tier ${successfulTier?.tier || 1} (${successfulTier?.method || 'unknown'})`);
+        } else {
+          console.error('❌ All parcel query tiers failed:', {
+            totalAttempts: parcelAttempts.length,
+            attempts: parcelAttempts
+          });
         }
       }
 
