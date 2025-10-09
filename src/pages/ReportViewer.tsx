@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
-import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2 } from "lucide-react";
+import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
@@ -63,6 +63,23 @@ interface Report {
     block?: string | null;
     lot?: string | null;
     exemption_code?: string | null;
+    // Cost & Schedule fields
+    costs_output?: string | null;
+    schedule_output?: string | null;
+    // Tax & Incentives fields
+    tax_rate_total?: number | null;
+    taxing_jurisdictions?: any | null;
+    opportunity_zone?: boolean | null;
+    enterprise_zone?: boolean | null;
+    foreign_trade_zone?: boolean | null;
+    mud_district?: string | null;
+    etj_provider?: string | null;
+    // Infrastructure fields
+    power_kv_nearby?: number | null;
+    fiber_available?: boolean | null;
+    broadband_providers?: any | null;
+    distance_highway_ft?: number | null;
+    distance_transit_ft?: number | null;
   };
 }
 
@@ -122,6 +139,21 @@ export default function ReportViewer() {
             subdivision,
             block,
             lot,
+            exemption_code,
+            costs_output,
+            schedule_output,
+            tax_rate_total,
+            taxing_jurisdictions,
+            opportunity_zone,
+            enterprise_zone,
+            foreign_trade_zone,
+            mud_district,
+            etj_provider,
+            power_kv_nearby,
+            fiber_available,
+            broadband_providers,
+            distance_highway_ft,
+            distance_transit_ft,
             updated_at
           )
         `)
@@ -457,6 +489,93 @@ export default function ReportViewer() {
           </Card>
         )}
 
+        {/* ⭐ NEW: Tax & Incentives Card - PHASE 2 */}
+        {(report.applications?.tax_rate_total || report.applications?.taxing_jurisdictions || 
+          report.applications?.opportunity_zone || report.applications?.enterprise_zone || 
+          report.applications?.foreign_trade_zone || report.applications?.mud_district) && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Landmark className="h-5 w-5" />
+                Tax & Incentives
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Tax Rate Section */}
+                {report.applications?.tax_rate_total && (
+                  <div>
+                    <div className="flex items-baseline gap-2 mb-3">
+                      <p className="text-3xl font-bold text-primary">
+                        {(report.applications.tax_rate_total * 100).toFixed(4)}%
+                      </p>
+                      <p className="text-sm text-muted-foreground">Total Tax Rate</p>
+                    </div>
+                    
+                    {/* Tax Breakdown */}
+                    {report.applications?.taxing_jurisdictions && Array.isArray(report.applications.taxing_jurisdictions) && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                        {report.applications.taxing_jurisdictions.map((jurisdiction: any, i: number) => (
+                          <div key={i}>
+                            <p className="text-xs text-muted-foreground">{jurisdiction.name || 'N/A'}</p>
+                            <p className="font-semibold">
+                              {jurisdiction.rate ? `${(jurisdiction.rate * 100).toFixed(4)}%` : 'N/A'}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Special Zones & Districts */}
+                {(report.applications?.opportunity_zone || report.applications?.enterprise_zone || 
+                  report.applications?.foreign_trade_zone || report.applications?.mud_district || 
+                  report.applications?.etj_provider) && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-semibold mb-3 text-sm">Special Designations</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {report.applications.opportunity_zone && (
+                        <Badge variant="default" className="bg-green-600">
+                          <Zap className="h-3 w-3 mr-1" />
+                          Opportunity Zone
+                        </Badge>
+                      )}
+                      {report.applications.enterprise_zone && (
+                        <Badge variant="default" className="bg-blue-600">
+                          Enterprise Zone
+                        </Badge>
+                      )}
+                      {report.applications.foreign_trade_zone && (
+                        <Badge variant="default" className="bg-purple-600">
+                          Foreign Trade Zone
+                        </Badge>
+                      )}
+                      {report.applications.mud_district && (
+                        <Badge variant="secondary">
+                          MUD: {report.applications.mud_district}
+                        </Badge>
+                      )}
+                      {report.applications.etj_provider && (
+                        <Badge variant="outline">
+                          ETJ: {report.applications.etj_provider}
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    {report.applications.exemption_code && (
+                      <div className="mt-3 text-sm">
+                        <span className="text-muted-foreground">Exemption Code: </span>
+                        <span className="font-medium">{report.applications.exemption_code}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ⭐ NEW: Proposed Development Card */}
         {report.applications?.project_type && report.applications.project_type.length > 0 && (
           <Card className="mb-8">
@@ -668,6 +787,111 @@ export default function ReportViewer() {
           </Card>
         )}
 
+        {/* ⭐ NEW: Cost & Timeline Card - PHASE 1 */}
+        {(report.json_data?.cost_schedule || report.applications?.costs_output || report.applications?.schedule_output) && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5" />
+                Cost & Timeline Analysis
+              </CardTitle>
+              {report.json_data?.cost_schedule?.component_score && (
+                <Badge className="mt-2">
+                  Score: {report.json_data.cost_schedule.component_score}/100
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Timeline Section */}
+                {report.json_data?.cost_schedule?.estimated_timeline_months && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Timeline</span>
+                      </div>
+                      <p className="text-3xl font-bold text-primary">
+                        {report.json_data.cost_schedule.estimated_timeline_months}
+                      </p>
+                      <p className="text-xs text-muted-foreground">months estimated</p>
+                    </div>
+                    
+                    {report.json_data?.cost_schedule?.permitting_complexity && (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Complexity</span>
+                        </div>
+                        <Badge variant={
+                          report.json_data.cost_schedule.permitting_complexity === 'low' ? 'default' :
+                          report.json_data.cost_schedule.permitting_complexity === 'moderate' ? 'secondary' :
+                          'destructive'
+                        } className="text-lg">
+                          {report.json_data.cost_schedule.permitting_complexity?.toUpperCase()}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">permitting level</p>
+                      </div>
+                    )}
+                    
+                    {report.applications?.desired_budget && (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <DollarSign className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Project Budget</span>
+                        </div>
+                        <p className="text-2xl font-bold">
+                          ${(report.applications.desired_budget / 1000000).toFixed(1)}M
+                        </p>
+                        <p className="text-xs text-muted-foreground">development budget</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Critical Path Items */}
+                {report.json_data?.cost_schedule?.critical_path_items && report.json_data.cost_schedule.critical_path_items.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-orange-600" />
+                      Critical Path Items
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {report.json_data.cost_schedule.critical_path_items.map((item: string, i: number) => (
+                        <li key={i}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* AI Analysis Output */}
+                {(report.applications?.schedule_output || report.applications?.costs_output) && (
+                  <div className="pt-4 border-t">
+                    {report.applications.schedule_output && (
+                      <div className="mb-4">
+                        <h4 className="font-semibold mb-2 text-sm">Schedule Analysis:</h4>
+                        <div 
+                          className="prose prose-sm max-w-none text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: report.applications.schedule_output }}
+                        />
+                      </div>
+                    )}
+                    {report.applications.costs_output && (
+                      <div>
+                        <h4 className="font-semibold mb-2 text-sm">Cost Analysis:</h4>
+                        <div 
+                          className="prose prose-sm max-w-none text-muted-foreground"
+                          dangerouslySetInnerHTML={{ __html: report.applications.costs_output }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
           <TabsList className="grid w-full grid-cols-6">
@@ -758,8 +982,90 @@ export default function ReportViewer() {
                   ))}
                 </div>
               </CardHeader>
-              <CardContent className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: utilities.verdict || '<p>No utilities analysis available.</p>' }} />
+              <CardContent className="space-y-6">
+                {/* ⭐ NEW: Infrastructure & Connectivity Section - PHASE 3 */}
+                {(report.applications?.power_kv_nearby || report.applications?.fiber_available || 
+                  report.applications?.broadband_providers || report.applications?.distance_highway_ft || 
+                  report.applications?.distance_transit_ft) && (
+                  <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <Wifi className="h-4 w-4" />
+                      Infrastructure & Connectivity
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {report.applications.power_kv_nearby && (
+                        <div className="p-3 bg-background rounded border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Zap className="h-4 w-4 text-yellow-600" />
+                            <span className="text-xs text-muted-foreground">Power</span>
+                          </div>
+                          <p className="text-xl font-bold">{report.applications.power_kv_nearby} kV</p>
+                          <p className="text-xs text-muted-foreground">nearby capacity</p>
+                        </div>
+                      )}
+                      
+                      {typeof report.applications.fiber_available === 'boolean' && (
+                        <div className="p-3 bg-background rounded border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Wifi className="h-4 w-4 text-blue-600" />
+                            <span className="text-xs text-muted-foreground">Fiber Optic</span>
+                          </div>
+                          <Badge variant={report.applications.fiber_available ? 'default' : 'secondary'}>
+                            {report.applications.fiber_available ? 'Available' : 'Not Available'}
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      {report.applications.distance_highway_ft && (
+                        <div className="p-3 bg-background rounded border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Car className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Highway Access</span>
+                          </div>
+                          <p className="text-xl font-bold">
+                            {(report.applications.distance_highway_ft / 5280).toFixed(2)} mi
+                          </p>
+                          <p className="text-xs text-muted-foreground">to nearest highway</p>
+                        </div>
+                      )}
+                      
+                      {report.applications.distance_transit_ft && (
+                        <div className="p-3 bg-background rounded border">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-xs text-muted-foreground">Transit Access</span>
+                          </div>
+                          <p className="text-xl font-bold">
+                            {(report.applications.distance_transit_ft / 5280).toFixed(2)} mi
+                          </p>
+                          <p className="text-xs text-muted-foreground">to transit stop</p>
+                        </div>
+                      )}
+                      
+                      {report.applications.broadband_providers && Array.isArray(report.applications.broadband_providers) && report.applications.broadband_providers.length > 0 && (
+                        <div className="p-3 bg-background rounded border md:col-span-2">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Wifi className="h-4 w-4 text-green-600" />
+                            <span className="text-xs text-muted-foreground">Broadband Providers</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {report.applications.broadband_providers.map((provider: any, i: number) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {typeof provider === 'string' ? provider : provider.name || `Provider ${i + 1}`}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Original Utilities Analysis */}
+                <div className="prose prose-sm max-w-none">
+                  <div dangerouslySetInnerHTML={{ __html: utilities.verdict || '<p>No utilities analysis available.</p>' }} />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
