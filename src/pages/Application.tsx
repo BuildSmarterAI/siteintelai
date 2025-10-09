@@ -516,14 +516,28 @@ export default function Application() {
                               onEnrichmentComplete={(data) => {
                                 if (data?.success && data?.data) {
                                   setEnrichedData(data.data);
+                                  // Resolve lot size from multiple possible sources
+                                  const lotSizeFromApiMetaSqft = data?.api_meta?.hcad_parcel?.parcel_data?.land_sqft;
+                                  const resolvedLotSize =
+                                    (typeof data.data.lot_size_value === 'number' && data.data.lot_size_value)
+                                      || (typeof data.data.acreage_cad === 'number' && data.data.acreage_cad)
+                                      || (typeof lotSizeFromApiMetaSqft === 'number' ? +(lotSizeFromApiMetaSqft / 43560).toFixed(4) : undefined);
+
+                                  console.log('[Enrichment] Lot size candidates:', {
+                                    lot_size_value: data.data.lot_size_value,
+                                    acreage_cad: data.data.acreage_cad,
+                                    land_sqft: lotSizeFromApiMetaSqft,
+                                    resolvedLotSize
+                                  });
+
                                   // Auto-fill both visible and hidden enriched fields
                                   setFormData(prev => ({
                                     ...prev,
                                     // Visible fields
                                     parcelId: data.data.parcel_id || prev.parcelId,
                                     zoning: data.data.zoning_code || prev.zoning,
-                                    lotSize: data.data.lot_size_value ? String(data.data.lot_size_value) : (data.data.acreage_cad ? String(data.data.acreage_cad) : prev.lotSize),
-                                    lotSizeUnit: data.data.lot_size_unit || prev.lotSizeUnit,
+                                    lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
+                                    lotSizeUnit: (data.data.lot_size_unit as string) || prev.lotSizeUnit,
                                     // Hidden enriched fields
                                     situsAddress: data.data.situs_address || prev.situsAddress,
                                     administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
