@@ -163,7 +163,6 @@ export default function Application() {
     }
 
     if (step === 5) {
-      if (!formData.hearAboutUs) newErrors.hearAboutUs = "Please tell us how you heard about us";
       if (!formData.ndaConsent) newErrors.ndaConsent = "NDA consent is required";
       if (!formData.contactConsent) newErrors.contactConsent = "Contact consent is required";
       if (!formData.privacyConsent) newErrors.privacyConsent = "Privacy & Terms consent is required";
@@ -1325,8 +1324,8 @@ export default function Application() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div>
                                <Label htmlFor="hearAboutUs" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 How Did You Hear About Us? <span className="text-maxx-red text-lg">*</span>
-                               </Label>
+                                  How Did You Hear About Us?
+                                </Label>
                               <Select value={formData.hearAboutUs} onValueChange={(value) => handleInputChange('hearAboutUs', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.hearAboutUs ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select source" />
