@@ -103,6 +103,9 @@ interface Report {
     soil_slope_percent?: number | null;
     environmental_sites?: any;
     historical_flood_events?: any;
+    // Lot size fields
+    lot_size_value?: number | null;
+    lot_size_unit?: string | null;
   };
 }
 
@@ -207,6 +210,8 @@ export default function ReportViewer() {
             soil_slope_percent,
             environmental_sites,
             historical_flood_events,
+            lot_size_value,
+            lot_size_unit,
             updated_at,
             user_id
           )
@@ -455,6 +460,14 @@ export default function ReportViewer() {
                   <div>
                     <p className="text-xs text-muted-foreground uppercase mb-1">Account Number</p>
                     <p className="font-mono font-semibold">{report.applications.acct_num}</p>
+                  </div>
+                )}
+                {report.applications.lot_size_value && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Lot Size</p>
+                    <p className="font-semibold text-lg">
+                      {report.applications.lot_size_value.toLocaleString()} {report.applications.lot_size_unit || 'acres'}
+                    </p>
                   </div>
                 )}
               </div>
