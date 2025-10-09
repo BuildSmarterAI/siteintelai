@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
-import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp } from "lucide-react";
+import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
@@ -30,6 +30,26 @@ interface Report {
     traffic_year: number | null;
     traffic_road_name: string | null;
     employment_clusters: any | null;
+    updated_at?: string;
+    // ⭐ NEW: Valuation fields
+    tot_appr_val?: number | null;
+    tot_market_val?: number | null;
+    land_val?: number | null;
+    imprv_val?: number | null;
+    taxable_value?: number | null;
+    // ⭐ NEW: Building characteristics
+    bldg_sqft?: number | null;
+    year_built?: number | null;
+    effective_yr?: number | null;
+    num_stories?: number | null;
+    state_class?: string | null;
+    prop_type?: string | null;
+    land_use_code?: string | null;
+    // ⭐ NEW: Location details
+    subdivision?: string | null;
+    block?: string | null;
+    lot?: string | null;
+    exemption_code?: string | null;
   };
 }
 
@@ -249,6 +269,146 @@ export default function ReportViewer() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                     <span>Employment Centers</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⭐ NEW: Property Valuation Card */}
+        {(report.applications?.tot_appr_val || report.applications?.bldg_sqft) && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Property Valuation & Building Characteristics
+              </CardTitle>
+              <DataSourceBadge 
+                datasetName="HCAD Official Assessment" 
+                timestamp={report.applications.updated_at || report.created_at}
+              />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Valuation Section */}
+                {report.applications?.tot_appr_val && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg border-b pb-2">Property Valuation</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {report.applications.tot_appr_val && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase">Total Appraised</p>
+                          <p className="text-2xl font-bold text-primary">
+                            ${Number(report.applications.tot_appr_val).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {report.applications.tot_market_val && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase">Market Value</p>
+                          <p className="text-2xl font-bold">
+                            ${Number(report.applications.tot_market_val).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {report.applications.land_val && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase">Land Value</p>
+                          <p className="text-xl font-semibold">
+                            ${Number(report.applications.land_val).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      {report.applications.imprv_val && (
+                        <div>
+                          <p className="text-xs text-muted-foreground uppercase">Improvements</p>
+                          <p className="text-xl font-semibold">
+                            ${Number(report.applications.imprv_val).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    {report.applications.taxable_value && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground uppercase">Taxable Value</p>
+                        <p className="text-lg font-semibold">
+                          ${Number(report.applications.taxable_value).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Building Characteristics Section */}
+                {report.applications?.bldg_sqft && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg border-b pb-2">Building Details</h3>
+                    <dl className="grid grid-cols-2 gap-3 text-sm">
+                      {report.applications.bldg_sqft && (
+                        <>
+                          <dt className="text-muted-foreground">Building Area:</dt>
+                          <dd className="font-semibold">{Number(report.applications.bldg_sqft).toLocaleString()} SF</dd>
+                        </>
+                      )}
+                      {report.applications.year_built && (
+                        <>
+                          <dt className="text-muted-foreground">Year Built:</dt>
+                          <dd className="font-semibold">{report.applications.year_built}</dd>
+                        </>
+                      )}
+                      {report.applications.effective_yr && (
+                        <>
+                          <dt className="text-muted-foreground">Effective Year:</dt>
+                          <dd className="font-semibold">{report.applications.effective_yr}</dd>
+                        </>
+                      )}
+                      {report.applications.num_stories && (
+                        <>
+                          <dt className="text-muted-foreground">Stories:</dt>
+                          <dd className="font-semibold">{report.applications.num_stories}</dd>
+                        </>
+                      )}
+                      {report.applications.state_class && (
+                        <>
+                          <dt className="text-muted-foreground">Classification:</dt>
+                          <dd className="font-semibold">{report.applications.state_class}</dd>
+                        </>
+                      )}
+                      {report.applications.prop_type && (
+                        <>
+                          <dt className="text-muted-foreground">Property Type:</dt>
+                          <dd className="font-semibold">{report.applications.prop_type}</dd>
+                        </>
+                      )}
+                    </dl>
+                    
+                    {/* Legal Description */}
+                    {(report.applications.subdivision || report.applications.block || report.applications.lot) && (
+                      <div className="pt-2 border-t">
+                        <p className="text-xs text-muted-foreground uppercase mb-2">Legal Description</p>
+                        <dl className="grid grid-cols-2 gap-2 text-sm">
+                          {report.applications.subdivision && (
+                            <>
+                              <dt className="text-muted-foreground">Subdivision:</dt>
+                              <dd className="font-medium">{report.applications.subdivision}</dd>
+                            </>
+                          )}
+                          {report.applications.block && (
+                            <>
+                              <dt className="text-muted-foreground">Block:</dt>
+                              <dd className="font-medium">{report.applications.block}</dd>
+                            </>
+                          )}
+                          {report.applications.lot && (
+                            <>
+                              <dt className="text-muted-foreground">Lot:</dt>
+                              <dd className="font-medium">{report.applications.lot}</dd>
+                            </>
+                          )}
+                        </dl>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

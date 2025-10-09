@@ -1506,22 +1506,60 @@ serve(async (req) => {
       if (countyName === 'Harris County') {
         // HCAD specific fields (address is split, legal is split)
         outFieldsList = [
+          // Core Parcel Data
           'HCAD_NUM',
           'acct_num',
           'owner_name_1',
           'Acreage',
           'acreage_1',
           'land_sqft',
+          
+          // Address Components
           'site_str_num',
           'site_str_name',
           'site_str_sfx',
           'site_city',
           'site_zip',
           'site_county',
+          
+          // Legal Description
           'legal_dscr_1',
           'legal_dscr_2',
           'legal_dscr_3',
-          'legal_dscr_4'
+          'legal_dscr_4',
+          
+          // ⭐ NEW: Valuation Fields
+          'tot_appr_val',      // Total appraised value
+          'tot_market_val',    // Total market value
+          'land_val',          // Land value
+          'imprv_val',         // Improvement value
+          'tot_assessed_val',  // Assessed value (alternative field)
+          
+          // ⭐ NEW: Building Details
+          'bldg_sqft',         // Building square footage
+          'tot_living_area',   // Alternative building area field
+          'year_built',        // Year built
+          'effect_yr_blt',     // Effective year built
+          'actual_year',       // Alternative year field
+          'num_stories',       // Number of stories
+          'bldg_style_cd',     // Building style code
+          
+          // ⭐ NEW: Classification
+          'state_class',       // State classification code
+          'state_cd',          // Alternative field
+          'prop_type_cd',      // Property type code
+          'land_use_cd',       // Land use code
+          
+          // ⭐ NEW: Tax Information
+          'exemption_cd',      // Exemption codes
+          'ag_use',            // Agricultural use flag
+          'homestead',         // Homestead exemption flag
+          
+          // ⭐ NEW: Location Details
+          'subdivision',       // Subdivision name
+          'subdivsn',          // Alternative field
+          'block',             // Block
+          'lot'                // Lot
         ].join(',');
       } else {
         // Other counties: use configured field names
@@ -1795,6 +1833,50 @@ serve(async (req) => {
             attrs.legal_dscr_4
           ].filter(Boolean);
           enrichedData.legal_description = legalParts.length > 0 ? legalParts.join(' ') : null;
+          
+          // ⭐ NEW: Extract valuation data
+          const pickAttr = (attrs: any, fields: string[]) => {
+            for (const field of fields) {
+              if (attrs[field] !== undefined && attrs[field] !== null) return attrs[field];
+            }
+            return null;
+          };
+          
+          enrichedData.tot_appr_val = parseFloat(pickAttr(attrs, ['tot_appr_val', 'total_appraised_value'])) || null;
+          enrichedData.tot_market_val = parseFloat(pickAttr(attrs, ['tot_market_val', 'total_market_value'])) || null;
+          enrichedData.land_val = parseFloat(pickAttr(attrs, ['land_val', 'land_value'])) || null;
+          enrichedData.imprv_val = parseFloat(pickAttr(attrs, ['imprv_val', 'improvement_value', 'bldg_val'])) || null;
+          enrichedData.taxable_value = parseFloat(pickAttr(attrs, ['tot_assessed_val', 'taxable_value'])) || null;
+          
+          // ⭐ NEW: Extract building details
+          enrichedData.bldg_sqft = parseFloat(pickAttr(attrs, ['bldg_sqft', 'tot_living_area', 'building_sqft'])) || null;
+          enrichedData.year_built = parseInt(pickAttr(attrs, ['year_built', 'actual_year', 'yr_built'])) || null;
+          enrichedData.effective_yr = parseInt(pickAttr(attrs, ['effect_yr_blt', 'effective_year'])) || null;
+          enrichedData.num_stories = parseInt(pickAttr(attrs, ['num_stories', 'stories'])) || null;
+          
+          // ⭐ NEW: Extract classification
+          enrichedData.state_class = pickAttr(attrs, ['state_class', 'state_cd']) || null;
+          enrichedData.prop_type = pickAttr(attrs, ['prop_type_cd', 'property_type']) || null;
+          enrichedData.land_use_code = pickAttr(attrs, ['land_use_cd', 'land_use']) || null;
+          
+          // ⭐ NEW: Extract tax information
+          enrichedData.exemption_code = pickAttr(attrs, ['exemption_cd', 'exempt_code']) || null;
+          
+          // ⭐ NEW: Extract location details
+          enrichedData.subdivision = pickAttr(attrs, ['subdivision', 'subdivsn']) || null;
+          enrichedData.block = pickAttr(attrs, ['block']) || null;
+          enrichedData.lot = pickAttr(attrs, ['lot']) || null;
+          
+          console.log('⭐ HCAD valuation data extracted:', {
+            tot_appr_val: enrichedData.tot_appr_val,
+            tot_market_val: enrichedData.tot_market_val,
+            land_val: enrichedData.land_val,
+            imprv_val: enrichedData.imprv_val,
+            bldg_sqft: enrichedData.bldg_sqft,
+            year_built: enrichedData.year_built,
+            state_class: enrichedData.state_class,
+            subdivision: enrichedData.subdivision
+          });
           
           // Store HCAD selection metadata
           apiMeta.hcad_parcel = {
@@ -2228,6 +2310,32 @@ serve(async (req) => {
         updateData.lot_size_value = enrichedData.acreage_cad;
         updateData.lot_size_unit = 'acres';
       }
+      
+      // ⭐ NEW: Valuation fields
+      if (enrichedData.tot_appr_val) updateData.tot_appr_val = enrichedData.tot_appr_val;
+      if (enrichedData.tot_market_val) updateData.tot_market_val = enrichedData.tot_market_val;
+      if (enrichedData.land_val) updateData.land_val = enrichedData.land_val;
+      if (enrichedData.imprv_val) updateData.imprv_val = enrichedData.imprv_val;
+      if (enrichedData.taxable_value) updateData.taxable_value = enrichedData.taxable_value;
+      
+      // ⭐ NEW: Building details
+      if (enrichedData.bldg_sqft) updateData.bldg_sqft = enrichedData.bldg_sqft;
+      if (enrichedData.year_built) updateData.year_built = enrichedData.year_built;
+      if (enrichedData.effective_yr) updateData.effective_yr = enrichedData.effective_yr;
+      if (enrichedData.num_stories) updateData.num_stories = enrichedData.num_stories;
+      
+      // ⭐ NEW: Classification
+      if (enrichedData.state_class) updateData.state_class = enrichedData.state_class;
+      if (enrichedData.prop_type) updateData.prop_type = enrichedData.prop_type;
+      if (enrichedData.land_use_code) updateData.land_use_code = enrichedData.land_use_code;
+      
+      // ⭐ NEW: Tax information
+      if (enrichedData.exemption_code) updateData.exemption_code = enrichedData.exemption_code;
+      
+      // ⭐ NEW: Location details
+      if (enrichedData.subdivision) updateData.subdivision = enrichedData.subdivision;
+      if (enrichedData.block) updateData.block = enrichedData.block;
+      if (enrichedData.lot) updateData.lot = enrichedData.lot;
       
       // Zoning
       if (enrichedData.zoning_code) updateData.zoning_code = enrichedData.zoning_code;

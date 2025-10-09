@@ -27,6 +27,8 @@ export type Database = {
           average_permit_time_months: number | null
           base_flood_elevation: number | null
           best_time: string | null
+          bldg_sqft: number | null
+          block: string | null
           broadband_providers: Json | null
           building_size_unit: string | null
           building_size_value: number | null
@@ -45,6 +47,7 @@ export type Database = {
           distance_transit_ft: number | null
           drive_time_15min_population: number | null
           drive_time_30min_population: number | null
+          effective_yr: number | null
           elevation: number | null
           email: string
           employment_clusters: Json | null
@@ -56,6 +59,7 @@ export type Database = {
           environmental_sites: Json | null
           etj_provider: string | null
           executive_summary_output: string | null
+          exemption_code: string | null
           existing_improvements: string
           fema_panel_id: string | null
           fiber_available: boolean | null
@@ -71,7 +75,11 @@ export type Database = {
           historical_flood_events: Json | null
           households_5mi: number | null
           id: string
+          imprv_val: number | null
           known_risks: string[] | null
+          land_use_code: string | null
+          land_val: number | null
+          lot: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
           market_output: string | null
@@ -82,6 +90,7 @@ export type Database = {
           nearest_highway: string | null
           nearest_transit_stop: string | null
           neighborhood: string | null
+          num_stories: number | null
           opportunity_zone: boolean | null
           overlay_district: string | null
           ownership_status: string
@@ -97,6 +106,7 @@ export type Database = {
           power_kv_nearby: number | null
           preferred_contact: string | null
           project_type: string[]
+          prop_type: string | null
           property_address: Json | null
           property_overview_output: string | null
           prototype_requirements: string | null
@@ -110,15 +120,20 @@ export type Database = {
           soil_drainage_class: string | null
           soil_series: string | null
           soil_slope_percent: number | null
+          state_class: string | null
           stories_height: string
           storm_lines: Json | null
+          subdivision: string | null
           sublocality: string | null
           submarket_enriched: string | null
           submission_timestamp: string
           tax_rate_total: number | null
+          taxable_value: number | null
           taxing_jurisdictions: Json | null
           tenant_requirements: string | null
           topography_map_url: string | null
+          tot_appr_val: number | null
+          tot_market_val: number | null
           traffic_aadt: number | null
           traffic_direction: string | null
           traffic_distance_ft: number | null
@@ -140,6 +155,7 @@ export type Database = {
           water_capacity_mgd: number | null
           water_lines: Json | null
           wetlands_type: string | null
+          year_built: number | null
           zoning_code: string | null
           zoning_output: string | null
         }
@@ -155,6 +171,8 @@ export type Database = {
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
           best_time?: string | null
+          bldg_sqft?: number | null
+          block?: string | null
           broadband_providers?: Json | null
           building_size_unit?: string | null
           building_size_value?: number | null
@@ -173,6 +191,7 @@ export type Database = {
           distance_transit_ft?: number | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
+          effective_yr?: number | null
           elevation?: number | null
           email: string
           employment_clusters?: Json | null
@@ -184,6 +203,7 @@ export type Database = {
           environmental_sites?: Json | null
           etj_provider?: string | null
           executive_summary_output?: string | null
+          exemption_code?: string | null
           existing_improvements: string
           fema_panel_id?: string | null
           fiber_available?: boolean | null
@@ -199,7 +219,11 @@ export type Database = {
           historical_flood_events?: Json | null
           households_5mi?: number | null
           id?: string
+          imprv_val?: number | null
           known_risks?: string[] | null
+          land_use_code?: string | null
+          land_val?: number | null
+          lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
           market_output?: string | null
@@ -210,6 +234,7 @@ export type Database = {
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          num_stories?: number | null
           opportunity_zone?: boolean | null
           overlay_district?: string | null
           ownership_status: string
@@ -225,6 +250,7 @@ export type Database = {
           power_kv_nearby?: number | null
           preferred_contact?: string | null
           project_type: string[]
+          prop_type?: string | null
           property_address?: Json | null
           property_overview_output?: string | null
           prototype_requirements?: string | null
@@ -238,15 +264,20 @@ export type Database = {
           soil_drainage_class?: string | null
           soil_series?: string | null
           soil_slope_percent?: number | null
+          state_class?: string | null
           stories_height: string
           storm_lines?: Json | null
+          subdivision?: string | null
           sublocality?: string | null
           submarket_enriched?: string | null
           submission_timestamp?: string
           tax_rate_total?: number | null
+          taxable_value?: number | null
           taxing_jurisdictions?: Json | null
           tenant_requirements?: string | null
           topography_map_url?: string | null
+          tot_appr_val?: number | null
+          tot_market_val?: number | null
           traffic_aadt?: number | null
           traffic_direction?: string | null
           traffic_distance_ft?: number | null
@@ -268,6 +299,7 @@ export type Database = {
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wetlands_type?: string | null
+          year_built?: number | null
           zoning_code?: string | null
           zoning_output?: string | null
         }
@@ -283,6 +315,8 @@ export type Database = {
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
           best_time?: string | null
+          bldg_sqft?: number | null
+          block?: string | null
           broadband_providers?: Json | null
           building_size_unit?: string | null
           building_size_value?: number | null
@@ -301,6 +335,7 @@ export type Database = {
           distance_transit_ft?: number | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
+          effective_yr?: number | null
           elevation?: number | null
           email?: string
           employment_clusters?: Json | null
@@ -312,6 +347,7 @@ export type Database = {
           environmental_sites?: Json | null
           etj_provider?: string | null
           executive_summary_output?: string | null
+          exemption_code?: string | null
           existing_improvements?: string
           fema_panel_id?: string | null
           fiber_available?: boolean | null
@@ -327,7 +363,11 @@ export type Database = {
           historical_flood_events?: Json | null
           households_5mi?: number | null
           id?: string
+          imprv_val?: number | null
           known_risks?: string[] | null
+          land_use_code?: string | null
+          land_val?: number | null
+          lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
           market_output?: string | null
@@ -338,6 +378,7 @@ export type Database = {
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          num_stories?: number | null
           opportunity_zone?: boolean | null
           overlay_district?: string | null
           ownership_status?: string
@@ -353,6 +394,7 @@ export type Database = {
           power_kv_nearby?: number | null
           preferred_contact?: string | null
           project_type?: string[]
+          prop_type?: string | null
           property_address?: Json | null
           property_overview_output?: string | null
           prototype_requirements?: string | null
@@ -366,15 +408,20 @@ export type Database = {
           soil_drainage_class?: string | null
           soil_series?: string | null
           soil_slope_percent?: number | null
+          state_class?: string | null
           stories_height?: string
           storm_lines?: Json | null
+          subdivision?: string | null
           sublocality?: string | null
           submarket_enriched?: string | null
           submission_timestamp?: string
           tax_rate_total?: number | null
+          taxable_value?: number | null
           taxing_jurisdictions?: Json | null
           tenant_requirements?: string | null
           topography_map_url?: string | null
+          tot_appr_val?: number | null
+          tot_market_val?: number | null
           traffic_aadt?: number | null
           traffic_direction?: string | null
           traffic_distance_ft?: number | null
@@ -396,6 +443,7 @@ export type Database = {
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wetlands_type?: string | null
+          year_built?: number | null
           zoning_code?: string | null
           zoning_output?: string | null
         }

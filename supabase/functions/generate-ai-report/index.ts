@@ -290,12 +290,48 @@ function buildUserPrompt(application: any, reportType: string): string {
     `Owner: ${application.parcel_owner || 'N/A'}`,
     `Acreage: ${application.acreage_cad || 'N/A'}`,
     `Coordinates: ${application.geo_lat}, ${application.geo_lng}`,
-    `\nZoning: ${application.zoning_code || 'N/A'}`,
+  ];
+  
+  // ⭐ NEW: Property Valuation Section
+  if (application.tot_appr_val || application.tot_market_val) {
+    dataPoints.push(`\n### Property Valuation (HCAD Official Assessment):`);
+    if (application.tot_appr_val) dataPoints.push(`- Total Appraised Value: $${Number(application.tot_appr_val).toLocaleString()}`);
+    if (application.tot_market_val) dataPoints.push(`- Total Market Value: $${Number(application.tot_market_val).toLocaleString()}`);
+    if (application.land_val) dataPoints.push(`- Land Value: $${Number(application.land_val).toLocaleString()}`);
+    if (application.imprv_val) dataPoints.push(`- Improvement Value: $${Number(application.imprv_val).toLocaleString()}`);
+    if (application.taxable_value) dataPoints.push(`- Taxable Value: $${Number(application.taxable_value).toLocaleString()}`);
+  }
+  
+  // ⭐ NEW: Existing Building Characteristics Section
+  if (application.bldg_sqft || application.year_built) {
+    dataPoints.push(`\n### Existing Building Characteristics:`);
+    if (application.bldg_sqft) dataPoints.push(`- Building Square Footage: ${Number(application.bldg_sqft).toLocaleString()} SF`);
+    if (application.year_built) dataPoints.push(`- Year Built: ${application.year_built}`);
+    if (application.effective_yr) dataPoints.push(`- Effective Year Built: ${application.effective_yr}`);
+    if (application.num_stories) dataPoints.push(`- Number of Stories: ${application.num_stories}`);
+    if (application.state_class) dataPoints.push(`- Texas State Classification: ${application.state_class}`);
+    if (application.prop_type) dataPoints.push(`- Property Type: ${application.prop_type}`);
+    if (application.land_use_code) dataPoints.push(`- Land Use Code: ${application.land_use_code}`);
+  }
+  
+  // ⭐ NEW: Location & Legal Description
+  if (application.subdivision || application.block || application.lot) {
+    dataPoints.push(`\n### Legal Location:`);
+    if (application.subdivision) dataPoints.push(`- Subdivision: ${application.subdivision}`);
+    if (application.block) dataPoints.push(`- Block: ${application.block}`);
+    if (application.lot) dataPoints.push(`- Lot: ${application.lot}`);
+  }
+  
+  dataPoints.push(
+    `\n### Zoning:`,
+    `Zoning Code: ${application.zoning_code || 'N/A'}`,
     `Overlay District: ${application.overlay_district || 'None'}`,
-    `\nFlood Zone: ${application.floodplain_zone || 'N/A'}`,
+    `\n### Flood Zone:`,
+    `Zone: ${application.floodplain_zone || 'N/A'}`,
     `Base Flood Elevation: ${application.base_flood_elevation || 'N/A'}`,
-    `Elevation: ${application.elevation || 'N/A'}`,
-    `\nWater Lines: ${application.water_lines ? JSON.stringify(application.water_lines).slice(0, 200) : 'N/A'}`,
+    `Site Elevation: ${application.elevation || 'N/A'}`,
+    `\n### Utilities:`,
+    `Water Lines: ${application.water_lines ? JSON.stringify(application.water_lines).slice(0, 200) : 'N/A'}`,
     `Sewer Lines: ${application.sewer_lines ? JSON.stringify(application.sewer_lines).slice(0, 200) : 'N/A'}`,
     `Storm Lines: ${application.storm_lines ? JSON.stringify(application.storm_lines).slice(0, 200) : 'N/A'}`,
     `\nTraffic Data:`,
