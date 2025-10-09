@@ -285,7 +285,7 @@ export default function Application() {
 
         // Redirect to thank you page with application ID
         setTimeout(() => {
-          navigate(`/thank-you?applicationId=${result.applicationId}`);
+          navigate(`/thank-you?applicationId=${result.id}`);
         }, 1500);
       } catch (error) {
         console.error("Error submitting application:", error);

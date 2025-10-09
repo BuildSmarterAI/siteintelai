@@ -109,7 +109,8 @@ const queryArcGIS = async (
     outFields: fields.join(","),
     returnGeometry: "true",
     distance: String(config.search_radius_ft),
-    units: "esriSRUnit_Foot"
+    units: "esriSRUnit_Foot",
+    where: "1=1"
   });
   
   const queryUrl = `${url}?${params.toString()}`;
@@ -219,7 +220,8 @@ const queryPolygon = async (url: string, fields: string[], geo_lat: number, geo_
     inSR: "4326",
     spatialRel: "esriSpatialRelIntersects",
     outFields: fields.join(","),
-    returnGeometry: "false"
+    returnGeometry: "false",
+    where: "1=1"
   });
   
   const queryUrl = `${url}?${params.toString()}`;

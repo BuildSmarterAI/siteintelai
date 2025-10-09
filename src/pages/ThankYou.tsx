@@ -37,8 +37,8 @@ export default function ThankYou() {
         
         if (data && !error) {
           setApplicationData(data);
-          // Check if report is ready
-          if (data.enrichment_status === 'completed') {
+          // Check if report is ready (accept 'complete' or 'partial' status)
+          if (data.enrichment_status === 'complete' || data.enrichment_status === 'partial' || data.enrichment_status === 'completed') {
             const { data: report } = await supabase
               .from('reports')
               .select('id')
@@ -68,8 +68,8 @@ export default function ThankYou() {
           },
           async (payload) => {
             setApplicationData(payload.new);
-            // Check if report became ready
-            if (payload.new.enrichment_status === 'completed') {
+            // Check if report became ready (accept 'complete' or 'partial' status)
+            if (payload.new.enrichment_status === 'complete' || payload.new.enrichment_status === 'partial' || payload.new.enrichment_status === 'completed') {
               const { data: report } = await supabase
                 .from('reports')
                 .select('id')

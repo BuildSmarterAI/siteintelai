@@ -1804,11 +1804,13 @@ serve(async (req) => {
         parcelParams.geometryType = 'esriGeometryEnvelope';
         parcelParams.inSR = spatialReference; // Service will transform from WGS84 to EPSG:2278
         parcelParams.outSR = '4326';  // Return in WGS84 for consistency
+        parcelParams.where = '1=1';  // Required by ArcGIS
       } else {
         parcelParams.geometry = geometryCoords;
         parcelParams.geometryType = 'esriGeometryPoint';
         parcelParams.inSR = spatialReference;
         parcelParams.outSR = '4326';
+        parcelParams.where = '1=1';  // Required by ArcGIS
       }
 
       let parcelData = null;
@@ -1889,7 +1891,8 @@ serve(async (req) => {
                   distance: '500',
                   units: 'esriSRUnit_Foot',
                   returnGeometry: 'true',
-                  f: 'geojson'
+                  f: 'geojson',
+                  where: '1=1'
                 };
                 
                 const controller = new AbortController();
@@ -1959,7 +1962,8 @@ serve(async (req) => {
                   distance: '1000',
                   units: 'esriSRUnit_Foot',
                   returnGeometry: 'true',
-                  f: 'geojson'
+                  f: 'geojson',
+                  where: '1=1'
                 };
                 
                 const controller = new AbortController();
