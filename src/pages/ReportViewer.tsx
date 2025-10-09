@@ -31,13 +31,26 @@ interface Report {
     traffic_road_name: string | null;
     employment_clusters: any | null;
     updated_at?: string;
-    // ⭐ NEW: Valuation fields
+    // Project Intent fields
+    project_type?: string[] | null;
+    building_size_value?: number | null;
+    building_size_unit?: string | null;
+    stories_height?: string | null;
+    desired_budget?: number | null;
+    prototype_requirements?: string | null;
+    quality_level?: string | null;
+    tenant_requirements?: string | null;
+    access_priorities?: string[] | null;
+    known_risks?: string[] | null;
+    utility_access?: string[] | null;
+    environmental_constraints?: string[] | null;
+    // Valuation fields
     tot_appr_val?: number | null;
     tot_market_val?: number | null;
     land_val?: number | null;
     imprv_val?: number | null;
     taxable_value?: number | null;
-    // ⭐ NEW: Building characteristics
+    // Building characteristics
     bldg_sqft?: number | null;
     year_built?: number | null;
     effective_yr?: number | null;
@@ -45,7 +58,7 @@ interface Report {
     state_class?: string | null;
     prop_type?: string | null;
     land_use_code?: string | null;
-    // ⭐ NEW: Location details
+    // Location details
     subdivision?: string | null;
     block?: string | null;
     lot?: string | null;
@@ -81,7 +94,35 @@ export default function ReportViewer() {
             traffic_aadt,
             traffic_year,
             traffic_road_name,
-            employment_clusters
+            employment_clusters,
+            project_type,
+            building_size_value,
+            building_size_unit,
+            stories_height,
+            desired_budget,
+            prototype_requirements,
+            quality_level,
+            tenant_requirements,
+            access_priorities,
+            known_risks,
+            utility_access,
+            environmental_constraints,
+            tot_appr_val,
+            tot_market_val,
+            land_val,
+            imprv_val,
+            taxable_value,
+            bldg_sqft,
+            year_built,
+            effective_yr,
+            num_stories,
+            state_class,
+            prop_type,
+            land_use_code,
+            subdivision,
+            block,
+            lot,
+            updated_at
           )
         `)
         .eq('id', reportId)
@@ -409,6 +450,217 @@ export default function ReportViewer() {
                         </dl>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⭐ NEW: Proposed Development Card */}
+        {report.applications?.project_type && report.applications.project_type.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="h-5 w-5" />
+                Proposed Development
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Project Types</p>
+                  <div className="flex flex-wrap gap-2">
+                    {report.applications.project_type.map((type: string) => (
+                      <Badge key={type} variant="secondary">
+                        {type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                
+                {(report.applications.building_size_value || report.applications.desired_budget) && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                    {report.applications.building_size_value && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Building Size</p>
+                        <p className="text-xl font-bold mt-1">
+                          {Number(report.applications.building_size_value).toLocaleString()} {report.applications.building_size_unit || 'SF'}
+                        </p>
+                      </div>
+                    )}
+                    {report.applications.stories_height && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Stories</p>
+                        <p className="text-xl font-bold mt-1">{report.applications.stories_height}</p>
+                      </div>
+                    )}
+                    {report.applications.desired_budget && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Development Budget</p>
+                        <p className="text-2xl font-bold text-primary mt-1">
+                          ${Number(report.applications.desired_budget).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(report.applications.prototype_requirements || report.applications.quality_level || report.applications.tenant_requirements) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
+                    {report.applications.prototype_requirements && (
+                      <div>
+                        <p className="text-muted-foreground">Prototype Requirements:</p>
+                        <p className="font-medium">{report.applications.prototype_requirements}</p>
+                      </div>
+                    )}
+                    {report.applications.quality_level && (
+                      <div>
+                        <p className="text-muted-foreground">Quality Level:</p>
+                        <p className="font-medium">{report.applications.quality_level}</p>
+                      </div>
+                    )}
+                    {report.applications.tenant_requirements && (
+                      <div className="md:col-span-2">
+                        <p className="text-muted-foreground">Tenant Requirements:</p>
+                        <p className="font-medium">{report.applications.tenant_requirements}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {(report.applications.access_priorities || report.applications.known_risks || report.applications.utility_access || report.applications.environmental_constraints) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
+                    {report.applications.access_priorities && report.applications.access_priorities.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground mb-1">Access Priorities:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {report.applications.access_priorities.map((priority: string) => (
+                            <Badge key={priority} variant="outline" className="text-xs">
+                              {priority.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {report.applications.known_risks && report.applications.known_risks.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground mb-1">Known Risks:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {report.applications.known_risks.map((risk: string) => (
+                            <Badge key={risk} variant="outline" className="text-xs">
+                              {risk.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {report.applications.utility_access && report.applications.utility_access.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground mb-1">Required Utilities:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {report.applications.utility_access.map((utility: string) => (
+                            <Badge key={utility} variant="outline" className="text-xs">
+                              {utility.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {report.applications.environmental_constraints && report.applications.environmental_constraints.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground mb-1">Environmental Constraints:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {report.applications.environmental_constraints.map((constraint: string) => (
+                            <Badge key={constraint} variant="outline" className="text-xs">
+                              {constraint.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ⭐ NEW: Project Feasibility Analysis Card */}
+        {report.json_data?.project_feasibility && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Project Feasibility Analysis</CardTitle>
+              {report.json_data.project_feasibility.component_score && (
+                <Badge className="mt-2">
+                  Score: {report.json_data.project_feasibility.component_score}/100
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {report.json_data.project_feasibility.verdict && (
+                  <div 
+                    className="prose max-w-none text-sm"
+                    dangerouslySetInnerHTML={{ 
+                      __html: report.json_data.project_feasibility.verdict 
+                    }} 
+                  />
+                )}
+                
+                {report.json_data.project_feasibility.zoning_compliance && (
+                  <div className="flex items-center gap-2 pt-2">
+                    <span className="text-sm text-muted-foreground">Zoning Compliance:</span>
+                    <Badge variant={
+                      report.json_data.project_feasibility.zoning_compliance === 'permitted' ? 'default' :
+                      report.json_data.project_feasibility.zoning_compliance === 'conditional' ? 'secondary' :
+                      'destructive'
+                    }>
+                      {report.json_data.project_feasibility.zoning_compliance?.toUpperCase().replace(/_/g, ' ')}
+                    </Badge>
+                  </div>
+                )}
+
+                {report.json_data.project_feasibility.use_specific_insights && report.json_data.project_feasibility.use_specific_insights.length > 0 && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-semibold mb-2 text-sm">Use-Specific Insights:</h4>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {report.json_data.project_feasibility.use_specific_insights.map((insight: string, i: number) => (
+                        <li key={i}>{insight}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {report.json_data.project_feasibility.budget_analysis && (
+                  <div className="pt-4 border-t">
+                    <h4 className="font-semibold mb-3 text-sm">Budget Analysis:</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      {report.json_data.project_feasibility.budget_analysis.estimated_hard_costs && (
+                        <div>
+                          <p className="text-muted-foreground">Hard Costs:</p>
+                          <p className="font-semibold">${Number(report.json_data.project_feasibility.budget_analysis.estimated_hard_costs).toLocaleString()}</p>
+                        </div>
+                      )}
+                      {report.json_data.project_feasibility.budget_analysis.estimated_soft_costs && (
+                        <div>
+                          <p className="text-muted-foreground">Soft Costs:</p>
+                          <p className="font-semibold">${Number(report.json_data.project_feasibility.budget_analysis.estimated_soft_costs).toLocaleString()}</p>
+                        </div>
+                      )}
+                      {report.json_data.project_feasibility.budget_analysis.budget_adequacy && (
+                        <div>
+                          <p className="text-muted-foreground">Budget Status:</p>
+                          <Badge variant={
+                            report.json_data.project_feasibility.budget_analysis.budget_adequacy === 'adequate' ? 'default' :
+                            report.json_data.project_feasibility.budget_analysis.budget_adequacy === 'tight' ? 'secondary' :
+                            'destructive'
+                          }>
+                            {report.json_data.project_feasibility.budget_analysis.budget_adequacy?.toUpperCase()}
+                          </Badge>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

@@ -243,6 +243,23 @@ Full Report JSON schema:
     "component_score": number (0-100),
     "citations": [{"source": "...", "url": "..."}]
   },
+  "project_feasibility": {
+    "verdict": "markdown analysis of proposed use fit",
+    "zoning_compliance": "permitted|conditional|variance_required|prohibited",
+    "building_envelope_analysis": {
+      "proposed_height": "proposed stories vs. zoning max",
+      "proposed_density": "proposed SF vs. site capacity",
+      "parking_requirement": "spaces required based on use"
+    },
+    "budget_analysis": {
+      "estimated_hard_costs": number,
+      "estimated_soft_costs": number,
+      "budget_adequacy": "adequate|tight|insufficient"
+    },
+    "use_specific_insights": ["insight 1", "insight 2"],
+    "component_score": number (0-100),
+    "citations": [{"source": "...", "url": "..."}]
+  },
   "cost_schedule": {
     "verdict": "markdown analysis",
     "estimated_timeline_months": number,
@@ -277,6 +294,15 @@ TRAFFIC & MARKET ANALYSIS GUIDELINES:
 - Employment: Evaluate workforce availability, commute times, labor pool quality
 - Consider synergies between traffic exposure and nearby employment centers
 - High traffic + strong employment = prime location for commercial development
+
+PROJECT INTENT ANALYSIS RULES:
+- ALWAYS analyze if proposed project_type is permitted by current zoning
+- Calculate if building_size_value fits within lot size (FAR, lot coverage, setbacks)
+- Verify stories_height complies with zoning height limits
+- Estimate parking requirements based on project_type (retail: 4/1000SF, office: 3/1000SF, industrial: 1/1000SF)
+- Compare desired_budget against industry cost benchmarks for project_type
+- Assess site suitability for project_type (e.g., retail needs high AADT, industrial needs highway access, healthcare needs residential proximity)
+- Provide use-specific recommendations (e.g., "This site is ideal for retail due to 35K AADT, but industrial would struggle due to limited truck access")
 
 Never use placeholders or "TBD" - use actual data or mark as "data unavailable".`;
 }
@@ -322,6 +348,34 @@ function buildUserPrompt(application: any, reportType: string): string {
     if (application.lot) dataPoints.push(`- Lot: ${application.lot}`);
   }
   
+  // ⭐ NEW: Project Intent & Development Goals
+  if (application.project_type && application.project_type.length > 0) {
+    dataPoints.push(`\n### Proposed Development Intent:`);
+    dataPoints.push(`- Project Types: ${application.project_type.join(', ')}`);
+    if (application.building_size_value) {
+      dataPoints.push(`- Desired Building Size: ${Number(application.building_size_value).toLocaleString()} ${application.building_size_unit || 'SF'}`);
+    }
+    if (application.stories_height) dataPoints.push(`- Desired Stories/Floors: ${application.stories_height}`);
+    if (application.prototype_requirements) dataPoints.push(`- Prototype Requirements: ${application.prototype_requirements}`);
+    if (application.quality_level) dataPoints.push(`- Construction Quality Level: ${application.quality_level}`);
+    if (application.desired_budget) dataPoints.push(`- Development Budget: $${Number(application.desired_budget).toLocaleString()}`);
+    if (application.tenant_requirements) dataPoints.push(`- Tenant Requirements: ${application.tenant_requirements}`);
+  }
+
+  // ⭐ NEW: Site Requirements & Constraints
+  if (application.access_priorities && application.access_priorities.length > 0) {
+    dataPoints.push(`\n### Access Priorities: ${application.access_priorities.join(', ')}`);
+  }
+  if (application.known_risks && application.known_risks.length > 0) {
+    dataPoints.push(`Known Risks/Concerns: ${application.known_risks.join(', ')}`);
+  }
+  if (application.utility_access && application.utility_access.length > 0) {
+    dataPoints.push(`Required Utility Access: ${application.utility_access.join(', ')}`);
+  }
+  if (application.environmental_constraints && application.environmental_constraints.length > 0) {
+    dataPoints.push(`Environmental Constraints: ${application.environmental_constraints.join(', ')}`);
+  }
+  
   dataPoints.push(
     `\n### Zoning:`,
     `Zoning Code: ${application.zoning_code || 'N/A'}`,
@@ -358,12 +412,13 @@ function buildUserPrompt(application: any, reportType: string): string {
 function calculateFeasibilityScore(application: any, reportData: any): number {
   // Get weights from application or use defaults
   const weights = application.scoring_weights || {
-    zoning: 20,
-    flood: 20,
-    utilities: 15,
-    environmental: 15,
-    traffic: 15,
-    market: 15
+    zoning: 18,
+    flood: 18,
+    utilities: 13,
+    environmental: 13,
+    traffic: 13,
+    market: 13,
+    project_fit: 12
   };
 
   // Calculate component scores deterministically
@@ -373,7 +428,8 @@ function calculateFeasibilityScore(application: any, reportData: any): number {
     utilities: calculateUtilitiesScore(application),
     environmental: calculateEnvironmentalScore(application),
     traffic: calculateTrafficScore(application),
-    market: calculateMarketScore(application)
+    market: calculateMarketScore(application),
+    project_fit: calculateProjectFitScore(application)
   };
 
   // Weighted sum
@@ -484,6 +540,32 @@ function calculateMarketScore(app: any): number {
     // Bonus for proximity to major center
     if (nearbyMajorCenter) score += 10;
   }
+  
+  return Math.min(100, score);
+}
+
+function calculateProjectFitScore(app: any): number {
+  if (!app.project_type || app.project_type.length === 0) return 75; // Neutral if not specified
+  
+  let score = 50; // Base score
+  
+  // High-traffic retail/hospitality benefit from AADT
+  const isTrafficDependent = app.project_type.some((t: string) => 
+    ['shopping_center', 'strip_mall', 'restaurant_qsr', 'hotel', 'gas_station_convenience'].includes(t)
+  );
+  if (isTrafficDependent && app.traffic_aadt > 20000) score += 30;
+  
+  // Industrial/logistics benefit from highway proximity
+  const isLogisticsDependent = app.project_type.some((t: string) => 
+    ['warehouse', 'distribution_center', 'manufacturing_facility'].includes(t)
+  );
+  if (isLogisticsDependent && app.distance_highway_ft < 5280) score += 25; // Within 1 mile
+  
+  // Office/healthcare benefit from employment clusters
+  const isEmploymentDependent = app.project_type.some((t: string) => 
+    ['office_class_a', 'medical_office_building', 'corporate_headquarters'].includes(t)
+  );
+  if (isEmploymentDependent && app.employment_clusters?.length > 0) score += 20;
   
   return Math.min(100, score);
 }
