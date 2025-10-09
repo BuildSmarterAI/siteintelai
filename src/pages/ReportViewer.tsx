@@ -11,6 +11,7 @@ import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Build
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
+import { ReportPreviewGate } from "@/components/ReportPreviewGate";
 
 interface Report {
   id: string;
@@ -90,14 +91,26 @@ export default function ReportViewer() {
   const navigate = useNavigate();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
+  const [showGate, setShowGate] = useState(false);
 
   useEffect(() => {
     if (reportId) {
-      fetchReport();
+      checkAuthAndFetchReport();
     }
   }, [reportId]);
 
-  const fetchReport = async () => {
+  const checkAuthAndFetchReport = async () => {
+    // Check authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    const authenticated = !!session?.user;
+    setIsAuthenticated(authenticated);
+
+    await fetchReport(session?.user?.id);
+  };
+
+  const fetchReport = async (userId?: string) => {
     try {
       const { data, error } = await supabase
         .from('reports')
@@ -157,7 +170,8 @@ export default function ReportViewer() {
             distance_highway_ft,
             distance_transit_ft,
             parcel_owner,
-            updated_at
+            updated_at,
+            user_id
           )
         `)
         .eq('id', reportId)
@@ -165,6 +179,17 @@ export default function ReportViewer() {
 
       if (error) throw error;
       setReport(data);
+
+      // Check ownership if authenticated
+      if (userId && data.applications?.user_id) {
+        const owner = data.applications.user_id === userId;
+        setIsOwner(owner);
+        // Show gate if not authenticated or not owner
+        setShowGate(!userId || !owner);
+      } else {
+        // No user_id on application means it's anonymous - show gate for non-auth users
+        setShowGate(!userId);
+      }
     } catch (error: any) {
       console.error('Error fetching report:', error);
       toast.error('Failed to load report');
@@ -172,6 +197,11 @@ export default function ReportViewer() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowGate(false);
+    checkAuthAndFetchReport();
   };
 
   if (loading) {
@@ -219,6 +249,11 @@ export default function ReportViewer() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+      {/* Show auth gate overlay if needed */}
+      {showGate && reportId && (
+        <ReportPreviewGate reportId={reportId} onAuthSuccess={handleAuthSuccess} />
+      )}
+      
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
@@ -248,7 +283,7 @@ export default function ReportViewer() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className={`container mx-auto px-6 py-8 ${showGate ? 'blur-sm pointer-events-none' : ''}`}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             {/* Score Overview */}

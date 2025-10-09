@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, LogOut } from "lucide-react";
+import { Loader2, FileText, LogOut, Plus, Clock, CheckCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Report {
   id: string;
@@ -109,53 +110,169 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-6 py-8">
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Your Reports</CardTitle>
-            <CardDescription>View and download your feasibility reports</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {reports.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No reports yet. Start by submitting an application.</p>
-                <Button onClick={() => navigate("/")} className="mt-4">
-                  Create Report
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {reports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition">
-                    <div className="flex-1">
-                      <h3 className="font-semibold">
-                        {report.applications?.formatted_address || 'Unknown Address'}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(report.created_at).toLocaleDateString()} • {report.report_type}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      {report.feasibility_score && (
-                        <Badge variant="outline">
-                          Score: {report.feasibility_score}
-                        </Badge>
-                      )}
-                      <Badge className={getStatusColor(report.status)}>
-                        {report.status}
-                      </Badge>
-                      {report.status === 'completed' && (
-                        <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
-                          View Report
-                        </Button>
-                      )}
-                    </div>
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-3xl font-headline font-bold">Your Projects</h2>
+            <p className="text-muted-foreground">Manage your feasibility reports and applications</p>
+          </div>
+          <Button onClick={() => navigate("/application?step=1")} size="lg">
+            <Plus className="mr-2 h-5 w-5" />
+            New Application
+          </Button>
+        </div>
+
+        <Tabs defaultValue="all" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="all">All Reports</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="pending">Pending</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="all" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your Reports</CardTitle>
+                <CardDescription>View and download your feasibility reports</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {reports.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2">No reports yet. Start by submitting an application.</p>
+                    <p className="text-sm text-muted-foreground mb-6">Get comprehensive feasibility analysis for your properties</p>
+                    <Button onClick={() => navigate("/application?step=1")} size="lg">
+                      <Plus className="mr-2 h-5 w-5" />
+                      Create Your First Report
+                    </Button>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.map((report) => (
+                      <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            {report.status === 'completed' ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : report.status === 'generating' ? (
+                              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            ) : (
+                              <Clock className="h-5 w-5 text-muted-foreground" />
+                            )}
+                            <h3 className="font-semibold">
+                              {report.applications?.formatted_address || 'Unknown Address'}
+                            </h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-8">
+                            {new Date(report.created_at).toLocaleDateString()} • {report.report_type}
+                            {report.status === 'generating' && ' • Estimated completion: 10 minutes'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {report.feasibility_score && (
+                            <Badge variant="outline" className="text-base px-3 py-1">
+                              Score: {report.feasibility_score}
+                            </Badge>
+                          )}
+                          <Badge className={getStatusColor(report.status)}>
+                            {report.status}
+                          </Badge>
+                          {report.status === 'completed' && (
+                            <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                              View Report
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="completed" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Completed Reports</CardTitle>
+                <CardDescription>View all your completed feasibility reports</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {reports.filter(r => r.status === 'completed').length === 0 ? (
+                  <div className="text-center py-12">
+                    <CheckCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No completed reports yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.filter(r => r.status === 'completed').map((report) => (
+                      <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            <CheckCircle className="h-5 w-5 text-green-600" />
+                            <h3 className="font-semibold">
+                              {report.applications?.formatted_address || 'Unknown Address'}
+                            </h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-8">
+                            Completed {new Date(report.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {report.feasibility_score && (
+                            <Badge variant="outline" className="text-base px-3 py-1">
+                              Score: {report.feasibility_score}
+                            </Badge>
+                          )}
+                          <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                            View Report
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="pending" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pending Reports</CardTitle>
+                <CardDescription>Reports currently being generated</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {reports.filter(r => r.status !== 'completed').length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No pending reports</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.filter(r => r.status !== 'completed').map((report) => (
+                      <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg bg-blue-50/50">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            <h3 className="font-semibold">
+                              {report.applications?.formatted_address || 'Unknown Address'}
+                            </h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-8">
+                            Started {new Date(report.created_at).toLocaleDateString()} • Estimated completion: 10 minutes
+                          </p>
+                        </div>
+                        <Badge className={getStatusColor(report.status)}>
+                          {report.status}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

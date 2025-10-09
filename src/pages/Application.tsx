@@ -13,6 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload } from "lucide-react";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
+import { AuthPrompt } from "@/components/AuthPrompt";
 
 export default function Application() {
   const { toast } = useToast();
@@ -249,9 +250,16 @@ export default function Application() {
       };
 
       try {
+        // Get current session to pass auth token
+        const { data: { session } } = await supabase.auth.getSession();
+        const headers = session ? {
+          'Authorization': `Bearer ${session.access_token}`
+        } : {};
+
         // Submit to Supabase via edge function
         const { data: result, error } = await supabase.functions.invoke('submit-application', {
-          body: submissionData
+          body: submissionData,
+          headers
         });
 
         if (error) {
@@ -275,9 +283,9 @@ export default function Application() {
           description: "Redirecting to next steps...",
         });
 
-        // Redirect to thank you page
+        // Redirect to thank you page with application ID
         setTimeout(() => {
-          navigate("/thank-you");
+          navigate(`/thank-you?applicationId=${result.applicationId}`);
         }, 1500);
       } catch (error) {
         console.error("Error submitting application:", error);
@@ -414,6 +422,25 @@ export default function Application() {
                       {/* Step 1: Contact Information */}
                       {currentStep === 1 && (
                         <div className="space-y-6 animate-fade-in">
+                          {/* Auth Prompt Component */}
+                          <AuthPrompt 
+                            onAuthSuccess={(user, profile) => {
+                              // Auto-fill form with profile data
+                              if (profile.full_name) {
+                                handleInputChange('fullName', profile.full_name);
+                              }
+                              if (profile.email) {
+                                handleInputChange('email', profile.email);
+                              }
+                              if (profile.company) {
+                                handleInputChange('company', profile.company);
+                              }
+                              if (profile.phone) {
+                                handleInputChange('phone', profile.phone);
+                              }
+                            }}
+                          />
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div>
                                <Label htmlFor="fullName" className="font-body font-semibold text-charcoal flex items-center gap-1">

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -16,6 +16,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +83,29 @@ export default function Auth() {
     }
   };
 
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+
+      if (error) throw error;
+
+      setMagicLinkSent(true);
+      toast.success("Check your email for the login link!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send magic link");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -98,9 +122,10 @@ export default function Auth() {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsTrigger value="magic">Email Link</TabsTrigger>
             </TabsList>
             
             <TabsContent value="signin">
@@ -243,6 +268,66 @@ export default function Auth() {
                 </svg>
                 Continue with Google
               </Button>
+            </TabsContent>
+
+            <TabsContent value="magic">
+              {magicLinkSent ? (
+                <div className="text-center py-8 space-y-4">
+                  <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">Check Your Email!</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      We've sent a magic link to <strong>{email}</strong>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Click the link in your email to sign in. You can close this window.
+                    </p>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setMagicLinkSent(false);
+                      setEmail("");
+                    }}
+                  >
+                    Send Another Link
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <form onSubmit={handleMagicLink} className="space-y-4 mt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="magic-email">Email</Label>
+                      <Input
+                        id="magic-email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        We'll send you a magic link for passwordless sign-in
+                      </p>
+                    </div>
+                    <Button type="submit" className="w-full" disabled={loading}>
+                      {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Send Magic Link
+                    </Button>
+                  </form>
+
+                  <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-2">Why use a magic link?</h4>
+                    <ul className="text-xs text-muted-foreground space-y-1">
+                      <li>• No password to remember</li>
+                      <li>• Faster and more secure</li>
+                      <li>• Works across all devices</li>
+                    </ul>
+                  </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
