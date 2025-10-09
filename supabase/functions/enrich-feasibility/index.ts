@@ -1874,7 +1874,91 @@ serve(async (req) => {
           });
         }
         
-        // 🔄 Tier 2: Buffered point query (500 feet) - only for Harris County when Tier 1 fails
+        // 🔄 Tier 1b: Houston-specific geocode with EPSG:2278 envelope (Harris County only)
+        if (!parcelData?.features?.[0] && countyName === 'Harris County') {
+          console.log('🔄 Tier 1b: Trying Houston-specific geocode with EPSG:2278 envelope...');
+          
+          try {
+            const houstonGeocode = await geocodeHoustonParcel(address);
+            
+            if (houstonGeocode && houstonGeocode.xmin && houstonGeocode.xmax && houstonGeocode.ymin && houstonGeocode.ymax) {
+              const envelopeGeometry2278 = `${houstonGeocode.xmin},${houstonGeocode.ymin},${houstonGeocode.xmax},${houstonGeocode.ymax}`;
+              
+              const tier1bData = await retryWithBackoff(
+                async () => {
+                  const tier1bParams: Record<string, string> = {
+                    geometry: envelopeGeometry2278,
+                    geometryType: 'esriGeometryEnvelope',
+                    spatialRel: 'esriSpatialRelIntersects',
+                    outFields: comprehensiveOutFields,
+                    inSR: '2278',  // Texas South Central Feet
+                    outSR: '4326', // Return in WGS84
+                    returnGeometry: 'true',
+                    f: 'json',
+                    where: '1=1'
+                  };
+                  
+                  const controller = new AbortController();
+                  const timeout = setTimeout(() => controller.abort(), 10000);
+                  
+                  try {
+                    const tier1bResp = await fetch(
+                      `${endpoints.parcel_url}?${new URLSearchParams(tier1bParams)}`,
+                      { signal: controller.signal }
+                    );
+                    clearTimeout(timeout);
+                    
+                    const data = await safeJsonParse(tier1bResp, 'Houston geocode envelope query');
+                    
+                    parcelAttempts.push({
+                      tier: '1b',
+                      method: 'envelope_2278',
+                      geocode_score: houstonGeocode.score,
+                      match_addr: houstonGeocode.match_addr,
+                      timestamp: new Date().toISOString(),
+                      status: tier1bResp.status,
+                      feature_count: data?.features?.length || 0,
+                      success: !!data?.features?.[0]
+                    });
+                    
+                    return data;
+                  } catch (err) {
+                    clearTimeout(timeout);
+                    throw err;
+                  }
+                },
+                3,
+                [1000, 2000, 4000],
+                'HCAD Tier 1b (Houston geocode EPSG:2278)'
+              );
+              
+              if (tier1bData?.features?.[0]) {
+                console.log(`✅ Tier 1b found ${tier1bData.features.length} parcel(s) via Houston geocode`);
+                parcelData = tier1bData;
+              }
+            } else {
+              console.log('Houston geocode did not return valid extent');
+              parcelAttempts.push({
+                tier: '1b',
+                method: 'envelope_2278',
+                error: 'No valid geocode extent',
+                timestamp: new Date().toISOString(),
+                success: false
+              });
+            }
+          } catch (tier1bError) {
+            console.error('Tier 1b Houston geocode query failed:', tier1bError);
+            parcelAttempts.push({
+              tier: '1b',
+              method: 'envelope_2278',
+              error: tier1bError.message,
+              timestamp: new Date().toISOString(),
+              success: false
+            });
+          }
+        }
+        
+        // 🔄 Tier 2: Buffered point query (500 feet) - only for Harris County when Tier 1 and 1b fail
         if (!parcelData?.features?.[0] && countyName === 'Harris County') {
           console.log('🔄 Tier 2: Trying 500-foot buffered point query...');
           
@@ -1891,7 +1975,7 @@ serve(async (req) => {
                   distance: '500',
                   units: 'esriSRUnit_Foot',
                   returnGeometry: 'true',
-                  f: 'geojson',
+                  f: 'json',
                   where: '1=1'
                 };
                 
@@ -1962,7 +2046,7 @@ serve(async (req) => {
                   distance: '1000',
                   units: 'esriSRUnit_Foot',
                   returnGeometry: 'true',
-                  f: 'geojson',
+                  f: 'json',
                   where: '1=1'
                 };
                 
@@ -2050,14 +2134,24 @@ serve(async (req) => {
             // Calculate parcel centroid from geometry
             let centroidLat = geoLat;
             let centroidLng = geoLng;
+            
+            // Handle GeoJSON format (coordinates array)
             if (feature.geometry?.coordinates?.[0]?.[0]) {
-              // For polygon, calculate centroid
               const coords = feature.geometry.coordinates[0];
               const sumLat = coords.reduce((sum: number, c: number[]) => sum + c[1], 0);
               const sumLng = coords.reduce((sum: number, c: number[]) => sum + c[0], 0);
               centroidLat = sumLat / coords.length;
               centroidLng = sumLng / coords.length;
             }
+            // Handle ESRI JSON format (rings array)
+            else if (feature.geometry?.rings?.[0]) {
+              const ring = feature.geometry.rings[0];
+              const sumLng = ring.reduce((sum: number[], pt: number[]) => sum + pt[0], 0);
+              const sumLat = ring.reduce((sum: number[], pt: number[]) => sum + pt[1], 0);
+              centroidLng = sumLng / ring.length;
+              centroidLat = sumLat / ring.length;
+            }
+            
             const distanceFt = haversineFt(geoLat, geoLng, centroidLat, centroidLng);
             
             // Parse acreage for scoring
@@ -2239,6 +2333,7 @@ serve(async (req) => {
           apiMeta.hcad_parcel = {
             queried_at: new Date().toISOString(),
             query_url: `${endpoints.parcel_url}?${new URLSearchParams(parcelParams)}`,
+            attempts: parcelAttempts,
             selection: selectionMetadata,
             parcel_data: {
               hcad_num: attrs.HCAD_NUM,
