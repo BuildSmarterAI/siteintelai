@@ -96,6 +96,13 @@ interface Report {
     fema_firm_panel?: string | null;
     base_flood_elevation?: number | null;
     base_flood_elevation_source?: string | null;
+    // Phase 2: Environmental fields
+    wetlands_type?: string | null;
+    soil_series?: string | null;
+    soil_drainage_class?: string | null;
+    soil_slope_percent?: number | null;
+    environmental_sites?: any;
+    historical_flood_events?: any;
   };
 }
 
@@ -194,6 +201,12 @@ export default function ReportViewer() {
             fema_firm_panel,
             base_flood_elevation,
             base_flood_elevation_source,
+            wetlands_type,
+            soil_series,
+            soil_drainage_class,
+            soil_slope_percent,
+            environmental_sites,
+            historical_flood_events,
             updated_at,
             user_id
           )
@@ -1250,8 +1263,135 @@ export default function ReportViewer() {
                   ))}
                 </div>
               </CardHeader>
-              <CardContent className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: environmental.verdict || '<p>No environmental analysis available.</p>' }} />
+              <CardContent className="space-y-6">
+                {/* ⭐ PHASE 2: Enhanced Environmental Data Display */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Wetlands */}
+                  {report.applications?.wetlands_type && (
+                    <div className="p-4 bg-muted/30 rounded-lg border">
+                      <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-blue-600" />
+                        Wetlands Status
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {report.applications.wetlands_type}
+                      </p>
+                      {report.applications.wetlands_type !== 'None detected' && 
+                       report.applications.wetlands_type !== 'API Error' && (
+                        <Badge variant="destructive" className="mt-2">Wetlands Present</Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Soil Characteristics */}
+                  {(report.applications?.soil_series || report.applications?.soil_drainage_class || 
+                    report.applications?.soil_slope_percent) && (
+                    <div className="p-4 bg-muted/30 rounded-lg border">
+                      <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                        <Landmark className="h-4 w-4 text-amber-600" />
+                        Soil Characteristics
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        {report.applications.soil_series && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Series:</span> {report.applications.soil_series}
+                          </p>
+                        )}
+                        {report.applications.soil_drainage_class && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Drainage:</span> {report.applications.soil_drainage_class}
+                          </p>
+                        )}
+                        {report.applications.soil_slope_percent && (
+                          <p className="text-muted-foreground">
+                            <span className="font-medium">Slope:</span> {report.applications.soil_slope_percent}%
+                          </p>
+                        )}
+                      </div>
+                      {report.applications.soil_slope_percent > 5 && (
+                        <Badge variant="secondary" className="mt-2">
+                          Engineering Required (Slope &gt; 5%)
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Environmental Sites */}
+                {report.applications?.environmental_sites && 
+                 Array.isArray(report.applications.environmental_sites) && 
+                 report.applications.environmental_sites.length > 0 && (
+                  <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/30">
+                    <h4 className="font-semibold mb-3 text-sm flex items-center gap-2 text-destructive">
+                      <FileText className="h-4 w-4" />
+                      Nearby Environmental Sites ({report.applications.environmental_sites.length})
+                    </h4>
+                    <div className="space-y-2">
+                      {report.applications.environmental_sites.slice(0, 10).map((site: any, i: number) => (
+                        <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
+                          <div className="flex-1">
+                            <p className="font-medium">{site.site_name}</p>
+                            {site.program && (
+                              <p className="text-xs text-muted-foreground">{site.program}</p>
+                            )}
+                            {site.status && (
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                {site.status}
+                              </Badge>
+                            )}
+                          </div>
+                          {site.distance_mi && (
+                            <Badge variant="secondary" className="whitespace-nowrap">
+                              {site.distance_mi} mi
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-3">
+                      Note: Proximity to environmental sites may require Phase I/II Environmental Assessments
+                    </p>
+                  </div>
+                )}
+
+                {/* Historical Flood Events */}
+                {report.applications?.historical_flood_events && 
+                 Array.isArray(report.applications.historical_flood_events) && 
+                 report.applications.historical_flood_events.length > 0 && (
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-semibold mb-3 text-sm flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                      <FileText className="h-4 w-4" />
+                      Historical Flood Events ({report.applications.historical_flood_events.length})
+                    </h4>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {report.applications.historical_flood_events.slice(0, 10).map((event: any, i: number) => (
+                        <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
+                          <div className="flex-1">
+                            <p className="font-medium">{event.title}</p>
+                            {event.county && (
+                              <p className="text-xs text-muted-foreground">{event.county}</p>
+                            )}
+                            {event.disaster_number && (
+                              <Badge variant="outline" className="mt-1 text-xs">
+                                DR-{event.disaster_number}
+                              </Badge>
+                            )}
+                          </div>
+                          {event.declaration_date && (
+                            <Badge variant="secondary" className="whitespace-nowrap">
+                              {new Date(event.declaration_date).getFullYear()}
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Original Environmental Analysis Verdict */}
+                <div className="prose prose-sm max-w-none pt-4 border-t">
+                  <div dangerouslySetInnerHTML={{ __html: environmental.verdict || '<p>No environmental analysis available.</p>' }} />
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

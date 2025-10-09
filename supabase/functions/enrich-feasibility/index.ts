@@ -17,7 +17,12 @@ const ERROR_FLAGS = {
   PARCEL_NOT_FOUND: 'parcel_not_found',
   FLOODPLAIN_MISSING: 'floodplain_missing',
   UTILITIES_NOT_FOUND: 'utilities_not_found',
-  TRAFFIC_NOT_FOUND: 'traffic_not_found'
+  TRAFFIC_NOT_FOUND: 'traffic_not_found',
+  // Phase 2: Environmental error flags
+  WETLANDS_API_ERROR: 'wetlands_api_error',
+  SOIL_API_ERROR: 'soil_api_error',
+  EPA_SITES_ERROR: 'epa_sites_error',
+  FLOOD_HISTORY_ERROR: 'flood_history_error'
 };
 
 // County endpoint catalog - Texas major counties (Top 10 by development activity)
@@ -573,23 +578,126 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
   }
 }
 
+// Helper function to calculate distance in miles using haversine
+function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 3959; // Earth's radius in miles
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lng2 - lng1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 // Helper function to fetch EPA environmental sites
 async function fetchEnvironmentalSites(lat: number, lng: number, county: string): Promise<any[]> {
   try {
-    // EPA EFService (newer endpoint) - query by lat/lng
-    const response = await fetch(
-      `https://enviro.epa.gov/efservice/FRS_INTEREST/latitude/${lat}/longitude/${lng}/JSON`,
-      { headers: { 'Accept': 'application/json' } }
-    );
-    const data = await safeJsonParse(response, 'EPA environmental sites query');
+    const sites: any[] = [];
     
-    const sites = (data || []).slice(0, 10).map((site: any) => ({
-      site_name: site.REGISTRY_NAME || site.SITE_NAME,
-      program: site.PROGRAM_SYSTEM_ACRONYM,
-      status: site.FACILITY_STATUS
-    }));
+    // 1. Fetch EPA Superfund sites (CERCLIS) within 5-mile radius
+    try {
+      const superfundUrl = `https://enviro.epa.gov/enviro/efservice/CERCLIS_SITE_LISTING/JSON`;
+      const superfundResponse = await fetch(superfundUrl, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const superfundData = await safeJsonParse(superfundResponse, 'EPA Superfund sites query');
+      
+      if (superfundData && Array.isArray(superfundData)) {
+        superfundData.forEach((site: any) => {
+          if (site.LATITUDE_MEASURE && site.LONGITUDE_MEASURE) {
+            const distance = haversineMiles(lat, lng, 
+              parseFloat(site.LATITUDE_MEASURE), 
+              parseFloat(site.LONGITUDE_MEASURE)
+            );
+            if (distance <= 5) {
+              sites.push({
+                site_name: site.SITE_NAME || 'Unknown Superfund Site',
+                program: 'CERCLIS/Superfund',
+                status: site.NPL_STATUS || site.SITE_STATUS,
+                distance_mi: Math.round(distance * 10) / 10
+              });
+            }
+          }
+        });
+      }
+    } catch (superfundError) {
+      console.error('Superfund API error:', superfundError);
+    }
     
-    return sites;
+    // 2. Fetch EPA Brownfields within 2-mile radius
+    try {
+      const brownfieldsParams = new URLSearchParams({
+        geometry: JSON.stringify({ 
+          x: lng, 
+          y: lat, 
+          spatialReference: { wkid: 4326 } 
+        }),
+        geometryType: 'esriGeometryPoint',
+        distance: '2',
+        units: 'esriSRUnit_StatuteMile',
+        outFields: 'SITE_NAME,STATUS,ASSESSMENT_TYPE,LATITUDE,LONGITUDE',
+        returnGeometry: 'true',
+        f: 'json'
+      });
+      
+      const brownfieldsUrl = `https://geopub.epa.gov/arcgis/rest/services/OSWER/brownfields/MapServer/0/query?${brownfieldsParams}`;
+      const brownfieldsResponse = await fetch(brownfieldsUrl);
+      const brownfieldsData = await safeJsonParse(brownfieldsResponse, 'EPA Brownfields query');
+      
+      if (brownfieldsData?.features) {
+        brownfieldsData.features.forEach((feature: any) => {
+          const attrs = feature.attributes;
+          const siteLat = attrs.LATITUDE || feature.geometry?.y;
+          const siteLng = attrs.LONGITUDE || feature.geometry?.x;
+          const distance = siteLat && siteLng 
+            ? haversineMiles(lat, lng, siteLat, siteLng)
+            : null;
+          
+          sites.push({
+            site_name: attrs.SITE_NAME || 'Unknown Brownfield Site',
+            program: 'EPA Brownfields',
+            status: attrs.STATUS || attrs.ASSESSMENT_TYPE,
+            distance_mi: distance ? Math.round(distance * 10) / 10 : null
+          });
+        });
+      }
+    } catch (brownfieldsError) {
+      console.error('Brownfields API error:', brownfieldsError);
+    }
+    
+    // 3. Fallback: Try FRS (Facility Registry Service) for exact point
+    if (sites.length === 0) {
+      try {
+        const frsResponse = await fetch(
+          `https://enviro.epa.gov/efservice/FRS_INTEREST/latitude/${lat}/longitude/${lng}/JSON`,
+          { headers: { 'Accept': 'application/json' } }
+        );
+        const frsData = await safeJsonParse(frsResponse, 'EPA FRS query');
+        
+        if (frsData && Array.isArray(frsData)) {
+          frsData.slice(0, 5).forEach((site: any) => {
+            sites.push({
+              site_name: site.REGISTRY_NAME || site.SITE_NAME,
+              program: site.PROGRAM_SYSTEM_ACRONYM || 'EPA FRS',
+              status: site.FACILITY_STATUS
+            });
+          });
+        }
+      } catch (frsError) {
+        console.error('FRS API error:', frsError);
+      }
+    }
+    
+    // Sort by distance (closest first) and limit to 10 sites
+    return sites
+      .sort((a, b) => {
+        if (a.distance_mi === null) return 1;
+        if (b.distance_mi === null) return -1;
+        return a.distance_mi - b.distance_mi;
+      })
+      .slice(0, 10);
+      
   } catch (error) {
     console.error('Environmental sites fetch error:', error);
     return [];
@@ -811,10 +919,25 @@ async function fetchHistoricalFloodEvents(lat: number, lng: number): Promise<any
     
     console.log(`OpenFEMA: Found ${disasters.length} disaster events`);
     
+    // Build detailed flood events array
+    const floodEvents = disasters
+      .filter((d: any) => d.incidentType === 'Flood')
+      .map((d: any) => ({
+        declaration_date: d.declarationDate,
+        incident_type: d.incidentType,
+        disaster_number: d.disasterNumber,
+        title: d.declarationTitle || `Flood Event ${d.disasterNumber}`,
+        county: d.placeCode || county
+      }))
+      .sort((a: any, b: any) => 
+        new Date(b.declaration_date).getTime() - new Date(a.declaration_date).getTime()
+      )
+      .slice(0, 20); // Limit to most recent 20 flood events
+    
     return {
       total_events: disasters.length,
       by_type: byType,
-      flood_events: byType['Flood']?.count || 0
+      flood_events: floodEvents // Now returns array instead of count
     };
   } catch (error) {
     console.error('OpenFEMA fetch error:', error);
@@ -2091,16 +2214,19 @@ serve(async (req) => {
       apiMeta.openfema_disasters = { 
         latency_ms: Date.now() - startTime,
         total_events: floodHistory.total_events,
-        flood_events: floodHistory.flood_events
+        flood_events_count: Array.isArray(floodHistory.flood_events) 
+          ? floodHistory.flood_events.length 
+          : 0
       };
       
+      // Now storing array instead of count
       enrichedData.historical_flood_events = floodHistory.flood_events;
-      console.log(`Found ${floodHistory.flood_events} historical flood events`);
+      console.log(`Found ${Array.isArray(floodHistory.flood_events) ? floodHistory.flood_events.length : 0} historical flood events`);
     } catch (error) {
       console.error('OpenFEMA query failed:', error);
-      dataFlags.push('openfema_no_match');
+      dataFlags.push(ERROR_FLAGS.FLOOD_HISTORY_ERROR);
       apiMeta.openfema_disasters = { error: error.message };
-      enrichedData.historical_flood_events = 0;
+      enrichedData.historical_flood_events = [];
     }
 
     // Step 4 continued: Fetch elevation data (Floodplain & Elevation - Part 2)
@@ -2134,22 +2260,44 @@ serve(async (req) => {
 
     // Step 5: Environmental Constraints
     console.log('Fetching wetlands data...');
-    const wetlands = await fetchWetlands(geoLat, geoLng);
-    if (wetlands) {
-      enrichedData.wetlands_type = wetlands.type;
-      apiMeta.usfws_wetlands = wetlands.raw;
-    } else {
-      enrichedData.wetlands_type = 'None detected';
+    try {
+      const wetlands = await fetchWetlands(geoLat, geoLng);
+      if (wetlands) {
+        enrichedData.wetlands_type = wetlands.type;
+        apiMeta.usfws_wetlands = wetlands.raw;
+      } else {
+        enrichedData.wetlands_type = 'None detected';
+        dataFlags.push(ERROR_FLAGS.WETLANDS_API_ERROR);
+      }
+    } catch (wetlandsError) {
+      console.error('Wetlands API error:', wetlandsError);
+      dataFlags.push(ERROR_FLAGS.WETLANDS_API_ERROR);
+      enrichedData.wetlands_type = 'API Error';
     }
 
     console.log('Fetching soil data...');
-    const soilData = await fetchSoilData(geoLat, geoLng);
-    Object.assign(enrichedData, soilData);
+    try {
+      const soilData = await fetchSoilData(geoLat, geoLng);
+      if (soilData.soil_series || soilData.soil_drainage_class || soilData.soil_slope_percent) {
+        Object.assign(enrichedData, soilData);
+      } else {
+        dataFlags.push(ERROR_FLAGS.SOIL_API_ERROR);
+      }
+    } catch (soilError) {
+      console.error('Soil API error:', soilError);
+      dataFlags.push(ERROR_FLAGS.SOIL_API_ERROR);
+    }
 
     console.log('Fetching environmental sites...');
-    const envSites = await fetchEnvironmentalSites(geoLat, geoLng, countyName);
-    if (envSites.length > 0) {
-      enrichedData.environmental_sites = envSites;
+    try {
+      const envSites = await fetchEnvironmentalSites(geoLat, geoLng, countyName);
+      if (envSites.length > 0) {
+        enrichedData.environmental_sites = envSites;
+        console.log(`Found ${envSites.length} environmental sites within search radius`);
+      }
+    } catch (envSitesError) {
+      console.error('Environmental sites API error:', envSitesError);
+      dataFlags.push(ERROR_FLAGS.EPA_SITES_ERROR);
     }
 
     // Step 6: Utilities / Infrastructure
