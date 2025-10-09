@@ -213,6 +213,26 @@ Full Report JSON schema:
     "component_score": number (0-100),
     "citations": [{"source": "USFWS", "url": "..."}]
   },
+  "traffic": {
+    "verdict": "markdown analysis of traffic visibility and access",
+    "aadt": number,
+    "road_name": "...",
+    "traffic_score": "high|medium|low",
+    "visibility_assessment": "excellent|good|fair|poor",
+    "access_points": "description of site access",
+    "component_score": number (0-100),
+    "citations": [{"source": "TxDOT", "url": "..."}]
+  },
+  "market_demographics": {
+    "verdict": "markdown analysis of workforce accessibility and market demand",
+    "primary_employment_centers": [
+      {"name": "...", "jobs": number, "distance_mi": number, "industries": ["..."]}
+    ],
+    "workforce_accessibility": "excellent|good|fair|poor",
+    "daytime_population": "high|medium|low",
+    "component_score": number (0-100),
+    "citations": [{"source": "...", "url": "..."}]
+  },
   "cost_schedule": {
     "verdict": "markdown analysis",
     "estimated_timeline_months": number,
@@ -233,8 +253,15 @@ SCORING RULES (deterministic):
 - Flood: 100 if Zone X, 50 if Zone AE with elevation>BFE, 0 if in floodway
 - Utilities: 100 if all within 500ft, 50 if within 1000ft, 0 if >1000ft
 - Environmental: 100 if no wetlands/contamination, 50 if minor issues, 0 if major
+- Traffic: 100 if AADT>20k, 75 if AADT>10k, 50 if AADT>5k, else proportional
+- Market Demographics: Based on employment clusters within 10 miles and total jobs
 - Schedule: Based on permitting complexity
-- Market: Based on AADT and population density
+
+TRAFFIC & MARKET ANALYSIS GUIDELINES:
+- Traffic: Assess visibility from roadway, quality of access points, traffic patterns
+- Employment: Evaluate workforce availability, commute times, labor pool quality
+- Consider synergies between traffic exposure and nearby employment centers
+- High traffic + strong employment = prime location for commercial development
 
 Never use placeholders or "TBD" - use actual data or mark as "data unavailable".`;
 }
@@ -256,12 +283,19 @@ function buildUserPrompt(application: any, reportType: string): string {
     `\nWater Lines: ${application.water_lines ? JSON.stringify(application.water_lines).slice(0, 200) : 'N/A'}`,
     `Sewer Lines: ${application.sewer_lines ? JSON.stringify(application.sewer_lines).slice(0, 200) : 'N/A'}`,
     `Storm Lines: ${application.storm_lines ? JSON.stringify(application.storm_lines).slice(0, 200) : 'N/A'}`,
-    `\nTraffic AADT: ${application.traffic_aadt || 'N/A'}`,
-    `Nearest Highway: ${application.nearest_highway || 'N/A'}`,
-    `Distance to Highway: ${application.distance_highway_ft ? (application.distance_highway_ft / 5280).toFixed(2) + ' miles' : 'N/A'}`,
-    `\nPopulation 1mi: ${application.population_1mi || 'N/A'}`,
-    `Population 5mi: ${application.population_5mi || 'N/A'}`,
-    `Median Income: ${application.median_income ? '$' + application.median_income.toLocaleString() : 'N/A'}`,
+    `\nTraffic Data:`,
+    `  AADT: ${application.traffic_aadt || 'N/A'}`,
+    `  Road Name: ${application.traffic_road_name || 'N/A'}`,
+    `  Data Year: ${application.traffic_year || 'N/A'}`,
+    `  Nearest Highway: ${application.nearest_highway || 'N/A'}`,
+    `  Distance to Highway: ${application.distance_highway_ft ? (application.distance_highway_ft / 5280).toFixed(2) + ' miles' : 'N/A'}`,
+    `\nMarket Demographics:`,
+    `  Population 1mi: ${application.population_1mi || 'N/A'}`,
+    `  Population 5mi: ${application.population_5mi || 'N/A'}`,
+    `  Median Income: ${application.median_income ? '$' + application.median_income.toLocaleString() : 'N/A'}`,
+    `  Employment Clusters: ${application.employment_clusters ? JSON.stringify(application.employment_clusters) : 'N/A'}`,
+    `  Drive Time 15min Population: ${application.drive_time_15min_population || 'N/A'}`,
+    `  Drive Time 30min Population: ${application.drive_time_30min_population || 'N/A'}`,
     `\nSoil Type: ${application.soil_series || 'N/A'}`,
     `Wetlands: ${application.wetlands_type || 'None detected'}`,
     `Environmental Sites: ${application.environmental_sites ? JSON.stringify(application.environmental_sites).slice(0, 100) : 'None'}`,
@@ -273,12 +307,12 @@ function buildUserPrompt(application: any, reportType: string): string {
 function calculateFeasibilityScore(application: any, reportData: any): number {
   // Get weights from application or use defaults
   const weights = application.scoring_weights || {
-    zoning: 25,
+    zoning: 20,
     flood: 20,
-    utilities: 20,
+    utilities: 15,
     environmental: 15,
-    schedule: 10,
-    market: 10
+    traffic: 15,
+    market: 15
   };
 
   // Calculate component scores deterministically
@@ -287,7 +321,7 @@ function calculateFeasibilityScore(application: any, reportData: any): number {
     flood: calculateFloodScore(application),
     utilities: calculateUtilitiesScore(application),
     environmental: calculateEnvironmentalScore(application),
-    schedule: calculateScheduleScore(application),
+    traffic: calculateTrafficScore(application),
     market: calculateMarketScore(application)
   };
 
@@ -350,33 +384,55 @@ function calculateEnvironmentalScore(app: any): number {
   return Math.max(0, score);
 }
 
-function calculateScheduleScore(app: any): number {
-  // Based on complexity indicators
-  const hasOverlay = app.overlay_district && app.overlay_district !== 'None';
-  const inFloodzone = app.floodplain_zone && app.floodplain_zone !== 'X';
+function calculateTrafficScore(app: any): number {
+  const aadt = app.traffic_aadt || 0;
   
-  let score = 100;
-  if (hasOverlay) score -= 20;
-  if (inFloodzone) score -= 15;
+  // Score based on AADT thresholds
+  if (aadt >= 30000) return 100;
+  if (aadt >= 20000) return 90;
+  if (aadt >= 15000) return 80;
+  if (aadt >= 10000) return 70;
+  if (aadt >= 5000) return 50;
+  if (aadt >= 2500) return 30;
+  if (aadt > 0) return 20;
   
-  return Math.max(0, score);
+  return 0; // No traffic data
 }
 
 function calculateMarketScore(app: any): number {
-  const aadt = app.traffic_aadt || 0;
   const pop5mi = app.population_5mi || 0;
+  const employmentClusters = app.employment_clusters || [];
   
   let score = 0;
   
-  // Traffic score (max 50)
-  if (aadt > 20000) score += 50;
-  else if (aadt > 10000) score += 35;
-  else if (aadt > 5000) score += 20;
-  
-  // Population score (max 50)
-  if (pop5mi > 100000) score += 50;
-  else if (pop5mi > 50000) score += 35;
+  // Population score (max 50 points)
+  if (pop5mi > 150000) score += 50;
+  else if (pop5mi > 100000) score += 40;
+  else if (pop5mi > 50000) score += 30;
   else if (pop5mi > 20000) score += 20;
+  else if (pop5mi > 0) score += 10;
+  
+  // Employment accessibility score (max 50 points)
+  if (Array.isArray(employmentClusters) && employmentClusters.length > 0) {
+    // Calculate total nearby jobs
+    const totalJobs = employmentClusters.reduce((sum: number, cluster: any) => {
+      return sum + (cluster.jobs || 0);
+    }, 0);
+    
+    // Major employment center within 5 miles
+    const nearbyMajorCenter = employmentClusters.some((cluster: any) => 
+      cluster.jobs > 10000 && cluster.distance < 5
+    );
+    
+    if (totalJobs > 100000) score += 50;
+    else if (totalJobs > 50000) score += 40;
+    else if (totalJobs > 25000) score += 30;
+    else if (totalJobs > 10000) score += 20;
+    else if (totalJobs > 0) score += 10;
+    
+    // Bonus for proximity to major center
+    if (nearbyMajorCenter) score += 10;
+  }
   
   return Math.min(100, score);
 }

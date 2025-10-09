@@ -9,6 +9,7 @@ interface MapCanvasProps {
   floodZones?: any[];
   utilities?: any[];
   traffic?: any[];
+  employmentCenters?: any[];
   className?: string;
 }
 
@@ -19,6 +20,7 @@ export function MapCanvas({
   floodZones = [],
   utilities = [],
   traffic = [],
+  employmentCenters = [],
   className = "h-96 w-full rounded-lg"
 }: MapCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
@@ -147,6 +149,38 @@ export function MapCanvas({
       }
     });
   }, [traffic]);
+
+  useEffect(() => {
+    if (!mapRef.current || employmentCenters.length === 0) return;
+
+    // Define custom icon for employment centers
+    const employmentIcon = L.divIcon({
+      className: 'employment-marker',
+      html: `<div style="background-color: #8B5CF6; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-weight: bold; font-size: 14px;">👥</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    // Add employment center markers
+    employmentCenters.forEach(center => {
+      if (center.lat && center.lng) {
+        const jobCount = center.jobs ? center.jobs.toLocaleString() : 'Unknown';
+        const distance = center.distance ? `${center.distance.toFixed(1)} mi away` : '';
+        const industries = center.industries ? center.industries.slice(0, 3).join(', ') : '';
+        
+        L.marker([center.lat, center.lng], { icon: employmentIcon })
+          .addTo(mapRef.current!)
+          .bindPopup(`
+            <div style="min-width: 150px;">
+              <strong style="font-size: 14px;">${center.name || 'Employment Center'}</strong><br/>
+              <span style="color: #8B5CF6; font-weight: bold;">${jobCount} jobs</span><br/>
+              ${distance ? `<span style="color: #6B7280; font-size: 12px;">${distance}</span><br/>` : ''}
+              ${industries ? `<span style="color: #6B7280; font-size: 11px;">${industries}</span>` : ''}
+            </div>
+          `);
+      }
+    });
+  }, [employmentCenters]);
 
   return <div ref={mapContainer} className={className} />;
 }

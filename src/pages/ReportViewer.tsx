@@ -207,15 +207,41 @@ export default function ReportViewer() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Property Location
+                Property Location & Context
               </CardTitle>
             </CardHeader>
             <CardContent>
               <MapCanvas
                 center={[report.applications.geo_lat, report.applications.geo_lng]}
-                zoom={15}
+                zoom={13}
                 className="h-96 w-full rounded-lg"
+                employmentCenters={
+                  report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
+                    ? report.applications.employment_clusters
+                        .filter((c: any) => c.lat && c.lng)
+                        .map((cluster: any) => ({
+                          lat: cluster.lat,
+                          lng: cluster.lng,
+                          name: cluster.name,
+                          jobs: cluster.jobs,
+                          distance: cluster.distance,
+                          industries: cluster.industries
+                        }))
+                    : []
+                }
               />
+              <div className="mt-4 flex flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span>Property Location</span>
+                </div>
+                {report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters) && report.applications.employment_clusters.length > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                    <span>Employment Centers</span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
