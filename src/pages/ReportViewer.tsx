@@ -110,6 +110,15 @@ interface Report {
     average_permit_time_months?: number | null;
     city?: string | null;
     county?: string | null;
+    // Market demographics - drive time
+    drive_time_15min_population?: number | null;
+    drive_time_30min_population?: number | null;
+    population_1mi?: number | null;
+    population_3mi?: number | null;
+    population_5mi?: number | null;
+    growth_rate_5yr?: number | null;
+    median_income?: number | null;
+    households_5mi?: number | null;
   };
 }
 
@@ -219,6 +228,14 @@ export default function ReportViewer() {
             average_permit_time_months,
             city,
             county,
+            drive_time_15min_population,
+            drive_time_30min_population,
+            population_1mi,
+            population_3mi,
+            population_5mi,
+            growth_rate_5yr,
+            median_income,
+            households_5mi,
             updated_at,
             user_id
           )
@@ -1707,6 +1724,208 @@ export default function ReportViewer() {
                 )}
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* ⭐ NEW: Trade Area Analysis Section */}
+                {(report.applications?.drive_time_15min_population || 
+                  report.applications?.drive_time_30min_population || 
+                  report.applications?.population_1mi ||
+                  report.applications?.population_3mi ||
+                  report.applications?.population_5mi) && (
+                  <div className="mb-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2 text-lg">
+                      <TrendingUp className="h-5 w-5 text-purple-600" />
+                      Trade Area Analysis
+                    </h4>
+
+                    {/* Drive-Time Demographics */}
+                    {(report.applications.drive_time_15min_population || report.applications.drive_time_30min_population) && (
+                      <div className="mb-6">
+                        <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase">
+                          Traffic-Adjusted Market Reach
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {report.applications.drive_time_15min_population && (
+                            <Card className="border-purple-200 bg-white/50 dark:bg-background/50">
+                              <CardContent className="pt-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Clock className="h-5 w-5 text-purple-600" />
+                                  <span className="text-sm text-muted-foreground">15-Minute Drive Time</span>
+                                </div>
+                                <p className="text-4xl font-bold text-purple-700 dark:text-purple-400">
+                                  {report.applications.drive_time_15min_population.toLocaleString()}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">people</p>
+                                <div className="mt-3 pt-3 border-t border-purple-200/50">
+                                  <p className="text-xs text-muted-foreground">
+                                    Primary trade area - highest conversion potential
+                                  </p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                          
+                          {report.applications.drive_time_30min_population && (
+                            <Card className="border-blue-200 bg-white/50 dark:bg-background/50">
+                              <CardContent className="pt-6">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Clock className="h-5 w-5 text-blue-600" />
+                                  <span className="text-sm text-muted-foreground">30-Minute Drive Time</span>
+                                </div>
+                                <p className="text-4xl font-bold text-blue-700 dark:text-blue-400">
+                                  {report.applications.drive_time_30min_population.toLocaleString()}
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">people</p>
+                                <div className="mt-3 pt-3 border-t border-blue-200/50">
+                                  <p className="text-xs text-muted-foreground">
+                                    Secondary trade area - extended market reach
+                                  </p>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Comparison: Drive-Time vs Concentric Rings */}
+                    {(report.applications.population_1mi || report.applications.population_3mi || report.applications.population_5mi) && (
+                      <div className="mb-6">
+                        <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          Concentric Ring Analysis
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {report.applications.population_1mi && (
+                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                              <div className="text-center">
+                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-2">
+                                  <span className="text-lg font-bold text-green-700 dark:text-green-400">1</span>
+                                </div>
+                                <p className="text-2xl font-bold text-foreground">
+                                  {report.applications.population_1mi.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground">within 1 mile</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {report.applications.population_3mi && (
+                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                              <div className="text-center">
+                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-2">
+                                  <span className="text-lg font-bold text-blue-700 dark:text-blue-400">3</span>
+                                </div>
+                                <p className="text-2xl font-bold text-foreground">
+                                  {report.applications.population_3mi.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground">within 3 miles</p>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {report.applications.population_5mi && (
+                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                              <div className="text-center">
+                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-2">
+                                  <span className="text-lg font-bold text-purple-700 dark:text-purple-400">5</span>
+                                </div>
+                                <p className="text-2xl font-bold text-foreground">
+                                  {report.applications.population_5mi.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-muted-foreground">within 5 miles</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Comparison Insight */}
+                        {report.applications.drive_time_15min_population && report.applications.population_3mi && (
+                          <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded border border-blue-200/50 dark:border-blue-800/50">
+                            <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-1">
+                              Market Reach Comparison
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {report.applications.drive_time_15min_population > report.applications.population_3mi ? (
+                                <>
+                                  <span className="font-semibold text-green-700 dark:text-green-400">
+                                    {Math.round((report.applications.drive_time_15min_population / report.applications.population_3mi - 1) * 100)}% more people
+                                  </span>
+                                  {' '}are accessible within 15-minute drive time compared to a 3-mile radius, indicating good road connectivity and market access.
+                                </>
+                              ) : (
+                                <>
+                                  The 3-mile radius captures{' '}
+                                  <span className="font-semibold">
+                                    {Math.round((report.applications.population_3mi / report.applications.drive_time_15min_population - 1) * 100)}% more people
+                                  </span>
+                                  {' '}than 15-minute drive time, suggesting dense urban environment with traffic congestion.
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Demographics & Economic Indicators */}
+                    {(report.applications.growth_rate_5yr || report.applications.median_income || report.applications.households_5mi) && (
+                      <div>
+                        <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase flex items-center gap-2">
+                          <DollarSign className="h-4 w-4" />
+                          Market Characteristics
+                        </h5>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {report.applications.growth_rate_5yr && (
+                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                              <div className="flex items-center gap-2 mb-1">
+                                <TrendingUp className="h-4 w-4 text-green-600" />
+                                <span className="text-xs text-muted-foreground uppercase">5-Year Growth</span>
+                              </div>
+                              <p className="text-3xl font-bold text-green-700 dark:text-green-400">
+                                {report.applications.growth_rate_5yr > 0 ? '+' : ''}{(report.applications.growth_rate_5yr * 100).toFixed(1)}%
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {report.applications.growth_rate_5yr > 0.1 ? 'High growth market' : 
+                                 report.applications.growth_rate_5yr > 0.05 ? 'Moderate growth' : 
+                                 'Stable market'}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {report.applications.median_income && (
+                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                              <div className="flex items-center gap-2 mb-1">
+                                <DollarSign className="h-4 w-4 text-blue-600" />
+                                <span className="text-xs text-muted-foreground uppercase">Median Income</span>
+                              </div>
+                              <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">
+                                ${(report.applications.median_income / 1000).toFixed(0)}k
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {report.applications.median_income > 75000 ? 'High income area' : 
+                                 report.applications.median_income > 50000 ? 'Middle income' : 
+                                 'Value-oriented market'}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {report.applications.households_5mi && (
+                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Users className="h-4 w-4 text-purple-600" />
+                                <span className="text-xs text-muted-foreground uppercase">Households</span>
+                              </div>
+                              <p className="text-3xl font-bold text-purple-700 dark:text-purple-400">
+                                {(report.applications.households_5mi / 1000).toFixed(1)}k
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">within 5 miles</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {report.applications?.employment_clusters && 
                  Array.isArray(report.applications.employment_clusters) && 
                  report.applications.employment_clusters.length > 0 ? (
