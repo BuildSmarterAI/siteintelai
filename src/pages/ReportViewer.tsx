@@ -9,6 +9,8 @@ import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
 import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { DataSourceBadge } from "@/components/DataSourceBadge";
+import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
 
 interface Report {
   id: string;
@@ -112,6 +114,12 @@ export default function ReportViewer() {
   const environmental = parsedData.environmental || {};
   const traffic = parsedData.traffic || {};
   const marketDemographics = parsedData.market_demographics || {};
+  const dataSources = parsedData.data_sources || [];
+  
+  // Helper to get data sources for a specific section
+  const getSourcesForSection = (section: string) => {
+    return dataSources.filter((ds: any) => ds.section === section);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
@@ -145,61 +153,63 @@ export default function ReportViewer() {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
-        {/* Score Overview */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-              <div className="flex justify-center">
-                <ScoreCircle score={report.feasibility_score} size="lg" />
-              </div>
-              
-              <div className="md:col-span-2 space-y-4">
-                <div>
-                  <h2 className="text-2xl font-headline mb-2">Executive Summary</h2>
-                  <div className="flex gap-2 mb-4">
-                    <Badge variant={report.score_band === 'A' ? 'default' : report.score_band === 'B' ? 'secondary' : 'destructive'}>
-                      Grade {report.score_band}
-                    </Badge>
-                    <Badge variant="outline">
-                      {new Date(report.created_at).toLocaleDateString()}
-                    </Badge>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Score Overview */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                  <div className="flex justify-center">
+                    <ScoreCircle score={report.feasibility_score} size="lg" />
                   </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {summary.executive_summary || 'Executive summary not available.'}
-                  </p>
+                  
+                  <div className="md:col-span-2 space-y-4">
+                    <div>
+                      <h2 className="text-2xl font-headline mb-2">Executive Summary</h2>
+                      <div className="flex gap-2 mb-4">
+                        <Badge variant={report.score_band === 'A' ? 'default' : report.score_band === 'B' ? 'secondary' : 'destructive'}>
+                          Grade {report.score_band}
+                        </Badge>
+                        <Badge variant="outline">
+                          {new Date(report.created_at).toLocaleDateString()}
+                        </Badge>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {summary.executive_summary || 'Executive summary not available.'}
+                      </p>
+                    </div>
+
+                    {summary.key_opportunities && summary.key_opportunities.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          Key Opportunities
+                        </h3>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                          {summary.key_opportunities.map((opp: string, i: number) => (
+                            <li key={i}>{opp}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {summary.key_risks && summary.key_risks.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Key Risks
+                        </h3>
+                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                          {summary.key_risks.map((risk: string, i: number) => (
+                            <li key={i}>{risk}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
-
-                {summary.key_opportunities && summary.key_opportunities.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
-                      <Zap className="h-4 w-4" />
-                      Key Opportunities
-                    </h3>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {summary.key_opportunities.map((opp: string, i: number) => (
-                        <li key={i}>{opp}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {summary.key_risks && summary.key_risks.length > 0 && (
-                  <div>
-                    <h3 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Key Risks
-                    </h3>
-                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {summary.key_risks.map((risk: string, i: number) => (
-                        <li key={i}>{risk}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
         {/* Property Map */}
         {report.applications?.geo_lat && report.applications?.geo_lng && (
@@ -261,11 +271,19 @@ export default function ReportViewer() {
             <Card>
               <CardHeader>
                 <CardTitle>Zoning Analysis</CardTitle>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {zoning.component_score || 'N/A'}</Badge>
                   {report.applications?.zoning_code && (
                     <Badge variant="outline">{report.applications.zoning_code}</Badge>
                   )}
+                  {getSourcesForSection('zoning').map((source: any, idx: number) => (
+                    <DataSourceBadge
+                      key={idx}
+                      datasetName={source.dataset_name}
+                      timestamp={source.timestamp}
+                      endpointUrl={source.endpoint_url}
+                    />
+                  ))}
                 </div>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
@@ -289,13 +307,21 @@ export default function ReportViewer() {
             <Card>
               <CardHeader>
                 <CardTitle>Flood Risk Analysis</CardTitle>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {flood.component_score || 'N/A'}</Badge>
                   {report.applications?.floodplain_zone && (
                     <Badge variant={report.applications.floodplain_zone === 'X' ? 'default' : 'destructive'}>
                       Zone {report.applications.floodplain_zone}
                     </Badge>
                   )}
+                  {getSourcesForSection('flood').map((source: any, idx: number) => (
+                    <DataSourceBadge
+                      key={idx}
+                      datasetName={source.dataset_name}
+                      timestamp={source.timestamp}
+                      endpointUrl={source.endpoint_url}
+                    />
+                  ))}
                 </div>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
@@ -308,7 +334,17 @@ export default function ReportViewer() {
             <Card>
               <CardHeader>
                 <CardTitle>Utilities Analysis</CardTitle>
-                <Badge>Score: {utilities.component_score || 'N/A'}</Badge>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge>Score: {utilities.component_score || 'N/A'}</Badge>
+                  {getSourcesForSection('utilities').map((source: any, idx: number) => (
+                    <DataSourceBadge
+                      key={idx}
+                      datasetName={source.dataset_name}
+                      timestamp={source.timestamp}
+                      endpointUrl={source.endpoint_url}
+                    />
+                  ))}
+                </div>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
                 <div dangerouslySetInnerHTML={{ __html: utilities.verdict || '<p>No utilities analysis available.</p>' }} />
@@ -320,7 +356,17 @@ export default function ReportViewer() {
             <Card>
               <CardHeader>
                 <CardTitle>Environmental Analysis</CardTitle>
-                <Badge>Score: {environmental.component_score || 'N/A'}</Badge>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  <Badge>Score: {environmental.component_score || 'N/A'}</Badge>
+                  {getSourcesForSection('environmental').map((source: any, idx: number) => (
+                    <DataSourceBadge
+                      key={idx}
+                      datasetName={source.dataset_name}
+                      timestamp={source.timestamp}
+                      endpointUrl={source.endpoint_url}
+                    />
+                  ))}
+                </div>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
                 <div dangerouslySetInnerHTML={{ __html: environmental.verdict || '<p>No environmental analysis available.</p>' }} />
@@ -335,10 +381,18 @@ export default function ReportViewer() {
                   <Car className="h-5 w-5" />
                   Traffic & Access Analysis
                 </CardTitle>
-                <div className="flex gap-2 mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {traffic.component_score && (
                     <Badge>Score: {traffic.component_score}</Badge>
                   )}
+                  {getSourcesForSection('traffic').map((source: any, idx: number) => (
+                    <DataSourceBadge
+                      key={idx}
+                      datasetName={source.dataset_name}
+                      timestamp={source.timestamp}
+                      endpointUrl={source.endpoint_url}
+                    />
+                  ))}
                   {report.applications?.traffic_aadt && (
                     <Badge 
                       variant={
@@ -475,7 +529,14 @@ export default function ReportViewer() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
+      </div>
+
+      {/* Data Sources Sidebar */}
+      <div className="lg:col-span-1">
+        <DataSourcesSidebar dataSources={dataSources} />
+      </div>
+    </div>
+  </main>
     </div>
   );
 }

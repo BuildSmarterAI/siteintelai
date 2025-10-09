@@ -140,6 +140,8 @@ CRITICAL GUIDELINES:
 - Cite sources for every claim (e.g., "Per FEMA NFHL...", "TxDOT AADT shows...")
 - Never invent data
 - Round to 2 decimals max
+- Include data_sources array with timestamp in ISO-8601 format (use current date ${new Date().toISOString()})
+- Map each dataset to its corresponding section (zoning, flood, utilities, environmental, traffic, market)
 
 QuickCheck JSON schema:
 {
@@ -157,7 +159,12 @@ QuickCheck JSON schema:
     "citations": [{"source": "...", "url": "..."}]
   },
   "data_sources": [
-    {"provider": "...", "dataset": "...", "accessed": "YYYY-MM-DD"}
+    {
+      "dataset_name": "Source name",
+      "timestamp": "ISO-8601 datetime",
+      "endpoint_url": "https://...",
+      "section": "zoning|flood|utilities|environmental|traffic|market"
+    }
   ]
 }`;
   }
@@ -171,6 +178,9 @@ CRITICAL GUIDELINES:
 - Never hallucinate data - use only provided sources
 - Round to 2 decimals maximum
 - Do not fabricate URLs or dates
+- REQUIRED: Include data_sources array with exact timestamp ${new Date().toISOString()}
+- Map each dataset to section: zoning, flood, utilities, environmental, traffic, market
+- Use official endpoint URLs: FEMA (hazards.fema.gov), TxDOT (txdot.gov), HCAD (hcad.org), etc.
 
 Full Report JSON schema:
 {
@@ -241,7 +251,12 @@ Full Report JSON schema:
     "citations": [{"source": "...", "url": "..."}]
   },
   "data_sources": [
-    {"provider": "FEMA", "dataset": "NFHL", "accessed": "YYYY-MM-DD"}
+    {
+      "dataset_name": "FEMA National Flood Hazard Layer",
+      "timestamp": "ISO-8601 datetime string",
+      "endpoint_url": "https://hazards.fema.gov/gis/nfhl/...",
+      "section": "flood"
+    }
   ],
   "figures": [
     {"title": "...", "caption": "...", "type": "map|chart|photo", "url": "..."}
