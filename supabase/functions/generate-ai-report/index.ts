@@ -315,8 +315,7 @@ function buildUserPrompt(application: any, reportType: string): string {
     `Parcel ID: ${application.parcel_id || 'N/A'}`,
     `Owner: ${application.parcel_owner || 'N/A'}`,
     `Acreage: ${application.acreage_cad || 'N/A'}`,
-    `Coordinates: ${application.geo_lat}, ${application.geo_lng}`,
-  ];
+    `Coordinates: ${application.geo_lat}, ${application.geo_lng}`
   
   // ⭐ NEW: Property Valuation Section
   if (application.tot_appr_val || application.tot_market_val) {
