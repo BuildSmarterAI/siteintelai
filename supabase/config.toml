@@ -30,3 +30,6 @@ verify_jwt = false
 
 [functions.generate-pdf]
 verify_jwt = false
+
+[functions.re-enrich-application]
+verify_jwt = true

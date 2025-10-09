@@ -2181,101 +2181,116 @@ serve(async (req) => {
 
     // Step 10: Save enriched data to database if application_id provided
     if (application_id) {
-      const updateData = {
-        // Location
-        geo_lat: enrichedData.geo_lat,
-        geo_lng: enrichedData.geo_lng,
-        situs_address: enrichedData.situs_address,
-        formatted_address: enrichedData.situs_address, // Same as situs_address from geocoding
-        place_id: enrichedData.place_id,
-        county: enrichedData.administrative_area_level_2,
-        city: enrichedData.city,
-        administrative_area_level_1: enrichedData.administrative_area_level_1,
-        postal_code: enrichedData.postal_code,
-        neighborhood: enrichedData.neighborhood,
-        sublocality: enrichedData.sublocality,
-        submarket_enriched: enrichedData.submarket_enriched,
-        mud_district: enrichedData.mud_district,
-        etj_provider: enrichedData.etj_provider,
+      // Build safe update data - only include fields with valid values
+      const updateData: Record<string, any> = {
+        enrichment_metadata: {
+          enriched_at: new Date().toISOString(),
+          county: countyName,
+          city: enrichedData.city || null,
+          state: enrichedData.administrative_area_level_1 || null,
+          postal_code: enrichedData.postal_code || null
+        },
         
-        // Parcel
-        parcel_id: enrichedData.parcel_id,
-        parcel_owner: enrichedData.parcel_owner,
-        acreage_cad: enrichedData.acreage_cad,
-        lot_size_value: enrichedData.acreage_cad, // Auto-fill from CAD acreage
-        lot_size_unit: enrichedData.acreage_cad ? 'acres' : null, // Set unit when we have acreage
-        
-        // Zoning
-        zoning_code: enrichedData.zoning_code,
-        overlay_district: enrichedData.overlay_district,
-        
-        // Floodplain / Environmental
-        floodplain_zone: enrichedData.floodplain_zone,
-        base_flood_elevation: enrichedData.base_flood_elevation,
-        fema_panel_id: enrichedData.fema_panel_id,
-        elevation: enrichedData.elevation || null,
-        topography_map_url: enrichedData.topography_map_url || null,
-        aerial_imagery_url: enrichedData.aerial_imagery_url || null,
-        wetlands_type: enrichedData.wetlands_type,
-        soil_series: enrichedData.soil_series,
-        soil_slope_percent: enrichedData.soil_slope_percent,
-        soil_drainage_class: enrichedData.soil_drainage_class,
-        environmental_sites: enrichedData.environmental_sites || [],
-        historical_flood_events: enrichedData.historical_flood_events || 0,
-        
-        // Utilities / Infrastructure
-        water_lines: enrichedData.water_lines,
-        sewer_lines: enrichedData.sewer_lines,
-        storm_lines: enrichedData.storm_lines,
-        water_capacity_mgd: enrichedData.water_capacity_mgd,
-        sewer_capacity_mgd: enrichedData.sewer_capacity_mgd,
-        power_kv_nearby: enrichedData.power_kv_nearby,
-        fiber_available: enrichedData.fiber_available || false,
-        broadband_providers: enrichedData.broadband_providers || [],
-        utilities_map_url: enrichedData.utilities_map_url,
-        
-        // Traffic / Mobility
-        traffic_aadt: enrichedData.traffic_aadt,
-        traffic_year: enrichedData.traffic_year,
-        traffic_segment_id: enrichedData.traffic_segment_id,
-        traffic_distance_ft: enrichedData.traffic_distance_ft,
-        traffic_road_name: enrichedData.traffic_road_name,
-        traffic_direction: enrichedData.traffic_direction,
-        traffic_map_url: enrichedData.traffic_map_url,
-        truck_percent: enrichedData.truck_percent,
-        congestion_level: enrichedData.congestion_level,
-        nearest_highway: enrichedData.nearest_highway,
-        distance_highway_ft: enrichedData.distance_highway_ft,
-        nearest_transit_stop: enrichedData.nearest_transit_stop,
-        distance_transit_ft: enrichedData.distance_transit_ft,
-        drive_time_15min_population: enrichedData.drive_time_15min_population,
-        drive_time_30min_population: enrichedData.drive_time_30min_population,
-        
-        // Demographics / Market
-        population_1mi: enrichedData.population_1mi,
-        population_3mi: enrichedData.population_3mi,
-        population_5mi: enrichedData.population_5mi,
-        median_income: enrichedData.median_income,
-        households_5mi: enrichedData.households_5mi,
-        employment_clusters: enrichedData.employment_clusters || [],
-        growth_rate_5yr: enrichedData.growth_rate_5yr,
-        
-        // Financial / Incentives
-        tax_rate_total: enrichedData.tax_rate_total,
-        taxing_jurisdictions: enrichedData.taxing_jurisdictions || [],
-        opportunity_zone: enrichedData.opportunity_zone || false,
-        enterprise_zone: enrichedData.enterprise_zone || false,
-        foreign_trade_zone: enrichedData.foreign_trade_zone || false,
-        average_permit_time_months: enrichedData.average_permit_time_months,
-        
-        // Observability
+        // Observability - always update these
         api_meta: apiMeta,
         enrichment_status: dataFlags.length === 0 ? 'complete' : 
                           dataFlags.length < 3 ? 'partial' : 'failed',
-        
-        // Data quality flags
         data_flags: dataFlags
       };
+
+      // Location - only update if we have valid values
+      if (enrichedData.geo_lat) updateData.geo_lat = enrichedData.geo_lat;
+      if (enrichedData.geo_lng) updateData.geo_lng = enrichedData.geo_lng;
+      if (enrichedData.situs_address) {
+        updateData.situs_address = enrichedData.situs_address;
+        updateData.formatted_address = enrichedData.situs_address;
+      }
+      if (enrichedData.place_id) updateData.place_id = enrichedData.place_id;
+      if (enrichedData.administrative_area_level_2) updateData.county = enrichedData.administrative_area_level_2;
+      if (enrichedData.city) updateData.city = enrichedData.city;
+      if (enrichedData.administrative_area_level_1) updateData.administrative_area_level_1 = enrichedData.administrative_area_level_1;
+      if (enrichedData.postal_code) updateData.postal_code = enrichedData.postal_code;
+      if (enrichedData.neighborhood) updateData.neighborhood = enrichedData.neighborhood;
+      if (enrichedData.sublocality) updateData.sublocality = enrichedData.sublocality;
+      if (enrichedData.submarket_enriched) updateData.submarket_enriched = enrichedData.submarket_enriched;
+      if (enrichedData.mud_district) updateData.mud_district = enrichedData.mud_district;
+      if (enrichedData.etj_provider) updateData.etj_provider = enrichedData.etj_provider;
+
+      // Safe parcel updates - CRITICAL: only if we have valid data
+      if (enrichedData.parcel_id && enrichedData.parcel_id.trim() !== '') {
+        updateData.parcel_id = enrichedData.parcel_id;
+      }
+      if (enrichedData.parcel_owner) {
+        updateData.parcel_owner = enrichedData.parcel_owner;
+      }
+      if (typeof enrichedData.acreage_cad === 'number' && enrichedData.acreage_cad > 0) {
+        updateData.acreage_cad = enrichedData.acreage_cad;
+        updateData.lot_size_value = enrichedData.acreage_cad;
+        updateData.lot_size_unit = 'acres';
+      }
+      
+      // Zoning
+      if (enrichedData.zoning_code) updateData.zoning_code = enrichedData.zoning_code;
+      if (enrichedData.overlay_district) updateData.overlay_district = enrichedData.overlay_district;
+      
+      // Floodplain / Environmental
+      if (enrichedData.floodplain_zone) updateData.floodplain_zone = enrichedData.floodplain_zone;
+      if (enrichedData.base_flood_elevation) updateData.base_flood_elevation = enrichedData.base_flood_elevation;
+      if (enrichedData.fema_panel_id) updateData.fema_panel_id = enrichedData.fema_panel_id;
+      if (enrichedData.elevation) updateData.elevation = enrichedData.elevation;
+      if (enrichedData.topography_map_url) updateData.topography_map_url = enrichedData.topography_map_url;
+      if (enrichedData.aerial_imagery_url) updateData.aerial_imagery_url = enrichedData.aerial_imagery_url;
+      if (enrichedData.wetlands_type) updateData.wetlands_type = enrichedData.wetlands_type;
+      if (enrichedData.soil_series) updateData.soil_series = enrichedData.soil_series;
+      if (enrichedData.soil_slope_percent) updateData.soil_slope_percent = enrichedData.soil_slope_percent;
+      if (enrichedData.soil_drainage_class) updateData.soil_drainage_class = enrichedData.soil_drainage_class;
+      if (enrichedData.environmental_sites) updateData.environmental_sites = enrichedData.environmental_sites;
+      if (enrichedData.historical_flood_events !== undefined) updateData.historical_flood_events = enrichedData.historical_flood_events;
+      
+      // Utilities / Infrastructure
+      if (enrichedData.water_lines) updateData.water_lines = enrichedData.water_lines;
+      if (enrichedData.sewer_lines) updateData.sewer_lines = enrichedData.sewer_lines;
+      if (enrichedData.storm_lines) updateData.storm_lines = enrichedData.storm_lines;
+      if (enrichedData.water_capacity_mgd) updateData.water_capacity_mgd = enrichedData.water_capacity_mgd;
+      if (enrichedData.sewer_capacity_mgd) updateData.sewer_capacity_mgd = enrichedData.sewer_capacity_mgd;
+      if (enrichedData.power_kv_nearby) updateData.power_kv_nearby = enrichedData.power_kv_nearby;
+      if (enrichedData.fiber_available !== undefined) updateData.fiber_available = enrichedData.fiber_available;
+      if (enrichedData.broadband_providers) updateData.broadband_providers = enrichedData.broadband_providers;
+      if (enrichedData.utilities_map_url) updateData.utilities_map_url = enrichedData.utilities_map_url;
+      
+      // Traffic / Mobility
+      if (enrichedData.traffic_aadt) updateData.traffic_aadt = enrichedData.traffic_aadt;
+      if (enrichedData.traffic_year) updateData.traffic_year = enrichedData.traffic_year;
+      if (enrichedData.traffic_segment_id) updateData.traffic_segment_id = enrichedData.traffic_segment_id;
+      if (enrichedData.traffic_distance_ft) updateData.traffic_distance_ft = enrichedData.traffic_distance_ft;
+      if (enrichedData.traffic_road_name) updateData.traffic_road_name = enrichedData.traffic_road_name;
+      if (enrichedData.traffic_direction) updateData.traffic_direction = enrichedData.traffic_direction;
+      if (enrichedData.traffic_map_url) updateData.traffic_map_url = enrichedData.traffic_map_url;
+      if (enrichedData.truck_percent) updateData.truck_percent = enrichedData.truck_percent;
+      if (enrichedData.congestion_level) updateData.congestion_level = enrichedData.congestion_level;
+      if (enrichedData.nearest_highway) updateData.nearest_highway = enrichedData.nearest_highway;
+      if (enrichedData.distance_highway_ft) updateData.distance_highway_ft = enrichedData.distance_highway_ft;
+      if (enrichedData.nearest_transit_stop) updateData.nearest_transit_stop = enrichedData.nearest_transit_stop;
+      if (enrichedData.distance_transit_ft) updateData.distance_transit_ft = enrichedData.distance_transit_ft;
+      if (enrichedData.drive_time_15min_population) updateData.drive_time_15min_population = enrichedData.drive_time_15min_population;
+      if (enrichedData.drive_time_30min_population) updateData.drive_time_30min_population = enrichedData.drive_time_30min_population;
+      
+      // Demographics / Market
+      if (enrichedData.population_1mi) updateData.population_1mi = enrichedData.population_1mi;
+      if (enrichedData.population_3mi) updateData.population_3mi = enrichedData.population_3mi;
+      if (enrichedData.population_5mi) updateData.population_5mi = enrichedData.population_5mi;
+      if (enrichedData.median_income) updateData.median_income = enrichedData.median_income;
+      if (enrichedData.households_5mi) updateData.households_5mi = enrichedData.households_5mi;
+      if (enrichedData.employment_clusters) updateData.employment_clusters = enrichedData.employment_clusters;
+      if (enrichedData.growth_rate_5yr) updateData.growth_rate_5yr = enrichedData.growth_rate_5yr;
+      
+      // Financial / Incentives
+      if (enrichedData.tax_rate_total) updateData.tax_rate_total = enrichedData.tax_rate_total;
+      if (enrichedData.taxing_jurisdictions) updateData.taxing_jurisdictions = enrichedData.taxing_jurisdictions;
+      if (enrichedData.opportunity_zone !== undefined) updateData.opportunity_zone = enrichedData.opportunity_zone;
+      if (enrichedData.enterprise_zone !== undefined) updateData.enterprise_zone = enrichedData.enterprise_zone;
+      if (enrichedData.foreign_trade_zone !== undefined) updateData.foreign_trade_zone = enrichedData.foreign_trade_zone;
+      if (enrichedData.average_permit_time_months) updateData.average_permit_time_months = enrichedData.average_permit_time_months;
 
       console.log('Updating database with enriched data:', updateData);
 
