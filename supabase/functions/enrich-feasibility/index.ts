@@ -1771,10 +1771,10 @@ serve(async (req) => {
       
       // Harris County: Use envelope buffer with WGS84 (let service handle transformation)
       if (countyName === 'Harris County') {
-        // Create a small envelope buffer around the point (roughly 50 feet in degrees)
+        // Create a larger envelope buffer around the point (roughly 200 feet in degrees)
         // At Houston's latitude (~29.7°), 1 degree lat ≈ 364,000 ft, 1 degree lng ≈ 315,000 ft
-        // 50 feet ≈ 0.00015 degrees
-        const bufferDegrees = 0.00015;
+        // 200 feet ≈ 0.0006 degrees (increased from 50 feet for better coverage)
+        const bufferDegrees = 0.0006;
         const xmin = geoLng - bufferDegrees;
         const ymin = geoLat - bufferDegrees;
         const xmax = geoLng + bufferDegrees;
@@ -1789,7 +1789,7 @@ serve(async (req) => {
         console.log(`Using HCAD envelope query with inSR=4326:`, {
           envelope: envelopeGeometry,
           center: { lat: geoLat, lng: geoLng },
-          buffer_ft: 50
+          buffer_ft: 200
         });
       }
       
@@ -1836,18 +1836,19 @@ serve(async (req) => {
           });
           
           // If primary query fails for Harris County, try buffered point query with smart selection
-          if (!parcelData?.features?.[0] && countyName === 'Harris County' && !useEnvelope) {
-            console.log('No features found, trying buffered point query (250 feet radius for better coverage)...');
+          if (!parcelData?.features?.[0] && countyName === 'Harris County') {
+            console.log('No features found, trying buffered point query (500 feet radius for better coverage)...');
             const bufferedParams: Record<string, string> = {
               geometry: geometryCoords,
               geometryType: 'esriGeometryPoint',
               spatialRel: 'esriSpatialRelIntersects',
               outFields: comprehensiveOutFields,
-              outSR: spatialReference,
-              distance: '250',
+              inSR: '4326',
+              outSR: '4326',
+              distance: '500',
               units: 'esriSRUnit_Foot',
               returnGeometry: 'true',
-              f: 'geojson'
+              f: 'json'
             };
             
             const bufferedResp = await fetch(`${endpoints.parcel_url}?${new URLSearchParams(bufferedParams)}`);
