@@ -404,7 +404,7 @@ function buildUserPrompt(application: any, reportType: string): string {
     `\nSoil Type: ${application.soil_series || 'N/A'}`,
     `Wetlands: ${application.wetlands_type || 'None detected'}`,
     `Environmental Sites: ${application.environmental_sites ? JSON.stringify(application.environmental_sites).slice(0, 100) : 'None'}`,
-  ];
+  );
 
   return `Generate a ${reportType === 'quickcheck' ? 'QuickCheck summary' : 'full feasibility report'} for:\n\n${dataPoints.join('\n')}`;
 }
