@@ -318,7 +318,7 @@ async function geocodeHoustonParcel(address: string): Promise<{
   }
 }
 const USGS_ELEVATION_URL = "https://nationalmap.gov/epqs/pqs.php";
-const USFWS_WETLANDS_URL = "https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/1/query";
+const USFWS_WETLANDS_URL = "https://www.fws.gov/wetlands/arcgis/rest/services/Wetlands/MapServer/0/query";
 const USDA_SOIL_URL = "https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest";
 const EPA_FRS_URL = "https://enviro.epa.gov/frs/frs_rest_services";
 const NOAA_STORM_URL = "https://www.ncdc.noaa.gov/stormevents/csv";
@@ -400,27 +400,47 @@ async function fetchElevation(lat: number, lng: number): Promise<number | null> 
   return null;
 }
 
-// Helper function to fetch wetlands data from USFWS
-async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
+// Helper function to fetch wetlands data from USFWS National Wetlands Inventory
+async function fetchWetlands(lat: number, lng: number): Promise<{ type: string; raw: any } | null> {
   try {
-    // Buffer distance in meters (100m ~ 328ft)
-    const bufferMeters = 100;
+    // Create 50-foot buffer around the point (converted to degrees)
+    // Approximately 50 feet = 0.00015 degrees at Houston latitude (~29°N)
+    const bufferDegrees = 50 / 364000; // More precise: 1 degree ≈ 364,000 feet at 29°N
+    
+    const minLat = lat - bufferDegrees;
+    const maxLat = lat + bufferDegrees;
+    const minLon = lng - bufferDegrees;
+    const maxLon = lng + bufferDegrees;
+    
+    // Build polygon geometry for ArcGIS query (50ft buffer as requested)
+    const polygonGeometry = JSON.stringify({
+      rings: [[
+        [minLon, minLat],
+        [maxLon, minLat],
+        [maxLon, maxLat],
+        [minLon, maxLat],
+        [minLon, minLat]
+      ]],
+      spatialReference: { wkid: 4326 }
+    });
     
     const params = new URLSearchParams({
-      geometry: `${lng},${lat}`,
-      geometryType: 'esriGeometryPoint',
-      inSR: '4326',
+      geometry: polygonGeometry,
+      geometryType: 'esriGeometryPolygon',
       spatialRel: 'esriSpatialRelIntersects',
-      distance: bufferMeters.toString(),
-      units: 'esriSRUnit_Meter',
-      outFields: 'WETLAND_TYPE,ATTRIBUTE,WETLAND_LABEL,WETLAND_CODE,WET_TYPE',
-      returnGeometry: 'false',
+      outFields: 'WETLAND_TYPE,ATTRIBUTE,ACRES',
+      returnGeometry: 'true',
       f: 'json'
     });
     
     const response = await fetch(`${USFWS_WETLANDS_URL}?${params}`, {
       headers: { 'Accept': 'application/json' }
     });
+    
+    if (!response.ok) {
+      console.error('USFWS Wetlands API error:', response.status);
+      return null;
+    }
     
     const text = await response.text();
     
@@ -432,15 +452,38 @@ async function fetchWetlands(lat: number, lng: number): Promise<string | null> {
     const data = JSON.parse(text);
     
     if (data?.features && data.features.length > 0) {
-      const attrs = data.features[0].attributes;
-      const wetlandType = attrs.WETLAND_TYPE || attrs.WET_TYPE || attrs.WETLAND_LABEL || 
-                         attrs.ATTRIBUTE || attrs.WETLAND_CODE;
-      console.log('Wetlands found:', { type: wetlandType, featureCount: data.features.length });
-      return wetlandType || null;
+      const feature = data.features[0];
+      const attrs = feature.attributes;
+      const wetlandType = attrs.WETLAND_TYPE || attrs.ATTRIBUTE || 'Unknown';
+      
+      console.log('Wetlands found:', { 
+        type: wetlandType, 
+        featureCount: data.features.length,
+        acres: attrs.ACRES
+      });
+      
+      return {
+        type: wetlandType,
+        raw: {
+          queried_at: new Date().toISOString(),
+          features_found: data.features.length,
+          buffer_ft: 50,
+          endpoint: USFWS_WETLANDS_URL,
+          response: data
+        }
+      };
     }
     
-    console.log('No wetlands features found at location');
-    return null;
+    console.log('No wetlands features found within 50ft of location');
+    return {
+      type: 'None detected',
+      raw: {
+        queried_at: new Date().toISOString(),
+        features_found: 0,
+        buffer_ft: 50,
+        endpoint: USFWS_WETLANDS_URL
+      }
+    };
   } catch (error) {
     console.error('Wetlands fetch error:', error);
     return null;
@@ -1865,7 +1908,10 @@ serve(async (req) => {
     console.log('Fetching wetlands data...');
     const wetlands = await fetchWetlands(geoLat, geoLng);
     if (wetlands) {
-      enrichedData.wetlands_type = wetlands;
+      enrichedData.wetlands_type = wetlands.type;
+      apiMeta.usfws_wetlands = wetlands.raw;
+    } else {
+      enrichedData.wetlands_type = 'None detected';
     }
 
     console.log('Fetching soil data...');
