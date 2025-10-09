@@ -80,6 +80,8 @@ interface Report {
     broadband_providers?: any | null;
     distance_highway_ft?: number | null;
     distance_transit_ft?: number | null;
+    // HCAD Owner field (existing)
+    parcel_owner?: string | null;
   };
 }
 
@@ -154,6 +156,7 @@ export default function ReportViewer() {
             broadband_providers,
             distance_highway_ft,
             distance_transit_ft,
+            parcel_owner,
             updated_at
           )
         `)
@@ -349,6 +352,38 @@ export default function ReportViewer() {
           </Card>
         )}
 
+        {/* ⭐ PHASE 1: Property Owner & Account Information Card */}
+        {(report.applications?.parcel_owner || report.applications?.parcel_id) && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Property Owner & Account Information
+              </CardTitle>
+              <DataSourceBadge 
+                datasetName="HCAD Official Records" 
+                timestamp={report.applications.updated_at || report.created_at}
+              />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {report.applications.parcel_owner && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Property Owner</p>
+                    <p className="font-semibold text-lg">{report.applications.parcel_owner}</p>
+                  </div>
+                )}
+                {report.applications.parcel_id && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Parcel ID</p>
+                    <p className="font-mono font-semibold">{report.applications.parcel_id}</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ⭐ NEW: Property Valuation Card */}
         {(report.applications?.tot_appr_val || report.applications?.bldg_sqft) && (
           <Card className="mb-8">
@@ -456,10 +491,12 @@ export default function ReportViewer() {
                       )}
                     </dl>
                     
-                    {/* Legal Description */}
+                    {/* ⭐ PHASE 2: Enhanced Legal Description */}
                     {(report.applications.subdivision || report.applications.block || report.applications.lot) && (
                       <div className="pt-2 border-t">
                         <p className="text-xs text-muted-foreground uppercase mb-2">Legal Description</p>
+                        
+                        {/* Structured Legal Components */}
                         <dl className="grid grid-cols-2 gap-2 text-sm">
                           {report.applications.subdivision && (
                             <>
