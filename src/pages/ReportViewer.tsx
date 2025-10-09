@@ -30,6 +30,10 @@ interface Report {
     traffic_aadt: number | null;
     traffic_year: number | null;
     traffic_road_name: string | null;
+    truck_percent: number | null;
+    congestion_level: string | null;
+    traffic_direction: string | null;
+    traffic_map_url: string | null;
     employment_clusters: any | null;
     updated_at?: string;
     // Project Intent fields
@@ -162,6 +166,10 @@ export default function ReportViewer() {
             traffic_aadt,
             traffic_year,
             traffic_road_name,
+            truck_percent,
+            congestion_level,
+            traffic_direction,
+            traffic_map_url,
             employment_clusters,
             project_type,
             building_size_value,
@@ -1656,6 +1664,148 @@ export default function ReportViewer() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* ⭐ Enhanced: Traffic Mobility Metrics */}
+                {(report.applications?.truck_percent || report.applications?.congestion_level) && (
+                  <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <h4 className="font-semibold mb-4 flex items-center gap-2">
+                      <Car className="h-5 w-5 text-orange-600" />
+                      Traffic Mobility Analysis
+                    </h4>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {report.applications.truck_percent !== null && (
+                        <Card className="border-orange-200 bg-white/70 dark:bg-background/70">
+                          <CardContent className="pt-6">
+                            <div className="flex items-center gap-2 mb-2">
+                              <TrendingUp className="h-5 w-5 text-orange-600" />
+                              <span className="text-sm text-muted-foreground">Truck Traffic</span>
+                            </div>
+                            <p className="text-4xl font-bold text-orange-700 dark:text-orange-400">
+                              {report.applications.truck_percent}%
+                            </p>
+                            <Badge variant="outline" className="mt-2 text-xs">
+                              Commercial vehicles
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {report.applications.truck_percent > 10 ? 'High commercial traffic' : 
+                               report.applications.truck_percent > 5 ? 'Moderate commercial flow' : 
+                               'Low truck volume'}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {report.applications.congestion_level && (
+                        <Card className="border-red-200 bg-white/70 dark:bg-background/70">
+                          <CardContent className="pt-6">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Clock className="h-5 w-5 text-red-600" />
+                              <span className="text-sm text-muted-foreground">Congestion</span>
+                            </div>
+                            <Badge 
+                              variant={
+                                report.applications.congestion_level.toLowerCase() === 'low' ? 'default' :
+                                report.applications.congestion_level.toLowerCase() === 'moderate' ? 'secondary' :
+                                'destructive'
+                              }
+                              className="text-2xl px-4 py-2"
+                            >
+                              {report.applications.congestion_level}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-3">
+                              {report.applications.congestion_level.toLowerCase() === 'high' 
+                                ? 'Peak hour delays expected' 
+                                : report.applications.congestion_level.toLowerCase() === 'moderate'
+                                ? 'Some delays during rush hours'
+                                : 'Free-flowing traffic'}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {report.applications.traffic_direction && (
+                        <Card className="border-blue-200 bg-white/70 dark:bg-background/70">
+                          <CardContent className="pt-6">
+                            <div className="flex items-center gap-2 mb-2">
+                              <TrendingUp className="h-5 w-5 text-blue-600" />
+                              <span className="text-sm text-muted-foreground">Traffic Flow</span>
+                            </div>
+                            <p className="text-xl font-bold text-blue-700 dark:text-blue-400 capitalize">
+                              {report.applications.traffic_direction}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Primary direction
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                      
+                      {report.applications.traffic_map_url && (
+                        <Card className="border-purple-200 bg-white/70 dark:bg-background/70">
+                          <CardContent className="pt-6">
+                            <div className="flex items-center gap-2 mb-2">
+                              <MapPin className="h-5 w-5 text-purple-600" />
+                              <span className="text-sm text-muted-foreground">Interactive Map</span>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2"
+                              onClick={() => window.open(report.applications.traffic_map_url!, '_blank')}
+                            >
+                              <MapPin className="h-4 w-4 mr-2" />
+                              View Traffic Map
+                            </Button>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              Live traffic visualization
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    {/* Peak Hour Analysis */}
+                    {report.applications.congestion_level && (
+                      <div className="mt-4 p-3 bg-white/50 dark:bg-background/50 rounded border border-muted">
+                        <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          Peak Hour Analysis
+                        </h5>
+                        <div className="grid grid-cols-2 gap-3 text-xs">
+                          <div>
+                            <p className="text-muted-foreground mb-1">Morning Rush (7-9 AM)</p>
+                            <Badge variant={
+                              report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'
+                            }>
+                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : 
+                               report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground mb-1">Evening Rush (4-6 PM)</p>
+                            <Badge variant={
+                              report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'
+                            }>
+                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : 
+                               report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground mb-1">Midday (11 AM-2 PM)</p>
+                            <Badge variant="outline">
+                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Moderate' : 'Light'}
+                            </Badge>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground mb-1">Off-Peak</p>
+                            <Badge variant="outline">Light</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {report.applications?.traffic_aadt ? (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <Card className="border-muted">
