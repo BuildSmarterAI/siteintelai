@@ -83,6 +83,19 @@ interface Report {
     distance_transit_ft?: number | null;
     // HCAD Owner field (existing)
     parcel_owner?: string | null;
+    // Phase 1: New HCAD fields
+    acct_num?: string | null;
+    legal_dscr_1?: string | null;
+    legal_dscr_2?: string | null;
+    legal_dscr_3?: string | null;
+    legal_dscr_4?: string | null;
+    bldg_style_cd?: string | null;
+    ag_use?: boolean | null;
+    homestead?: boolean | null;
+    // Phase 1: New FEMA fields
+    fema_firm_panel?: string | null;
+    base_flood_elevation?: number | null;
+    base_flood_elevation_source?: string | null;
   };
 }
 
@@ -170,6 +183,17 @@ export default function ReportViewer() {
             distance_highway_ft,
             distance_transit_ft,
             parcel_owner,
+            acct_num,
+            legal_dscr_1,
+            legal_dscr_2,
+            legal_dscr_3,
+            legal_dscr_4,
+            bldg_style_cd,
+            ag_use,
+            homestead,
+            fema_firm_panel,
+            base_flood_elevation,
+            base_flood_elevation_source,
             updated_at,
             user_id
           )
@@ -414,7 +438,48 @@ export default function ReportViewer() {
                     <p className="font-mono font-semibold">{report.applications.parcel_id}</p>
                   </div>
                 )}
+                {report.applications.acct_num && (
+                  <div>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Account Number</p>
+                    <p className="font-mono font-semibold">{report.applications.acct_num}</p>
+                  </div>
+                )}
               </div>
+              
+              {/* Legal Description */}
+              {(report.applications.legal_dscr_1 || report.applications.legal_dscr_2 || 
+                report.applications.legal_dscr_3 || report.applications.legal_dscr_4) && (
+                <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
+                  <p className="text-xs text-muted-foreground uppercase mb-2">Legal Description</p>
+                  <p className="text-sm leading-relaxed">
+                    {[
+                      report.applications.legal_dscr_1,
+                      report.applications.legal_dscr_2,
+                      report.applications.legal_dscr_3,
+                      report.applications.legal_dscr_4
+                    ].filter(Boolean).join(' ')}
+                  </p>
+                </div>
+              )}
+              
+              {/* Tax Exemptions */}
+              {(report.applications.ag_use || report.applications.homestead) && (
+                <div className="mt-4">
+                  <p className="text-xs text-muted-foreground uppercase mb-2">Tax Exemptions</p>
+                  <div className="flex flex-wrap gap-2">
+                    {report.applications.ag_use && (
+                      <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                        🌾 Agricultural Use Exemption
+                      </Badge>
+                    )}
+                    {report.applications.homestead && (
+                      <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                        🏠 Homestead Exemption
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -1032,8 +1097,35 @@ export default function ReportViewer() {
                   ))}
                 </div>
               </CardHeader>
-              <CardContent className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: flood.verdict || '<p>No flood analysis available.</p>' }} />
+              <CardContent className="space-y-4">
+                {/* Base Flood Elevation (BFE) */}
+                {report.applications?.base_flood_elevation && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-blue-100 rounded">
+                        <TrendingUp className="h-5 w-5 text-blue-700" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-blue-900 mb-1">Base Flood Elevation (BFE)</p>
+                        <p className="text-2xl font-bold text-blue-700">
+                          {report.applications.base_flood_elevation} ft NAVD88
+                        </p>
+                        {report.applications.base_flood_elevation_source && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Source: {report.applications.base_flood_elevation_source}
+                          </p>
+                        )}
+                        {report.applications.fema_firm_panel && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            FIRM Panel: {report.applications.fema_firm_panel}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: flood.verdict || '<p>No flood analysis available.</p>' }} />
               </CardContent>
             </Card>
           </TabsContent>

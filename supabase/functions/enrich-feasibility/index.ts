@@ -161,7 +161,7 @@ const ENDPOINT_CATALOG: Record<string, any> = {
   "Travis County": {
     // Travis CAD parcel service (Austin area, confirmed working)
     parcel_url: "https://gis.traviscad.org/arcgis/rest/services/Parcels/MapServer/0/query",
-    zoning_url: "https://data.austintexas.gov/resource/zoning.json",
+    zoning_url: "https://maps.austintexas.gov/arcgis/rest/services/Shared/Zoning_1/MapServer/0/query",
     // Travis CAD-specific field mappings (confirmed from service metadata)
     parcel_id_field: "PARCEL_ID",
     owner_field: "OWNER",
@@ -218,7 +218,7 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 };
 
 // API Endpoints - Official Sources
-const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"; // Flood Hazard Zones (layer 0, not deprecated 28)
+const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query"; // Flood Hazard Zones (Layer 28 - correct endpoint per FEMA documentation)
 const OPENFEMA_DISASTERS_URL = "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries"; // Historical flood events
 
 /**
@@ -1861,6 +1861,14 @@ serve(async (req) => {
           
           // ⭐ NEW: Extract tax information
           enrichedData.exemption_code = pickAttr(attrs, ['exemption_cd', 'exempt_code']) || null;
+          enrichedData.ag_use = (pickAttr(attrs, ['ag_use']) === 'Y' || pickAttr(attrs, ['ag_use']) === true || pickAttr(attrs, ['ag_use']) === '1');
+          enrichedData.homestead = (pickAttr(attrs, ['homestead']) === 'Y' || pickAttr(attrs, ['homestead']) === true || pickAttr(attrs, ['homestead']) === '1');
+          enrichedData.acct_num = pickAttr(attrs, ['acct_num']) || null;
+          enrichedData.legal_dscr_1 = pickAttr(attrs, ['legal_dscr_1']) || null;
+          enrichedData.legal_dscr_2 = pickAttr(attrs, ['legal_dscr_2']) || null;
+          enrichedData.legal_dscr_3 = pickAttr(attrs, ['legal_dscr_3']) || null;
+          enrichedData.legal_dscr_4 = pickAttr(attrs, ['legal_dscr_4']) || null;
+          enrichedData.bldg_style_cd = pickAttr(attrs, ['bldg_style_cd']) || null;
           
           // ⭐ NEW: Extract location details
           enrichedData.subdivision = pickAttr(attrs, ['subdivision', 'subdivsn']) || null;
@@ -1957,7 +1965,7 @@ serve(async (req) => {
       enrichedData.zoning_code = 'No formal zoning (Houston)';
       enrichedData.overlay_district = 'Deed-restricted area - check HOA/deed covenants';
       console.log('Houston detected: Applying zoning bypass (no formal zoning ordinances)');
-    } else if (endpoints.zoning_url) {
+      } else if (endpoints.zoning_url) {
       try {
         const zoningParams = new URLSearchParams({
           geometry: `${geoLng},${geoLat}`,
@@ -1974,8 +1982,20 @@ serve(async (req) => {
 
         if (zoningData?.features?.[0]) {
           const attrs = zoningData.features[0].attributes;
-          enrichedData.zoning_code = attrs[endpoints.zoning_field] || attrs.ZONE_CODE || attrs.ZONING || attrs.ZONECODE || attrs.ZONE;
-          enrichedData.overlay_district = attrs[endpoints.overlay_field] || attrs.OVERLAY_DISTRICT || attrs.OVERLAY || attrs.OVERLAY_CODE;
+          
+          // For Austin/Travis County, extract ZONING_BASE and ZONING_ZTYPE (ArcGIS MapServer format)
+          if (countyName === 'Travis County' && attrs.ZONING_BASE) {
+            enrichedData.zoning_code = attrs.ZONING_BASE;
+            // Extract overlay from ZONING_ZTYPE (e.g., "SF-3-CO" -> overlay = "CO")
+            const zoningFull = attrs.ZONING_ZTYPE || '';
+            const overlayMatch = zoningFull.includes('-') ? zoningFull.split('-').slice(2).join('-') : null;
+            enrichedData.overlay_district = overlayMatch || null;
+          } else {
+            // Other counties: use generic field mapping
+            enrichedData.zoning_code = attrs[endpoints.zoning_field] || attrs.ZONE_CODE || attrs.ZONING || attrs.ZONECODE || attrs.ZONE;
+            enrichedData.overlay_district = attrs[endpoints.overlay_field] || attrs.OVERLAY_DISTRICT || attrs.OVERLAY || attrs.OVERLAY_CODE;
+          }
+          
           console.log('Zoning data found:', { 
             zoning_code: enrichedData.zoning_code, 
             overlay_district: enrichedData.overlay_district, 
@@ -2001,14 +2021,14 @@ serve(async (req) => {
     try {
       // Use retry logic for FEMA API (known to be flaky with 404s and timeouts)
       await retryWithBackoff(async () => {
-        // Query FEMA NFHL Layer 0 (updated endpoint, not deprecated 28)
+        // Query FEMA NFHL Layer 28 (correct endpoint per FEMA documentation - contains FLD_ZONE, BFE, FIRM_PAN)
         const femaParams = new URLSearchParams({
           f: 'json',
           geometry: `${geoLng},${geoLat}`,
           geometryType: 'esriGeometryPoint',
           inSR: '4326',
           spatialRel: 'esriSpatialRelIntersects',
-          outFields: 'FLD_ZONE,BFE,STATIC_BFE,PANEL',
+          outFields: 'FLD_ZONE,BFE,STATIC_BFE,FIRM_PAN,SFHA_TF',
           returnGeometry: 'false'
         });
 
@@ -2016,7 +2036,7 @@ serve(async (req) => {
           headers: { 'Accept': 'application/json' }
         });
         
-        apiMeta.fema_nfhl = { status: femaResp.status, layer: 0, coords: `${geoLng},${geoLat}` }; // Track response
+        apiMeta.fema_nfhl = { status: femaResp.status, layer: 28, coords: `${geoLng},${geoLat}` }; // Track response
         
         if (!femaResp.ok) {
           const errorText = await femaResp.text();
@@ -2032,7 +2052,12 @@ serve(async (req) => {
           
           enrichedData.floodplain_zone = attrs.FLD_ZONE || null;
           enrichedData.base_flood_elevation = attrs.BFE || attrs.STATIC_BFE || null;
-          enrichedData.fema_panel_id = attrs.PANEL || null;
+          enrichedData.fema_panel_id = attrs.FIRM_PAN || attrs.PANEL || null;
+          
+          // Track BFE source
+          if (enrichedData.base_flood_elevation) {
+            enrichedData.base_flood_elevation_source = 'FEMA NFHL';
+          }
           
           // Add flag if zone exists but BFE is not available (common in Zone X)
       if (enrichedData.floodplain_zone && !enrichedData.base_flood_elevation) {
@@ -2331,6 +2356,16 @@ serve(async (req) => {
       
       // ⭐ NEW: Tax information
       if (enrichedData.exemption_code) updateData.exemption_code = enrichedData.exemption_code;
+      if (enrichedData.ag_use !== undefined) updateData.ag_use = enrichedData.ag_use;
+      if (enrichedData.homestead !== undefined) updateData.homestead = enrichedData.homestead;
+      if (enrichedData.acct_num) updateData.acct_num = enrichedData.acct_num;
+      
+      // ⭐ NEW: Legal description fields
+      if (enrichedData.legal_dscr_1) updateData.legal_dscr_1 = enrichedData.legal_dscr_1;
+      if (enrichedData.legal_dscr_2) updateData.legal_dscr_2 = enrichedData.legal_dscr_2;
+      if (enrichedData.legal_dscr_3) updateData.legal_dscr_3 = enrichedData.legal_dscr_3;
+      if (enrichedData.legal_dscr_4) updateData.legal_dscr_4 = enrichedData.legal_dscr_4;
+      if (enrichedData.bldg_style_cd) updateData.bldg_style_cd = enrichedData.bldg_style_cd;
       
       // ⭐ NEW: Location details
       if (enrichedData.subdivision) updateData.subdivision = enrichedData.subdivision;
@@ -2345,6 +2380,7 @@ serve(async (req) => {
       if (enrichedData.floodplain_zone) updateData.floodplain_zone = enrichedData.floodplain_zone;
       if (enrichedData.base_flood_elevation) updateData.base_flood_elevation = enrichedData.base_flood_elevation;
       if (enrichedData.fema_panel_id) updateData.fema_panel_id = enrichedData.fema_panel_id;
+      if (enrichedData.base_flood_elevation_source) updateData.base_flood_elevation_source = enrichedData.base_flood_elevation_source;
       if (enrichedData.elevation) updateData.elevation = enrichedData.elevation;
       if (enrichedData.topography_map_url) updateData.topography_map_url = enrichedData.topography_map_url;
       if (enrichedData.aerial_imagery_url) updateData.aerial_imagery_url = enrichedData.aerial_imagery_url;

@@ -17,17 +17,21 @@ export type Database = {
       applications: {
         Row: {
           access_priorities: string[] | null
+          acct_num: string | null
           acreage_cad: number | null
           additional_notes: string | null
           administrative_area_level_1: string | null
           aerial_imagery_url: string | null
+          ag_use: boolean | null
           ai_context: Json | null
           api_meta: Json | null
           attachments: Json | null
           average_permit_time_months: number | null
           base_flood_elevation: number | null
+          base_flood_elevation_source: string | null
           best_time: string | null
           bldg_sqft: number | null
+          bldg_style_cd: string | null
           block: string | null
           broadband_providers: Json | null
           building_size_unit: string | null
@@ -61,6 +65,7 @@ export type Database = {
           executive_summary_output: string | null
           exemption_code: string | null
           existing_improvements: string
+          fema_firm_panel: string | null
           fema_panel_id: string | null
           fiber_available: boolean | null
           floodplain_zone: string | null
@@ -73,12 +78,17 @@ export type Database = {
           heard_about: string
           highest_best_use_output: string | null
           historical_flood_events: Json | null
+          homestead: boolean | null
           households_5mi: number | null
           id: string
           imprv_val: number | null
           known_risks: string[] | null
           land_use_code: string | null
           land_val: number | null
+          legal_dscr_1: string | null
+          legal_dscr_2: string | null
+          legal_dscr_3: string | null
+          legal_dscr_4: string | null
           lot: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
@@ -161,17 +171,21 @@ export type Database = {
         }
         Insert: {
           access_priorities?: string[] | null
+          acct_num?: string | null
           acreage_cad?: number | null
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          ag_use?: boolean | null
           ai_context?: Json | null
           api_meta?: Json | null
           attachments?: Json | null
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
+          base_flood_elevation_source?: string | null
           best_time?: string | null
           bldg_sqft?: number | null
+          bldg_style_cd?: string | null
           block?: string | null
           broadband_providers?: Json | null
           building_size_unit?: string | null
@@ -205,6 +219,7 @@ export type Database = {
           executive_summary_output?: string | null
           exemption_code?: string | null
           existing_improvements: string
+          fema_firm_panel?: string | null
           fema_panel_id?: string | null
           fiber_available?: boolean | null
           floodplain_zone?: string | null
@@ -217,12 +232,17 @@ export type Database = {
           heard_about: string
           highest_best_use_output?: string | null
           historical_flood_events?: Json | null
+          homestead?: boolean | null
           households_5mi?: number | null
           id?: string
           imprv_val?: number | null
           known_risks?: string[] | null
           land_use_code?: string | null
           land_val?: number | null
+          legal_dscr_1?: string | null
+          legal_dscr_2?: string | null
+          legal_dscr_3?: string | null
+          legal_dscr_4?: string | null
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
@@ -305,17 +325,21 @@ export type Database = {
         }
         Update: {
           access_priorities?: string[] | null
+          acct_num?: string | null
           acreage_cad?: number | null
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          ag_use?: boolean | null
           ai_context?: Json | null
           api_meta?: Json | null
           attachments?: Json | null
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
+          base_flood_elevation_source?: string | null
           best_time?: string | null
           bldg_sqft?: number | null
+          bldg_style_cd?: string | null
           block?: string | null
           broadband_providers?: Json | null
           building_size_unit?: string | null
@@ -349,6 +373,7 @@ export type Database = {
           executive_summary_output?: string | null
           exemption_code?: string | null
           existing_improvements?: string
+          fema_firm_panel?: string | null
           fema_panel_id?: string | null
           fiber_available?: boolean | null
           floodplain_zone?: string | null
@@ -361,12 +386,17 @@ export type Database = {
           heard_about?: string
           highest_best_use_output?: string | null
           historical_flood_events?: Json | null
+          homestead?: boolean | null
           households_5mi?: number | null
           id?: string
           imprv_val?: number | null
           known_risks?: string[] | null
           land_use_code?: string | null
           land_val?: number | null
+          legal_dscr_1?: string | null
+          legal_dscr_2?: string | null
+          legal_dscr_3?: string | null
+          legal_dscr_4?: string | null
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
