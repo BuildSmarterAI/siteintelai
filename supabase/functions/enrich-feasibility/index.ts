@@ -552,12 +552,6 @@ async function fetchWetlands(lat: number, lng: number): Promise<{
     return null;
   }
 }
-    };
-  } catch (error) {
-    console.error('Wetlands fetch error:', error);
-    return null;
-  }
-}
 
 // Helper function to fetch soil data from USDA NRCS
 async function fetchSoilData(lat: number, lng: number): Promise<any> {
