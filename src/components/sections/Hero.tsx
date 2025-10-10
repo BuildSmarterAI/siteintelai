@@ -1,7 +1,8 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Layers, DollarSign, ShieldCheck, BarChart3 } from "lucide-react";
+import { Layers, DollarSign, ShieldCheck, BarChart3, Building2, FileCheck } from "lucide-react";
 import buildSmarterLogo from "@/assets/buildsmarter-logo-new.png";
+import aerialPropertySite from "@/assets/aerial-property-site.jpg";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCounter } from "@/hooks/useCounter";
 import { useState, useRef } from "react";
@@ -106,6 +107,18 @@ export const Hero = () => {
     }),
   };
 
+  // Building footprint SVG shapes
+  const BuildingFootprints = {
+    rectangular: <rect width="20" height="28" rx="1" />,
+    lShape: <path d="M 0 0 L 20 0 L 20 15 L 12 15 L 12 28 L 0 28 Z" />,
+    complex: <path d="M 0 0 L 24 0 L 24 10 L 16 10 L 16 18 L 24 18 L 24 28 L 0 28 Z" />,
+    square: <rect width="22" height="22" rx="1" />,
+    tShape: <path d="M 8 0 L 16 0 L 16 12 L 26 12 L 26 20 L 0 20 L 0 12 L 8 12 Z" />,
+    commercial: <path d="M 0 0 L 28 0 L 28 22 L 20 22 L 20 28 L 8 28 L 8 22 L 0 22 Z" />,
+  };
+
+  const footprintTypes = Object.keys(BuildingFootprints);
+
   return (
     <motion.section
       className="relative flex min-h-screen overflow-hidden bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]"
@@ -113,14 +126,36 @@ export const Hero = () => {
       initial="hidden"
       animate="visible"
     >
-      {/* Signature Animated Background - Parcel Grid with Verification */}
+      {/* Step 1: Aerial Photo Background Layer */}
       <motion.div
-        className="absolute inset-0 opacity-0"
+        className="absolute inset-0 z-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.18 }}
+        transition={{ duration: 1.5, delay: 0.2 }}
+      >
+        <div 
+          className="absolute right-0 top-0 w-full h-full bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${aerialPropertySite})`,
+            filter: 'blur(2px)',
+            transform: 'scale(1.05)',
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0F2C] via-transparent to-[#0A0F2C]/60" />
+      </motion.div>
+
+      {/* Step 2: Enhanced Blueprint-Style Grid */}
+      <motion.div
+        className="absolute inset-0 opacity-0 z-[1]"
         variants={gridVariants}
         style={{
-          backgroundImage: `linear-gradient(to right, rgba(6, 182, 212, 0.08) 2px, transparent 2px),
-                          linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 2px, transparent 2px)`,
-          backgroundSize: '80px 80px',
+          backgroundImage: `
+            linear-gradient(to right, rgba(6, 182, 212, 0.12) 3px, transparent 3px),
+            linear-gradient(to bottom, rgba(6, 182, 212, 0.12) 3px, transparent 3px),
+            linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px)
+          `,
+          backgroundSize: '80px 80px, 80px 80px, 80px 80px, 80px 80px',
           y: gridY,
         }}
       >
@@ -182,9 +217,34 @@ export const Hero = () => {
             );
           })}
         </svg>
+
+        {/* Step 2: Blueprint Corner Brackets */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+          {[
+            { x: 10, y: 15 }, { x: 30, y: 15 }, { x: 50, y: 15 },
+            { x: 10, y: 40 }, { x: 30, y: 40 }, { x: 70, y: 20 },
+            { x: 15, y: 65 }, { x: 45, y: 70 }, { x: 85, y: 30 },
+            { x: 65, y: 55 }, { x: 90, y: 75 }, { x: 25, y: 85 }
+          ].map((pos, i) => (
+            <motion.g
+              key={`bracket-${i}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              transition={{ duration: 0.4, delay: 1.5 + i * 0.1 }}
+            >
+              <path
+                d={`M ${pos.x}% ${pos.y}% h 2.5 M ${pos.x}% ${pos.y}% v 2.5`}
+                stroke="rgba(255, 255, 255, 0.6)"
+                strokeWidth="2"
+                fill="none"
+                strokeLinecap="square"
+              />
+            </motion.g>
+          ))}
+        </svg>
       </motion.div>
 
-        {/* Data Verification Nodes */}
+      {/* Step 3: Data Verification Nodes & Building Footprints */}
       <div className="absolute inset-0 pointer-events-none">
         {[...Array(window.innerWidth < 768 ? 8 : 20)].map((_, i) => {
           const x = 10 + (i % 5) * 20;
@@ -249,8 +309,8 @@ export const Hero = () => {
         style={{ y: prefersReducedMotion ? 0 : backgroundY }}
       >
         <div className="relative h-full w-full">
-          {/* Phase 2: Data Stream Visualization */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          {/* Step 4: Data Stream Visualization with CRE Icons */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[4]">
             <defs>
               <linearGradient id="streamGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
@@ -258,32 +318,71 @@ export const Hero = () => {
                 <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
               </linearGradient>
             </defs>
+            
             {[...Array(8)].map((_, i) => {
               const startX = Math.random() * 80 + 10;
               const startY = Math.random() * 80 + 10;
               const endX = Math.random() * 80 + 10;
               const endY = Math.random() * 80 + 10;
+              
               return (
-                <motion.line
-                  key={i}
-                  x1={`${startX}%`}
-                  y1={`${startY}%`}
-                  x2={`${endX}%`}
-                  y2={`${endY}%`}
-                  stroke="url(#streamGradient)"
-                  strokeWidth="1"
-                  initial={{ pathLength: 0, opacity: 0 }}
-                  animate={{ 
-                    pathLength: [0, 1, 0],
-                    opacity: [0, 0.8, 0]
-                  }}
-                  transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    delay: 0.9 + i * 0.5,
-                    ease: "easeInOut",
-                  }}
-                />
+                <g key={`stream-${i}`}>
+                  <motion.line
+                    x1={`${startX}%`}
+                    y1={`${startY}%`}
+                    x2={`${endX}%`}
+                    y2={`${endY}%`}
+                    stroke="url(#streamGradient)"
+                    strokeWidth="1"
+                    initial={{ pathLength: 0, opacity: 0 }}
+                    animate={{ 
+                      pathLength: [0, 1, 0],
+                      opacity: [0, 0.8, 0]
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      delay: 0.9 + i * 0.5,
+                      ease: "easeInOut",
+                    }}
+                  />
+                  
+                  <motion.g
+                    initial={{ opacity: 0 }}
+                    animate={{
+                      opacity: [0, 1, 1, 0],
+                    }}
+                    transition={{
+                      duration: 4,
+                      repeat: Infinity,
+                      delay: 0.9 + i * 0.5,
+                      ease: "easeInOut",
+                    }}
+                  >
+                    <motion.foreignObject
+                      width="14"
+                      height="14"
+                      animate={{
+                        x: [startX + '%', endX + '%'],
+                        y: [startY + '%', endY + '%'],
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity,
+                        delay: 0.9 + i * 0.5,
+                        ease: "easeInOut",
+                      }}
+                      style={{ overflow: 'visible' }}
+                    >
+                      <div className="flex items-center justify-center w-full h-full">
+                        {i % 4 === 0 && <Building2 className="w-3 h-3 text-[#06B6D4]" />}
+                        {i % 4 === 1 && <DollarSign className="w-3 h-3 text-[#06B6D4]" />}
+                        {i % 4 === 2 && <ShieldCheck className="w-3 h-3 text-[#06B6D4]" />}
+                        {i % 4 === 3 && <FileCheck className="w-3 h-3 text-[#06B6D4]" />}
+                      </div>
+                    </motion.foreignObject>
+                  </motion.g>
+                </g>
               );
             })}
           </svg>
