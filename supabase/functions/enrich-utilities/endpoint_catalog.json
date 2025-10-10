@@ -21,7 +21,7 @@
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
       "notes": "Using GeoGIMS test server - WaterLine layer (4) from Geocortex directory - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
     },
     "sewer": {
       "name": "HW Wastewater UNPublic (GeoGIMS Test)",
@@ -34,7 +34,7 @@
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
       "notes": "Using GeoGIMS test server - Sewer Line layer (4) from Geocortex directory - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
     },
     "storm": {
       "name": "TDO StormWater Maintenance (GeoGIMS)",
@@ -47,7 +47,7 @@
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
       "notes": "Using GeoGIMS MS server - StormDrainage Utilities layer (1) from Geocortex directory - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
+      "test_url": "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
     }
   },
   "austin": {

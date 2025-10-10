@@ -105,6 +105,7 @@ const queryArcGIS = async (
     geometry: geometryCoords,
     geometryType: "esriGeometryPoint",
     inSR: spatialReference,
+    outSR: spatialReference,
     spatialRel: "esriSpatialRelIntersects",
     outFields: fields.join(","),
     returnGeometry: "true",
@@ -148,20 +149,21 @@ const queryArcGIS = async (
       const json = await resp.json();
       console.log(`${utilityType} features found:`, json.features?.length || 0);
       
-      if (json.error) {
-        console.error(`${utilityType} API error:`, json.error);
-        
-        apiMeta.push({
-          api: utilityType,
-          url: queryUrl,
-          status,
-          elapsed_ms,
-          timestamp: new Date().toISOString(),
-          error: json.error.message || "ArcGIS API error"
-        });
-        
-        throw new Error(json.error.message || "ArcGIS API error");
-      }
+    if (json.error) {
+      console.error(`${utilityType} API error:`, json.error);
+      console.error(`${utilityType} Full response:`, JSON.stringify(json));
+      
+      apiMeta.push({
+        api: utilityType,
+        url: queryUrl,
+        status,
+        elapsed_ms,
+        timestamp: new Date().toISOString(),
+        error: json.error.message || "ArcGIS API error"
+      });
+      
+      throw new Error(json.error.message || "ArcGIS API error");
+    }
       
       // Success - log metadata
       apiMeta.push({
