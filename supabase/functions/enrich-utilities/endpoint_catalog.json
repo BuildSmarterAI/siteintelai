@@ -13,41 +13,54 @@
     "water": {
       "name": "HW Water UNPublic (GeoGIMS Test)",
       "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
-      "outFields": ["*"],
+      "outFields": ["DIAMETER", "MATERIAL", "OWNER"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using GeoGIMS test server - WaterLine layer (4) from Geocortex directory - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
+      "notes": "Using GeoGIMS test server - WaterLine layer (4) - EPSG:2278 (Texas South Central)",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=json"
     },
     "sewer": {
-      "name": "HW Wastewater UNPublic (GeoGIMS Test)",
-      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query",
-      "outFields": ["*"],
+      "name": "Houston Wastewater Gravity Main (Production)",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query",
+      "outFields": ["DIAMETER", "MATERIAL", "LIFECYCLESTATUS"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 500,
-      "notes": "Using GeoGIMS test server - Sewer Line layer (4) from Geocortex directory - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
+      "search_radius_ft": 300,
+      "notes": "Production server - Wastewater Gravity Main layer (23) - EPSG:2278",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,LIFECYCLESTATUS&returnGeometry=true&f=json"
+    },
+    "sewer_force": {
+      "name": "Houston Wastewater Force Main (Production)",
+      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/24/query",
+      "outFields": ["DIAMETER", "MATERIAL", "OWNER"],
+      "geometryType": "esriGeometryPolyline",
+      "crs": 2278,
+      "timeout_ms": 8000,
+      "retry_attempts": 3,
+      "retry_delays_ms": [500, 1000, 2000],
+      "search_radius_ft": 250,
+      "notes": "Production server - Wastewater Force Main layer (24) - EPSG:2278",
+      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/24/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=250&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=json"
     },
     "storm": {
-      "name": "TDO StormWater Maintenance (GeoGIMS)",
-      "url": "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query",
-      "outFields": ["*"],
+      "name": "Houston Storm Drainage Gravity Mains (Production)",
+      "url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7/query",
+      "outFields": ["WIDTH", "HEIGHT", "MATERIAL"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 500,
-      "notes": "Using GeoGIMS MS server - StormDrainage Utilities layer (1) from Geocortex directory - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json"
+      "search_radius_ft": 300,
+      "notes": "Production FeatureServer - Storm Drainage Gravity Mains layer (7) - EPSG:2278",
+      "test_url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=WIDTH,HEIGHT,MATERIAL&returnGeometry=true&f=json"
     }
   },
   "austin": {

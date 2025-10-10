@@ -56,17 +56,26 @@ function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
 }
 
 // Format ArcGIS features → JSON with distance
-function formatLines(features: any[], geo_lat: number, geo_lng: number) {
+function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityType?: string) {
   return features.map((f) => {
     const attrs = f.attributes || {};
     const geom = f.geometry || {};
     const distance_ft = geom.paths
       ? minDistanceToLine(geo_lat, geo_lng, geom.paths)
       : null;
+    
+    // Handle storm drainage with WIDTH/HEIGHT instead of DIAMETER
+    let diameter = attrs.DIAMETER || null;
+    if (!diameter && (attrs.WIDTH || attrs.HEIGHT)) {
+      // For storm drains with width/height, use the larger dimension
+      diameter = Math.max(attrs.WIDTH || 0, attrs.HEIGHT || 0) || null;
+    }
+    
     return {
-      diameter: attrs.DIAMETER || null,
+      diameter,
       material: attrs.MATERIAL || null,
-      status: attrs.STATUS || null,
+      status: attrs.STATUS || attrs.LIFECYCLESTATUS || null,
+      owner: attrs.OWNER || null,
       distance_ft
     };
   });
@@ -338,7 +347,9 @@ serve(async (req) => {
           search_radius_ft: eps.water.search_radius_ft,
           crs: eps.water.crs || 2278
         });
-        sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer", {
+        
+        // Query both gravity and force mains for comprehensive sewer data
+        const sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
@@ -346,13 +357,32 @@ serve(async (req) => {
           crs: eps.sewer.crs || 2278
         });
         
+        // Try to get force mains as well
+        let sewerForce: any[] = [];
+        try {
+          if (eps.sewer_force) {
+            sewerForce = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
+              timeout_ms: eps.sewer_force.timeout_ms,
+              retry_attempts: eps.sewer_force.retry_attempts,
+              retry_delays_ms: eps.sewer_force.retry_delays_ms,
+              search_radius_ft: eps.sewer_force.search_radius_ft,
+              crs: eps.sewer_force.crs || 2278
+            });
+          }
+        } catch (forceErr) {
+          console.log('Force main query failed, continuing with gravity only:', forceErr instanceof Error ? forceErr.message : String(forceErr));
+        }
+        
+        // Combine gravity and force mains
+        sewer = [...sewerGravity, ...sewerForce];
+        
         // Storm endpoint - try with fallback and graceful degradation
         try {
           storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
             timeout_ms: eps.storm.timeout_ms,
             retry_attempts: eps.storm.retry_attempts,
             retry_delays_ms: eps.storm.retry_delays_ms,
-            search_radius_ft: 1000, // Increased radius for storm drainage
+            search_radius_ft: eps.storm.search_radius_ft,
             crs: eps.storm.crs || 2278
           });
         } catch (stormErr) {
