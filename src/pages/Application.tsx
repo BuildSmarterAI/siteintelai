@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload } from "lucide-react";
+import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload, Edit } from "lucide-react";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
@@ -109,6 +109,35 @@ export default function Application() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [enrichedData, setEnrichedData] = useState<any>(null);
 
+  // Track which fields were auto-enriched (to show lock UI)
+  const [enrichedFields, setEnrichedFields] = useState<{
+    parcelId: boolean;
+    lotSize: boolean;
+    zoning: boolean;
+  }>({
+    parcelId: false,
+    lotSize: false,
+    zoning: false
+  });
+
+  // Track which fields user manually unlocked
+  const [unlockedFields, setUnlockedFields] = useState<{
+    parcelId: boolean;
+    lotSize: boolean;
+    zoning: boolean;
+  }>({
+    parcelId: false,
+    lotSize: false,
+    zoning: false
+  });
+
+  // Store original HCAD values for conflict detection
+  const [hcadValues, setHcadValues] = useState<{
+    parcelId?: string;
+    lotSize?: string;
+    zoning?: string;
+  }>({});
+
   const totalSteps = 5;
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
@@ -188,6 +217,49 @@ export default function Application() {
     if (validateStep(5)) {
       setIsLoading(true);
       
+      // Detect conflicts between user input and HCAD data
+      const dataFlags = [];
+
+      if (unlockedFields.parcelId && hcadValues.parcelId && formData.parcelId !== hcadValues.parcelId) {
+        dataFlags.push({
+          type: 'user_override',
+          field: 'parcel_id',
+          user_value: formData.parcelId,
+          hcad_value: hcadValues.parcelId,
+          confidence: 'low',
+          message: 'User manually overrode HCAD parcel ID'
+        });
+      }
+
+      if (unlockedFields.lotSize && hcadValues.lotSize) {
+        const userLotSize = parseFloat(formData.lotSize);
+        const hcadLotSize = parseFloat(hcadValues.lotSize);
+        const percentDiff = Math.abs((userLotSize - hcadLotSize) / hcadLotSize) * 100;
+        
+        if (percentDiff > 10) {
+          dataFlags.push({
+            type: 'user_override',
+            field: 'lot_size',
+            user_value: `${formData.lotSize} ${formData.lotSizeUnit}`,
+            hcad_value: `${hcadValues.lotSize} acres`,
+            confidence: percentDiff > 25 ? 'very_low' : 'low',
+            percent_difference: percentDiff.toFixed(1),
+            message: `User lot size differs from HCAD by ${percentDiff.toFixed(1)}%`
+          });
+        }
+      }
+
+      if (unlockedFields.zoning && hcadValues.zoning && formData.zoning !== hcadValues.zoning) {
+        dataFlags.push({
+          type: 'user_override',
+          field: 'zoning',
+          user_value: formData.zoning,
+          hcad_value: hcadValues.zoning,
+          confidence: 'low',
+          message: 'User manually overrode HCAD zoning classification'
+        });
+      }
+      
       // Prepare data for Supabase submission
       const submissionData = {
         fullName: formData.fullName,
@@ -246,7 +318,10 @@ export default function Application() {
         zoningCode: formData.zoningCode,
         overlayDistrict: formData.overlayDistrict,
         floodplainZone: formData.floodplainZone,
-        baseFloodElevation: formData.baseFloodElevation
+        baseFloodElevation: formData.baseFloodElevation,
+        
+        // Add conflict flags if any exist
+        dataFlags: dataFlags.length > 0 ? dataFlags : null
       };
 
       try {
@@ -536,10 +611,10 @@ export default function Application() {
                                    neighborhood: addressDetails?.neighborhood || prev.neighborhood,
                                    sublocality: addressDetails?.sublocality || prev.sublocality,
                                    placeId: addressDetails?.placeId || prev.placeId
-                                 }));
-                               }
-                             }}
-                              onEnrichmentComplete={(data) => {
+                      }));
+                    }
+                  }}
+                  onEnrichmentComplete={(data) => {
                                 if (data?.success && data?.data) {
                                   setEnrichedData(data.data);
                                   // Resolve lot size from multiple possible sources
@@ -574,6 +649,20 @@ export default function Application() {
                                     floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
                                     baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
                                   }));
+
+                                  // Mark which fields were successfully enriched
+                                  setEnrichedFields({
+                                    parcelId: !!data.data.parcel_id,
+                                    lotSize: !!resolvedLotSize,
+                                    zoning: !!data.data.zoning_code
+                                  });
+
+                                  // Store HCAD values for conflict detection
+                                  setHcadValues({
+                                    parcelId: data.data.parcel_id,
+                                    lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : undefined,
+                                    zoning: data.data.zoning_code
+                                  });
 
                                   const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
                                   if (hasFlags) {
@@ -621,26 +710,63 @@ export default function Application() {
                                 id="parcelId"
                                 value={formData.parcelId}
                                 onChange={(e) => handleInputChange('parcelId', e.target.value)}
-                                placeholder="123-456-789"
-                                 className="mt-2"
-                               />
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Official parcel identifier helps verify property boundaries and records.
-                               </p>
+                                placeholder={enrichedFields.parcelId && !unlockedFields.parcelId ? "Auto-filled from HCAD" : "123-456-789"}
+                                className="mt-2"
+                                readOnly={enrichedFields.parcelId && !unlockedFields.parcelId}
+                              />
+                              {enrichedFields.parcelId && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  {!unlockedFields.parcelId ? (
+                                    <>
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                        ✓ Verified from HCAD
+                                      </Badge>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setUnlockedFields(prev => ({ ...prev, parcelId: true }));
+                                          toast({
+                                            title: "Manual Override Enabled",
+                                            description: "You can now edit the Parcel ID. We'll flag this for review.",
+                                          });
+                                        }}
+                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                      ⚠️ Manual Override
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              <p className="text-sm text-charcoal/60 mt-1">
+                                Official parcel identifier helps verify property boundaries and records.
+                              </p>
                             </div>
 
-                             <div>
-                               <Label className="font-body font-semibold text-charcoal">
-                                 Lot Size / Acreage
-                               </Label>
+                            <div>
+                              <Label className="font-body font-semibold text-charcoal">
+                                Lot Size / Acreage
+                              </Label>
                               <div className="flex gap-2 mt-2">
                                 <Input
                                   value={formData.lotSize}
                                   onChange={(e) => handleInputChange('lotSize', e.target.value)}
-                                  placeholder="5.2"
+                                  placeholder={enrichedFields.lotSize && !unlockedFields.lotSize ? "Auto-filled from HCAD" : "5.2"}
                                   className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                                  readOnly={enrichedFields.lotSize && !unlockedFields.lotSize}
                                 />
-                                <Select value={formData.lotSizeUnit} onValueChange={(value) => handleInputChange('lotSizeUnit', value)}>
+                                <Select 
+                                  value={formData.lotSizeUnit} 
+                                  onValueChange={(value) => handleInputChange('lotSizeUnit', value)}
+                                  disabled={enrichedFields.lotSize && !unlockedFields.lotSize}
+                                >
                                   <SelectTrigger className="w-32">
                                     <SelectValue />
                                   </SelectTrigger>
@@ -649,11 +775,42 @@ export default function Application() {
                                     <SelectItem value="sqft">Sq Ft</SelectItem>
                                     <SelectItem value="hectares">Hectares</SelectItem>
                                   </SelectContent>
-                                 </Select>
-                               </div>
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Property size determines development capacity and zoning requirements.
-                               </p>
+                                </Select>
+                              </div>
+                              {enrichedFields.lotSize && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  {!unlockedFields.lotSize ? (
+                                    <>
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                        ✓ Verified from HCAD
+                                      </Badge>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setUnlockedFields(prev => ({ ...prev, lotSize: true }));
+                                          toast({
+                                            title: "Manual Override Enabled",
+                                            description: "You can now edit the Lot Size. Official HCAD value will be preserved for reference.",
+                                          });
+                                        }}
+                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                      ⚠️ Manual Override
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              <p className="text-sm text-charcoal/60 mt-1">
+                                Property size determines development capacity and zoning requirements.
+                              </p>
                               {errors.lotSize && <p className="text-maxx-red text-sm mt-1">{errors.lotSize}</p>}
                             </div>
                           </div>
@@ -695,12 +852,44 @@ export default function Application() {
                                 id="zoning"
                                 value={formData.zoning}
                                 onChange={(e) => handleInputChange('zoning', e.target.value)}
-                                placeholder="C-2, R-3, M-1, etc."
-                                 className="mt-2"
-                               />
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Zoning determines allowed uses and development requirements.
-                               </p>
+                                placeholder={enrichedFields.zoning && !unlockedFields.zoning ? "Auto-filled from HCAD" : "C-2, R-3, M-1, etc."}
+                                className="mt-2"
+                                readOnly={enrichedFields.zoning && !unlockedFields.zoning}
+                              />
+                              {enrichedFields.zoning && (
+                                <div className="flex items-center gap-2 mt-1">
+                                  {!unlockedFields.zoning ? (
+                                    <>
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                        ✓ Verified from HCAD
+                                      </Badge>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => {
+                                          setUnlockedFields(prev => ({ ...prev, zoning: true }));
+                                          toast({
+                                            title: "Manual Override Enabled",
+                                            description: "You can now edit the Zoning. HCAD data will be flagged for comparison.",
+                                          });
+                                        }}
+                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                                      >
+                                        <Edit className="h-3 w-3 mr-1" />
+                                        Edit
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                      ⚠️ Manual Override
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              <p className="text-sm text-charcoal/60 mt-1">
+                                Zoning determines allowed uses and development requirements.
+                              </p>
                             </div>
 
                              <div>

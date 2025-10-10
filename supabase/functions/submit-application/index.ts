@@ -283,6 +283,20 @@ serve(async (req) => {
 
     console.log('Application submitted successfully:', data);
 
+    // If data flags exist, log conflicts for admin review
+    if (applicationData.data_flags && Array.isArray(applicationData.data_flags)) {
+      const criticalFlags = applicationData.data_flags.filter(
+        (flag: any) => flag.type === 'user_override' && flag.confidence === 'very_low'
+      );
+      
+      if (criticalFlags.length > 0) {
+        console.warn('[Data Conflict] Critical user overrides detected:', {
+          application_id: data.id,
+          flags: criticalFlags
+        });
+      }
+    }
+
     // Trigger enrichment to auto-fill GIS fields for this application
     try {
       const addressForEnrichment = formatted_address || String(requestData.propertyAddress || '') || null;
