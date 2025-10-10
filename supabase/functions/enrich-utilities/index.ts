@@ -72,7 +72,7 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number) {
   });
 }
 
-// Generic ArcGIS query with retry logic and metadata tracking
+// Generic ArcGIS query with retry logic, fallback CRS, and metadata tracking
 const queryArcGIS = async (
   url: string, 
   fields: string[], 
@@ -87,130 +87,171 @@ const queryArcGIS = async (
     crs?: number; // Optional CRS (e.g., 2278 for Texas South Central)
   }
 ) => {
-  // Convert coordinates if CRS is specified (e.g., EPSG:2278 for Houston)
-  let geometryCoords = `${geo_lng},${geo_lat}`;
-  let spatialReference = "4326";
-  
-  if (config.crs === 2278) {
-    const wgs84 = "EPSG:4326";
-    const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
-    const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
-    geometryCoords = `${x2278},${y2278}`;
-    spatialReference = "2278";
-    console.log(`${utilityType}: Converted to EPSG:2278: ${geometryCoords}`);
-  }
-  
-  const params = new URLSearchParams({
-    f: "json",
-    geometry: geometryCoords,
-    geometryType: "esriGeometryPoint",
-    inSR: spatialReference,
-    outSR: spatialReference,
-    spatialRel: "esriSpatialRelIntersects",
-    outFields: fields.join(","),
-    returnGeometry: "true",
-    distance: String(config.search_radius_ft),
-    units: "esriSRUnit_Foot",
-    where: "1=1"
-  });
-  
-  const queryUrl = `${url}?${params.toString()}`;
-  console.log(`Querying ${utilityType}:`, queryUrl);
-  
-  let lastError: Error | null = null;
-  
-  for (let attempt = 0; attempt <= config.retry_attempts; attempt++) {
-    const startTime = Date.now();
-    let status = 0;
+  // Helper function to build query URL
+  const buildQueryUrl = (useCrs: boolean) => {
+    let geometryCoords = `${geo_lng},${geo_lat}`;
+    let spatialReference = "4326";
     
-    try {
-      const resp = await fetch(queryUrl, {
-        signal: AbortSignal.timeout(config.timeout_ms)
-      });
+    if (useCrs && config.crs === 2278) {
+      const wgs84 = "EPSG:4326";
+      const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
+      const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
+      geometryCoords = `${x2278},${y2278}`;
+      spatialReference = "2278";
+      console.log(`${utilityType}: Using EPSG:2278: ${geometryCoords}`);
+    } else {
+      console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${geometryCoords}`);
+    }
+    
+    const params = new URLSearchParams({
+      f: "json",
+      geometry: geometryCoords,
+      geometryType: "esriGeometryPoint",
+      inSR: spatialReference,
+      outSR: spatialReference,
+      spatialRel: "esriSpatialRelIntersects",
+      outFields: fields.join(","),
+      returnGeometry: "true",
+      distance: String(config.search_radius_ft),
+      units: "esriSRUnit_Foot",
+      where: "1=1"
+    });
+    
+    return `${url}?${params.toString()}`;
+  };
+  
+  // Try with configured CRS first, then fallback to WGS84 if 400 error
+  const crsStrategies = config.crs ? [true, false] : [false];
+  
+  for (const useCrs of crsStrategies) {
+    const queryUrl = buildQueryUrl(useCrs);
+    console.log(`Querying ${utilityType}:`, queryUrl);
+    
+    let lastError: Error | null = null;
+  
+    for (let attempt = 0; attempt <= config.retry_attempts; attempt++) {
+      const startTime = Date.now();
+      let status = 0;
       
-      status = resp.status;
-      const elapsed_ms = Date.now() - startTime;
-      
-      if (!resp.ok) {
-        console.error(`${utilityType} API returned status:`, status);
+      try {
+        const resp = await fetch(queryUrl, {
+          signal: AbortSignal.timeout(config.timeout_ms)
+        });
         
+        status = resp.status;
+        const elapsed_ms = Date.now() - startTime;
+        
+        if (!resp.ok) {
+          console.error(`${utilityType} API returned status:`, status);
+          
+          const errorDetail = `HTTP ${status} (CRS: ${useCrs ? 'EPSG:' + config.crs : 'WGS84'})`;
+          
+          apiMeta.push({
+            api: utilityType,
+            url: queryUrl,
+            status,
+            elapsed_ms,
+            timestamp: new Date().toISOString(),
+            error: errorDetail
+          });
+          
+          // If 400 error and we haven't tried fallback yet, break to try WGS84
+          if (status === 400 && useCrs && crsStrategies.length > 1) {
+            console.log(`${utilityType}: Got 400 with CRS ${config.crs}, will try WGS84 fallback...`);
+            throw new Error("HTTP_400_FALLBACK");
+          }
+          
+          throw new Error(`HTTP ${status}`);
+        }
+        
+        const json = await resp.json();
+        console.log(`${utilityType} features found:`, json.features?.length || 0);
+        
+        if (json.error) {
+          console.error(`${utilityType} API error:`, json.error);
+          console.error(`${utilityType} Full error details:`, JSON.stringify(json.error, null, 2));
+          
+          const errorDetail = json.error.message || json.error.code || "ArcGIS API error";
+          
+          apiMeta.push({
+            api: utilityType,
+            url: queryUrl,
+            status,
+            elapsed_ms,
+            timestamp: new Date().toISOString(),
+            error: errorDetail
+          });
+          
+          // If error code 400 and we haven't tried fallback yet, break to try WGS84
+          if (json.error.code === 400 && useCrs && crsStrategies.length > 1) {
+            console.log(`${utilityType}: Got API error 400 with CRS ${config.crs}, will try WGS84 fallback...`);
+            throw new Error("HTTP_400_FALLBACK");
+          }
+          
+          throw new Error(errorDetail);
+        }
+        
+        // Success - log metadata
         apiMeta.push({
           api: utilityType,
           url: queryUrl,
           status,
           elapsed_ms,
-          timestamp: new Date().toISOString(),
-          error: `HTTP ${status}`
+          timestamp: new Date().toISOString()
         });
         
-        throw new Error(`HTTP ${status}`);
-      }
-      
-      const json = await resp.json();
-      console.log(`${utilityType} features found:`, json.features?.length || 0);
-      
-    if (json.error) {
-      console.error(`${utilityType} API error:`, json.error);
-      console.error(`${utilityType} Full response:`, JSON.stringify(json));
-      
-      apiMeta.push({
-        api: utilityType,
-        url: queryUrl,
-        status,
-        elapsed_ms,
-        timestamp: new Date().toISOString(),
-        error: json.error.message || "ArcGIS API error"
-      });
-      
-      throw new Error(json.error.message || "ArcGIS API error");
-    }
-      
-      // Success - log metadata
-      apiMeta.push({
-        api: utilityType,
-        url: queryUrl,
-        status,
-        elapsed_ms,
-        timestamp: new Date().toISOString()
-      });
-      
-      return json.features ?? [];
-      
-    } catch (err) {
-      const elapsed_ms = Date.now() - startTime;
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      lastError = err instanceof Error ? err : new Error(String(err));
-      
-      console.error(`${utilityType} attempt ${attempt + 1}/${config.retry_attempts + 1} failed:`, errorMsg);
-      
-      // Check if API is unreachable
-      if (errorMsg.includes('dns error') || 
-          errorMsg.includes('failed to lookup') ||
-          errorMsg.includes('Connection refused') ||
-          errorMsg.includes('timeout')) {
+        return json.features ?? [];
         
-        apiMeta.push({
-          api: utilityType,
-          url: queryUrl,
-          status: status || 0,
-          elapsed_ms,
-          timestamp: new Date().toISOString(),
-          error: "api_unreachable"
-        });
+      } catch (err) {
+        const elapsed_ms = Date.now() - startTime;
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        lastError = err instanceof Error ? err : new Error(String(err));
         
-        throw new Error("api_unreachable");
-      }
-      
-      // If we have more attempts, wait before retrying
-      if (attempt < config.retry_attempts && config.retry_delays_ms[attempt]) {
-        console.log(`Retrying ${utilityType} in ${config.retry_delays_ms[attempt]}ms...`);
-        await new Promise(resolve => setTimeout(resolve, config.retry_delays_ms[attempt]));
+        console.error(`${utilityType} attempt ${attempt + 1}/${config.retry_attempts + 1} failed:`, errorMsg);
+        
+        // If fallback error, break to try next CRS strategy
+        if (errorMsg === "HTTP_400_FALLBACK") {
+          break; // Exit retry loop to try WGS84
+        }
+        
+        // Check if API is unreachable
+        if (errorMsg.includes('dns error') || 
+            errorMsg.includes('failed to lookup') ||
+            errorMsg.includes('Connection refused') ||
+            errorMsg.includes('timeout')) {
+          
+          apiMeta.push({
+            api: utilityType,
+            url: queryUrl,
+            status: status || 0,
+            elapsed_ms,
+            timestamp: new Date().toISOString(),
+            error: "api_unreachable"
+          });
+          
+          throw new Error("api_unreachable");
+        }
+        
+        // If we have more attempts, wait before retrying
+        if (attempt < config.retry_attempts && config.retry_delays_ms[attempt]) {
+          console.log(`Retrying ${utilityType} in ${config.retry_delays_ms[attempt]}ms...`);
+          await new Promise(resolve => setTimeout(resolve, config.retry_delays_ms[attempt]));
+        }
       }
     }
+    
+    // If we got here and it's not the last CRS strategy, continue to next CRS
+    if (useCrs !== crsStrategies[crsStrategies.length - 1]) {
+      console.log(`${utilityType}: Trying WGS84 fallback after CRS ${config.crs} failed...`);
+      continue;
+    }
+    
+    // All retries exhausted for this CRS
+    throw lastError || new Error(`Failed after ${config.retry_attempts + 1} attempts`);
   }
   
-  // All retries exhausted
-  throw lastError || new Error(`Failed after ${config.retry_attempts + 1} attempts`);
+  // All CRS strategies exhausted
+  throw new Error(`All CRS strategies exhausted`);
 };
 
 // Query for polygon features (MUD boundaries, ETJ, etc.)
@@ -304,13 +345,24 @@ serve(async (req) => {
           search_radius_ft: eps.sewer.search_radius_ft,
           crs: eps.sewer.crs || 2278
         });
-        storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
-          timeout_ms: eps.storm.timeout_ms,
-          retry_attempts: eps.storm.retry_attempts,
-          retry_delays_ms: eps.storm.retry_delays_ms,
-          search_radius_ft: eps.storm.search_radius_ft,
-          crs: eps.storm.crs || 2278
-        });
+        
+        // Storm endpoint - try with fallback and graceful degradation
+        try {
+          storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
+            timeout_ms: eps.storm.timeout_ms,
+            retry_attempts: eps.storm.retry_attempts,
+            retry_delays_ms: eps.storm.retry_delays_ms,
+            search_radius_ft: 1000, // Increased radius for storm drainage
+            crs: eps.storm.crs || 2278
+          });
+        } catch (stormErr) {
+          console.error('Houston storm endpoint failed:', stormErr instanceof Error ? stormErr.message : String(stormErr));
+          console.log('Continuing without storm data - water and sewer data will still be available');
+          storm = [];
+          if (!flags.includes("storm_drainage_unavailable")) {
+            flags.push("storm_drainage_unavailable");
+          }
+        }
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');
         const eps = endpointCatalog.austin;
@@ -397,8 +449,10 @@ serve(async (req) => {
     }
 
     // 4. Save results with api_meta and enrichment_status
+    const hasStormUnavailableFlag = flags.includes("storm_drainage_unavailable");
     const enrichmentStatus = apiUnreachable ? "failed" : 
-                            (water.length || sewer.length || storm.length) ? "complete" : "partial";
+                            (water.length || sewer.length || storm.length) ? "complete" :
+                            hasStormUnavailableFlag ? "partial" : "partial";
     
     const { error: updateError } = await supabase.from("applications").update({
       water_lines: formatLines(water, geo_lat, geo_lng),
