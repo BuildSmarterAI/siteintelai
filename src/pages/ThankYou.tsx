@@ -4,7 +4,7 @@ import { CheckCircle, Calendar, Clock, Phone, ArrowRight, Loader2 } from "lucide
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { UtilityResults } from "@/components/UtilityResults";
+
 
 export default function ThankYou() {
   const navigate = useNavigate();
@@ -308,17 +308,6 @@ export default function ThankYou() {
             </Card>
           </div>
 
-          {/* Utility Results */}
-          {applicationData && (
-            <div className="mb-8">
-              <UtilityResults
-                waterLines={applicationData.water_lines}
-                sewerLines={applicationData.sewer_lines}
-                stormLines={applicationData.storm_lines}
-                dataFlags={applicationData.data_flags || []}
-              />
-            </div>
-          )}
 
           {/* Trust Reminders */}
           <Card className="bg-navy/5 border-2 border-navy/20 mb-8">
