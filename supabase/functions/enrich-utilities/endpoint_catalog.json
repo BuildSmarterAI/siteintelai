@@ -11,8 +11,8 @@
   },
   "houston": {
     "water": {
-      "name": "HW Water UNPublic (GeoGIMS Test)",
-      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
+      "name": "HW Water UNPublic (Production)",
+      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
       "outFields": ["DIAMETER", "MATERIAL", "OWNER"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
@@ -20,12 +20,12 @@
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Using GeoGIMS test server - WaterLine layer (4) - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=json"
+      "notes": "Production server - WaterLine layer (4) - EPSG:2278 (Texas South Central)",
+      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=json"
     },
     "sewer": {
       "name": "Houston Wastewater Gravity Main (Production)",
-      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query",
+      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query",
       "outFields": ["DIAMETER", "MATERIAL", "LIFECYCLESTATUS"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
@@ -34,7 +34,7 @@
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 300,
       "notes": "Production server - Wastewater Gravity Main layer (23) - EPSG:2278",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,LIFECYCLESTATUS&returnGeometry=true&f=json"
+      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,LIFECYCLESTATUS&returnGeometry=true&f=json"
     },
     "sewer_force": {
       "name": "Houston Wastewater Force Main (Production)",
