@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
-import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark } from "lucide-react";
+import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
@@ -135,6 +135,7 @@ export default function ReportViewer() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [showGate, setShowGate] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfError, setPdfError] = useState(false);
 
@@ -298,11 +299,13 @@ export default function ReportViewer() {
       if (userId && data.applications?.user_id) {
         const owner = data.applications.user_id === userId;
         setIsOwner(owner);
-        // Show gate if not authenticated or not owner
-        setShowGate(!userId || !owner);
+        // Show preview for non-authenticated or non-owner users
+        setShowPreview(!userId || !owner);
+        setShowGate(false); // Don't show gate modal immediately
       } else {
-        // No user_id on application means it's anonymous - show gate for non-auth users
-        setShowGate(!userId);
+        // No user_id on application means it's anonymous - show preview
+        setShowPreview(!userId);
+        setShowGate(false);
       }
     } catch (error: any) {
       console.error('Error fetching report:', error);
@@ -315,7 +318,9 @@ export default function ReportViewer() {
 
   const handleAuthSuccess = () => {
     setShowGate(false);
+    setShowPreview(false);
     checkAuthAndFetchReport();
+    toast.success('Welcome! Full report unlocked');
   };
 
   if (loading) {
@@ -425,11 +430,143 @@ export default function ReportViewer() {
       </header>
 
       {/* Main Content */}
-      <main className={`container mx-auto px-6 py-8 ${showGate ? 'blur-sm pointer-events-none' : ''}`}>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Score Overview */}
+      <main className="container mx-auto px-6 py-8">
+        {/* Limited Preview Section - shown when not authenticated */}
+        {showPreview && !showGate && (
+          <div className="space-y-8">
+            {/* Score Preview - Fully Visible */}
+            <div className="text-center">
+              <Badge variant="outline" className="mb-4 bg-primary/10 text-primary border-primary/20">
+                🔓 Quick Preview - Sign in for full access
+              </Badge>
+              
+              <ScoreCircle 
+                score={report.feasibility_score} 
+                size="lg" 
+                showLabel={true}
+              />
+              
+              <p className="text-sm text-muted-foreground mt-4">
+                {report.applications?.formatted_address}
+              </p>
+            </div>
+
+            {/* Executive Summary Teaser - First 2-3 bullets */}
             <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Executive Summary Preview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {summary.key_opportunities && summary.key_opportunities.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
+                      <Zap className="h-4 w-4" />
+                      Key Opportunities
+                    </h3>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {summary.key_opportunities.slice(0, 2).map((opp: string, i: number) => (
+                        <li key={i}>{opp}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {summary.key_risks && summary.key_risks.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Key Risks
+                    </h3>
+                    <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                      {summary.key_risks.slice(0, 2).map((risk: string, i: number) => (
+                        <li key={i}>{risk}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Blur gradient overlay on preview */}
+                <div className="relative mt-6 p-6 border rounded-lg">
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background z-10 rounded-lg flex items-center justify-center">
+                    <Button 
+                      size="lg" 
+                      onClick={() => setShowGate(true)}
+                      className="shadow-xl"
+                    >
+                      <Lock className="mr-2 h-5 w-5" />
+                      Sign In to Unlock Full Report
+                    </Button>
+                  </div>
+                  
+                  {/* Blurred content preview */}
+                  <div className="blur-md select-none pointer-events-none">
+                    <h4 className="font-semibold mb-2">Full Analysis Details</h4>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {summary.executive_summary?.substring(0, 200)}...
+                    </p>
+                    <div className="grid grid-cols-2 gap-4">
+                      {zoning.classification && (
+                        <div className="border rounded p-3">
+                          <p className="text-xs text-muted-foreground uppercase mb-1">Zoning</p>
+                          <p className="font-semibold">{zoning.classification}</p>
+                        </div>
+                      )}
+                      {flood.zone && (
+                        <div className="border rounded p-3">
+                          <p className="text-xs text-muted-foreground uppercase mb-1">Flood Zone</p>
+                          <p className="font-semibold">{flood.zone}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Value Props - Why Sign Up */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Card className="border-2 border-primary/20">
+                <CardContent className="p-6 text-center">
+                  <FileText className="h-8 w-8 text-primary mx-auto mb-3" />
+                  <h4 className="font-semibold mb-2">Complete Analysis</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Access all sections including zoning, utilities, traffic, and cost estimates
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-2 border-primary/20">
+                <CardContent className="p-6 text-center">
+                  <Download className="h-8 w-8 text-primary mx-auto mb-3" />
+                  <h4 className="font-semibold mb-2">PDF Export</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Download lender-ready PDF with cited sources and data
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-2 border-primary/20">
+                <CardContent className="p-6 text-center">
+                  <Users className="h-8 w-8 text-primary mx-auto mb-3" />
+                  <h4 className="font-semibold mb-2">Dashboard Access</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Manage all your reports in one place, track projects
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        )}
+
+        {/* Full Report Content - only show if authenticated or owner */}
+        {!showPreview && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              {/* Score Overview */}
+              <Card>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
                   <div className="flex justify-center">
@@ -2200,7 +2337,8 @@ export default function ReportViewer() {
         <DataSourcesSidebar dataSources={dataSources} />
       </div>
     </div>
-  </main>
+        )}
+      </main>
     </div>
   );
 }

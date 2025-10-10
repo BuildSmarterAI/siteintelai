@@ -93,9 +93,9 @@ export const ReportPreviewGate = ({ reportId, onAuthSuccess }: ReportPreviewGate
           <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
             <Lock className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Unlock Your Complete Report</CardTitle>
+          <CardTitle className="text-2xl">Your Report is Ready!</CardTitle>
           <CardDescription>
-            Sign in or create a free account to view the full feasibility analysis
+            Create a free account to view the complete feasibility analysis with detailed data and PDF export
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -103,22 +103,28 @@ export const ReportPreviewGate = ({ reportId, onAuthSuccess }: ReportPreviewGate
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-sm">Complete Feasibility Analysis</p>
-                <p className="text-xs text-muted-foreground">Access all report sections including cost estimates and risk assessment</p>
+                <p className="font-semibold text-sm">Detailed Zoning & Utilities Analysis</p>
+                <p className="text-xs text-muted-foreground">
+                  Complete breakdown of regulations, utility availability, and connection costs
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-sm">24/7 Access to Your Reports</p>
-                <p className="text-xs text-muted-foreground">View and download your reports anytime from your dashboard</p>
+                <p className="font-semibold text-sm">Traffic & Market Demographics</p>
+                <p className="text-xs text-muted-foreground">
+                  AADT data, congestion analysis, and population demographics within 5-mile radius
+                </p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-sm">Track Multiple Properties</p>
-                <p className="text-xs text-muted-foreground">Manage all your feasibility reports in one place</p>
+                <p className="font-semibold text-sm">Lender-Ready PDF with Citations</p>
+                <p className="text-xs text-muted-foreground">
+                  Professional report format with FEMA, ArcGIS, and local data source citations
+                </p>
               </div>
             </div>
           </div>
