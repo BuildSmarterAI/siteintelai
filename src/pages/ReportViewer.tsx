@@ -15,6 +15,7 @@ import { ReportPreviewGate } from "@/components/ReportPreviewGate";
 
 interface Report {
   id: string;
+  application_id: string;
   feasibility_score: number;
   score_band: string;
   json_data: any;
@@ -134,12 +135,51 @@ export default function ReportViewer() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [showGate, setShowGate] = useState(false);
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
 
   useEffect(() => {
     if (reportId) {
       checkAuthAndFetchReport();
     }
   }, [reportId]);
+
+  // Poll for PDF generation status
+  useEffect(() => {
+    if (!report || report.pdf_url) return;
+
+    setPdfGenerating(true);
+    const pollInterval = setInterval(async () => {
+      const { data, error } = await supabase
+        .from('reports')
+        .select('pdf_url, status')
+        .eq('id', reportId)
+        .single();
+
+      if (data?.pdf_url) {
+        setReport(prev => prev ? { ...prev, pdf_url: data.pdf_url } : null);
+        setPdfGenerating(false);
+        clearInterval(pollInterval);
+        toast.success('PDF is ready for download');
+      } else if (data?.status === 'error') {
+        setPdfGenerating(false);
+        setPdfError(true);
+        clearInterval(pollInterval);
+      }
+    }, 5000);
+
+    // Stop polling after 5 minutes
+    const timeout = setTimeout(() => {
+      clearInterval(pollInterval);
+      setPdfGenerating(false);
+      setPdfError(true);
+    }, 300000);
+
+    return () => {
+      clearInterval(pollInterval);
+      clearTimeout(timeout);
+    };
+  }, [report?.pdf_url, reportId]);
 
   const checkAuthAndFetchReport = async () => {
     // Check authentication
@@ -342,10 +382,38 @@ export default function ReportViewer() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {report.pdf_url && (
+              {pdfGenerating && (
+                <Button variant="outline" disabled>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating PDF...
+                </Button>
+              )}
+              {!pdfGenerating && report.pdf_url && (
                 <Button variant="outline" onClick={() => window.open(report.pdf_url!, '_blank')}>
                   <Download className="mr-2 h-4 w-4" />
                   Download PDF
+                </Button>
+              )}
+              {!pdfGenerating && !report.pdf_url && pdfError && (
+                <Button 
+                  variant="outline" 
+                  onClick={async () => {
+                    setPdfError(false);
+                    setPdfGenerating(true);
+                    try {
+                      await supabase.functions.invoke('generate-pdf', {
+                        body: { report_id: reportId, application_id: report.application_id }
+                      });
+                      toast.success('PDF generation restarted');
+                    } catch (error) {
+                      toast.error('Failed to regenerate PDF');
+                      setPdfError(true);
+                      setPdfGenerating(false);
+                    }
+                  }}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Retry PDF Generation
                 </Button>
               )}
               <Button variant="ghost" onClick={() => navigate('/dashboard')}>

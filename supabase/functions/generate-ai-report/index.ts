@@ -107,6 +107,27 @@ serve(async (req) => {
 
     console.log('[generate-ai-report] Report saved successfully:', report.id);
 
+    // Trigger PDF generation asynchronously (non-blocking)
+    try {
+      console.log('[generate-ai-report] Triggering PDF generation...');
+      const pdfResponse = await supabase.functions.invoke('generate-pdf', {
+        body: { 
+          report_id: report.id, 
+          application_id 
+        }
+      });
+      
+      if (pdfResponse.error) {
+        console.error('[generate-ai-report] PDF generation failed:', pdfResponse.error);
+        // Report is still saved, just without PDF
+      } else {
+        console.log('[generate-ai-report] PDF generation initiated successfully');
+      }
+    } catch (pdfError) {
+      console.error('[generate-ai-report] Failed to trigger PDF generation:', pdfError);
+      // Non-blocking - report is still accessible
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 
