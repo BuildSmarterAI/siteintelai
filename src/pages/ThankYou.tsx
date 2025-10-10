@@ -29,7 +29,7 @@ export default function ThankYou() {
           .eq('id', applicationId)
           .maybeSingle();
         
-        if (data && !error) {
+          if (data && !error) {
           setApplicationData(data);
           // Check if report is ready (accept 'complete' or 'partial' status)
           if (data.enrichment_status === 'complete' || data.enrichment_status === 'partial' || data.enrichment_status === 'completed') {
@@ -41,6 +41,9 @@ export default function ThankYou() {
             
             if (report) {
               setReportReady(true);
+              // Immediately redirect if report exists
+              setRedirecting(true);
+              navigate(`/report/${report.id}`);
             }
           }
         }
@@ -70,14 +73,12 @@ export default function ThankYou() {
                 .eq('application_id', applicationId)
                 .maybeSingle();
               
-              if (report) {
-                setReportReady(true);
-                // Automatically redirect to report viewer with auth gate
-                setRedirecting(true);
-                setTimeout(() => {
-                  navigate(`/report/${report.id}`);
-                }, 1500);
-              }
+            if (report) {
+              setReportReady(true);
+              // Immediately redirect to report viewer (auth gate handles sign-in)
+              setRedirecting(true);
+              navigate(`/report/${report.id}`);
+            }
             }
           }
         )
@@ -92,8 +93,20 @@ export default function ThankYou() {
   }, [applicationId]);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session?.user);
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Auth check error:', error);
+        setIsAuthenticated(false);
+        return;
+      }
+      
+      setIsAuthenticated(!!session?.user);
+    } catch (err) {
+      console.error('Failed to check auth:', err);
+      setIsAuthenticated(false);
+    }
   };
 
   const handleViewReport = async () => {
@@ -129,20 +142,8 @@ export default function ThankYou() {
             </div>
           </div>
 
-          {/* Report Status Card */}
-          {redirecting ? (
-            <Card className="border-2 border-primary shadow-xl mb-8">
-              <CardContent className="p-8 text-center">
-                <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
-                <h3 className="font-headline text-2xl font-bold text-charcoal mb-2">
-                  Preparing Your Report
-                </h3>
-                <p className="font-body text-charcoal/70">
-                  Redirecting you to your feasibility report...
-                </p>
-              </CardContent>
-            </Card>
-          ) : !isAuthenticated && reportReady ? (
+          {/* Report Status Card - Always show if report is ready */}
+          {reportReady ? (
             <Card className="border-2 border-primary shadow-xl mb-8">
               <CardContent className="p-8 text-center">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
@@ -150,15 +151,26 @@ export default function ThankYou() {
                   Your Report is Ready!
                 </h3>
                 <p className="font-body text-charcoal/70 mb-6">
-                  Creating an account will allow you to access your report anytime. You'll be prompted to sign in or create an account when you view your report.
+                  {!isAuthenticated 
+                    ? "You'll be prompted to sign in or create an account to view your report." 
+                    : "Click below to view your comprehensive feasibility report."}
                 </p>
-                <Button onClick={handleViewReport} size="lg" className="w-full max-w-md">
-                  <ArrowRight className="mr-2 h-5 w-5" />
-                  View Your Report
+                <Button onClick={handleViewReport} size="lg" className="w-full max-w-md" disabled={redirecting}>
+                  {redirecting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Opening Report...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="mr-2 h-5 w-5" />
+                      View Your Report Now
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
-          ) : !isAuthenticated ? (
+          ) : (
             <Card className="border-2 border-primary shadow-xl mb-8">
               <CardContent className="p-8 text-center">
                 <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
@@ -169,11 +181,11 @@ export default function ThankYou() {
                   Your comprehensive feasibility report is being generated and will be ready in approximately 10 minutes.
                 </p>
                 <p className="font-body text-sm text-charcoal/60">
-                  Creating an account will allow you to access your report anytime.
+                  This page will automatically update when your report is ready.
                 </p>
               </CardContent>
             </Card>
-          ) : null}
+          )}
 
           {/* Confirmation Details for Authenticated Users */}
           {isAuthenticated && (
