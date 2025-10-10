@@ -24,7 +24,7 @@ export const Comparison = () => {
             The Cost of Risk vs. The Value of Clarity
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal max-w-4xl mx-auto leading-relaxed">
-            Skipping feasibility can sink your project. BuildSmarter™ transforms unknowns into lender-ready confidence.
+            Skipping feasibility can sink your project. SiteIntel™ transforms unknowns into lender-ready confidence.
           </h4>
         </div>
         
@@ -53,7 +53,7 @@ export const Comparison = () => {
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-6 md:p-8">
             <div className="text-center mb-6">
               <h5 className="font-body font-semibold text-lg md:text-xl text-charcoal mb-2">
-                With BuildSmarter™
+                With SiteIntel™
               </h5>
             </div>
             

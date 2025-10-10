@@ -112,10 +112,10 @@ export default function Auth() {
         <CardHeader className="text-center">
           <img 
             src="/src/assets/buildsmarter-logo-new.png" 
-            alt="BuildSmarter" 
+            alt="SiteIntel" 
             className="h-16 mx-auto mb-4"
           />
-          <CardTitle className="text-3xl font-headline">BuildSmarter™ Feasibility</CardTitle>
+          <CardTitle className="text-3xl font-headline">SiteIntel™ Feasibility</CardTitle>
           <CardDescription>
             Sign in to access your feasibility reports
           </CardDescription>

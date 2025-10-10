@@ -72,7 +72,7 @@ export const Header = () => {
         <Link to="/" className="flex-shrink-0">
           <motion.img
             src={buildSmarterLogo}
-            alt="BuildSmarter"
+            alt="SiteIntel"
             className={`transition-all duration-300 ${
               isScrolled ? "h-7" : "h-9"
             }`}

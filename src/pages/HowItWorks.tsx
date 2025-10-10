@@ -71,7 +71,7 @@ const HowItWorks = () => {
     {
       number: 4,
       title: "Cost & Schedule Intelligence",
-      description: "Applies BuildSmarter's proprietary cost database for true project feasibility.",
+      description: "Applies SiteIntel's proprietary cost database for true project feasibility.",
       icon: DollarSign,
       detail: "Real-time material costs, labor rates, and schedule estimates calibrated from thousands of completed projects.",
     },
@@ -107,7 +107,7 @@ const HowItWorks = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              How BuildSmarter™ Feasibility Works.
+              How SiteIntel™ Feasibility Works.
               <br />
               <span className="text-[#FF7A00]">From Public Data to Proprietary Intelligence.</span>
             </motion.h1>
@@ -125,7 +125,7 @@ const HowItWorks = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              Every QuickCheck activates BuildSmarter's proprietary data fusion engine—verifying 20+ public and internal datasets in seconds to produce a single, lender-ready source of truth.
+              Every QuickCheck activates SiteIntel's proprietary data fusion engine—verifying 20+ public and internal datasets in seconds to produce a single, lender-ready source of truth.
             </motion.p>
 
             <motion.div
@@ -335,7 +335,7 @@ const HowItWorks = () => {
                   viewport={{ once: true }}
                   transition={{ delay: 0.2 }}
                 >
-                  Watch BuildSmarter™ analyze a real parcel—connecting datasets, validating cost inputs, and generating an executive-ready feasibility score.
+                  Watch SiteIntel™ analyze a real parcel—connecting datasets, validating cost inputs, and generating an executive-ready feasibility score.
                 </motion.p>
               </div>
 

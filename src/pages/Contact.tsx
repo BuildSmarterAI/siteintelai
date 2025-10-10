@@ -12,7 +12,7 @@ const Contact = () => {
             Get in <span className="text-[#FF7A00]">Touch</span>
           </h1>
           <p className="text-xl text-white/80 mb-12 text-center">
-            Questions about BuildSmarter? We're here to help.
+            Questions about SiteIntel? We're here to help.
           </p>
 
           <div className="grid md:grid-cols-2 gap-8 mb-12">
@@ -21,7 +21,7 @@ const Contact = () => {
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
                 <Mail className="h-8 w-8 text-[#06B6D4] mb-3" />
                 <h3 className="text-lg font-semibold text-white mb-2">Email Us</h3>
-                <p className="text-white/70">support@buildsmarter.ai</p>
+                <p className="text-white/70">support@siteintel.ai</p>
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">

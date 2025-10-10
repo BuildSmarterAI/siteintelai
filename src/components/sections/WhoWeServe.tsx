@@ -85,7 +85,7 @@ export const WhoWeServe = () => {
             Built for Texas CRE Decision-Makers
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal max-w-4xl mx-auto leading-relaxed">
-            From developers to investors, BuildSmarter™ Feasibility helps every CRE leader protect capital and move projects forward with confidence.
+            From developers to investors, SiteIntel™ Feasibility helps every CRE leader protect capital and move projects forward with confidence.
           </h4>
         </div>
         

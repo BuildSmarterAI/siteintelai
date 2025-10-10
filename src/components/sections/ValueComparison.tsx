@@ -56,7 +56,7 @@ export const ValueComparison = () => {
                 <Check className="w-8 h-8 text-navy-foreground" />
               </div>
               <h4 className="font-headline text-2xl text-charcoal mb-2">
-                WITH BUILDSMARTER™
+                WITH SITEINTEL™
               </h4>
               <p className="font-body text-sm text-navy">
                 Protect capital with intelligence

@@ -40,7 +40,7 @@ export const PackagesPricing = () => {
             Choose the Level of Feasibility That Fits Your Project
           </h3>
           <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-5xl mx-auto leading-relaxed">
-            Whether you need a fast go/no-go or a lender-ready report, BuildSmarter™ has an option designed for your property and timeline.
+            Whether you need a fast go/no-go or a lender-ready report, SiteIntel™ has an option designed for your property and timeline.
           </h4>
         </div>
         

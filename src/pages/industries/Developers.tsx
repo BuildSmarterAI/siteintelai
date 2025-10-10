@@ -8,7 +8,7 @@ const Developers = () => {
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6">
-            BuildSmarter™ for <span className="text-[#FF7A00]">Developers & Investors</span>
+            SiteIntel™ for <span className="text-[#FF7A00]">Developers & Investors</span>
           </h1>
           <p className="text-xl text-white/80 mb-16 leading-relaxed">
             Make faster, smarter acquisition decisions with verified feasibility intelligence—before you commit capital.

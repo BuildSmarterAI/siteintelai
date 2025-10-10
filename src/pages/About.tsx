@@ -8,7 +8,7 @@ const About = () => {
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6">
-            About <span className="text-[#FF7A00]">BuildSmarter™</span>
+            About <span className="text-[#FF7A00]">SiteIntel™</span>
           </h1>
           <p className="text-xl text-white/80 mb-16 leading-relaxed">
             We're building the verified intelligence layer for real estate and construction—transforming
@@ -36,7 +36,7 @@ const About = () => {
             </h2>
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
               <p className="text-white/80 text-lg">
-                BuildSmarter is led by a team of data engineers, real estate professionals, and AI
+                SiteIntel is led by a team of data engineers, real estate professionals, and AI
                 researchers dedicated to bringing transparency and intelligence to the development process.
               </p>
             </div>

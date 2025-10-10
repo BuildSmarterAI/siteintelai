@@ -13,7 +13,7 @@ export const FAQ = () => {
     },
     {
       question: "How is this different from what my architect or GC provides?",
-      answer: "We provide third-party, conflict-free analysis focused on capital protection. Architects design, and GCs build — BuildSmarter™ validates feasibility before either step begins."
+      answer: "We provide third-party, conflict-free analysis focused on capital protection. Architects design, and GCs build — SiteIntel™ validates feasibility before either step begins."
     },
     {
       question: "How fast can I get results?",
@@ -58,10 +58,10 @@ export const FAQ = () => {
                 <AccordionContent className="px-6 pb-6">
                   <div className="pt-2">
                     <p className="font-body text-base md:text-lg text-charcoal leading-relaxed">
-                      {faq.answer.split('BuildSmarter™').map((part, i) => (
+                      {faq.answer.split('SiteIntel™').map((part, i) => (
                         i === 0 ? part : (
                           <span key={i}>
-                            <span className="text-maxx-red font-semibold">BuildSmarter™</span>
+                            <span className="text-maxx-red font-semibold">SiteIntel™</span>
                             {part}
                           </span>
                         )

@@ -1494,7 +1494,7 @@ export default function Application() {
                                 className={errors.contactConsent ? 'border-maxx-red' : ''}
                               />
                                <Label htmlFor="contact-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
-                                 I consent to be contacted by BuildSmarter™ regarding my feasibility application and project. <span className="text-maxx-red text-lg">*</span>
+                                 I consent to be contacted by SiteIntel™ regarding my feasibility application and project. <span className="text-maxx-red text-lg">*</span>
                                </Label>
                             </div>
                             {errors.contactConsent && <p className="text-maxx-red text-sm">{errors.contactConsent}</p>}
@@ -1519,7 +1519,7 @@ export default function Application() {
                                 onCheckedChange={(checked) => handleInputChange('marketingOptIn', checked as boolean)}
                               />
                               <Label htmlFor="marketing-opt-in" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
-                                I would like to receive marketing communications and industry insights from BuildSmarter™.
+                                I would like to receive marketing communications and industry insights from SiteIntel™.
                               </Label>
                             </div>
                           </div>

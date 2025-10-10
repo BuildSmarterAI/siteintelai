@@ -333,7 +333,7 @@ export const Hero = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.4 }}
               >
-                <img src={buildSmarterLogo} alt="BuildSmarter" className="h-8 md:h-10" />
+                <img src={buildSmarterLogo} alt="SiteIntel" className="h-8 md:h-10" />
               </motion.div>
 
               {/* Headline */}
@@ -341,7 +341,7 @@ export const Hero = () => {
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
                 variants={headlineVariants}
               >
-                BuildSmarter™ Feasibility.
+                SiteIntel™ Feasibility.
                 <br />
                 <span className="text-[#FF7A00]">Verified Intelligence</span> for Every Site, Every Cost, Every Decision.
               </motion.h1>
@@ -351,7 +351,7 @@ export const Hero = () => {
                 className="text-lg md:text-xl lg:text-2xl text-[#CBD5E1]/90 leading-relaxed mb-10 font-body"
                 variants={subheadVariants}
               >
-                BuildSmarter™ Feasibility transforms complex public, municipal, and construction data into a single verified source of truth—helping you make faster, safer, and more profitable decisions.
+                SiteIntel™ Feasibility transforms complex public, municipal, and construction data into a single verified source of truth—helping you make faster, safer, and more profitable decisions.
               </motion.p>
 
               {/* CTA Group */}
@@ -513,7 +513,7 @@ export const Hero = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.6, duration: 0.4 }}
               >
-                Powered by BuildSmarter's proprietary intelligence engine that fuses 20+ verified datasets into one model for true development clarity.
+                Powered by SiteIntel's proprietary intelligence engine that fuses 20+ verified datasets into one model for true development clarity.
               </motion.p>
             </motion.div>
           </div>

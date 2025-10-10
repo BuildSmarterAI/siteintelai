@@ -8,7 +8,7 @@ const Feasibility = () => {
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6">
-            BuildSmarter™ <span className="text-[#FF7A00]">Feasibility</span>
+            SiteIntel™ <span className="text-[#FF7A00]">Feasibility</span>
           </h1>
           <p className="text-xl text-white/80 mb-12 leading-relaxed">
             Verified intelligence that transforms complex public, municipal, and construction data
@@ -60,7 +60,7 @@ const Feasibility = () => {
               <ol className="space-y-6">
                 {[
                   "Enter property address and project parameters",
-                  "BuildSmarter engine queries 20+ verified data sources",
+                  "SiteIntel engine queries 20+ verified data sources",
                   "AI analyzes and cross-validates all datasets",
                   "Intelligence engine generates comprehensive feasibility report",
                   "Receive verified report with complete transparency",

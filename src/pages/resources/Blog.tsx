@@ -27,7 +27,7 @@ const Blog = () => {
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6">
-            BuildSmarter™ <span className="text-[#FF7A00]">Blog</span>
+            SiteIntel™ <span className="text-[#FF7A00]">Blog</span>
           </h1>
           <p className="text-xl text-white/80 mb-16">
             Insights on development intelligence, data transparency, and the future of feasibility analysis.

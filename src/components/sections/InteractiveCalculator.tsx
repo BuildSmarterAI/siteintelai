@@ -41,7 +41,7 @@ export const InteractiveCalculator = () => {
             Calculate Your Potential Savings
           </h3>
           <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto">
-            See how much a BuildSmarter™ Feasibility study could save on your next project
+            See how much a SiteIntel™ Feasibility study could save on your next project
           </p>
         </div>
 

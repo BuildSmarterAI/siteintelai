@@ -96,7 +96,7 @@ export default function Dashboard() {
       <header className="border-b bg-card/50 backdrop-blur">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <img src="/src/assets/buildsmarter-logo-new.png" alt="BuildSmarter" className="h-12" />
+            <img src="/src/assets/buildsmarter-logo-new.png" alt="SiteIntel" className="h-12" />
             <div>
               <h1 className="text-2xl font-headline">Dashboard</h1>
               <p className="text-sm text-muted-foreground">Welcome back, {profile?.full_name || 'User'}</p>
