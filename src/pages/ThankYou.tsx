@@ -327,29 +327,6 @@ export default function ThankYou() {
                 </h3>
               </div>
               
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                <h4 className="font-headline text-lg font-bold text-charcoal mb-3">
-                  Automatic Integration Complete
-                </h4>
-                <p className="font-body text-sm text-charcoal/70 mb-4">
-                  Your application has been automatically distributed to our systems:
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-5 h-5 text-green-600" />
-                    <span className="font-body text-sm text-charcoal">GoHighLevel CRM</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Database className="w-5 h-5 text-green-600" />
-                    <span className="font-body text-sm text-charcoal">Project Database</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-5 h-5 text-green-600" />
-                    <span className="font-body text-sm text-charcoal">Sales Team Alert</span>
-                  </div>
-                </div>
-              </div>
-
               {/* Next Steps */}
               <h4 className="font-headline text-xl font-bold text-charcoal mb-6">
                 What Happens Next?
