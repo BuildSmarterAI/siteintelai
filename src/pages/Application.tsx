@@ -14,6 +14,10 @@ import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
+import { ContactStep } from "@/components/application/ContactStep";
+import { PropertyStep } from "@/components/application/PropertyStep";
+import { useApplicationForm } from "@/hooks/useApplicationForm";
+import { Progress } from "@/components/ui/progress";
 
 export default function Application() {
   const { toast } = useToast();
@@ -21,6 +25,9 @@ export default function Application() {
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  
+  // Use form hook
+  const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors } = useApplicationForm();
 
   // Load completed steps from localStorage on mount
   useEffect(() => {
@@ -67,79 +74,7 @@ export default function Application() {
       });
     }
   }, [searchParams]); // Note: removed completedSteps to avoid fighting state updates
-  const [formData, setFormData] = useState({
-    // Step 1: Contact Information
-    fullName: "",
-    company: "",
-    email: "",
-    phone: "",
-    
-    // Step 2: Property Information
-    propertyAddress: "",
-    parcelId: "",
-    lotSize: "",
-    lotSizeUnit: "acres",
-    currentUse: "",
-    zoning: "",
-    ownershipStatus: "",
-    geoLat: null as number | null,
-    geoLng: null as number | null,
-    county: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    neighborhood: "",
-    sublocality: "",
-    placeId: "",
-    
-    // Step 3: Project Intent & Building Parameters
-    projectType: [] as string[],
-    projectTypeOther: "",
-    buildingSize: "",
-    buildingSizeUnit: "sqft",
-    stories: "",
-    buildingHeight: "",
-    prototypeRequirements: "",
-    qualityLevel: "",
-    budget: "",
-    
-    // Step 4: Market & Risks
-    submarket: "",
-    accessPriorities: [] as string[],
-    knownRisks: [] as string[],
-    utilityAccess: [] as string[],
-    environmentalConstraints: [] as string[],
-    tenantRequirements: "",
-    
-    // Step 5: Final Questions
-    hearAboutUs: "",
-    contactMethod: "",
-    bestTime: "",
-    additionalNotes: "",
-    ndaConsent: false,
-    contactConsent: false,
-    privacyConsent: false,
-    marketingOptIn: false,
-    
-    // Hidden tracking fields
-    utmSource: "",
-    utmMedium: "",
-    utmCampaign: "",
-    utmTerm: "",
-    pageUrl: window.location.href,
-    submissionTimestamp: "",
-    
-    // Hidden GIS enriched fields (auto-populated)
-    situsAddress: "",
-    administrativeAreaLevel2: "",
-    parcelOwner: "",
-    acreageCad: null as number | null,
-    zoningCode: "",
-    overlayDistrict: "",
-    floodplainZone: "",
-    baseFloodElevation: null as number | null
-  });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -200,20 +135,7 @@ export default function Application() {
   const totalSteps = 5;
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
-    setFormData(prev => {
-      const updated = { ...prev, [field]: value };
-      console.log('[Form Update]', field, '=', value);
-      return updated;
-    });
-    
-    // Clear error for this field when user makes a change
-    if (errors[field]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
-      });
-    }
+    updateField(field, value);
   };
 
   const handleMultiSelectChange = (field: string, value: string, checked: boolean) => {
@@ -234,45 +156,8 @@ export default function Application() {
     setUploadedFiles(prev => [...prev, ...files]);
   };
 
-  const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (step === 1) {
-      if (!formData.fullName) newErrors.fullName = "Full name is required";
-      if (!formData.company) newErrors.company = "Company is required";
-      if (!formData.email) newErrors.email = "Email is required";
-      if (!formData.phone) newErrors.phone = "Phone is required";
-      if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = "Please enter a valid email";
-      }
-    }
-
-    if (step === 2) {
-      console.log('[Step 2 Validation]', {
-        propertyAddress: formData.propertyAddress,
-        ownershipStatus: formData.ownershipStatus
-      });
-      if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
-      if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
-    }
-
-    if (step === 3) {
-      // All fields in step 3 are now optional
-    }
-
-    if (step === 4) {
-      // No validation needed for step 4 as all fields are optional now
-    }
-
-    if (step === 5) {
-      if (!formData.ndaConsent) newErrors.ndaConsent = "NDA consent is required";
-      if (!formData.contactConsent) newErrors.contactConsent = "Contact consent is required";
-      if (!formData.privacyConsent) newErrors.privacyConsent = "Privacy & Terms consent is required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  // Use validation from hook
+  const validateStep = validateStepFromHook;
 
   const handleNext = () => {
     console.log('[Next Button Clicked] Current Step:', currentStep, 'Form Data:', {
@@ -615,103 +500,32 @@ export default function Application() {
                      </div>
                     <form onSubmit={handleSubmit}>
                       
-                      {/* Step 1: Contact Information */}
-                      {currentStep === 1 && (
-                        <div className="space-y-6 animate-fade-in">
-                          {/* Auth Prompt Component */}
-                          <AuthPrompt 
-                            onAuthSuccess={(user, profile) => {
-                              // Auto-fill form with profile data
-                              if (profile.full_name) {
-                                handleInputChange('fullName', profile.full_name);
-                              }
-                              if (profile.email) {
-                                handleInputChange('email', profile.email);
-                              }
-                              if (profile.company) {
-                                handleInputChange('company', profile.company);
-                              }
-                              if (profile.phone) {
-                                handleInputChange('phone', profile.phone);
-                              }
-                            }}
-                          />
+                       {/* Step 1: Contact Information */}
+                       {currentStep === 1 && (
+                         <div className="space-y-6 animate-fade-in">
+                           {/* Auth Prompt Component */}
+                           <AuthPrompt 
+                             onAuthSuccess={(user, profile) => {
+                               // Auto-fill form with profile data
+                               if (profile.full_name) handleInputChange('fullName', profile.full_name);
+                               if (profile.email) handleInputChange('email', profile.email);
+                               if (profile.company) handleInputChange('company', profile.company);
+                               if (profile.phone) handleInputChange('phone', profile.phone);
+                             }}
+                           />
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div>
-                               <Label htmlFor="fullName" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Full Name <span className="text-maxx-red text-lg">*</span>
-                               </Label>
-                              <Input
-                                id="fullName"
-                                value={formData.fullName}
-                                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                                placeholder="Your full name"
-                                 className={`mt-2 ${errors.fullName ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                               />
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Your primary contact name for project communications.
-                               </p>
-                              {errors.fullName && <p className="text-maxx-red text-sm mt-1">{errors.fullName}</p>}
-                            </div>
-                            
-                             <div>
-                               <Label htmlFor="company" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Company / Organization <span className="text-maxx-red text-lg">*</span>
-                               </Label>
-                              <Input
-                                id="company"
-                                value={formData.company}
-                                onChange={(e) => handleInputChange('company', e.target.value)}
-                                placeholder="Your company name"
-                                 className={`mt-2 ${errors.company ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                               />
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Organization responsible for the project and decision-making.
-                               </p>
-                              {errors.company && <p className="text-maxx-red text-sm mt-1">{errors.company}</p>}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div>
-                               <Label htmlFor="email" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Email Address <span className="text-maxx-red text-lg">*</span>
-                               </Label>
-                              <Input
-                                id="email"
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => handleInputChange('email', e.target.value)}
-                                placeholder="your@email.com"
-                                 className={`mt-2 ${errors.email ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                               />
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Primary email for project communications and feasibility report delivery.
-                               </p>
-                              {errors.email && <p className="text-maxx-red text-sm mt-1">{errors.email}</p>}
-                            </div>
-                            
-                             <div>
-                               <Label htmlFor="phone" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Phone Number <span className="text-maxx-red text-lg">*</span>
-                               </Label>
-                              <Input
-                                id="phone"
-                                type="tel"
-                                value={formData.phone}
-                                onChange={(e) => handleInputChange('phone', e.target.value)}
-                                placeholder="(555) 123-4567"
-                                 className={`mt-2 ${errors.phone ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                               />
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Direct contact for urgent project discussions and coordination.
-                               </p>
-                              {errors.phone && <p className="text-maxx-red text-sm mt-1">{errors.phone}</p>}
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                           <ContactStep
+                             formData={{
+                               fullName: formData.fullName,
+                               company: formData.company,
+                               email: formData.email,
+                               phone: formData.phone,
+                             }}
+                             onChange={handleInputChange}
+                             errors={errors}
+                           />
+                         </div>
+                       )}
 
                       {/* Step 2: Property Information */}
                       {currentStep === 2 && (

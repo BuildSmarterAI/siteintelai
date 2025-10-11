@@ -13,6 +13,24 @@ export default {
       },
     },
     extend: {
+      spacing: {
+        '18': '4.5rem',
+        '112': '28rem',
+        '128': '32rem',
+      },
+      fontSize: {
+        '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
+      },
+      boxShadow: {
+        'soft': '0 2px 8px rgba(0, 0, 0, 0.08)',
+        'medium': '0 4px 16px rgba(0, 0, 0, 0.12)',
+        'strong': '0 8px 24px rgba(0, 0, 0, 0.16)',
+        'inner-focus': 'inset 0 0 0 2px hsl(var(--ring))',
+      },
+      transitionDuration: {
+        '250': '250ms',
+        '350': '350ms',
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -96,6 +114,13 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        status: {
+          success: "hsl(var(--status-success))",
+          warning: "hsl(var(--status-warning))",
+          error: "hsl(var(--status-error))",
+          info: "hsl(var(--status-info))",
+          pending: "hsl(var(--status-pending))",
         },
       },
       borderRadius: {

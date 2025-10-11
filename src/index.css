@@ -95,6 +95,13 @@ All colors MUST be HSL.
     --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Status color tokens - WCAG 2.2 compliant */
+    --status-success: 142 76% 36%;
+    --status-warning: 38 92% 50%;
+    --status-error: 0 84% 60%;
+    --status-info: 199 89% 48%;
+    --status-pending: 217 91% 60%;
   }
   
   .dark {
@@ -143,6 +150,19 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground font-body;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* WCAG 2.2 Focus Indicators */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  
+  /* Touch target minimum size - WCAG 2.2 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
   
   /* BuildSmarter™ Typography System */
