@@ -20,17 +20,42 @@ export default function Application() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  // Set initial step based on URL parameter
+  // Load completed steps from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('application_completed_steps');
+    if (saved) {
+      setCompletedSteps(new Set(JSON.parse(saved)));
+    }
+  }, []);
+
+  // Save to localStorage whenever completedSteps changes
+  useEffect(() => {
+    localStorage.setItem('application_completed_steps', JSON.stringify([...completedSteps]));
+  }, [completedSteps]);
+
+  // Set initial step based on URL parameter with completion enforcement
   useEffect(() => {
     const stepParam = searchParams.get('step');
     if (stepParam) {
-      const step = parseInt(stepParam, 10);
-      if (step >= 1 && step <= 6) {
-        setCurrentStep(step);
+      const requestedStep = parseInt(stepParam, 10);
+      if (requestedStep >= 1 && requestedStep <= 6) {
+        // Check if all previous steps are completed
+        const canAccessStep = Array.from({ length: requestedStep - 1 }, (_, i) => i + 1)
+          .every(step => completedSteps.has(step));
+        
+        if (canAccessStep) {
+          setCurrentStep(requestedStep);
+        } else {
+          // Redirect to the first incomplete step
+          const firstIncompleteStep = Array.from({ length: 5 }, (_, i) => i + 1)
+            .find(step => !completedSteps.has(step)) || 1;
+          setCurrentStep(firstIncompleteStep);
+        }
       }
     }
-  }, [searchParams]);
+  }, [searchParams, completedSteps]);
   const [formData, setFormData] = useState({
     // Step 1: Contact Information
     fullName: "",
@@ -227,11 +252,24 @@ export default function Application() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      // Mark current step as completed
+      setCompletedSteps(prev => new Set([...prev, currentStep]));
+      
+      // Move to next step
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
     }
   };
 
   const handlePrev = () => {
+    // Don't allow going back from Step 2 to Step 1 (contact info is locked)
+    if (currentStep === 2) {
+      toast({
+        title: "Contact Information Locked",
+        description: "Your contact details have been saved and cannot be modified during this session.",
+      });
+      return;
+    }
+    
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
@@ -381,6 +419,9 @@ export default function Application() {
           description: "Redirecting to next steps...",
         });
 
+        // Clear completed steps from localStorage on successful submission
+        localStorage.removeItem('application_completed_steps');
+        
         // Redirect to thank you page with application ID
         setTimeout(() => {
           navigate(`/thank-you?applicationId=${result.id}`);
@@ -1906,7 +1947,7 @@ export default function Application() {
 
                       {/* Navigation Buttons */}
                       <div className="flex justify-between items-center mt-12 pt-8 border-t border-charcoal/20">
-                        {currentStep > 1 ? (
+                        {currentStep > 1 && currentStep !== 2 ? (
                           <Button
                             type="button"
                             variant="outline"
@@ -1916,6 +1957,11 @@ export default function Application() {
                             <ArrowLeft className="w-4 h-4" />
                             Previous
                           </Button>
+                        ) : currentStep === 2 ? (
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Contact information secured
+                          </div>
                         ) : (
                           <div />
                         )}
