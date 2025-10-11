@@ -35,27 +35,38 @@ export default function Application() {
     localStorage.setItem('application_completed_steps', JSON.stringify([...completedSteps]));
   }, [completedSteps]);
 
-  // Set initial step based on URL parameter with completion enforcement
+  // Helper to navigate to a step and sync URL
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
+    navigate(`/application?step=${step}`, { replace: true });
+  };
+
+  // Set initial step based on URL parameter with relaxed enforcement
   useEffect(() => {
     const stepParam = searchParams.get('step');
-    if (stepParam) {
-      const requestedStep = parseInt(stepParam, 10);
-      if (requestedStep >= 1 && requestedStep <= 6) {
-        // Check if all previous steps are completed
-        const canAccessStep = Array.from({ length: requestedStep - 1 }, (_, i) => i + 1)
-          .every(step => completedSteps.has(step));
-        
-        if (canAccessStep) {
-          setCurrentStep(requestedStep);
-        } else {
-          // Redirect to the first incomplete step
-          const firstIncompleteStep = Array.from({ length: 5 }, (_, i) => i + 1)
-            .find(step => !completedSteps.has(step)) || 1;
-          setCurrentStep(firstIncompleteStep);
-        }
-      }
+    if (!stepParam) return;
+    
+    const requestedStep = parseInt(stepParam, 10);
+    if (requestedStep < 1 || requestedStep > 6) return;
+    
+    // Check if all previous steps are completed
+    const canAccessStep = Array.from({ length: requestedStep - 1 }, (_, i) => i + 1)
+      .every(step => completedSteps.has(step));
+    
+    if (canAccessStep) {
+      setCurrentStep(requestedStep);
+    } else if (requestedStep > currentStep) {
+      // Only enforce when trying to jump forward via URL
+      const firstIncompleteStep = Array.from({ length: 5 }, (_, i) => i + 1)
+        .find(step => !completedSteps.has(step)) || 1;
+      navigate(`/application?step=${firstIncompleteStep}`, { replace: true });
+      setCurrentStep(firstIncompleteStep);
+      toast({
+        title: "Complete prior steps",
+        description: "Please complete the earlier steps before continuing.",
+      });
     }
-  }, [searchParams, completedSteps]);
+  }, [searchParams]); // Note: removed completedSteps to avoid fighting state updates
   const [formData, setFormData] = useState({
     // Step 1: Contact Information
     fullName: "",
@@ -269,12 +280,37 @@ export default function Application() {
       ownershipStatus: formData.ownershipStatus
     });
     
+    // Auto-mark Step 1 as completed if we're past it and all fields are valid
+    if (currentStep > 1) {
+      const step1Valid = formData.fullName && formData.company && 
+                        /^\S+@\S+\.\S+$/.test(formData.email) && formData.phone;
+      if (step1Valid && !completedSteps.has(1)) {
+        setCompletedSteps(prev => new Set([...prev, 1]));
+      }
+    }
+    
+    // Check if Step 1 needs to be completed first (for Step 2+)
+    if (currentStep >= 2 && !completedSteps.has(1)) {
+      const step1Valid = formData.fullName && formData.company && 
+                        /^\S+@\S+\.\S+$/.test(formData.email) && formData.phone;
+      if (!step1Valid) {
+        toast({
+          title: "Complete Step 1 First",
+          description: "Please complete Step 1 (Contact Information) before proceeding.",
+          variant: "destructive"
+        });
+        goToStep(1);
+        return;
+      }
+    }
+    
     if (validateStep(currentStep)) {
       // Mark current step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep]));
       
-      // Move to next step
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      // Move to next step with URL sync
+      const nextStep = Math.min(currentStep + 1, totalSteps);
+      goToStep(nextStep);
     } else {
       console.log('[Validation Failed] Errors:', errors);
     }
@@ -290,7 +326,8 @@ export default function Application() {
       return;
     }
     
-    setCurrentStep(prev => Math.max(prev - 1, 1));
+    const prevStep = Math.max(currentStep - 1, 1);
+    goToStep(prevStep);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
