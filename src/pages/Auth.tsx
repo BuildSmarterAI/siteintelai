@@ -27,7 +27,7 @@ export default function Auth() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: fullName,
           }
@@ -60,7 +60,7 @@ export default function Auth() {
       if (error) throw error;
 
       toast.success("Signed in successfully!");
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Sign in failed");
     } finally {
@@ -73,7 +73,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${window.location.origin}/dashboard`,
         }
       });
       
