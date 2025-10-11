@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload, Edit } from "lucide-react";
+import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload, Edit, AlertCircle } from "lucide-react";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
@@ -189,10 +189,19 @@ export default function Application() {
   const totalSteps = 5;
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      console.log('[Form Update]', field, '=', value);
+      return updated;
+    });
+    
+    // Clear error for this field when user makes a change
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: "" }));
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 
@@ -228,6 +237,10 @@ export default function Application() {
     }
 
     if (step === 2) {
+      console.log('[Step 2 Validation]', {
+        propertyAddress: formData.propertyAddress,
+        ownershipStatus: formData.ownershipStatus
+      });
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
       if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }
@@ -251,12 +264,19 @@ export default function Application() {
   };
 
   const handleNext = () => {
+    console.log('[Next Button Clicked] Current Step:', currentStep, 'Form Data:', {
+      propertyAddress: formData.propertyAddress,
+      ownershipStatus: formData.ownershipStatus
+    });
+    
     if (validateStep(currentStep)) {
       // Mark current step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep]));
       
       // Move to next step
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    } else {
+      console.log('[Validation Failed] Errors:', errors);
     }
   };
 
@@ -659,6 +679,21 @@ export default function Application() {
                       {/* Step 2: Property Information */}
                       {currentStep === 2 && (
                         <div className="space-y-6 animate-fade-in">
+                          {/* Validation Summary Banner */}
+                          {Object.keys(errors).length > 0 && (
+                            <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
+                              <div className="flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
+                                <div>
+                                  <h3 className="font-semibold text-maxx-red mb-1">Please Complete Required Fields</h3>
+                                  <ul className="list-disc list-inside text-sm text-charcoal space-y-1">
+                                    {errors.propertyAddress && <li>Property Address is required</li>}
+                                    {errors.ownershipStatus && <li>Ownership / Acquisition Status is required</li>}
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                            <AddressAutocomplete
                              value={formData.propertyAddress}
                              onChange={(value, coordinates, addressDetails) => {
@@ -1146,7 +1181,18 @@ export default function Application() {
                                <p className="text-sm text-charcoal/60 mt-1">
                                  Acquisition timeline affects feasibility study scope and urgency.
                                </p>
-                              {errors.ownershipStatus && <p className="text-maxx-red text-sm mt-1">{errors.ownershipStatus}</p>}
+                              {errors.ownershipStatus && (
+                                <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 border border-red-200 rounded">
+                                  <AlertCircle className="w-4 h-4 text-maxx-red flex-shrink-0" />
+                                  <p className="text-maxx-red text-sm font-medium">{errors.ownershipStatus}</p>
+                                </div>
+                              )}
+                              {formData.ownershipStatus && !errors.ownershipStatus && (
+                                <div className="flex items-center gap-2 mt-2 text-sm text-green-600">
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Status selected ✓</span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1967,14 +2013,21 @@ export default function Application() {
                         )}
 
                         {currentStep < totalSteps ? (
-                          <Button
-                            type="button"
-                            onClick={handleNext}
-                            className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2"
-                          >
-                            Next
-                            <ArrowRight className="w-4 h-4" />
-                          </Button>
+                          <div className="flex flex-col items-end gap-2">
+                            <Button
+                              type="button"
+                              onClick={handleNext}
+                              className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2"
+                            >
+                              Next
+                              <ArrowRight className="w-4 h-4" />
+                            </Button>
+                            {currentStep === 2 && (!formData.propertyAddress || !formData.ownershipStatus) && (
+                              <p className="text-xs text-charcoal/60">
+                                Complete all required fields to continue
+                              </p>
+                            )}
+                          </div>
                         ) : (
                           <Button
                             type="submit"
