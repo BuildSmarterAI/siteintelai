@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Calendar, Clock, Phone, ArrowRight, Loader2 } from "lucide-react";
+import { CheckCircle, Calendar, Clock, Phone, ArrowRight, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 
@@ -16,57 +16,88 @@ export default function ThankYou() {
   const [reportReady, setReportReady] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const [reportError, setReportError] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
-  // Timeout to detect stuck report generation
-  useEffect(() => {
-    if (!reportReady && applicationId && !loading) {
-      const timeout = setTimeout(() => {
-        console.error('[ThankYou] Report generation timeout - 15 minutes elapsed');
-        setReportError(true);
-      }, 15 * 60 * 1000); // 15 minutes
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [reportReady, applicationId, loading]);
-
-  useEffect(() => {
-    if (applicationId) {
-  const fetchApplication = async () => {
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
-      .eq('id', applicationId)
-      .maybeSingle();
+  // Function to check for latest report
+  const checkForReport = async () => {
+    if (!applicationId) return;
     
-    if (data && !error) {
-      setApplicationData(data);
-      
-      // Check if report exists and is ready (regardless of enrichment status)
-      const { data: report } = await supabase
+    setChecking(true);
+    console.log('[Checking for report]', { applicationId });
+    
+    try {
+      const { data, error } = await supabase
         .from('reports')
         .select('id, status')
         .eq('application_id', applicationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
-      
-      // Report is ready if it exists with 'completed' or 'partial' status
-      if (report && (report.status === 'completed' || report.status === 'partial')) {
+
+      if (error) throw error;
+
+      if (data && (data.status === 'completed' || data.status === 'partial')) {
+        console.log('[Report found]', { reportId: data.id, status: data.status });
         setReportReady(true);
-        // Immediately redirect if report exists and is ready
+        
+        // Clear polling and timeout
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        
+        // Navigate to report
         setRedirecting(true);
-        navigate(`/report/${report.id}`);
+        navigate(`/report/${data.id}`);
+      } else {
+        console.log('[Report not ready yet]', data?.status || 'none');
       }
+    } catch (err) {
+      console.error('[Report check failed]', err);
+    } finally {
+      setChecking(false);
     }
-    setLoading(false);
   };
 
-      fetchApplication();
+  useEffect(() => {
+    if (!applicationId) {
+      setLoading(false);
+      return;
+    }
 
-      // Subscribe to real-time updates for this application
-    // Subscribe to both application and report updates
+    const fetchApplication = async () => {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('id', applicationId)
+        .maybeSingle();
+      
+      if (data && !error) {
+        setApplicationData(data);
+      }
+      setLoading(false);
+    };
+
+    fetchApplication();
+
+    // 1. Initial report check
+    checkForReport();
+
+    // 2. Setup polling every 10 seconds
+    pollIntervalRef.current = setInterval(checkForReport, 10000);
+
+    // 3. Setup 15-minute timeout
+    timeoutRef.current = setTimeout(() => {
+      console.error('[ThankYou] Report generation timeout - 15 minutes elapsed');
+      setReportError(true);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    }, 15 * 60 * 1000);
+
+    // 4. Setup realtime subscription (as backup)
     const applicationsChannel = supabase
       .channel('application-updates')
       .on(
@@ -109,12 +140,11 @@ export default function ThankYou() {
       .subscribe();
 
     return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       supabase.removeChannel(applicationsChannel);
       supabase.removeChannel(reportsChannel);
     };
-    } else {
-      setLoading(false);
-    }
   }, [applicationId]);
 
   const checkAuth = async () => {
@@ -169,26 +199,44 @@ export default function ThankYou() {
 
           {/* Report Error Card */}
           {reportError && (
-            <Card className="border-2 border-red-500 shadow-xl mb-8">
+            <Card className="border-2 border-destructive shadow-xl mb-8">
               <CardContent className="p-8 text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Clock className="w-6 h-6 text-red-500" />
-                </div>
+                <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
                 <h3 className="font-headline text-2xl font-bold text-charcoal mb-4">
                   Report Generation Issue
                 </h3>
                 <p className="font-body text-charcoal/70 mb-4">
-                  We encountered an issue generating your report. Our team has been notified and will contact you shortly.
+                  We encountered an issue generating your report. Our team has been notified.
                 </p>
                 <p className="font-body text-sm text-charcoal/60 mb-6">
                   Application ID: {applicationId?.substring(0, 8)}...
                 </p>
-                <Button 
-                  onClick={() => window.location.href = 'mailto:support@buildsmarter.com?subject=Report Generation Issue&body=Application ID: ' + applicationId}
-                  className="bg-red-500 hover:bg-red-600"
-                >
-                  Contact Support
-                </Button>
+                <div className="flex flex-col gap-3">
+                  <Button 
+                    onClick={checkForReport} 
+                    disabled={checking}
+                    className="touch-target"
+                  >
+                    {checking ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Check Again
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => window.location.href = 'mailto:support@buildsmarter.com?subject=Report Generation Issue&body=Application ID: ' + applicationId}
+                    className="touch-target"
+                  >
+                    Contact Support
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -228,12 +276,27 @@ export default function ThankYou() {
                 <h3 className="font-headline text-2xl font-bold text-charcoal mb-4">
                   Generating Your Report
                 </h3>
-                <p className="font-body text-charcoal/70 mb-2">
-                  Your comprehensive feasibility report is being generated and will be ready in approximately 10 minutes.
+                <p className="font-body text-charcoal/70 mb-4">
+                  This typically takes 30-60 seconds. You'll be redirected automatically.
                 </p>
-                <p className="font-body text-sm text-charcoal/60">
-                  This page will automatically update when your report is ready.
-                </p>
+                <Button 
+                  onClick={checkForReport} 
+                  variant="outline"
+                  disabled={checking}
+                  className="touch-target"
+                >
+                  {checking ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Check Now
+                    </>
+                  )}
+                </Button>
               </CardContent>
             </Card>
           )}

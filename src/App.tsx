@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Header } from "./components/navigation/Header";
 import { Footer } from "./components/navigation/Footer";
+import { SkipLinks } from "./components/SkipLinks";
 import Index from "./pages/Index";
 import Application from "./pages/Application";
 import ThankYou from "./pages/ThankYou";
@@ -27,8 +28,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <SkipLinks />
         <Header />
-        <div className="pt-24">
+        <main id="main-content" className="pt-24">
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/application" element={<Application />} />
@@ -51,7 +53,7 @@ const App = () => (
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </div>
+        </main>
         <Footer />
       </BrowserRouter>
     </TooltipProvider>
