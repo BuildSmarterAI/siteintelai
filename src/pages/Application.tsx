@@ -27,7 +27,54 @@ export default function Application() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   
   // Use form hook
-  const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors } = useApplicationForm();
+  const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors, updateMultipleFields } = useApplicationForm();
+  
+  // Authentication and profile loading
+  const [authLoading, setAuthLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  // Load user profile and auto-fill contact information
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          if (profile) {
+            setUserProfile(profile);
+            
+            // Auto-fill contact information from profile
+            const updates: any = {};
+            if (profile.full_name) updates.fullName = profile.full_name;
+            if (profile.email) updates.email = profile.email;
+            if (profile.company) updates.company = profile.company;
+            if (profile.phone) updates.phone = profile.phone;
+            
+            if (Object.keys(updates).length > 0) {
+              updateMultipleFields(updates);
+              
+              // If all required contact fields are present, mark Step 1 as complete
+              if (profile.full_name && profile.email && profile.phone && profile.company) {
+                setCompletedSteps(prev => new Set([...prev, 1]));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user data:', error);
+      } finally {
+        setAuthLoading(false);
+      }
+    }
+    
+    loadUserData();
+  }, []);
 
   // Load completed steps from localStorage on mount
   useEffect(() => {
@@ -503,16 +550,50 @@ export default function Application() {
                        {/* Step 1: Contact Information */}
                        {currentStep === 1 && (
                          <div className="space-y-6 animate-fade-in">
-                           {/* Auth Prompt Component */}
-                           <AuthPrompt 
-                             onAuthSuccess={(user, profile) => {
-                               // Auto-fill form with profile data
-                               if (profile.full_name) handleInputChange('fullName', profile.full_name);
-                               if (profile.email) handleInputChange('email', profile.email);
-                               if (profile.company) handleInputChange('company', profile.company);
-                               if (profile.phone) handleInputChange('phone', profile.phone);
-                             }}
-                           />
+                           {/* Loading State */}
+                           {authLoading ? (
+                             <Card>
+                               <CardContent className="py-8 text-center">
+                                 <div className="flex flex-col items-center gap-3">
+                                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                   <p className="text-muted-foreground">Loading your information...</p>
+                                 </div>
+                               </CardContent>
+                             </Card>
+                           ) : userProfile ? (
+                             <Card className="border-green-200 bg-green-50">
+                               <CardContent className="pt-6">
+                                 <div className="flex items-center gap-3">
+                                   <CheckCircle className="h-6 w-6 text-green-600" />
+                                   <div>
+                                     <p className="font-semibold text-green-900">Welcome back, {userProfile.full_name}!</p>
+                                     <p className="text-sm text-green-700">Your contact information has been loaded. You can edit it below if needed.</p>
+                                   </div>
+                                 </div>
+                               </CardContent>
+                             </Card>
+                           ) : (
+                             <AuthPrompt 
+                               onAuthSuccess={(user, profile) => {
+                                 setUserProfile(profile);
+                                 // Auto-fill form with profile data
+                                 const updates: any = {};
+                                 if (profile.full_name) updates.fullName = profile.full_name;
+                                 if (profile.email) updates.email = profile.email;
+                                 if (profile.company) updates.company = profile.company;
+                                 if (profile.phone) updates.phone = profile.phone;
+                                 
+                                 if (Object.keys(updates).length > 0) {
+                                   updateMultipleFields(updates);
+                                   
+                                   // If all required contact fields are present, mark Step 1 as complete
+                                   if (profile.full_name && profile.email && profile.phone && profile.company) {
+                                     setCompletedSteps(prev => new Set([...prev, 1]));
+                                   }
+                                 }
+                               }}
+                             />
+                           )}
 
                            <ContactStep
                              formData={{
