@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useSearchParams } from "react-router-dom";
 import { motion, useScroll } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { UserCircle, ChevronDown, Menu, X } from "lucide-react";
+import { ChevronDown, Menu } from "lucide-react";
 import buildSmarterLogo from "@/assets/buildsmarter-logo-new.png";
+import { AuthButton } from "@/components/AuthButton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,12 @@ export const Header = () => {
   const [lastScrollY, setLastScrollY] = useState(0);
   const { scrollY } = useScroll();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  
+  // Check if we're on the application page
+  const isApplicationPage = location.pathname === '/application';
+  const currentStep = parseInt(searchParams.get('step') || '1', 10);
+  const totalSteps = 5;
 
   useEffect(() => {
     const unsubscribe = scrollY.on("change", (latest) => {
@@ -67,7 +74,7 @@ export const Header = () => {
       animate={{ y: isVisible ? 0 : -100 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="container mx-auto px-6 h-full flex items-center justify-between">
+      <div className="container mx-auto px-6 h-full flex items-center justify-between gap-4">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0">
           <motion.img
@@ -79,6 +86,29 @@ export const Header = () => {
             whileHover={{ scale: 1.05 }}
           />
         </Link>
+
+        {/* Application Progress Indicator */}
+        {isApplicationPage && (
+          <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
+            <div className="flex items-center gap-2">
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+                <div
+                  key={step}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    step < currentStep
+                      ? 'bg-[#06B6D4]'
+                      : step === currentStep
+                      ? 'bg-[#06B6D4] w-6'
+                      : 'bg-white/20'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-xs font-medium text-white/90">
+              Step {currentStep}/{totalSteps}
+            </span>
+          </div>
+        )}
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8">
@@ -137,33 +167,27 @@ export const Header = () => {
 
         {/* CTA + Account */}
         <div className="hidden md:flex items-center gap-4">
-          <Button
-            asChild
-            variant="outline"
-            className="border-[#06B6D4]/50 text-white hover:bg-[#06B6D4]/10 hover:border-[#06B6D4] rounded-full px-6 relative overflow-hidden group"
-          >
-            <Link to="/application?step=2">
-              <span className="relative z-10">Run Free QuickCheck →</span>
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                initial={{ x: '-100%' }}
-                whileHover={{
-                  x: '100%',
-                  transition: { duration: 0.5, ease: 'easeInOut' }
-                }}
-              />
-            </Link>
-          </Button>
+          {!isApplicationPage && (
+            <Button
+              asChild
+              variant="outline"
+              className="border-[#06B6D4]/50 text-white hover:bg-[#06B6D4]/10 hover:border-[#06B6D4] rounded-full px-6 relative overflow-hidden group"
+            >
+              <Link to="/application?step=2">
+                <span className="relative z-10">Run Free QuickCheck →</span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  initial={{ x: '-100%' }}
+                  whileHover={{
+                    x: '100%',
+                    transition: { duration: 0.5, ease: 'easeInOut' }
+                  }}
+                />
+              </Link>
+            </Button>
+          )}
 
-          <Link
-            to="/auth"
-            className="text-white/90 hover:text-[#06B6D4] transition-colors group relative"
-          >
-            <UserCircle className="h-6 w-6" />
-            <span className="absolute -bottom-8 right-0 bg-[#0A0F2C] text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              Sign In or Access Dashboard
-            </span>
-          </Link>
+          <AuthButton />
         </div>
 
         {/* Mobile Menu */}
@@ -219,13 +243,9 @@ export const Header = () => {
                 <Link to="/application?step=2">Run a QuickCheck →</Link>
               </Button>
 
-              <Link
-                to="/auth"
-                className="flex items-center gap-2 text-white/90 hover:text-[#06B6D4] transition-colors"
-              >
-                <UserCircle className="h-5 w-5" />
-                Sign In
-              </Link>
+              <div className="pt-4 border-t border-white/10">
+                <AuthButton />
+              </div>
             </nav>
           </SheetContent>
         </Sheet>

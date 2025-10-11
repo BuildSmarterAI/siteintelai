@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, LogOut, Plus, Clock, CheckCircle } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
+import { AuthButton } from "@/components/AuthButton";
 
 interface Report {
   id: string;
@@ -69,11 +72,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-500';
@@ -85,37 +83,45 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-charcoal/5 to-navy/5">
+        <Loader2 className="h-8 w-8 animate-spin text-navy" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <header className="border-b bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <img src="/src/assets/buildsmarter-logo-new.png" alt="SiteIntel" className="h-12" />
-            <div>
-              <h1 className="text-2xl font-headline">Dashboard</h1>
-              <p className="text-sm text-muted-foreground">Welcome back, {profile?.full_name || 'User'}</p>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-charcoal/5 to-navy/5">
+        <DashboardSidebar />
+        
+        <div className="flex-1 flex flex-col">
+          {/* Header */}
+          <header className="bg-white border-b border-charcoal/10 py-6 sticky top-0 z-10">
+            <div className="container mx-auto px-6 flex items-center justify-between">
+              <div>
+                <h1 className="font-headline text-2xl font-bold text-charcoal uppercase tracking-wide">
+                  Your Projects
+                </h1>
+                <p className="text-sm text-charcoal/60 mt-1">
+                  Welcome back, {profile?.full_name || profile?.email}
+                </p>
+              </div>
+              <AuthButton />
             </div>
-          </div>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
-        </div>
-      </header>
+          </header>
 
-      <main className="container mx-auto px-6 py-8">
+          {/* Main Content */}
+          <main className="flex-1 container mx-auto px-6 py-12">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h2 className="text-3xl font-headline font-bold">Your Projects</h2>
-            <p className="text-muted-foreground">Manage your feasibility reports and applications</p>
+            <h2 className="text-3xl font-headline font-bold text-charcoal">Reports & Applications</h2>
+            <p className="text-charcoal/60">Manage your feasibility reports and applications</p>
           </div>
-          <Button onClick={() => navigate("/application?step=1")} size="lg">
+          <Button 
+            onClick={() => navigate("/application?step=1")} 
+            size="lg"
+            className="bg-navy hover:bg-navy/90 text-white"
+          >
             <Plus className="mr-2 h-5 w-5" />
             New Application
           </Button>
@@ -273,7 +279,9 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
         </Tabs>
-      </main>
-    </div>
+          </main>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 }
