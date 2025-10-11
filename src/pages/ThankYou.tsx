@@ -22,71 +22,83 @@ export default function ThankYou() {
 
   useEffect(() => {
     if (applicationId) {
-      const fetchApplication = async () => {
-        const { data, error } = await supabase
-          .from('applications')
-          .select('*')
-          .eq('id', applicationId)
-          .maybeSingle();
-        
-          if (data && !error) {
-          setApplicationData(data);
-          // Check if report is ready (accept 'complete' or 'partial' status)
-          if (data.enrichment_status === 'complete' || data.enrichment_status === 'partial' || data.enrichment_status === 'completed') {
-            const { data: report } = await supabase
-              .from('reports')
-              .select('id')
-              .eq('application_id', applicationId)
-              .maybeSingle();
-            
-            if (report) {
-              setReportReady(true);
-              // Immediately redirect if report exists
-              setRedirecting(true);
-              navigate(`/report/${report.id}`);
-            }
-          }
-        }
-        setLoading(false);
-      };
+  const fetchApplication = async () => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*')
+      .eq('id', applicationId)
+      .maybeSingle();
+    
+    if (data && !error) {
+      setApplicationData(data);
+      
+      // Check if report exists and is ready (regardless of enrichment status)
+      const { data: report } = await supabase
+        .from('reports')
+        .select('id, status')
+        .eq('application_id', applicationId)
+        .maybeSingle();
+      
+      // Report is ready if it exists with 'completed' or 'partial' status
+      if (report && (report.status === 'completed' || report.status === 'partial')) {
+        setReportReady(true);
+        // Immediately redirect if report exists and is ready
+        setRedirecting(true);
+        navigate(`/report/${report.id}`);
+      }
+    }
+    setLoading(false);
+  };
 
       fetchApplication();
 
       // Subscribe to real-time updates for this application
-      const channel = supabase
-        .channel('application-updates')
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'applications',
-            filter: `id=eq.${applicationId}`
-          },
-          async (payload) => {
-            setApplicationData(payload.new);
-            // Check if report became ready (accept 'complete' or 'partial' status)
-            if (payload.new.enrichment_status === 'complete' || payload.new.enrichment_status === 'partial' || payload.new.enrichment_status === 'completed') {
-              const { data: report } = await supabase
-                .from('reports')
-                .select('id')
-                .eq('application_id', applicationId)
-                .maybeSingle();
-              
-            if (report) {
+    // Subscribe to both application and report updates
+    const applicationsChannel = supabase
+      .channel('application-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'applications',
+          filter: `id=eq.${applicationId}`
+        },
+        async (payload) => {
+          setApplicationData(payload.new);
+        }
+      )
+      .subscribe();
+
+    const reportsChannel = supabase
+      .channel('report-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'reports',
+          filter: `application_id=eq.${applicationId}`
+        },
+        async (payload) => {
+          // Check if report is ready (INSERT or UPDATE to completed/partial)
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            const reportData = payload.new as any;
+            if (reportData.status === 'completed' || reportData.status === 'partial') {
               setReportReady(true);
-              // Immediately redirect to report viewer (auth gate handles sign-in)
+              // Immediately redirect to report viewer
               setRedirecting(true);
-              navigate(`/report/${report.id}`);
-            }
+              navigate(`/report/${reportData.id}`);
             }
           }
-        )
-        .subscribe();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+    return () => {
+      supabase.removeChannel(applicationsChannel);
+      supabase.removeChannel(reportsChannel);
+    };
     } else {
       setLoading(false);
     }
