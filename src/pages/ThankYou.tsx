@@ -15,10 +15,23 @@ export default function ThankYou() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [reportReady, setReportReady] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
+  const [reportError, setReportError] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Timeout to detect stuck report generation
+  useEffect(() => {
+    if (!reportReady && applicationId && !loading) {
+      const timeout = setTimeout(() => {
+        console.error('[ThankYou] Report generation timeout - 15 minutes elapsed');
+        setReportError(true);
+      }, 15 * 60 * 1000); // 15 minutes
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [reportReady, applicationId, loading]);
 
   useEffect(() => {
     if (applicationId) {
@@ -153,6 +166,32 @@ export default function ThankYou() {
               </p>
             </div>
           </div>
+
+          {/* Report Error Card */}
+          {reportError && (
+            <Card className="border-2 border-red-500 shadow-xl mb-8">
+              <CardContent className="p-8 text-center">
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="font-headline text-2xl font-bold text-charcoal mb-4">
+                  Report Generation Issue
+                </h3>
+                <p className="font-body text-charcoal/70 mb-4">
+                  We encountered an issue generating your report. Our team has been notified and will contact you shortly.
+                </p>
+                <p className="font-body text-sm text-charcoal/60 mb-6">
+                  Application ID: {applicationId?.substring(0, 8)}...
+                </p>
+                <Button 
+                  onClick={() => window.location.href = 'mailto:support@buildsmarter.com?subject=Report Generation Issue&body=Application ID: ' + applicationId}
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  Contact Support
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Report Status Card - Always show if report is ready */}
           {reportReady ? (

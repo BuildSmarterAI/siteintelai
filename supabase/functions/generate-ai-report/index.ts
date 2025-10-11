@@ -91,57 +91,63 @@ serve(async (req) => {
     console.log(`[generate-ai-report] Calculated feasibility score: ${feasibilityScore} (${scoreBand})`);
 
     // Store report in database
-    const { data: report, error: reportError } = await supabase
-      .from('reports')
-      .insert({
-        application_id,
-        user_id: application.user_id || null,
-        report_type,
-        json_data: reportData,
-        feasibility_score: feasibilityScore,
-        score_band: scoreBand,
-        status: 'completed'
-      })
-      .select()
-      .single();
-
-    if (reportError) {
-      throw new Error(`Failed to save report: ${reportError.message}`);
-    }
-
-    console.log('[generate-ai-report] Report saved successfully:', report.id);
-
-    // Trigger PDF generation asynchronously (non-blocking)
     try {
-      console.log('[generate-ai-report] Triggering PDF generation...');
-      const pdfResponse = await supabase.functions.invoke('generate-pdf', {
-        body: { 
-          report_id: report.id, 
-          application_id 
-        }
-      });
-      
-      if (pdfResponse.error) {
-        console.error('[generate-ai-report] PDF generation failed:', pdfResponse.error);
-        // Report is still saved, just without PDF
-      } else {
-        console.log('[generate-ai-report] PDF generation initiated successfully');
-      }
-    } catch (pdfError) {
-      console.error('[generate-ai-report] Failed to trigger PDF generation:', pdfError);
-      // Non-blocking - report is still accessible
-    }
+      const { data: report, error: reportError } = await supabase
+        .from('reports')
+        .insert({
+          application_id,
+          user_id: application.user_id || null,
+          report_type,
+          json_data: reportData,
+          feasibility_score: feasibilityScore,
+          score_band: scoreBand,
+          status: 'completed'
+        })
+        .select()
+        .single();
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        report_id: report.id,
-        feasibility_score: feasibilityScore
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      if (reportError) {
+        console.error('[generate-ai-report] Database insert failed:', reportError);
+        throw new Error(`Failed to save report: ${reportError.message}`);
       }
-    );
+
+      console.log('[generate-ai-report] Report saved successfully:', report.id);
+
+      // Trigger PDF generation asynchronously (non-blocking)
+      try {
+        console.log('[generate-ai-report] Triggering PDF generation...');
+        const pdfResponse = await supabase.functions.invoke('generate-pdf', {
+          body: { 
+            report_id: report.id, 
+            application_id 
+          }
+        });
+        
+        if (pdfResponse.error) {
+          console.error('[generate-ai-report] PDF generation failed:', pdfResponse.error);
+          // Report is still saved, just without PDF
+        } else {
+          console.log('[generate-ai-report] PDF generation initiated successfully');
+        }
+      } catch (pdfError) {
+        console.error('[generate-ai-report] Failed to trigger PDF generation:', pdfError);
+        // Non-blocking - report is still accessible
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          report_id: report.id,
+          feasibility_score: feasibilityScore
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    } catch (err) {
+      console.error('[generate-ai-report] Exception during report creation:', err);
+      throw err;
+    }
 
   } catch (error) {
     console.error('[generate-ai-report] Error:', error);
@@ -537,11 +543,10 @@ function calculateFeasibilityScore(application: any, reportData: any): number {
 }
 
 function getScoreBand(score: number): string {
-  if (score >= 80) return 'A - Highly Feasible';
-  if (score >= 70) return 'B - Feasible';
-  if (score >= 60) return 'C - Moderately Feasible';
-  if (score >= 50) return 'D - Challenging';
-  return 'F - Not Recommended';
+  // Returns only A, B, or C as per database constraint
+  if (score >= 70) return 'A';
+  if (score >= 55) return 'B';
+  return 'C';
 }
 
 function calculateZoningScore(app: any): number {
