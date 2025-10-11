@@ -84,8 +84,11 @@ serve(async (req) => {
       reportData = { rawText: aiOutput };
     }
 
-    // Calculate feasibility score
+    // Calculate feasibility score from AI JSON or application data
     const feasibilityScore = calculateFeasibilityScore(application, reportData);
+    const scoreBand = getScoreBand(feasibilityScore);
+    
+    console.log(`[generate-ai-report] Calculated feasibility score: ${feasibilityScore} (${scoreBand})`);
 
     // Store report in database
     const { data: report, error: reportError } = await supabase
@@ -96,6 +99,7 @@ serve(async (req) => {
         report_type,
         json_data: reportData,
         feasibility_score: feasibilityScore,
+        score_band: scoreBand,
         status: 'completed'
       })
       .select()
@@ -431,7 +435,80 @@ function buildUserPrompt(application: any, reportType: string): string {
 }
 
 function calculateFeasibilityScore(application: any, reportData: any): number {
-  // Get weights from application or use defaults
+  // If AI provided a summary with feasibility_score, use it
+  if (reportData?.summary?.feasibility_score) {
+    return Math.round(Math.max(0, Math.min(100, reportData.summary.feasibility_score)));
+  }
+  
+  // Otherwise, calculate from component scores in AI JSON if available
+  if (reportData && typeof reportData === 'object') {
+    const componentScores: any = {};
+    let hasAnyScore = false;
+    
+    // Extract component scores from AI JSON
+    if (reportData.zoning?.component_score !== undefined) {
+      componentScores.zoning = reportData.zoning.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.flood?.component_score !== undefined) {
+      componentScores.flood = reportData.flood.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.utilities?.component_score !== undefined) {
+      componentScores.utilities = reportData.utilities.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.environmental?.component_score !== undefined) {
+      componentScores.environmental = reportData.environmental.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.traffic?.component_score !== undefined) {
+      componentScores.traffic = reportData.traffic.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.market_demographics?.component_score !== undefined) {
+      componentScores.market = reportData.market_demographics.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.cost_schedule?.component_score !== undefined) {
+      componentScores.schedule = reportData.cost_schedule.component_score;
+      hasAnyScore = true;
+    }
+    if (reportData.project_feasibility?.component_score !== undefined) {
+      componentScores.project_fit = reportData.project_feasibility.component_score;
+      hasAnyScore = true;
+    }
+    
+    // If we found component scores in JSON, calculate weighted average
+    if (hasAnyScore) {
+      const weights = application.scoring_weights || {
+        zoning: 18,
+        flood: 18,
+        utilities: 13,
+        environmental: 13,
+        traffic: 13,
+        market: 13,
+        schedule: 6,
+        project_fit: 6
+      };
+      
+      let totalScore = 0;
+      let totalWeight = 0;
+      
+      Object.entries(componentScores).forEach(([key, score]) => {
+        if (weights[key] !== undefined && typeof score === 'number') {
+          totalScore += score * (weights[key] / 100);
+          totalWeight += weights[key];
+        }
+      });
+      
+      if (totalWeight > 0) {
+        return Math.round(Math.max(0, Math.min(100, (totalScore / totalWeight) * 100)));
+      }
+    }
+  }
+  
+  // Fallback: Calculate from application data
   const weights = application.scoring_weights || {
     zoning: 18,
     flood: 18,
@@ -442,7 +519,6 @@ function calculateFeasibilityScore(application: any, reportData: any): number {
     project_fit: 12
   };
 
-  // Calculate component scores deterministically
   const componentScores = {
     zoning: calculateZoningScore(application),
     flood: calculateFloodScore(application),
@@ -453,12 +529,19 @@ function calculateFeasibilityScore(application: any, reportData: any): number {
     project_fit: calculateProjectFitScore(application)
   };
 
-  // Weighted sum
   const totalScore = Object.entries(componentScores).reduce((sum, [key, score]) => {
     return sum + (score * weights[key] / 100);
   }, 0);
 
   return Math.round(Math.max(0, Math.min(100, totalScore)));
+}
+
+function getScoreBand(score: number): string {
+  if (score >= 80) return 'A - Highly Feasible';
+  if (score >= 70) return 'B - Feasible';
+  if (score >= 60) return 'C - Moderately Feasible';
+  if (score >= 50) return 'D - Challenging';
+  return 'F - Not Recommended';
 }
 
 function calculateZoningScore(app: any): number {

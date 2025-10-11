@@ -441,10 +441,16 @@ export default function ReportViewer() {
               </Badge>
               
               <ScoreCircle 
-                score={report.feasibility_score} 
+                score={report.feasibility_score ?? 0} 
                 size="lg" 
                 showLabel={true}
               />
+              
+              {!report.feasibility_score && (
+                <Badge variant="destructive" className="mt-2">
+                  Score calculation pending
+                </Badge>
+              )}
               
               <p className="text-sm text-muted-foreground mt-4">
                 {report.applications?.formatted_address}
