@@ -114,10 +114,20 @@ export default function Application() {
     parcelId: boolean;
     lotSize: boolean;
     zoning: boolean;
+    county: boolean;
+    city: boolean;
+    state: boolean;
+    zipCode: boolean;
+    neighborhood: boolean;
   }>({
     parcelId: false,
     lotSize: false,
-    zoning: false
+    zoning: false,
+    county: false,
+    city: false,
+    state: false,
+    zipCode: false,
+    neighborhood: false
   });
 
   // Track which fields user manually unlocked
@@ -125,11 +135,24 @@ export default function Application() {
     parcelId: boolean;
     lotSize: boolean;
     zoning: boolean;
+    county: boolean;
+    city: boolean;
+    state: boolean;
+    zipCode: boolean;
+    neighborhood: boolean;
   }>({
     parcelId: false,
     lotSize: false,
-    zoning: false
+    zoning: false,
+    county: false,
+    city: false,
+    state: false,
+    zipCode: false,
+    neighborhood: false
   });
+
+  // Track loading state for address autocomplete
+  const [isAddressLoading, setIsAddressLoading] = useState(false);
 
   // Store original HCAD values for conflict detection
   const [hcadValues, setHcadValues] = useState<{
@@ -599,6 +622,10 @@ export default function Application() {
                              value={formData.propertyAddress}
                              onChange={(value, coordinates, addressDetails) => {
                                handleInputChange('propertyAddress', value);
+                               
+                               // Set loading state when address is being populated
+                               setIsAddressLoading(true);
+                               
                                if (coordinates || addressDetails) {
                                  setFormData(prev => ({
                                    ...prev,
@@ -611,9 +638,32 @@ export default function Application() {
                                    neighborhood: addressDetails?.neighborhood || prev.neighborhood,
                                    sublocality: addressDetails?.sublocality || prev.sublocality,
                                    placeId: addressDetails?.placeId || prev.placeId
-                      }));
-                    }
-                  }}
+                                 }));
+                                 
+                                 // Mark Google-populated fields as enriched
+                                 setEnrichedFields(prev => ({
+                                   ...prev,
+                                   county: !!addressDetails?.county,
+                                   city: !!addressDetails?.city,
+                                   state: !!addressDetails?.state,
+                                   zipCode: !!addressDetails?.zipCode,
+                                   neighborhood: !!addressDetails?.neighborhood
+                                 }));
+                                 
+                                 // Auto-unlock Google fields after 2 seconds (they're basic info)
+                                 setTimeout(() => {
+                                   setIsAddressLoading(false);
+                                   setUnlockedFields(prev => ({
+                                     ...prev,
+                                     county: true,
+                                     city: true,
+                                     state: true,
+                                     zipCode: true,
+                                     neighborhood: true
+                                   }));
+                                 }, 2000);
+                               }
+                             }}
                   onEnrichmentComplete={(data) => {
                                 if (data?.success && data?.data) {
                                   setEnrichedData(data.data);
@@ -651,11 +701,12 @@ export default function Application() {
                                   }));
 
                                   // Mark which fields were successfully enriched
-                                  setEnrichedFields({
+                                  setEnrichedFields(prev => ({
+                                    ...prev, // Preserve Google-populated field flags
                                     parcelId: !!data.data.parcel_id,
                                     lotSize: !!resolvedLotSize,
                                     zoning: !!data.data.zoning_code
-                                  });
+                                  }));
 
                                   // Store HCAD values for conflict detection
                                   setHcadValues({
@@ -700,6 +751,144 @@ export default function Application() {
                                - floodplainZone: FEMA flood zone designation
                                - baseFloodElevation: Base flood elevation from FEMA
                            */}
+
+                          {/* Google-Populated Fields (Auto-locked during loading) */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            <div>
+                              <Label htmlFor="county" className="font-body font-semibold text-charcoal">
+                                County
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="county"
+                                  value={formData.county}
+                                  onChange={(e) => handleInputChange('county', e.target.value)}
+                                  placeholder="Enter county"
+                                  className="mt-2"
+                                  readOnly={isAddressLoading || (enrichedFields.county && !unlockedFields.county)}
+                                />
+                                {isAddressLoading && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {enrichedFields.county && !isAddressLoading && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                                  ✓ From Google Places
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div>
+                              <Label htmlFor="city" className="font-body font-semibold text-charcoal">
+                                City
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="city"
+                                  value={formData.city}
+                                  onChange={(e) => handleInputChange('city', e.target.value)}
+                                  placeholder="Enter city"
+                                  className="mt-2"
+                                  readOnly={isAddressLoading || (enrichedFields.city && !unlockedFields.city)}
+                                />
+                                {isAddressLoading && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {enrichedFields.city && !isAddressLoading && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                                  ✓ From Google Places
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                              <Label htmlFor="state" className="font-body font-semibold text-charcoal">
+                                State
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="state"
+                                  value={formData.state}
+                                  onChange={(e) => handleInputChange('state', e.target.value)}
+                                  placeholder="TX"
+                                  className="mt-2"
+                                  readOnly={isAddressLoading || (enrichedFields.state && !unlockedFields.state)}
+                                />
+                                {isAddressLoading && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {enrichedFields.state && !isAddressLoading && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                                  ✓ From Google Places
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div>
+                              <Label htmlFor="zipCode" className="font-body font-semibold text-charcoal">
+                                ZIP Code
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="zipCode"
+                                  value={formData.zipCode}
+                                  onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                                  placeholder="77069"
+                                  className="mt-2"
+                                  readOnly={isAddressLoading || (enrichedFields.zipCode && !unlockedFields.zipCode)}
+                                />
+                                {isAddressLoading && (
+                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {enrichedFields.zipCode && !isAddressLoading && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                                  ✓ From Google Places
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="neighborhood" className="font-body font-semibold text-charcoal">
+                              Neighborhood / Area
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="neighborhood"
+                                value={formData.neighborhood}
+                                onChange={(e) => handleInputChange('neighborhood', e.target.value)}
+                                placeholder="Enter neighborhood"
+                                className="mt-2"
+                                readOnly={isAddressLoading || (enrichedFields.neighborhood && !unlockedFields.neighborhood)}
+                              />
+                              {isAddressLoading && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                </div>
+                              )}
+                            </div>
+                            {enrichedFields.neighborhood && !isAddressLoading && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                                ✓ From Google Places
+                              </Badge>
+                            )}
+                            <p className="text-sm text-charcoal/60 mt-1">
+                              Helps determine local market conditions and comparable properties.
+                            </p>
+                          </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
