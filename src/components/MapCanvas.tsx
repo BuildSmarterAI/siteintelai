@@ -11,6 +11,7 @@ interface MapCanvasProps {
   traffic?: any[];
   employmentCenters?: any[];
   className?: string;
+  propertyAddress?: string;
 }
 
 export function MapCanvas({ 
@@ -21,10 +22,45 @@ export function MapCanvas({
   utilities = [],
   traffic = [],
   employmentCenters = [],
-  className = "h-96 w-full rounded-lg"
+  className = "h-96 w-full rounded-lg",
+  propertyAddress
 }: MapCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+
+  // Generate accessible map description
+  const getMapDescription = () => {
+    const parts = [];
+    
+    if (propertyAddress) {
+      parts.push(`Property location: ${propertyAddress}`);
+    }
+    
+    if (parcel?.parcel_id) {
+      parts.push(`Parcel ID: ${parcel.parcel_id}`);
+    }
+    
+    if (floodZones.length > 0) {
+      const zones = floodZones.map(z => z.zone).filter(Boolean).join(', ');
+      parts.push(`Flood zones: ${zones || 'Present'}`);
+    }
+    
+    if (utilities.length > 0) {
+      const types = [...new Set(utilities.map(u => u.type).filter(Boolean))];
+      parts.push(`Utilities nearby: ${types.join(', ')}`);
+    }
+    
+    if (traffic.length > 0) {
+      const avgTraffic = Math.round(traffic.reduce((sum, t) => sum + (t.aadt || 0), 0) / traffic.length);
+      parts.push(`Average daily traffic: ${avgTraffic.toLocaleString()} vehicles`);
+    }
+    
+    if (employmentCenters.length > 0) {
+      parts.push(`${employmentCenters.length} employment center(s) nearby`);
+    }
+    
+    return parts.join('. ');
+  };
 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
@@ -182,5 +218,94 @@ export function MapCanvas({
     });
   }, [employmentCenters]);
 
-  return <div ref={mapContainer} className={className} />;
+  return (
+    <div className="relative">
+      <div 
+        ref={mapContainer} 
+        className={className}
+        role="img"
+        aria-label={getMapDescription() || `Interactive map showing property location at coordinates ${center[0].toFixed(4)}, ${center[1].toFixed(4)}`}
+        tabIndex={0}
+      />
+      
+      {/* Text alternative for screen readers */}
+      <details className="sr-only">
+        <summary>Map data in text format</summary>
+        <dl className="space-y-2">
+          {propertyAddress && (
+            <>
+              <dt className="font-semibold">Property Address:</dt>
+              <dd>{propertyAddress}</dd>
+            </>
+          )}
+          
+          <dt className="font-semibold">Coordinates:</dt>
+          <dd>Latitude: {center[0].toFixed(6)}, Longitude: {center[1].toFixed(6)}</dd>
+          
+          {parcel?.parcel_id && (
+            <>
+              <dt className="font-semibold">Parcel ID:</dt>
+              <dd>{parcel.parcel_id}</dd>
+            </>
+          )}
+          
+          {floodZones.length > 0 && (
+            <>
+              <dt className="font-semibold">Flood Zones:</dt>
+              <dd>
+                {floodZones.map((zone, idx) => (
+                  <div key={idx}>Zone {zone.zone || 'Unknown'}</div>
+                ))}
+              </dd>
+            </>
+          )}
+          
+          {utilities.length > 0 && (
+            <>
+              <dt className="font-semibold">Utilities:</dt>
+              <dd>
+                {utilities.map((utility, idx) => (
+                  <div key={idx}>
+                    {utility.type || 'Unknown type'} - {utility.provider || 'Provider not specified'}
+                  </div>
+                ))}
+              </dd>
+            </>
+          )}
+          
+          {traffic.length > 0 && (
+            <>
+              <dt className="font-semibold">Traffic Data:</dt>
+              <dd>
+                {traffic.map((segment, idx) => (
+                  <div key={idx}>
+                    {segment.roadway || 'Road'}: {(segment.aadt || 0).toLocaleString()} vehicles per day
+                  </div>
+                ))}
+              </dd>
+            </>
+          )}
+          
+          {employmentCenters.length > 0 && (
+            <>
+              <dt className="font-semibold">Employment Centers:</dt>
+              <dd>
+                {employmentCenters.map((center, idx) => (
+                  <div key={idx}>
+                    {center.name || 'Employment Center'}: {(center.jobs || 0).toLocaleString()} jobs
+                    {center.distance && ` (${center.distance.toFixed(1)} miles away)`}
+                  </div>
+                ))}
+              </dd>
+            </>
+          )}
+        </dl>
+      </details>
+      
+      {/* Keyboard instructions overlay */}
+      <div className="sr-only" role="complementary" aria-label="Map keyboard instructions">
+        <p>Use arrow keys to pan the map. Use plus and minus keys to zoom in and out. Press Enter to interact with markers.</p>
+      </div>
+    </div>
+  );
 }

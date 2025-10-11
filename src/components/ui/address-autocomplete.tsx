@@ -296,13 +296,24 @@ export function AddressAutocomplete({
         placeholder={placeholder}
         className={`mt-2 ${error ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'} ${className}`}
         autoComplete="off"
+        aria-autocomplete="list"
+        aria-controls={showSuggestions ? "address-suggestions" : undefined}
+        aria-expanded={showSuggestions}
+        aria-activedescendant={selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined}
+        role="combobox"
       />
       
       {showSuggestions && suggestions.length > 0 && (
-        <ul className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1">
+        <ul 
+          id="address-suggestions"
+          className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1"
+          role="listbox"
+          aria-label="Address suggestions"
+        >
           {suggestions.map((suggestion, index) => (
             <li
               key={suggestion.place_id}
+              id={`suggestion-${index}`}
               ref={el => suggestionRefs.current[index] = el}
               onMouseDown={(e) => {
                 e.preventDefault(); // Prevent blur from firing
@@ -311,6 +322,8 @@ export function AddressAutocomplete({
               className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
                 index === selectedIndex ? 'bg-blue-50' : ''
               }`}
+              role="option"
+              aria-selected={index === selectedIndex}
             >
               <div className="font-medium text-charcoal">
                 {suggestion.structured_formatting.main_text}
@@ -324,7 +337,11 @@ export function AddressAutocomplete({
       )}
       
       {isLoading && (
-        <div className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg mt-1">
+        <div 
+          className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg mt-1"
+          role="status"
+          aria-live="polite"
+        >
           <div className="px-4 py-3 text-center text-charcoal/60">
             Searching addresses...
           </div>
@@ -332,15 +349,15 @@ export function AddressAutocomplete({
       )}
       
       {enrichmentStatus === 'loading' && (
-        <div className="mt-2 flex items-center gap-2 text-sm text-blue-600">
-          <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+        <div className="mt-2 flex items-center gap-2 text-sm text-blue-600" role="status" aria-live="polite">
+          <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" aria-hidden="true"></div>
           <span>Loading GIS data...</span>
         </div>
       )}
       
       {enrichmentStatus === 'success' && (
-        <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mt-2 flex items-center gap-2 text-sm text-green-600" role="status" aria-live="polite">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
           </svg>
           <span>GIS Data Loaded ✅</span>
@@ -348,8 +365,8 @@ export function AddressAutocomplete({
       )}
 
       {enrichmentStatus === 'partial' && (
-        <div className="mt-2 flex items-center gap-2 text-sm text-green-600">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mt-2 flex items-center gap-2 text-sm text-green-600" role="status" aria-live="polite">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
           </svg>
           <span>Property data loaded from HCAD</span>
@@ -357,8 +374,8 @@ export function AddressAutocomplete({
       )}
 
       {enrichmentStatus === 'error' && (
-        <div className="mt-2 flex items-center gap-2 text-sm text-yellow-600">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <div className="mt-2 flex items-center gap-2 text-sm text-yellow-600" role="alert" aria-live="assertive">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
           </svg>
           <span>Auto-fill unavailable — please enter details manually.</span>
