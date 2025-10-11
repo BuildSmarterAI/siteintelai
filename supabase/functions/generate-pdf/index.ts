@@ -25,7 +25,7 @@ serve(async (req) => {
       .from('reports')
       .select(`
         *,
-        applications!application_id (
+        applications!reports_application_id_fkey (
           *
         )
       `)
