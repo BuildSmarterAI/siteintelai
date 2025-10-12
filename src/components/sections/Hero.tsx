@@ -190,7 +190,7 @@ export const Hero = () => {
           </defs>
           
           {/* Connection Lines between nodes */}
-          {[...Array(window.innerWidth < 768 ? 4 : 8)].map((_, i) => {
+          {[...Array(window.innerWidth < 768 ? 2 : 4)].map((_, i) => {
             const startX = 15 + (i % 4) * 25;
             const startY = 20 + Math.floor(i / 4) * 25;
             const endX = startX + (Math.random() > 0.5 ? 25 : -25);
@@ -246,7 +246,7 @@ export const Hero = () => {
 
       {/* Step 3: Data Verification Nodes & Building Footprints */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(window.innerWidth < 768 ? 6 : 12)].map((_, i) => {
+        {[...Array(window.innerWidth < 768 ? 4 : 8)].map((_, i) => {
           const x = 10 + (i % 5) * 20;
           const y = 15 + Math.floor(i / 5) * 22;
           const delay = i * 0.5;
@@ -323,7 +323,7 @@ export const Hero = () => {
               </linearGradient>
             </defs>
             
-            {[...Array(6)].map((_, i) => {
+            {[...Array(4)].map((_, i) => {
               const startX = Math.random() * 80 + 10;
               const startY = Math.random() * 80 + 10;
               const endX = Math.random() * 80 + 10;
@@ -392,7 +392,7 @@ export const Hero = () => {
           </svg>
 
           {/* Simulated data nodes with pulse animation */}
-          {[...Array(8)].map((_, i) => (
+          {[...Array(5)].map((_, i) => (
             <motion.div
               key={i}
               className="absolute h-2 w-2 rounded-full bg-[#06B6D4] shadow-[0_0_10px_rgba(6,182,212,0.5)]"
