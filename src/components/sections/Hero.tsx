@@ -268,6 +268,8 @@ export const Hero = () => {
                   height: '60px',
                   background: 'radial-gradient(circle, rgba(255, 122, 0, 0.3) 0%, rgba(255, 122, 0, 0) 70%)',
                   transform: 'translate(-50%, -50%)',
+                  willChange: 'transform, opacity',
+                  contain: 'layout',
                 }}
                 animate={{
                   scale: [0, 1.2, 0],
@@ -286,6 +288,8 @@ export const Hero = () => {
                 className="absolute w-[6px] h-[6px] rounded-full bg-[#06B6D4] shadow-[0_0_10px_rgba(6,182,212,0.8)]"
                 style={{
                   transform: 'translate(-50%, -50%)',
+                  willChange: 'transform, opacity',
+                  contain: 'layout',
                 }}
                 animate={{
                   opacity: [0.4, 1, 0.4],
@@ -395,6 +399,8 @@ export const Hero = () => {
               style={{
                 top: `${Math.random() * 80 + 10}%`,
                 left: `${Math.random() * 80 + 10}%`,
+                willChange: 'transform, opacity',
+                contain: 'layout',
               }}
               animate={{
                 opacity: [0.3, 1, 0.3],
