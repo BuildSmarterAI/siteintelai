@@ -170,8 +170,8 @@ export const Header = () => {
           {!isApplicationPage && (
             <Button
               asChild
-              variant="outline"
-              className="border-[#06B6D4]/50 text-white hover:bg-[#06B6D4]/10 hover:border-[#06B6D4] rounded-full px-6 relative overflow-hidden group"
+              variant="maxx-red"
+              className="rounded-full px-6 relative overflow-hidden group"
             >
               <Link to="/application?step=2">
                 <span className="relative z-10">Run Free QuickCheck →</span>
