@@ -1710,11 +1710,12 @@ serve(async (req) => {
           'legal_dscr_4',
           
           // ⭐ NEW: Valuation Fields
-          'tot_appr_val',      // Total appraised value
-          'tot_market_val',    // Total market value
-          'land_val',          // Land value
-          'imprv_val',         // Improvement value
-          'tot_assessed_val',  // Assessed value (alternative field)
+          'total_appraised_val',  // ✅ Total appraised value (correct HCAD field)
+          'total_market_val',     // ✅ Total market value (correct HCAD field)
+          'land_value',           // ✅ Land value (correct HCAD field)
+          'impr_value',           // ✅ Improvement value (correct HCAD field)
+          'bld_value',            // ✅ Building value (correct HCAD field)
+          'tax_value',            // ✅ Taxable value (correct HCAD field)
           
           // ⭐ NEW: Building Details
           'bldg_sqft',         // Building square footage
@@ -1739,8 +1740,8 @@ serve(async (req) => {
           // ⭐ NEW: Location Details
           'subdivision',       // Subdivision name
           'subdivsn',          // Alternative field
-          'block',             // Block
-          'lot'                // Lot
+          'BLK_NUM',           // ✅ Block (correct HCAD field)
+          'LOT_NUM'            // ✅ Lot (correct HCAD field)
         ].join(',');
       } else {
         // Other counties: use configured field names
@@ -2301,11 +2302,11 @@ serve(async (req) => {
             return null;
           };
           
-          enrichedData.tot_appr_val = parseFloat(pickAttr(attrs, ['tot_appr_val', 'total_appraised_value'])) || null;
-          enrichedData.tot_market_val = parseFloat(pickAttr(attrs, ['tot_market_val', 'total_market_value'])) || null;
-          enrichedData.land_val = parseFloat(pickAttr(attrs, ['land_val', 'land_value'])) || null;
-          enrichedData.imprv_val = parseFloat(pickAttr(attrs, ['imprv_val', 'improvement_value', 'bldg_val'])) || null;
-          enrichedData.taxable_value = parseFloat(pickAttr(attrs, ['tot_assessed_val', 'taxable_value'])) || null;
+          enrichedData.tot_appr_val = parseFloat(pickAttr(attrs, ['total_appraised_val', 'tot_appr_val'])) || null;
+          enrichedData.tot_market_val = parseFloat(pickAttr(attrs, ['total_market_val', 'tot_market_val'])) || null;
+          enrichedData.land_val = parseFloat(pickAttr(attrs, ['land_value', 'land_val'])) || null;
+          enrichedData.imprv_val = parseFloat(pickAttr(attrs, ['impr_value', 'bld_value', 'imprv_val', 'improvement_value'])) || null;
+          enrichedData.taxable_value = parseFloat(pickAttr(attrs, ['tax_value', 'taxable_value', 'tot_assessed_val'])) || null;
           
           // ⭐ NEW: Extract building details
           enrichedData.bldg_sqft = parseFloat(pickAttr(attrs, ['bldg_sqft', 'tot_living_area', 'building_sqft'])) || null;
@@ -2331,19 +2332,32 @@ serve(async (req) => {
           
           // ⭐ NEW: Extract location details
           enrichedData.subdivision = pickAttr(attrs, ['subdivision', 'subdivsn']) || null;
-          enrichedData.block = pickAttr(attrs, ['block']) || null;
-          enrichedData.lot = pickAttr(attrs, ['lot']) || null;
+          enrichedData.block = pickAttr(attrs, ['BLK_NUM', 'block']) || null;
+          enrichedData.lot = pickAttr(attrs, ['LOT_NUM', 'lot']) || null;
           
           console.log('⭐ HCAD valuation data extracted:', {
             tot_appr_val: enrichedData.tot_appr_val,
             tot_market_val: enrichedData.tot_market_val,
             land_val: enrichedData.land_val,
             imprv_val: enrichedData.imprv_val,
+            taxable_value: enrichedData.taxable_value,
             bldg_sqft: enrichedData.bldg_sqft,
             year_built: enrichedData.year_built,
             state_class: enrichedData.state_class,
-            subdivision: enrichedData.subdivision
+            subdivision: enrichedData.subdivision,
+            block: enrichedData.block,
+            lot: enrichedData.lot
           });
+          
+          console.log('✅ Field Name Mapping Fix Applied - Raw HCAD fields available:', 
+            Object.keys(attrs).filter(k => 
+              k.toLowerCase().includes('val') || 
+              k.toLowerCase().includes('blk') || 
+              k.toLowerCase().includes('lot') ||
+              k.toLowerCase().includes('appr') ||
+              k.toLowerCase().includes('tax')
+            )
+          );
           
           // Store HCAD selection metadata
           apiMeta.hcad_parcel = {
