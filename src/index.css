@@ -191,6 +191,57 @@ All colors MUST be HSL.
     letter-spacing: -0.005em;
   }
   
+  /* Design System Typography Scale */
+  .text-h1 {
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    font-size: 48px;
+    line-height: 56px;
+    font-weight: 600; /* Satoshi SemiBold */
+    letter-spacing: -0.02em;
+  }
+
+  .text-h2 {
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    font-size: 32px;
+    line-height: 40px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .text-h3 {
+    font-family: 'Satoshi', 'Inter', sans-serif;
+    font-size: 24px;
+    line-height: 32px;
+    font-weight: 500; /* Satoshi Medium */
+    letter-spacing: -0.01em;
+  }
+
+  .text-body-l {
+    font-family: 'Inter', sans-serif;
+    font-size: 18px;
+    line-height: 28px;
+    font-weight: 400;
+  }
+
+  .text-body-s {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 22px;
+    font-weight: 400;
+  }
+  
+  /* Responsive Typography */
+  @media (max-width: 768px) {
+    .text-h1 {
+      font-size: 36px;
+      line-height: 44px;
+    }
+    .text-h2 {
+      font-size: 28px;
+      line-height: 36px;
+    }
+  }
+  
   /* Modern glassmorphism effects */
   .glass-card {
     background: var(--gradient-card);
@@ -221,6 +272,19 @@ All colors MUST be HSL.
   .hover-lift:hover {
     transform: translateY(-4px);
     box-shadow: var(--shadow-strong);
+  }
+  
+  /* Design System Transitions */
+  .transition-design {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); /* ease-in-out cubic */
+  }
+  
+  .hover-scale {
+    transition: var(--transition-fast);
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.02);
   }
   
   .fade-in-up {

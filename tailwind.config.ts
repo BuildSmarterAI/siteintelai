@@ -17,6 +17,11 @@ export default {
         '18': '4.5rem',
         '112': '28rem',
         '128': '32rem',
+        // Design System Spacing Tokens
+        'xs': '4px',
+        'sm': '8px',
+        'md': '16px',
+        'lg': '32px',
       },
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
@@ -26,9 +31,12 @@ export default {
         'medium': '0 4px 16px rgba(0, 0, 0, 0.12)',
         'strong': '0 8px 24px rgba(0, 0, 0, 0.16)',
         'inner-focus': 'inset 0 0 0 2px hsl(var(--ring))',
+        'elev': '0 4px 16px rgba(0, 0, 0, 0.08)', // Design System elevation
       },
       transitionDuration: {
-        '250': '250ms',
+        '100': '100ms',  // Design System: Hover states
+        '180': '180ms',  // Design System: Min standard animation
+        '250': '250ms',  // Design System: Max standard animation
         '350': '350ms',
       },
       colors: {
@@ -115,11 +123,12 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Status colors - WCAG 2.2 compliant (Design System Functional UI)
         status: {
-          success: "hsl(var(--status-success))",
-          warning: "hsl(var(--status-warning))",
-          error: "hsl(var(--status-error))",
-          info: "hsl(var(--status-info))",
+          success: "hsl(var(--status-success))",  // Feasibility "A" band
+          warning: "hsl(var(--status-warning))",  // Feasibility "B" band
+          error: "hsl(var(--status-error))",      // Feasibility "C" band
+          info: "hsl(var(--status-info))",        // Neutral data annotations
           pending: "hsl(var(--status-pending))",
         },
       },
