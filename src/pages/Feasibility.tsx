@@ -9,16 +9,10 @@ const Feasibility = () => {
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-            AI Feasibility Reports for <span className="text-[#FF7A00]">Commercial Real Estate</span>
+            AI-Powered Due Diligence Feasibility for <span className="text-[#FF7A00]">Commercial Real Estate</span>
           </h1>
-          <h2 className="text-2xl font-semibold text-white/90 mb-6 leading-relaxed">
-            Replace $10K, 3-Month Consultant Studies with 10-Minute AI Reports
-          </h2>
-          <p className="text-xl text-white/80 mb-4 leading-relaxed">
-            Get lender-ready feasibility reports in 10 minutes for $795. Zoning, flood & utilities data from FEMA, ArcGIS, and TxDOT.
-          </p>
-          <p className="text-lg text-white/70 mb-12">
-            Verified intelligence that transforms complex public, municipal, and construction data into actionable feasibility insights—helping you make faster, safer, and more profitable decisions.
+          <p className="text-xl text-white/90 mb-12 leading-relaxed">
+            Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — the only AI platform that delivers cited, lender-ready reports instantly.
           </p>
         </div>
       </div>
@@ -128,7 +122,7 @@ const Feasibility = () => {
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg"
             >
-              <Link to="/application?step=2">Run a Feasibility QuickCheck →</Link>
+              <Link to="/application?step=2">Run Free QuickCheck →</Link>
             </Button>
             <p className="mt-4 text-white/60 text-sm">
               10-minute turnaround · Verified from 20+ data sources
