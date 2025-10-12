@@ -9,10 +9,13 @@ const Feasibility = () => {
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
-            Instant AI Feasibility Reports – <span className="text-[#FF7A00]">10 Minutes to Lender-Ready Results</span>
+            AI Feasibility Reports for <span className="text-[#FF7A00]">Commercial Real Estate</span>
           </h1>
+          <h2 className="text-2xl font-semibold text-white/90 mb-6 leading-relaxed">
+            Replace $10K, 3-Month Consultant Studies with 10-Minute AI Reports
+          </h2>
           <p className="text-xl text-white/80 mb-4 leading-relaxed">
-            Replace $10K consultant studies and 3-month wait times with AI-powered reports backed by FEMA, ArcGIS, and TxDOT data.
+            Get lender-ready feasibility reports in 10 minutes for $795. Zoning, flood & utilities data from FEMA, ArcGIS, and TxDOT.
           </p>
           <p className="text-lg text-white/70 mb-12">
             Verified intelligence that transforms complex public, municipal, and construction data into actionable feasibility insights—helping you make faster, safer, and more profitable decisions.
@@ -34,22 +37,22 @@ const Feasibility = () => {
               {[
                 {
                   icon: Map,
-                  title: "Geospatial Intelligence",
+                  title: "Zoning & Floodplain Analysis",
                   description: "Zoning, flood zones, easements, and environmental constraints verified from municipal sources.",
                 },
                 {
                   icon: DollarSign,
-                  title: "Cost Intelligence",
+                  title: "Cost & Timeline Estimates",
                   description: "Construction cost benchmarks, material prices, and labor rates calibrated from real projects.",
                 },
                 {
                   icon: Shield,
-                  title: "Risk Analysis",
+                  title: "Risk & Compliance Assessment",
                   description: "Identify constraints, permitting challenges, and regulatory hurdles before they become problems.",
                 },
                 {
                   icon: FileText,
-                  title: "Verified Documentation",
+                  title: "Utilities & Infrastructure Data",
                   description: "Every data point traced back to its source—complete transparency and audit trail.",
                 },
               ].map((item, idx) => (
@@ -87,6 +90,34 @@ const Feasibility = () => {
                   </li>
                 ))}
               </ol>
+            </div>
+          </section>
+
+          {/* Social Proof */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-white mb-8 text-center">
+              Trusted by <span className="text-[#FF7A00]">Developers, Lenders & Investors</span> Across Texas
+            </h2>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
+              <div className="grid md:grid-cols-3 gap-8 text-center">
+                <div>
+                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">20+</div>
+                  <div className="text-white/80">Verified Data Sources</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">10 min</div>
+                  <div className="text-white/80">Average Turnaround</div>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">$795</div>
+                  <div className="text-white/80">Starting Price</div>
+                </div>
+              </div>
+              <div className="mt-6 pt-6 border-t border-white/10 text-center">
+                <p className="text-white/70">
+                  Built by Texas commercial builders. Backed by FEMA, ArcGIS, TxDOT & EPA data.
+                </p>
+              </div>
             </div>
           </section>
 
