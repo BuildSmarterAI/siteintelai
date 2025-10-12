@@ -18,6 +18,7 @@ import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Developers from "./pages/industries/Developers";
+import Lenders from "./pages/industries/Lenders";
 import Blog from "./pages/resources/Blog";
 
 const queryClient = new QueryClient();
@@ -43,7 +44,7 @@ const App = () => (
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/industries/developers" element={<Developers />} />
-            <Route path="/industries/lenders" element={<Developers />} />
+            <Route path="/industries/lenders" element={<Lenders />} />
             <Route path="/industries/design-build" element={<Developers />} />
             <Route path="/industries/municipalities" element={<Developers />} />
             <Route path="/resources/blog" element={<Blog />} />
