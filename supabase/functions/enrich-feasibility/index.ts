@@ -668,6 +668,188 @@ function inferDrainageFromSoilSeries(soilSeries: string | null): string | null {
   return null;
 }
 
+// ============================================
+// PHASE 3D: Texas Property Classification Lookup Functions
+// ============================================
+
+// Maps state_class to broad property categories
+function getPropertyCategory(stateClass: string | null): string | null {
+  if (!stateClass) return null;
+  
+  const categoryMap: Record<string, string> = {
+    // A-series: Real Property (Residential)
+    'A1': 'Residential', 'A2': 'Residential', 'A3': 'Residential',
+    
+    // B-series: Multi-Family Residential
+    'B1': 'Multi-Family', 'B2': 'Multi-Family', 'B3': 'Multi-Family', 'B4': 'Multi-Family',
+    
+    // C-series: Vacant Lots/Tracts
+    'C1': 'Vacant Land', 'C2': 'Vacant Land',
+    
+    // D-series: Rural/Agricultural
+    'D1': 'Rural Land', 'D2': 'Farm/Ranch',
+    
+    // E-series: Non-Qualified Agricultural
+    'E1': 'Rural Land', 'E2': 'Rural Land', 'E3': 'Rural Land', 'E4': 'Rural Land',
+    
+    // F-series: Commercial Real Property
+    'F1': 'Commercial', 'F2': 'Commercial',
+    
+    // G-series: Oil/Gas/Minerals
+    'G': 'Industrial',
+    
+    // J-series: Utilities
+    'J1': 'Utilities', 'J2': 'Utilities', 'J3': 'Utilities', 'J4': 'Utilities',
+    'J5': 'Utilities', 'J6': 'Utilities', 'J7': 'Utilities', 'J8': 'Utilities',
+    
+    // L-series: Personal Property
+    'L1': 'Personal Property', 'L2': 'Personal Property',
+    
+    // M-series: Mobile Homes/Industrial Property
+    'M1': 'Mobile Home', 'M2': 'Industrial', 'M3': 'Industrial',
+    
+    // O-series: Residential Inventory
+    'O': 'Residential Inventory',
+    
+    // S-series: Special Inventory
+    'S': 'Special Inventory',
+    
+    // X-series: Exempt Properties
+    'XA': 'Exempt', 'XB': 'Exempt', 'XC': 'Exempt', 'XD': 'Exempt', 'XE': 'Exempt',
+    'XF': 'Exempt', 'XG': 'Exempt', 'XL': 'Exempt', 'XN': 'Exempt', 'XR': 'Exempt',
+    'XS': 'Exempt', 'XV': 'Exempt', 'XX': 'Exempt'
+  };
+  
+  return categoryMap[stateClass.toUpperCase()] || null;
+}
+
+// Maps state_class + land_use_code to detailed descriptions
+function getLandUseDescription(stateClass: string | null, landUseCode: string | null): string | null {
+  if (!stateClass) return null;
+  
+  const stateClassUpper = stateClass.toUpperCase();
+  
+  // Base descriptions for each state class
+  const baseDescriptions: Record<string, string> = {
+    'A1': 'Single Family Residence',
+    'A2': 'Single Family Residence with Nominal Acreage (1-10 acres)',
+    'A3': 'Single Family Residence with Acreage (10+ acres)',
+    'B1': 'Multi-Family - Apartments/Condos (2-4 units)',
+    'B2': 'Multi-Family - Apartments/Condos (5+ units)',
+    'B3': 'Multi-Family - Apartments/Condos (High-Density)',
+    'B4': 'Multi-Family - Timeshare/Condominium Hotels',
+    'C1': 'Vacant Lot/Tract (Platted)',
+    'C2': 'Vacant Lot/Tract (Unplatted)',
+    'D1': 'Qualified Agricultural Land (Open Space)',
+    'D2': 'Qualified Agricultural Land (Timber)',
+    'E1': 'Non-Qualified Agricultural Land (Rural)',
+    'E2': 'Non-Qualified Agricultural Land (Farm/Ranch)',
+    'E3': 'Non-Qualified Agricultural Land (Recreational)',
+    'E4': 'Non-Qualified Agricultural Land (Transition)',
+    'F1': 'Commercial Vacant Land',
+    'F2': 'Commercial Improved Property',
+    'G': 'Oil, Gas, and Other Mineral Reserves',
+    'J1': 'Utility Real Property (Electric)',
+    'J2': 'Utility Real Property (Gas)',
+    'J3': 'Utility Real Property (Telephone/Telegraph)',
+    'J4': 'Utility Real Property (Water)',
+    'J5': 'Utility Real Property (Railroad)',
+    'J6': 'Utility Real Property (Pipeline)',
+    'J7': 'Utility Real Property (Cable TV)',
+    'J8': 'Utility Real Property (Other)',
+    'L1': 'Personal Property - Tangible',
+    'L2': 'Personal Property - Intangible',
+    'M1': 'Mobile Home - Owner-Occupied',
+    'M2': 'Industrial Personal Property',
+    'M3': 'Industrial Real Property (Manufacturing)',
+    'O': 'Residential Inventory (Developer-Owned)',
+    'S': 'Special Inventory (Business)',
+    'XA': 'Exempt - Cemeteries',
+    'XB': 'Exempt - Youth Development',
+    'XC': 'Exempt - Religious Organization',
+    'XD': 'Exempt - Public Property',
+    'XE': 'Exempt - Charitable/Educational',
+    'XF': 'Exempt - Water/Wastewater',
+    'XG': 'Exempt - Pollution Control',
+    'XL': 'Exempt - Public Health',
+    'XN': 'Exempt - Income-Producing Exempt',
+    'XR': 'Exempt - Recreational/Park',
+    'XS': 'Exempt - Fraternal Organization',
+    'XV': 'Exempt - Government/Religious',
+    'XX': 'Exempt - Other'
+  };
+  
+  let description = baseDescriptions[stateClassUpper] || `Property Class: ${stateClass}`;
+  
+  // Append land use code details if available (for F1/F2 commercial properties)
+  if (landUseCode && (stateClassUpper === 'F1' || stateClassUpper === 'F2')) {
+    const codeNum = parseInt(landUseCode);
+    
+    if (codeNum >= 8000 && codeNum <= 8099) {
+      description += ' - Neighborhood Section 1';
+    } else if (codeNum >= 8100 && codeNum <= 8199) {
+      description += ' - Community Section 2';
+    } else if (codeNum >= 8200 && codeNum <= 8299) {
+      description += ' - Regional Section 3';
+    } else if (codeNum >= 8300 && codeNum <= 8399) {
+      description += ' - Office/Showroom';
+    } else if (codeNum >= 8400 && codeNum <= 8499) {
+      description += ' - Warehouse/Industrial';
+    } else if (codeNum >= 8500 && codeNum <= 8599) {
+      description += ' - Special Purpose';
+    }
+  }
+  
+  return description;
+}
+
+// Maps state_class + land_use_code to business-friendly prop_type
+function getPropType(stateClass: string | null, landUseCode: string | null): string | null {
+  if (!stateClass) return null;
+  
+  const stateClassUpper = stateClass.toUpperCase();
+  
+  // Map to business-friendly types
+  const propTypeMap: Record<string, string> = {
+    'A1': 'Single Family', 'A2': 'Single Family', 'A3': 'Single Family',
+    'B1': 'Multi-Family', 'B2': 'Multi-Family', 'B3': 'Multi-Family', 'B4': 'Multi-Family',
+    'C1': 'Land', 'C2': 'Land',
+    'D1': 'Land', 'D2': 'Land',
+    'E1': 'Land', 'E2': 'Land', 'E3': 'Land', 'E4': 'Land',
+    'F1': 'Land',
+    'F2': 'Commercial',
+    'G': 'Industrial',
+    'M3': 'Industrial',
+    'O': 'Residential',
+    'S': 'Commercial'
+  };
+  
+  // For F2 (improved commercial), refine based on land_use_code
+  if (stateClassUpper === 'F2' && landUseCode) {
+    const codeNum = parseInt(landUseCode);
+    if (codeNum >= 8000 && codeNum <= 8299) return 'Retail';
+    if (codeNum >= 8300 && codeNum <= 8399) return 'Office';
+    if (codeNum >= 8400 && codeNum <= 8499) return 'Warehouse';
+    if (codeNum >= 8500 && codeNum <= 8599) return 'Special Purpose';
+  }
+  
+  return propTypeMap[stateClassUpper] || null;
+}
+
+// Extracts exemption code from state_class (X-series)
+function getExemptionCode(stateClass: string | null): string | null {
+  if (!stateClass) return null;
+  
+  const stateClassUpper = stateClass.toUpperCase();
+  
+  // If it starts with X, it's an exemption
+  if (stateClassUpper.startsWith('X')) {
+    return stateClassUpper;
+  }
+  
+  return null;
+}
+
 // Helper function to calculate distance in miles using haversine
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3959; // Earth's radius in miles
@@ -2366,6 +2548,35 @@ serve(async (req) => {
           enrichedData.subdivision = pickAttr(attrs, ['subdivision', 'subdivsn']) || null;
           enrichedData.block = pickAttr(attrs, ['BLK_NUM', 'block']) || null;
           enrichedData.lot = pickAttr(attrs, ['LOT_NUM', 'lot']) || null;
+          
+          // ⭐ PHASE 3D: Decode Texas Property Classification Codes
+          console.log('🔍 Phase 3D: Decoding property classification from state_class and land_use_code...');
+          
+          if (enrichedData.state_class) {
+            enrichedData.property_category = getPropertyCategory(enrichedData.state_class);
+            enrichedData.land_use_description = getLandUseDescription(enrichedData.state_class, enrichedData.land_use_code);
+            
+            // Autofill prop_type if not already set
+            if (!enrichedData.prop_type) {
+              enrichedData.prop_type = getPropType(enrichedData.state_class, enrichedData.land_use_code);
+            }
+            
+            // Autofill exemption_code if applicable
+            if (!enrichedData.exemption_code) {
+              enrichedData.exemption_code = getExemptionCode(enrichedData.state_class);
+            }
+            
+            console.log('✅ Phase 3D classification decoded:', {
+              state_class: enrichedData.state_class,
+              land_use_code: enrichedData.land_use_code,
+              property_category: enrichedData.property_category,
+              land_use_description: enrichedData.land_use_description,
+              prop_type: enrichedData.prop_type,
+              exemption_code: enrichedData.exemption_code
+            });
+          } else {
+            console.log('⚠️ Phase 3D: No state_class available for classification decoding');
+          }
           
           console.log('⭐ HCAD valuation data extracted:', {
             tot_appr_val: enrichedData.tot_appr_val,

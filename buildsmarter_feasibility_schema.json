@@ -70,6 +70,14 @@
             "foreign_trade_zone": "BOOLEAN",
             "average_permit_time_months": "NUMERIC"
         },
+        "Property_Classification": {
+            "property_category": "TEXT",
+            "land_use_description": "TEXT",
+            "state_class": "TEXT",
+            "land_use_code": "TEXT",
+            "prop_type": "TEXT",
+            "exemption_code": "TEXT"
+        },
         "AI_Outputs": {
             "executive_summary_output": "TEXT",
             "property_overview_output": "TEXT",

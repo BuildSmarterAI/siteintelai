@@ -84,6 +84,7 @@ export type Database = {
           imprv_val: number | null
           known_risks: string[] | null
           land_use_code: string | null
+          land_use_description: string | null
           land_val: number | null
           legal_dscr_1: string | null
           legal_dscr_2: string | null
@@ -118,6 +119,7 @@ export type Database = {
           project_type: string[]
           prop_type: string | null
           property_address: Json | null
+          property_category: string | null
           property_overview_output: string | null
           prototype_requirements: string | null
           quality_level: string
@@ -238,6 +240,7 @@ export type Database = {
           imprv_val?: number | null
           known_risks?: string[] | null
           land_use_code?: string | null
+          land_use_description?: string | null
           land_val?: number | null
           legal_dscr_1?: string | null
           legal_dscr_2?: string | null
@@ -272,6 +275,7 @@ export type Database = {
           project_type: string[]
           prop_type?: string | null
           property_address?: Json | null
+          property_category?: string | null
           property_overview_output?: string | null
           prototype_requirements?: string | null
           quality_level: string
@@ -392,6 +396,7 @@ export type Database = {
           imprv_val?: number | null
           known_risks?: string[] | null
           land_use_code?: string | null
+          land_use_description?: string | null
           land_val?: number | null
           legal_dscr_1?: string | null
           legal_dscr_2?: string | null
@@ -426,6 +431,7 @@ export type Database = {
           project_type?: string[]
           prop_type?: string | null
           property_address?: Json | null
+          property_category?: string | null
           property_overview_output?: string | null
           prototype_requirements?: string | null
           quality_level?: string
