@@ -111,7 +111,7 @@ export const Header = () => {
         )}
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-8" style={{ minHeight: '20px', fontSizeAdjust: '0.5' }}>
           <NavLink to="/feasibility" className={navLinkClass}>
             Feasibility
           </NavLink>
