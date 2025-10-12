@@ -594,12 +594,12 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
       }
     }
     
-    // Fallback: Try NRCS Soil Survey Geographic (SSURGO) REST service
-    console.log('Trying NRCS SSURGO REST service fallback');
+    // Fallback: Try NRCS Soil Survey Geographic (SSURGO) WFS service
+    console.log('Trying NRCS SSURGO WFS service fallback for drainage class');
     const ssurgoUrl = `https://sdmdataaccess.nrcs.usda.gov/Spatial/SDMWGS84Geographic.wfs`;
     const ssurgoParams = new URLSearchParams({
       service: 'WFS',
-      version: '1.1.0',
+      version: '2.0.0',
       request: 'GetFeature',
       typeName: 'MapunitPoly',
       outputFormat: 'application/json',
@@ -607,7 +607,9 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
       bbox: `${lng-0.001},${lat-0.001},${lng+0.001},${lat+0.001},EPSG:4326`
     });
     
-    const ssurgoResponse = await fetch(`${ssurgoUrl}?${ssurgoParams}`);
+    const ssurgoResponse = await fetch(`${ssurgoUrl}?${ssurgoParams}`, {
+      headers: { 'Accept': 'application/json' }
+    });
     const ssurgoText = await ssurgoResponse.text();
     
     if (ssurgoText && !ssurgoText.trim().startsWith('<')) {
@@ -618,13 +620,13 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
           const soilData = {
             soil_series: props.muname || props.MapUnitName || null,
             soil_slope_percent: props.slope_r || props.slopegradwta || null,
-            soil_drainage_class: props.drainagecl || props.drclassdcd || null
+            soil_drainage_class: props.drainagecl || props.drclassdcd || props.drainagecl_r || null
           };
-          console.log('Soil data from SSURGO fallback:', soilData);
+          console.log('✅ Soil data from SSURGO WFS fallback:', soilData);
           return soilData;
         }
       } catch (parseError) {
-        console.error('Failed to parse SSURGO response:', parseError);
+        console.error('Failed to parse SSURGO WFS response:', parseError);
       }
     }
     
@@ -2520,7 +2522,23 @@ serve(async (req) => {
       dataFlags.push('zoning_not_available');
     }
 
-    // Step 4: Query FEMA flood data (Floodplain & Elevation - Part 1)
+    // Step 4a: Fetch elevation data first (needed for BFE estimation)
+    console.log('Fetching elevation data...');
+    try {
+      const elevation = await fetchElevation(geoLat, geoLng);
+      if (elevation !== null) {
+        enrichedData.elevation = elevation;
+        console.log('✅ Elevation data fetched successfully:', elevation);
+      } else {
+        console.log('⚠️ Elevation API returned null');
+        dataFlags.push('elevation_missing');
+      }
+    } catch (elevError) {
+      console.error('Elevation fetch failed:', elevError);
+      dataFlags.push('elevation_missing');
+    }
+
+    // Step 4b: Query FEMA flood data (now that we have elevation for BFE estimation)
     console.log('Fetching FEMA flood zone data...');
     
     try {
@@ -2584,6 +2602,16 @@ serve(async (req) => {
           enrichedData.base_flood_elevation = null; // Intentionally null - not applicable
           enrichedData.base_flood_elevation_source = 'FEMA NFHL - Not in SFHA';
           
+          // ⭐ PHASE 2: Estimate conservative BFE for planning purposes
+          if (enrichedData.elevation && typeof enrichedData.elevation === 'number') {
+            const estimatedBFE = enrichedData.elevation + 2; // Conservative 2-foot freeboard
+            enrichedData.base_flood_elevation = estimatedBFE;
+            enrichedData.base_flood_elevation_source = `Estimated (Ground Elevation + 2 ft freeboard) - Not in FEMA SFHA`;
+            console.log(`✅ Estimated BFE for non-SFHA property: ${estimatedBFE.toFixed(2)} ft (${enrichedData.elevation.toFixed(2)} + 2 ft)`);
+          } else {
+            console.log('⚠️ Cannot estimate BFE - ground elevation not yet available');
+          }
+          
           // Use more informative flag
           dataFlags.push('fema_unmapped_zone'); // Changed from 'floodplain_missing'
         }
@@ -2616,22 +2644,6 @@ serve(async (req) => {
       dataFlags.push(ERROR_FLAGS.FLOOD_HISTORY_ERROR);
       apiMeta.openfema_disasters = { error: error.message };
       enrichedData.historical_flood_events = [];
-    }
-
-    // Step 4 continued: Fetch elevation data (Floodplain & Elevation - Part 2)
-    console.log('Fetching elevation data...');
-    try {
-      const elevation = await fetchElevation(geoLat, geoLng);
-      if (elevation !== null) {
-        enrichedData.elevation = elevation;
-        console.log('Elevation data fetched successfully:', elevation);
-      } else {
-        console.log('Elevation API returned null');
-        dataFlags.push('elevation_missing');
-      }
-    } catch (elevError) {
-      console.error('Elevation fetch failed:', elevError);
-      dataFlags.push('elevation_missing');
     }
 
     // Generate map URLs for topography and aerial imagery
