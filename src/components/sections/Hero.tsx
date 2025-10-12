@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Layers, DollarSign, ShieldCheck, BarChart3, Building2, FileCheck } from "lucide-react";
-import buildSmarterLogo from "@/assets/buildsmarter-logo-new.png";
+import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
 import aerialPropertySite from "@/assets/aerial-property-site.jpg";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCounter } from "@/hooks/useCounter";

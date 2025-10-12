@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import buildSmarterLogo from "@/assets/buildsmarter-logo-new.png";
+import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
 
 export const Footer = () => {
   const footerSections = [

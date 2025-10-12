@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useSearchParams } from "react-router-dom";
 import { motion, useScroll } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu } from "lucide-react";
-import buildSmarterLogo from "@/assets/buildsmarter-logo-new.png";
+import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
 import { AuthButton } from "@/components/AuthButton";
 import {
   DropdownMenu,

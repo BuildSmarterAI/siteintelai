@@ -378,7 +378,7 @@ export default function ReportViewer() {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <img src="/src/assets/buildsmarter-logo-new.png" alt="SiteIntel" className="h-12" />
+              <img src="/src/assets/buildsmarter-logo-small.png" alt="SiteIntel" className="h-12" />
               <div>
                 <h1 className="text-2xl font-headline">Feasibility Report</h1>
                 <p className="text-sm text-muted-foreground">

@@ -111,7 +111,7 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <img 
-            src="/src/assets/buildsmarter-logo-new.png" 
+            src="/src/assets/buildsmarter-logo-small.png" 
             alt="SiteIntel" 
             className="h-16 mx-auto mb-4"
           />
