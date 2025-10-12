@@ -440,9 +440,7 @@ export const Hero = () => {
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
                 variants={headlineVariants}
               >
-                SiteIntel™ Feasibility.
-                <br />
-                <span className="text-[#FF7A00]">Verified Intelligence</span> for Every Site, Every Cost, Every Decision.
+                AI-Powered Due Diligence Feasibility for <span className="text-[#FF7A00]">Commercial Real Estate</span>
               </motion.h1>
 
               {/* Subheadline */}
@@ -450,7 +448,7 @@ export const Hero = () => {
                 className="text-lg md:text-xl lg:text-2xl text-[#CBD5E1]/90 leading-relaxed mb-10 font-body"
                 variants={subheadVariants}
               >
-                SiteIntel™ Feasibility transforms complex public, municipal, and construction data into a single verified source of truth—helping you make faster, safer, and more profitable decisions.
+                Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — the only AI platform that delivers cited, lender-ready reports instantly.
               </motion.p>
 
               {/* CTA Group */}
