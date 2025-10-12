@@ -636,6 +636,36 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
   }
 }
 
+// Helper function to infer soil drainage class from soil series name
+function inferDrainageFromSoilSeries(soilSeries: string | null): string | null {
+  if (!soilSeries) return null;
+  
+  const seriesLower = soilSeries.toLowerCase();
+  
+  // Common Texas soil drainage patterns
+  const drainagePatterns: Record<string, string[]> = {
+    'somewhat poorly drained': ['cyfair', 'lake charles', 'edna', 'hockley'],
+    'well drained': ['houston black', 'laredo', 'olton', 'pullman'],
+    'moderately well drained': ['denton', 'ellis', 'austin'],
+    'poorly drained': ['beaumont', 'harris', 'league', 'tracy'],
+    'excessively drained': ['springer', 'eufaula', 'bastrop', 'windthorst']
+  };
+  
+  // Check for urban land complex (common in developed areas)
+  if (seriesLower.includes('urban land')) {
+    return 'Variable - Urban land complex (estimated: moderately well to somewhat poorly drained)';
+  }
+  
+  // Match against known patterns
+  for (const [drainage, patterns] of Object.entries(drainagePatterns)) {
+    if (patterns.some(pattern => seriesLower.includes(pattern))) {
+      return `${drainage.charAt(0).toUpperCase() + drainage.slice(1)} (estimated from soil series)`;
+    }
+  }
+  
+  return null;
+}
+
 // Helper function to calculate distance in miles using haversine
 function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3959; // Earth's radius in miles
@@ -2547,8 +2577,15 @@ serve(async (req) => {
           });
         } else {
           apiMeta.fema_nfhl.record_count = 0;
-          console.log('No flood zone features found at this location');
-          dataFlags.push('floodplain_missing');
+          console.log('Property not located in FEMA Special Flood Hazard Area (SFHA)');
+          
+          // Set explicit "Not in SFHA" indicators instead of null
+          enrichedData.floodplain_zone = 'Zone X or Unzoned';
+          enrichedData.base_flood_elevation = null; // Intentionally null - not applicable
+          enrichedData.base_flood_elevation_source = 'FEMA NFHL - Not in SFHA';
+          
+          // Use more informative flag
+          dataFlags.push('fema_unmapped_zone'); // Changed from 'floodplain_missing'
         }
       }, 3, [500, 1000, 2000], 'FEMA NFHL query');
       
@@ -2646,6 +2683,17 @@ serve(async (req) => {
       const soilData = await fetchSoilData(geoLat, geoLng);
       if (soilData.soil_series || soilData.soil_drainage_class || soilData.soil_slope_percent) {
         Object.assign(enrichedData, soilData);
+        
+        // ⭐ NEW: Infer drainage class if missing from API
+        if (enrichedData.soil_series && !enrichedData.soil_drainage_class) {
+          const inferredDrainage = inferDrainageFromSoilSeries(enrichedData.soil_series);
+          if (inferredDrainage) {
+            enrichedData.soil_drainage_class = inferredDrainage;
+            console.log('✅ Inferred soil drainage class:', inferredDrainage);
+          } else {
+            console.log('⚠️ Could not infer drainage class from soil series');
+          }
+        }
       } else {
         dataFlags.push(ERROR_FLAGS.SOIL_API_ERROR);
       }
