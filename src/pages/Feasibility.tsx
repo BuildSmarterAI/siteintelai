@@ -1,23 +1,35 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { FileText, Shield, DollarSign, Map } from "lucide-react";
+import AuthorityBadges from "@/components/sections/AuthorityBadges";
 
 const Feasibility = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold text-white mb-6">
-            SiteIntel™ <span className="text-[#FF7A00]">Feasibility</span>
+          <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+            Instant AI Feasibility Reports – <span className="text-[#FF7A00]">10 Minutes to Lender-Ready Results</span>
           </h1>
-          <p className="text-xl text-white/80 mb-12 leading-relaxed">
-            Verified intelligence that transforms complex public, municipal, and construction data
-            into actionable feasibility insights—helping you make faster, safer, and more profitable decisions.
+          <p className="text-xl text-white/80 mb-4 leading-relaxed">
+            Replace $10K consultant studies and 3-month wait times with AI-powered reports backed by FEMA, ArcGIS, and TxDOT data.
           </p>
+          <p className="text-lg text-white/70 mb-12">
+            Verified intelligence that transforms complex public, municipal, and construction data into actionable feasibility insights—helping you make faster, safer, and more profitable decisions.
+          </p>
+        </div>
+      </div>
 
+      {/* Authority Badges */}
+      <AuthorityBadges />
+
+      <div className="container mx-auto px-6 py-16">
+        <div className="max-w-4xl mx-auto">
           {/* What's Inside the Report */}
           <section className="mb-16" id="reports">
-            <h2 className="text-3xl font-bold text-white mb-8">What's Inside the Report</h2>
+            <h2 className="text-3xl font-bold text-white mb-8">
+              What's Inside Your <span className="text-[#06B6D4]">Commercial Real Estate Feasibility Report</span>
+            </h2>
             <div className="grid md:grid-cols-2 gap-6">
               {[
                 {
@@ -55,7 +67,9 @@ const Feasibility = () => {
 
           {/* Verification Process */}
           <section className="mb-16">
-            <h2 className="text-3xl font-bold text-white mb-8">Verification Process</h2>
+            <h2 className="text-3xl font-bold text-white mb-8">
+              AI-Powered Feasibility Analysis Process – <span className="text-[#06B6D4]">Zoning, Floodplain & Utilities</span>
+            </h2>
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
               <ol className="space-y-6">
                 {[
