@@ -203,10 +203,12 @@ const Lenders = () => {
               className="flex flex-wrap gap-4 justify-center items-center mb-10"
             >
               {[
-                { name: "FEMA", icon: Shield },
+                { name: "FEMA NFHL", icon: Shield },
                 { name: "ArcGIS", icon: Layers },
-                { name: "EPA", icon: ShieldCheck },
+                { name: "EPA FRS", icon: ShieldCheck },
                 { name: "TxDOT", icon: Navigation },
+                { name: "USFWS", icon: Droplets },
+                { name: "U.S. Census", icon: Users },
               ].map((source) => (
                 <div key={source.name} className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
                   <source.icon className="w-4 h-4 text-data-cyan" />
