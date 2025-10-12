@@ -10,14 +10,16 @@ import {
   TrendingUp, 
   Zap, 
   ShieldCheck, 
-  Database, 
   Bot, 
   Layers,
   Target,
   Lightbulb,
   Shield,
   CheckCircle,
-  XCircle
+  XCircle,
+  Navigation,
+  Droplets,
+  Users
 } from "lucide-react";
 
 const Developers = () => {
@@ -358,7 +360,7 @@ const Developers = () => {
                   number: 2,
                 },
                 {
-                  icon: Database,
+                  icon: ShieldCheck,
                   title: "Data Integrity",
                   description: "Verified GIS and federal data — no third-party estimates or assumptions.",
                   number: 3,
@@ -431,14 +433,14 @@ const Developers = () => {
               <div className="mb-8">
                 <p className="font-headline text-2xl text-navy text-center mb-6">Powered by Verified Data Sources</p>
                 <div className="flex flex-wrap gap-3 justify-center items-center">
-                  {[
-                    { name: "FEMA NFHL", icon: Shield },
-                    { name: "ArcGIS Parcels", icon: Layers },
-                    { name: "TxDOT Traffic", icon: Database },
-                    { name: "EPA FRS", icon: ShieldCheck },
-                    { name: "USFWS Wetlands", icon: Database },
-                    { name: "U.S. Census ACS", icon: Database },
-                  ].map((source, i) => (
+                {[
+                  { name: "FEMA NFHL", icon: Shield },
+                  { name: "ArcGIS Parcels", icon: Layers },
+                  { name: "TxDOT Traffic", icon: Navigation },
+                  { name: "EPA FRS", icon: ShieldCheck },
+                  { name: "USFWS Wetlands", icon: Droplets },
+                  { name: "U.S. Census ACS", icon: Users },
+                ].map((source, i) => (
                     <motion.div
                       key={source.name}
                       initial={{ opacity: 0, y: 20 }}
