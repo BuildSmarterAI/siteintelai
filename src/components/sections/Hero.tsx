@@ -438,16 +438,39 @@ export const Hero = () => {
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
                 variants={headlineVariants}
               >
-                AI-Powered Due Diligence Feasibility for <span className="text-[#FF7A00]">Commercial Real Estate</span>
+                Instant Feasibility Intelligence for <span className="text-[#FF7A00]">Commercial Real Estate</span>
               </motion.h1>
 
               {/* Subheadline */}
               <motion.p
-                className="text-lg md:text-xl lg:text-2xl text-[#CBD5E1]/90 leading-relaxed mb-10 font-body"
+                className="text-base md:text-xl lg:text-2xl text-[#CBD5E1] leading-relaxed mb-10 font-body"
+                style={{ textShadow: '0 2px 8px rgba(10, 15, 44, 0.8)' }}
                 variants={subheadVariants}
               >
                 SiteIntel AI™ streamlines site selection with instant insights on buildability, zoning, and compliance. Whether you're evaluating a new development or validating a project for financing, we provide the clarity and confidence to make smarter, faster decisions—so you can focus on building what's next.
               </motion.p>
+
+              {/* QuickCheck Widget - Prominent Above CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 1.2 }}
+                className="mb-8"
+              >
+                <QuickCheckWidget />
+              </motion.div>
+
+              {/* Divider with upgrade prompt */}
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#06B6D4]/20"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-[#0A0F2C]/80 text-[#CBD5E1]/70 font-body">
+                    Want Full Details?
+                  </span>
+                </div>
+              </div>
 
               {/* CTA Group */}
               <motion.div variants={ctaVariants}>
@@ -467,7 +490,7 @@ export const Hero = () => {
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <span className="relative z-10">Get Your Full Report</span>
+                    <span className="relative z-10">Get Report in 60 Seconds</span>
                     {/* Shimmer effect */}
                     {!prefersReducedMotion && (
                       <motion.div
@@ -610,15 +633,6 @@ export const Hero = () => {
               >
                 Powered by SiteIntel's proprietary intelligence engine that fuses verified public and municipal datasets into one unified model for true development clarity.
               </motion.p>
-
-              {/* QuickCheck Widget */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.8, duration: 0.4 }}
-              >
-                <QuickCheckWidget />
-              </motion.div>
             </motion.div>
           </div>
         </div>
