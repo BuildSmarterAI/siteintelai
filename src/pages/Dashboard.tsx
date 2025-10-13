@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Clock, CheckCircle } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle, Menu } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
 import { AuthButton } from "@/components/AuthButton";
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { PaymentButton } from "@/components/PaymentButton";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 interface Report {
   id: string;
@@ -120,41 +121,57 @@ export default function Dashboard() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-gradient-to-br from-charcoal/5 to-navy/5">
-        <DashboardSidebar />
+        <div className="hidden md:flex">
+          <DashboardSidebar />
+        </div>
         
         <div className="flex-1 flex flex-col">
           {/* Header */}
-          <header className="bg-white border-b border-charcoal/10 py-6 sticky top-0 z-10">
-            <div className="container mx-auto px-6 flex items-center justify-between">
-              <div>
-                <h1 className="font-headline text-2xl font-bold text-charcoal uppercase tracking-wide">
-                  Your Projects
-                </h1>
-                <p className="text-sm text-charcoal/60 mt-1">
-                  Welcome back, {profile?.full_name || profile?.email}
-                </p>
+          <header className="bg-white border-b border-charcoal/10 py-4 md:py-6 sticky top-0 z-10">
+            <div className="container mx-auto px-4 md:px-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {/* Mobile Menu */}
+                <Sheet>
+                  <SheetTrigger asChild className="md:hidden">
+                    <Button variant="ghost" size="icon">
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[280px] p-0">
+                    <DashboardSidebar />
+                  </SheetContent>
+                </Sheet>
+                
+                <div>
+                  <h1 className="font-headline text-lg md:text-2xl font-bold text-charcoal uppercase tracking-wide">
+                    Your Projects
+                  </h1>
+                  <p className="text-xs md:text-sm text-charcoal/60 mt-1">
+                    Welcome back, {profile?.full_name || profile?.email}
+                  </p>
+                </div>
               </div>
               <AuthButton />
             </div>
           </header>
 
           {/* Main Content */}
-          <main className="flex-1 container mx-auto px-6 py-12">
+          <main className="flex-1 container mx-auto px-4 md:px-6 py-6 md:py-12">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               <div className="lg:col-span-2">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
                   <div>
-                    <h2 className="text-3xl font-headline font-bold text-charcoal">Reports & Applications</h2>
-                    <p className="text-charcoal/60">Manage your feasibility reports and applications</p>
+                    <h2 className="text-2xl md:text-3xl font-headline font-bold text-charcoal">Reports & Applications</h2>
+                    <p className="text-sm text-charcoal/60">Manage your feasibility reports and applications</p>
                   </div>
-                  <div className="flex gap-3">
-                    <PaymentButton type="report" variant="outline">
-                      Buy Single Report ($795)
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <PaymentButton type="report" variant="outline" className="w-full sm:w-auto text-sm">
+                      Buy Report ($795)
                     </PaymentButton>
                     <Button 
                       onClick={() => navigate("/application?step=1")} 
                       size="lg"
-                      className="bg-navy hover:bg-navy/90 text-white"
+                      className="bg-navy hover:bg-navy/90 text-white w-full sm:w-auto"
                     >
                       <Plus className="mr-2 h-5 w-5" />
                       New Application

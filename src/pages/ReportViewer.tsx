@@ -376,28 +376,30 @@ export default function ReportViewer() {
       
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src="/src/assets/buildsmarter-logo-small.png" alt="SiteIntel" className="h-12" />
+        <div className="container mx-auto px-4 md:px-6 py-4">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
+              <img src="/src/assets/buildsmarter-logo-small.png" alt="SiteIntel" className="h-10 md:h-12" />
               <div>
-                <h1 className="text-2xl font-headline">Feasibility Report</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-lg md:text-2xl font-headline">Feasibility Report</h1>
+                <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
                   {report.applications?.formatted_address || 'Property Report'}
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {pdfGenerating && (
-                <Button variant="outline" disabled>
+                <Button variant="outline" disabled className="w-full sm:w-auto">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating PDF...
+                  <span className="hidden sm:inline">Generating PDF...</span>
+                  <span className="sm:hidden">Generating...</span>
                 </Button>
               )}
               {!pdfGenerating && report.pdf_url && (
-                <Button variant="outline" onClick={() => window.open(report.pdf_url!, '_blank')}>
+                <Button variant="outline" onClick={() => window.open(report.pdf_url!, '_blank')} className="w-full sm:w-auto">
                   <Download className="mr-2 h-4 w-4" />
-                  Download PDF
+                  <span className="hidden sm:inline">Download PDF</span>
+                  <span className="sm:hidden">PDF</span>
                 </Button>
               )}
               {!pdfGenerating && !report.pdf_url && pdfError && (
@@ -417,13 +419,16 @@ export default function ReportViewer() {
                       setPdfGenerating(false);
                     }
                   }}
+                  className="w-full sm:w-auto"
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Retry PDF Generation
+                  <span className="hidden sm:inline">Retry PDF Generation</span>
+                  <span className="sm:hidden">Retry PDF</span>
                 </Button>
               )}
-              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-                Back to Dashboard
+              <Button variant="ghost" onClick={() => navigate('/dashboard')} className="w-full sm:w-auto">
+                <span className="hidden sm:inline">Back to Dashboard</span>
+                <span className="sm:hidden">Dashboard</span>
               </Button>
             </div>
           </div>
@@ -431,7 +436,7 @@ export default function ReportViewer() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Limited Preview Section - shown when not authenticated */}
         {showPreview && !showGate && (
           <div className="space-y-8">
@@ -641,7 +646,7 @@ export default function ReportViewer() {
               <MapCanvas
                 center={[report.applications.geo_lat, report.applications.geo_lng]}
                 zoom={13}
-                className="h-96 w-full rounded-lg"
+                className="h-[300px] md:h-96 w-full rounded-lg"
                 employmentCenters={
                   report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
                     ? report.applications.employment_clusters
@@ -1458,13 +1463,13 @@ export default function ReportViewer() {
 
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="zoning">Zoning</TabsTrigger>
-            <TabsTrigger value="flood">Flood Risk</TabsTrigger>
-            <TabsTrigger value="utilities">Utilities</TabsTrigger>
-            <TabsTrigger value="environmental">Environmental</TabsTrigger>
-            <TabsTrigger value="traffic">Traffic & Access</TabsTrigger>
-            <TabsTrigger value="market">Market Demographics</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+            <TabsTrigger value="zoning" className="text-xs md:text-sm">Zoning</TabsTrigger>
+            <TabsTrigger value="flood" className="text-xs md:text-sm">Flood Risk</TabsTrigger>
+            <TabsTrigger value="utilities" className="text-xs md:text-sm">Utilities</TabsTrigger>
+            <TabsTrigger value="environmental" className="text-xs md:text-sm">Environmental</TabsTrigger>
+            <TabsTrigger value="traffic" className="text-xs md:text-sm">Traffic</TabsTrigger>
+            <TabsTrigger value="market" className="text-xs md:text-sm">Market</TabsTrigger>
           </TabsList>
 
           <TabsContent value="zoning" className="mt-6">

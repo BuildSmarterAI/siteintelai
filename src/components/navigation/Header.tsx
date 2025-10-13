@@ -78,25 +78,35 @@ export const Header = () => {
 
         {/* Application Progress Indicator */}
         {isApplicationPage && (
-          <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-                <div
-                  key={step}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    step < currentStep
-                      ? 'bg-[#06B6D4]'
-                      : step === currentStep
-                      ? 'bg-[#06B6D4] w-6'
-                      : 'bg-white/20'
-                  }`}
-                />
-              ))}
+          <>
+            {/* Desktop Progress */}
+            <div className="hidden md:flex items-center gap-3 px-4 py-2 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
+                  <div
+                    key={step}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      step < currentStep
+                        ? 'bg-[#06B6D4]'
+                        : step === currentStep
+                        ? 'bg-[#06B6D4] w-6'
+                        : 'bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-xs font-medium text-white/90">
+                Step {currentStep}/{totalSteps}
+              </span>
             </div>
-            <span className="text-xs font-medium text-white/90">
-              Step {currentStep}/{totalSteps}
-            </span>
-          </div>
+            
+            {/* Mobile Progress */}
+            <div className="flex md:hidden items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 backdrop-blur-sm border border-white/10">
+              <span className="text-xs font-medium text-white/90">
+                Step {currentStep}/{totalSteps}
+              </span>
+            </div>
+          </>
         )}
 
         {/* Desktop Navigation */}

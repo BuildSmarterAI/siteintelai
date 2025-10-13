@@ -58,36 +58,36 @@ export function QuickCheckWidget() {
 
   return (
     <Card className="max-w-2xl mx-auto mt-8 backdrop-blur-xl bg-card/90 border-primary/20 shadow-xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl">
-          <Zap className="text-primary h-6 w-6" />
+      <CardHeader className="px-4 md:px-6">
+        <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
+          <Zap className="text-primary h-5 md:h-6 w-5 md:w-6" />
           Get Your Instant Feasibility Score
         </CardTitle>
-        <CardDescription className="text-base">
+        <CardDescription className="text-sm md:text-base">
           Enter any Texas commercial property address — no login required
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-4 md:px-6">
         <AddressAutocomplete
           value={address}
           onChange={handleAddressSelect}
           placeholder="123 Main St, Houston, TX"
-          className="text-lg"
+          className="text-base md:text-lg"
         />
         <Button
           size="lg"
-          className="w-full"
+          className="w-full min-h-[44px] text-base md:text-lg"
           onClick={handleQuickCheck}
           disabled={isLoading || !address}
         >
           {isLoading ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="mr-2 h-4 md:h-5 w-4 md:w-5 animate-spin" />
               Analyzing Property...
             </>
           ) : (
             <>
-              <Zap className="mr-2 h-5 w-5" />
+              <Zap className="mr-2 h-4 md:h-5 w-4 md:w-5" />
               Run QuickCheck™ (Free)
             </>
           )}
