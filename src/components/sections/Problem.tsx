@@ -10,7 +10,7 @@ export const Problem = () => {
     },
     {
       title: "Infrastructure Surprises", 
-      description: "Inadequate sewer or power capacity can force a $250K+ utility upgrade mid-project.",
+      description: "Inadequate utility infrastructure capacity can force a $250K+ upgrade mid-project.",
       icon: Wrench
     },
     {
@@ -30,10 +30,10 @@ export const Problem = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-16 lg:mb-20">
           <h3 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-4 lg:mb-6">
-            The Risks Hiding in Every CRE Property
+            The Hidden Risks Costing Texas Developers $250K+ Per Project
           </h3>
           <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-4xl mx-auto leading-relaxed">
-            Skipping feasibility quietly erodes IRR, derails schedules, and jeopardizes financing.
+            Without proper feasibility analysis, profit margins shrink, timelines explode, and financing falls through.
           </h4>
         </div>
         
@@ -63,15 +63,49 @@ export const Problem = () => {
           })}
         </div>
 
-        {/* Optional Secondary CTA */}
-        <div className="text-center">
+        {/* Trust Bar */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-4 text-sm text-charcoal/70 font-body">
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-maxx-red"></span>
+              Texas-trained AI
+            </span>
+            <span className="text-charcoal/30">·</span>
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-maxx-red"></span>
+              Lender-validated
+            </span>
+            <span className="text-charcoal/30">·</span>
+            <span className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-maxx-red"></span>
+              60-second delivery
+            </span>
+          </div>
+        </div>
+
+        {/* Dual CTA Strategy */}
+        <div className="text-center space-y-4">
+          <div>
+            <Button 
+              variant="maxx-red" 
+              size="lg"
+              className="text-base px-8 py-4 h-auto font-cta"
+              onClick={() => window.location.href = '/application?step=2'}
+            >
+              Run Free QuickCheck™ (No Login Required)
+            </Button>
+            <p className="text-sm text-charcoal/60 mt-2">
+              Instant feasibility score in 60 seconds
+            </p>
+          </div>
+          
           <Button 
-            variant="maxx-red" 
+            variant="outline" 
             size="lg"
-            className="text-base px-8 py-4 h-auto font-cta"
-            onClick={() => window.location.href = '/application?step=2'}
+            className="text-base px-8 py-4 h-auto font-cta border-charcoal/20 text-charcoal hover:bg-charcoal/5"
+            onClick={() => document.getElementById('solution')?.scrollIntoView({ behavior: 'smooth' })}
           >
-            Start My Feasibility Review
+            See How We Eliminate These Risks
           </Button>
         </div>
       </div>
