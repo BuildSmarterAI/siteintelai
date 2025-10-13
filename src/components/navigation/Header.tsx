@@ -120,9 +120,13 @@ export const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8" style={{ minHeight: '20px', fontSizeAdjust: '0.5' }}>
-          <NavLink to="/feasibility" className={navLinkClass}>
-            Feasibility
-          </NavLink>
+              <NavLink to="/feasibility" className={navLinkClass}>
+                Feasibility
+              </NavLink>
+              
+              <NavLink to="/cost-intelligence" className={navLinkClass}>
+                Cost Intelligence
+              </NavLink>
 
           <NavLink to="/how-it-works" className={navLinkClass}>
             How It Works
@@ -212,6 +216,9 @@ export const Header = () => {
               </Link>
               <Link to="/feasibility" className="text-white hover:text-[#06B6D4] font-medium">
                 Feasibility
+              </Link>
+              <Link to="/cost-intelligence" className="text-white hover:text-[#06B6D4] font-medium">
+                Cost Intelligence
               </Link>
               <Link to="/how-it-works" className="text-white hover:text-[#06B6D4] font-medium">
                 How It Works

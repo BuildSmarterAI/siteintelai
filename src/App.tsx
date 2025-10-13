@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ReportViewer from "./pages/ReportViewer";
 import Feasibility from "./pages/Feasibility";
+import CostIntelligence from "./pages/CostIntelligence";
 import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/report/:reportId" element={<ReportViewer />} />
             <Route path="/feasibility" element={<Feasibility />} />
+            <Route path="/cost-intelligence" element={<CostIntelligence />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
