@@ -170,7 +170,7 @@ export default function Dashboard() {
                           </div>
                           <p className="text-sm text-muted-foreground pl-8">
                             {new Date(report.created_at).toLocaleDateString()} • {report.report_type}
-                            {report.status === 'generating' && ' • Estimated completion: 10 minutes'}
+                            {report.status === 'generating' && ' • Estimated completion: 30-60 seconds'}
                           </p>
                         </div>
                         <div className="flex items-center gap-4">
@@ -265,7 +265,7 @@ export default function Dashboard() {
                             </h3>
                           </div>
                           <p className="text-sm text-muted-foreground pl-8">
-                            Started {new Date(report.created_at).toLocaleDateString()} • Estimated completion: 10 minutes
+                            Started {new Date(report.created_at).toLocaleDateString()} • Estimated completion: 30-60 seconds
                           </p>
                         </div>
                         <Badge className={getStatusColor(report.status)}>

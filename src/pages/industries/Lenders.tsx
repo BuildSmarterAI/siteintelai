@@ -194,7 +194,7 @@ const Lenders = () => {
             >
               SiteIntel™ Feasibility transforms how lenders and underwriters evaluate commercial real-estate projects. 
               Instead of relying on inconsistent borrower documents or outdated reports, you can access a complete, 
-              AI-verified feasibility summary — zoning, floodplain, utilities, and environmental risk — in under 10 minutes.
+              AI-verified feasibility summary — zoning, floodplain, utilities, and environmental risk — in under 60 seconds.
             </motion.p>
 
             {/* Data Source Icons */}
@@ -811,7 +811,7 @@ const Lenders = () => {
                       <CheckCircle className="w-6 h-6 text-status-success mx-auto" />
                     </td>
                     <td className="font-body p-6 font-semibold">
-                      ≈10 Minutes
+                      ≈60 Seconds
                       <div className="mt-2 bg-gray-200 h-2 rounded-full overflow-hidden">
                         <motion.div 
                           className="h-full bg-status-success"

@@ -308,7 +308,7 @@ export default function ThankYou() {
                 <div className="flex items-center gap-3 mb-6">
                   <CheckCircle className="w-8 h-8 text-green-500" />
                   <h3 className="font-headline text-2xl font-bold text-charcoal">
-                    Your Report Will Be Ready in 10 Minutes
+                    Your Report Will Be Ready in Seconds
                   </h3>
                 </div>
                 

@@ -2,10 +2,10 @@
 
 ## 1. Overview & Objectives
 
-BuildSmarter™ Feasibility is an AI/GIS SaaS platform that ingests authoritative parcel, zoning, floodplain, utilities, environmental, traffic, and demographic datasets, and generates lender-ready feasibility reports (PDF + JSON) in ~10 minutes.
+BuildSmarter™ Feasibility is an AI/GIS SaaS platform that ingests authoritative parcel, zoning, floodplain, utilities, environmental, traffic, and demographic datasets, and generates lender-ready feasibility reports (PDF + JSON) in ~60 seconds.
 
 ### Primary Objectives
-- **10-minute automated report path** with lender-friendly output and citations
+- **60-second automated report path** with lender-friendly output and citations
 - **High margin** via compute+API cost controls, caching, and attribute-only pulls where possible
 - **Texas-first coverage** with national scaling planned
 

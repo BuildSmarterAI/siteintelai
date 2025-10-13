@@ -83,7 +83,7 @@ export const InteractiveProcess = () => {
             Inside the AI Pipeline
           </h3>
           <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto mb-8">
-            Click through each step to see how we generate lender-ready reports in 10 minutes
+            Click through each step to see how we generate lender-ready reports in under 60 seconds
           </p>
         </div>
 
@@ -210,7 +210,7 @@ export const InteractiveProcess = () => {
                   Ready to Get Your Report?
                 </h4>
                 <p className="font-body text-lg mb-6 text-white/90">
-                  Run a Free QuickCheck or purchase a Professional Report in 10 minutes.
+                  Run a Free QuickCheck or purchase a Professional Report in under 60 seconds.
                 </p>
                 <Button 
                   variant="secondary"

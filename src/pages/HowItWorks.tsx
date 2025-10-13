@@ -253,7 +253,7 @@ const HowItWorks = () => {
                 }}
               />
               <p className="text-white/80 text-center relative z-10">
-                <span className="font-semibold text-[#06B6D4]">Live data fusion:</span> Every report queries 20+ sources simultaneously, normalizes formats, cross-validates accuracy, and generates verified intelligence—all in under 10 minutes.
+                <span className="font-semibold text-[#06B6D4]">Live data fusion:</span> Every report queries 20+ sources simultaneously, normalizes formats, cross-validates accuracy, and generates verified intelligence—all in under 60 seconds.
               </p>
             </motion.div>
           </div>

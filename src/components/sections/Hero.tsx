@@ -493,7 +493,7 @@ export const Hero = () => {
                 
                 {/* Microcopy with Phase 4: Number Counter */}
                 <p className="mt-3 text-sm text-[#CBD5E1]/90">
-                  Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Cost-calibrated from real projects · 10-minute turnaround
+                  Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Cost-calibrated from real projects · 60-second turnaround
                 </p>
               </motion.div>
 

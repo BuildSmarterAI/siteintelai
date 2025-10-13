@@ -15,11 +15,11 @@ export const PackagesPricing = () => {
     {
       name: "Professional Report", 
       price: "$795",
-      timeline: "10 minutes",
+      timeline: "30-60 seconds",
       description: "Full PDF + JSON with cited FEMA & ArcGIS data.",
       benefit: "Lender-ready feasibility report with comprehensive analysis and source citations.",
       popular: true,
-      features: ["Complete PDF report", "JSON data export", "FEMA NFHL citations", "ArcGIS parcel data", "10-minute turnaround"]
+      features: ["Complete PDF report", "JSON data export", "FEMA NFHL citations", "ArcGIS parcel data", "30-60 second turnaround"]
     },
     {
       name: "Pro Subscription",

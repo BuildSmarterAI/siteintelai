@@ -125,7 +125,7 @@ const Feasibility = () => {
               <Link to="/application?step=2">Run Free QuickCheck →</Link>
             </Button>
             <p className="mt-4 text-white/60 text-sm">
-              10-minute turnaround · Verified from 20+ data sources
+              60-second turnaround · Verified from 20+ data sources
             </p>
           </div>
         </div>

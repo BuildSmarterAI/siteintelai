@@ -9,7 +9,7 @@ export const FinalCTA = () => {
         </h2>
         
         <p className="font-body text-xl text-maxx-red-foreground/90 mb-2 max-w-3xl mx-auto leading-relaxed">
-          $10K feasibility in 10 minutes. Verified by FEMA, cited for lenders.
+          $10K feasibility in seconds. Verified by FEMA, cited for lenders.
         </p>
         
         <p className="font-body text-sm text-maxx-red-foreground/80 mb-8 font-semibold">
@@ -28,7 +28,7 @@ export const FinalCTA = () => {
         </div>
         
         <p className="font-body text-sm text-maxx-red-foreground/80">
-          10-minute delivery. AI-powered. Data-cited.
+          60-second delivery. AI-powered. Data-cited.
         </p>
       </div>
     </section>

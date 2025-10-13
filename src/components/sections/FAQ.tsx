@@ -17,7 +17,7 @@ export const FAQ = () => {
     },
     {
       question: "How fast can I get results?",
-      answer: "Free QuickCheck: 60 seconds. Professional Report: 10 minutes. Pro Subscription includes 10 reports per month with priority processing."
+      answer: "Free QuickCheck: 60 seconds. Professional Report: 30-60 seconds. Pro Subscription includes 10 reports per month with priority processing."
     },
     {
       question: "Do I lose my fee if I hire Maxx Builders?",

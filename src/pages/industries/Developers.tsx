@@ -598,7 +598,7 @@ const Developers = () => {
                       </div>
                     </td>
                     <td className="py-4 px-6">
-                      <div className="font-body font-semibold text-feasibility-orange mb-2">≈ 10 minutes</div>
+                      <div className="font-body font-semibold text-feasibility-orange mb-2">≈ 60 seconds</div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <motion.div
                           className="bg-gradient-to-r from-status-success to-data-cyan h-2 rounded-full"

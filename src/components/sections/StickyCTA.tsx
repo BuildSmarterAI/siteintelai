@@ -30,7 +30,7 @@ export const StickyCTA = () => {
           <div className="container mx-auto flex items-center justify-between">
             <div className="flex-1">
               <h4 className="font-headline font-bold text-lg mb-2">
-                $10K Feasibility in 10 Minutes—Verified by FEMA
+                $10K Feasibility in Seconds—Verified by FEMA
               </h4>
               <p className="font-body text-sm text-white/90">
                 Run a Free QuickCheck or get a lender-ready Professional Report for $795.
@@ -65,7 +65,7 @@ export const StickyCTA = () => {
               className="flex-1 text-left group"
             >
               <div className="font-headline font-bold text-base group-hover:text-white/90 transition-colors">
-                10-Minute Feasibility Reports
+                60-Second Feasibility Reports
               </div>
               <div className="font-body text-sm text-white/80">
                 Free QuickCheck available →

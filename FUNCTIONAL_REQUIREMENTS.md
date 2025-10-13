@@ -5,7 +5,7 @@
 This blueprint is the master functional specification for BuildSmarter™ Feasibility, an AI/GIS SaaS that ingests authoritative parcel, zoning, floodplain, utilities, environmental, traffic and demographic datasets and produces lender-ready feasibility reports (PDF + JSON).
 
 ### Key Objectives
-- Deliver a 5–10 minute, automated feasibility report flow with lender-friendly structure and citations
+- Deliver a 30-60 second, automated feasibility report flow with lender-friendly structure and citations
 - Texas-first coverage with scalable data integrations (ArcGIS/CADs, FEMA, TxDOT, EPA, USFWS, USDA, Census/BLS)
 - Interoperability via OData v4.01 (read-only) for enterprise/partner queries
 
@@ -147,7 +147,7 @@ This blueprint is the master functional specification for BuildSmarter™ Feasib
 ## 4. Non-Functional Requirements
 
 ### Performance
-- Report generation: ≤10 minutes end-to-end
+- Report generation: ≤60 seconds end-to-end
 - API response time: ≤2 seconds for intake
 - Concurrent users: Support 100+ simultaneous report generations
 

@@ -14,7 +14,7 @@ This specification defines comprehensive improvements to the BuildSmarter™ Fea
 - **Design-system consistency** (BuildSmarter Brand Kit compliance)
 
 **Core Transformation Message:**
-> "$10K feasibility reports, automated in 10 minutes."
+> "$10K feasibility reports, automated in seconds."
 
 ---
 
@@ -29,7 +29,7 @@ This specification defines comprehensive improvements to the BuildSmarter™ Fea
 
 **H1 Headline** (Satoshi 48px/56px, Bold, White with Feasibility Orange gradient)
 ```
-$10K Feasibility in 10 Minutes—Verified by FEMA.
+$10K Feasibility in Seconds—Verified by FEMA.
 ```
 
 **H2 Subheadline** (Inter 18px/28px, Regular, White 90%)
@@ -57,7 +57,7 @@ and TxDOT data. Every BuildSmarter™ report cites its source for lender verific
 
 ### Trust Badge
 ```
-✓ Data-cited for lenders • 10-minute turnaround • No commitment required
+✓ Data-cited for lenders • 60-second turnaround • No commitment required
 ```
 - Typography: Inter 14px, White 80%
 - Icons: CheckCircle2 (Lucide)
@@ -66,7 +66,7 @@ and TxDOT data. Every BuildSmarter™ report cites its source for lender verific
 - **MapPin**: Location input visual cue
 - **Database**: Data integrity representation
 - **ShieldCheck**: FEMA verification badge
-- **Clock**: 10-minute speed promise
+- **Clock**: 60-second speed promise
 - **FileText**: Lender-ready report output
 
 ### Background System
@@ -203,7 +203,7 @@ Visual: AI processing nodes or flowchart
 Icon: FileCheck (48px, White with shadow-glow)
 Label: "04"
 Title: "Cited & Lender-Ready PDF"
-Description: "10-minute delivery with full source attribution (FEMA dataset IDs, ArcGIS timestamps)."
+Description: "60-second delivery with full source attribution (FEMA dataset IDs, ArcGIS timestamps)."
 Visual: PDF document preview or download icon
 ```
 
@@ -284,7 +284,7 @@ Satoshi 32px, White, text-center, mb-12
 ```
 Price Display: "$795"
 Typography: Inter 40px, Feasibility Orange, font-bold
-Subtext: "Professional Report • 10-minute delivery"
+Subtext: "Professional Report • 60-second delivery"
 Button Label: "Purchase Full Report"
 Button Style: bg-feasibility-orange text-white hover:bg-feasibility-orange/90
 Size: xl (px-12 py-5)
@@ -666,10 +666,10 @@ stagger: 150ms (for sequential elements)
 ## Appendix A: Brand Voice Examples
 
 ### ✅ Correct Tone (Authoritative, Data-Cited)
-- "$10K Feasibility in 10 Minutes—Verified by FEMA."
+- "$10K Feasibility in Seconds—Verified by FEMA."
 - "Uses official FEMA NFHL and ArcGIS county parcel data."
 - "Every BuildSmarter™ report cites its source for lender verification."
-- "10-minute delivery with full source attribution."
+- "60-second delivery with full source attribution."
 
 ### ❌ Incorrect Tone (Marketing Fluff, Vague)
 - "Revolutionary AI changes the game!"
@@ -678,7 +678,7 @@ stagger: 150ms (for sequential elements)
 - "Unlock hidden potential with our amazing platform."
 
 ### Tone Guidelines Applied
-- **Numerical proof:** "$10K", "10 minutes", "95% margin"
+- **Numerical proof:** "$10K", "60 seconds", "95% margin"
 - **Data sources:** "FEMA NFHL", "ArcGIS", "TxDOT"
 - **Active voice:** "BuildSmarter eliminates lag" (not "lag is eliminated")
 - **Present tense:** "Uses official data" (not "will use")

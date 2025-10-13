@@ -32,7 +32,7 @@ This specification defines the complete visual hierarchy, layout system, compone
 │  ┌─────────────────────┐  ┌──────────────────────┐          │
 │  │ H1 (Satoshi 48px)   │  │  MapCanvas Animation │          │
 │  │ $10K Feasibility in │  │  - Parcel outline    │          │
-│  │ 10 Minutes—Verified │  │  - Data overlays     │          │
+│  │ Seconds—Verified    │  │  - Data overlays     │          │
 │  │ by FEMA.            │  │  - Progress flow     │          │
 │  │                     │  │  - PDF generation    │          │
 │  │ H2 (Inter 18px)     │  └──────────────────────┘          │
@@ -69,7 +69,7 @@ This specification defines the complete visual hierarchy, layout system, compone
 
 **H1 (48px/56px leading, Satoshi SemiBold, White with Orange gradient)**
 ```
-$10K Feasibility in 10 Minutes—Verified by FEMA.
+$10K Feasibility in Seconds—Verified by FEMA.
 ```
 
 **H2 (18px/28px leading, Inter Regular, White 90% opacity)**
@@ -83,7 +83,7 @@ AI-generated, lender-ready feasibility reports using real FEMA, ArcGIS, and TxDO
 
 **Trust Badge (14px, Inter Regular, White 80% opacity)**
 ```
-✓ Data-cited for lenders • 10-min turnaround • No commitment required
+✓ Data-cited for lenders • 60-sec turnaround • No commitment required
 ```
 
 ### Responsive Behavior
@@ -205,7 +205,7 @@ have changed. BuildSmarter™ eliminates this lag.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  H2: AI-Powered Feasibility in 10 Minutes           │
+│  H2: AI-Powered Feasibility in Seconds              │
 │  Subtitle: Verified data. Instant reports. $795.    │
 │                                                      │
 │  ┌────────┐  ┌────────┐  ┌────────┐                │
@@ -294,7 +294,7 @@ Includes FEMA dataset IDs, ArcGIS query timestamps, and permit URLs.
 - Icon: FileCheck
 - Label: "04"
 - Title: "Cited & Lender-Ready PDF"
-- Description: "10-minute delivery with full source attribution (FEMA dataset IDs, ArcGIS timestamps)."
+- Description: "60-second delivery with full source attribution (FEMA dataset IDs, ArcGIS timestamps)."
 
 ### Motion Cues
 
@@ -353,14 +353,14 @@ CTA: "Run Free QuickCheck" → /application?step=2
 **Tier 2: Professional Report** (Most Popular)
 ```
 Price: $795
-Timeline: 10 minutes
+Timeline: 30-60 seconds
 Description: Full PDF + JSON with cited FEMA & ArcGIS data.
 Features:
   ✓ Complete PDF report
   ✓ JSON data export
   ✓ FEMA NFHL citations
   ✓ ArcGIS parcel data
-  ✓ 10-minute turnaround
+  ✓ 30-60 second turnaround
 CTA: "Purchase Report" → Stripe Checkout
 Badge: "Most Popular" (navy background)
 ```
@@ -476,7 +476,7 @@ permit approvals with 94% correlation.
 
 **Q2: How long does a Professional Report take?**
 ```
-Professional Reports are delivered within 10 minutes of submission. 
+Professional Reports are delivered within 30-60 seconds of submission.
 The system queries live APIs, runs AI synthesis, validates JSON schema, 
 and generates PDF—all automated.
 ```
@@ -499,7 +499,7 @@ Each dataset is cited in the report with query timestamps.
 ┌─────────────────────────────────────────────────────┐
 │  H2: STOP GUESSING. START BUILDING SMARTER.         │
 │                                                      │
-│  Subtitle: $10K feasibility in 10 minutes.          │
+│  Subtitle: $10K feasibility in seconds.             │
 │            Verified by FEMA, cited for lenders.     │
 │                                                      │
 │  [Run Free QuickCheck →]                            │
@@ -530,7 +530,7 @@ Each dataset is cited in the report with query timestamps.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ 10-Minute Feasibility Reports • Free QuickCheck available │
+│ 60-Second Feasibility Reports • Free QuickCheck available │
 │                                     [Run QuickCheck] [↑] │
 └─────────────────────────────────────────────────────┘
 ```
@@ -548,7 +548,7 @@ Each dataset is cited in the report with query timestamps.
 **Collapsed State (Default):**
 - Height: 64px
 - Background: bg-maxx-red
-- Text: "10-Minute Feasibility Reports • Free QuickCheck available →"
+- Text: "60-Second Feasibility Reports • Free QuickCheck available →"
 - CTA: Compact button "Free QuickCheck"
 
 **Expanded State (On Click):**
@@ -567,7 +567,7 @@ Each dataset is cited in the report with query timestamps.
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ 10-Minute Feasibility       [Run QuickCheck]       │
+│ 60-Second Feasibility       [Run QuickCheck]       │
 │ Free QuickCheck available                          │
 └─────────────────────────────────────────────────────┘
 ```
@@ -807,7 +807,7 @@ spacing: {
 ## Appendix A: Copy Bank (Tone-Aligned)
 
 ### Headlines
-- "$10K Feasibility in 10 Minutes—Verified by FEMA."
+- "$10K Feasibility in Seconds—Verified by FEMA."
 - "AI-Powered Feasibility Intelligence—Cited for Lenders."
 - "Data You Can Trust. Reports You Can Use."
 - "STOP GUESSING. START BUILDING SMARTER."

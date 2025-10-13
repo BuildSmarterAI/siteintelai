@@ -21,7 +21,7 @@ export const MobileCTA = () => {
       <div className="flex items-center justify-between space-x-4">
         <div>
           <p className="font-cta font-semibold text-maxx-red-foreground text-sm">
-            10-Minute Feasibility
+            60-Second Feasibility
           </p>
           <p className="font-body text-xs text-maxx-red-foreground/80">
             Free QuickCheck available

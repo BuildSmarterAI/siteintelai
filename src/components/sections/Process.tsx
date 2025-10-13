@@ -31,7 +31,7 @@ export const Process = () => {
       icon: FileText,
       iconColor: "text-charcoal",
       title: "4. Instant PDF Output",
-      description: "Receive lender-ready PDF report with cited data in 10 minutes. Every section includes source endpoints for verification."
+      description: "Receive lender-ready PDF report with cited data in under 60 seconds. Every section includes source endpoints for verification."
     }
   ];
 
@@ -43,7 +43,7 @@ export const Process = () => {
             The AI-Powered 4-Step Pipeline
           </h3>
           <h4 className="font-body text-lg md:text-xl text-charcoal/80 leading-relaxed">
-            From address input to lender-ready report in 10 minutes.
+            From address input to lender-ready report in under 60 seconds.
           </h4>
         </div>
         
