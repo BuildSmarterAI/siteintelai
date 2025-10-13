@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useSearchParams } from "react-router-dom";
 import { motion, useScroll } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu } from "lucide-react";
-import siteIntelLogo from "@/assets/siteintel-logo.png";
+
 import { AuthButton } from "@/components/AuthButton";
 import {
   DropdownMenu,
@@ -75,17 +75,6 @@ export const Header = () => {
       transition={{ duration: 0.3 }}
     >
       <div className="container mx-auto px-6 h-full flex items-center justify-between gap-4">
-        {/* Logo */}
-        <Link to="/" className="flex-shrink-0">
-          <motion.img
-            src={siteIntelLogo}
-            alt="SiteIntel AI"
-            className={`transition-all duration-300 ${
-              isScrolled ? "h-7" : "h-9"
-            }`}
-            whileHover={{ scale: 1.05 }}
-          />
-        </Link>
 
         {/* Application Progress Indicator */}
         {isApplicationPage && (
