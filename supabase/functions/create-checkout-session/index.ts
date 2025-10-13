@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
+// ⚠️ SECURITY WARNING: NEVER log STRIPE_SECRET_KEY or include it in error messages
+// This would expose sensitive credentials that allow unauthorized payment processing
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -58,8 +60,9 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    console.error("Error in create-checkout-session:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Sanitize error logging - never log stack traces that might contain secrets
+    console.error("Error in create-checkout-session:", error instanceof Error ? error.message : String(error));
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Payment processing failed" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

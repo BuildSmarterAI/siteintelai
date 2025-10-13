@@ -156,7 +156,7 @@ export type Database = {
           traffic_year: number | null
           truck_percent: number | null
           updated_at: string
-          user_id: string | null
+          user_id: string
           utilities_map_url: string | null
           utilities_output: string | null
           utility_access: string[] | null
@@ -312,7 +312,7 @@ export type Database = {
           traffic_year?: number | null
           truck_percent?: number | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
           utilities_map_url?: string | null
           utilities_output?: string | null
           utility_access?: string[] | null
@@ -468,7 +468,7 @@ export type Database = {
           traffic_year?: number | null
           truck_percent?: number | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
           utilities_map_url?: string | null
           utilities_output?: string | null
           utility_access?: string[] | null
@@ -731,7 +731,7 @@ export type Database = {
           score_band: string | null
           status: string
           updated_at: string
-          user_id: string | null
+          user_id: string
           validation_status: string | null
         }
         Insert: {
@@ -748,7 +748,7 @@ export type Database = {
           score_band?: string | null
           status?: string
           updated_at?: string
-          user_id?: string | null
+          user_id: string
           validation_status?: string | null
         }
         Update: {
@@ -765,7 +765,7 @@ export type Database = {
           score_band?: string | null
           status?: string
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
           validation_status?: string | null
         }
         Relationships: [

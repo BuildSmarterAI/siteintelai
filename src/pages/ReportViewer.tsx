@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
 import { ReportPreviewGate } from "@/components/ReportPreviewGate";
+import DOMPurify from 'dompurify';
 
 interface Report {
   id: string;
@@ -1128,7 +1129,7 @@ export default function ReportViewer() {
                   <div 
                     className="prose max-w-none text-sm"
                     dangerouslySetInnerHTML={{ 
-                      __html: report.json_data.project_feasibility.verdict 
+                      __html: DOMPurify.sanitize(report.json_data.project_feasibility.verdict)
                     }} 
                   />
                 )}
@@ -1278,7 +1279,7 @@ export default function ReportViewer() {
                         <h4 className="font-semibold mb-2 text-sm">Schedule Analysis:</h4>
                         <div 
                           className="prose prose-sm max-w-none text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: report.applications.schedule_output }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report.applications.schedule_output) }}
                         />
                       </div>
                     )}
@@ -1287,7 +1288,7 @@ export default function ReportViewer() {
                         <h4 className="font-semibold mb-2 text-sm">Cost Analysis:</h4>
                         <div 
                           className="prose prose-sm max-w-none text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: report.applications.costs_output }}
+                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report.applications.costs_output) }}
                         />
                       </div>
                     )}
@@ -1486,7 +1487,7 @@ export default function ReportViewer() {
                 </div>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: zoning.verdict || '<p>No zoning analysis available.</p>' }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(zoning.verdict || '<p>No zoning analysis available.</p>') }} />
                 
                 {zoning.permitted_uses && zoning.permitted_uses.length > 0 && (
                   <div className="mt-4">
@@ -1551,7 +1552,7 @@ export default function ReportViewer() {
                   </div>
                 )}
                 
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: flood.verdict || '<p>No flood analysis available.</p>' }} />
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(flood.verdict || '<p>No flood analysis available.</p>') }} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -1654,7 +1655,7 @@ export default function ReportViewer() {
 
                 {/* Original Utilities Analysis */}
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: utilities.verdict || '<p>No utilities analysis available.</p>' }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(utilities.verdict || '<p>No utilities analysis available.</p>') }} />
                 </div>
               </CardContent>
             </Card>
@@ -1831,7 +1832,7 @@ export default function ReportViewer() {
 
                 {/* Original Environmental Analysis Verdict */}
                 <div className="prose prose-sm max-w-none pt-4 border-t">
-                  <div dangerouslySetInnerHTML={{ __html: environmental.verdict || '<p>No environmental analysis available.</p>' }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(environmental.verdict || '<p>No environmental analysis available.</p>') }} />
                 </div>
               </CardContent>
             </Card>
@@ -2067,7 +2068,7 @@ export default function ReportViewer() {
                 )}
                 
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: traffic.verdict || '<p>Traffic analysis not available. This may be added in future reports.</p>' }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(traffic.verdict || '<p>Traffic analysis not available. This may be added in future reports.</p>') }} />
                 </div>
               </CardContent>
             </Card>
@@ -2330,7 +2331,7 @@ export default function ReportViewer() {
                 )}
                 
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>' }} />
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>') }} />
                 </div>
               </CardContent>
             </Card>

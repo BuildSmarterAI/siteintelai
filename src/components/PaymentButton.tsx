@@ -20,21 +20,20 @@ export const PaymentButton = ({ type, children, className, variant = "default", 
       setLoading(true);
       
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        toast.error("Please log in to continue");
-        return;
-      }
-
       const functionName = type === 'report' ? 'create-checkout-session' : 'create-subscription';
       
       const { data, error } = await supabase.functions.invoke(functionName, {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token || ''}`,
         },
       });
 
       if (error) {
+        // Handle authentication errors
+        if (error.message?.includes('401') || error.message?.includes('unauthorized')) {
+          toast.error("Please log in to continue");
+          return;
+        }
         console.error('Payment error:', error);
         toast.error("Failed to create checkout session");
         return;
