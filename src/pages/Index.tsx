@@ -5,7 +5,6 @@ import { Hero } from "@/components/sections/Hero";
 import { AssociationLogos } from "@/components/sections/AssociationLogos";
 import { PlatformOverview } from "@/components/sections/PlatformOverview";
 import { Solution } from "@/components/sections/Solution";
-import { Process } from "@/components/sections/Process";
 import { Comparison } from "@/components/sections/Comparison";
 import { IndustriesWeServe } from "@/components/sections/IndustriesWeServe";
 import { PackagesPricing } from "@/components/sections/PackagesPricing";
@@ -57,7 +56,6 @@ const Index = () => {
       <AssociationLogos />
       <PlatformOverview />
       <Solution />
-      <Process />
       <Comparison />
       <IndustriesWeServe />
       <PackagesPricing />
