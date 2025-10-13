@@ -17,8 +17,7 @@ import { FAQ } from "@/components/sections/FAQ";
 import { LeadMagnet } from "@/components/sections/LeadMagnet";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 import { Footer } from "@/components/sections/Footer";
-import { MobileCTA } from "@/components/sections/MobileCTA";
-import { StickyCTA } from "@/components/sections/StickyCTA";
+import { UnifiedMobileCTA } from "@/components/sections/UnifiedMobileCTA";
 
 
 const Index = () => {
@@ -73,8 +72,7 @@ const Index = () => {
       <LeadMagnet />
       <FinalCTA />
       <Footer />
-      <MobileCTA />
-      <StickyCTA />
+      <UnifiedMobileCTA />
     </div>
   );
 };

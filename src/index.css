@@ -316,4 +316,13 @@ All colors MUST be HSL.
       transform: scale(1);
     }
   }
+
+  /* Scrollbar hide utility for mobile horizontal scroll */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

@@ -425,7 +425,7 @@ export const Hero = () => {
           <div className="max-w-3xl">
           {/* Frosted glass card */}
             <motion.div
-              className="rounded-3xl bg-[#0A0F2C]/70 backdrop-blur-2xl border border-[#06B6D4]/30 p-8 md:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
+              className="rounded-3xl bg-[#0A0F2C]/70 backdrop-blur-2xl border border-[#06B6D4]/30 p-6 md:p-8 lg:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
               style={{
                 boxShadow: '0 8px 32px 0 rgba(10, 15, 44, 0.37), inset 0 0 60px rgba(255, 122, 0, 0.05)',
               }}
@@ -435,7 +435,7 @@ export const Hero = () => {
 
               {/* Headline */}
               <motion.h1
-                className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
                 variants={headlineVariants}
               >
                 Instant Feasibility Intelligence for <span className="text-[#FF7A00]">Commercial Real Estate</span>
@@ -443,7 +443,7 @@ export const Hero = () => {
 
               {/* Subheadline */}
               <motion.p
-                className="text-base md:text-xl lg:text-2xl text-[#CBD5E1] leading-relaxed mb-10 font-body"
+                className="text-sm sm:text-base md:text-xl lg:text-2xl text-[#CBD5E1] leading-relaxed mb-8 md:mb-10 font-body"
                 style={{ textShadow: '0 2px 8px rgba(10, 15, 44, 0.8)' }}
                 variants={subheadVariants}
               >
@@ -506,18 +506,119 @@ export const Hero = () => {
                 </motion.div>
                 
                 {/* Microcopy with Phase 4: Number Counter */}
-                <p className="mt-3 text-sm text-[#CBD5E1]/90">
-                  Powered by proprietary data fusion from official sources · Cost-calibrated from real projects · 60-second turnaround
+                <p className="mt-3 text-sm text-[#CBD5E1]/90 text-center md:text-left">
+                  <span className="hidden md:inline">
+                    Powered by proprietary data fusion from official sources · Cost-calibrated from real projects · 60-second turnaround
+                  </span>
+                  <span className="md:hidden">
+                    FEMA, ArcGIS, TxDOT verified · 60-second delivery
+                  </span>
                 </p>
               </motion.div>
 
               {/* Phase 3: Value Icons Strip with Hover Interactions */}
-              <TooltipProvider>
-                <motion.div
-                  className="mt-10 pt-8 border-t border-[#CBD5E1]/20 grid grid-cols-1 md:grid-cols-2 gap-4 text-[#CBD5E1] text-sm"
-                  initial="hidden"
-                  animate="visible"
-                >
+            <TooltipProvider>
+              <motion.div
+                className="mt-8 pt-6 border-t border-[#CBD5E1]/20 text-[#CBD5E1] text-sm"
+                initial="hidden"
+                animate="visible"
+              >
+                {/* Mobile: Horizontal scroll */}
+                <div className="md:hidden -mx-6 px-6">
+                  <div className="overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
+                    <div className="flex gap-4">
+                      {/* Icon 1: Proprietary Data Fusion */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.div
+                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            custom={0}
+                            variants={valueIconVariants}
+                          >
+                            <Layers className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="font-semibold text-white">Proprietary Data Fusion</div>
+                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Multiple verified datasets unified</div>
+                            </div>
+                          </motion.div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                          <p className="text-xs">Municipal records, zoning maps, utility data, and more</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Icon 2: Cost Intelligence */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.div
+                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            custom={1}
+                            variants={valueIconVariants}
+                          >
+                            <DollarSign className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="font-semibold text-white">Cost Intelligence</div>
+                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Construction-cost benchmarks</div>
+                            </div>
+                          </motion.div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                          <p className="text-xs">Real-time material costs, labor rates, and project estimates</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Icon 3: Risk Transparency */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.div
+                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            custom={2}
+                            variants={valueIconVariants}
+                          >
+                            <ShieldCheck className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="font-semibold text-white">Risk Transparency</div>
+                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Instant constraint exposure</div>
+                            </div>
+                          </motion.div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                          <p className="text-xs">Flood zones, easements, environmental restrictions</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Icon 4: Decision Clarity */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.div
+                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            custom={3}
+                            variants={valueIconVariants}
+                          >
+                            <BarChart3 className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
+                            <div>
+                              <div className="font-semibold text-white">Decision Clarity</div>
+                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Quantified feasibility scores</div>
+                            </div>
+                          </motion.div>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                          <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </div>
+
+                  {/* Scroll indicator */}
+                  <div className="flex justify-center items-center gap-1 mt-2">
+                    <div className="h-1 w-1 rounded-full bg-[#06B6D4]" />
+                    <div className="h-1 w-8 rounded-full bg-[#CBD5E1]/20" />
+                    <p className="text-xs text-[#CBD5E1]/40 ml-2">Swipe for more →</p>
+                  </div>
+                </div>
+
+                {/* Desktop: Original 2-column grid */}
+                <div className="hidden md:grid md:grid-cols-2 gap-4">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <motion.div
@@ -527,10 +628,7 @@ export const Hero = () => {
                         whileHover={{ scale: 1.05, x: 4 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
-                        <motion.div
-                          whileHover={{ rotate: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
+                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
                           <Layers className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
                         </motion.div>
                         <div>
@@ -553,10 +651,7 @@ export const Hero = () => {
                         whileHover={{ scale: 1.05, x: 4 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
-                        <motion.div
-                          whileHover={{ rotate: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
+                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
                           <DollarSign className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
                         </motion.div>
                         <div>
@@ -579,10 +674,7 @@ export const Hero = () => {
                         whileHover={{ scale: 1.05, x: 4 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
-                        <motion.div
-                          whileHover={{ rotate: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
+                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
                           <ShieldCheck className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
                         </motion.div>
                         <div>
@@ -605,10 +697,7 @@ export const Hero = () => {
                         whileHover={{ scale: 1.05, x: 4 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
-                        <motion.div
-                          whileHover={{ rotate: 5 }}
-                          transition={{ duration: 0.2 }}
-                        >
+                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
                           <BarChart3 className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
                         </motion.div>
                         <div>
@@ -621,8 +710,9 @@ export const Hero = () => {
                       <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
                     </TooltipContent>
                   </Tooltip>
-                </motion.div>
-              </TooltipProvider>
+                </div>
+              </motion.div>
+            </TooltipProvider>
 
               {/* Below-the-Fold Follow-Up Line */}
               <motion.p
