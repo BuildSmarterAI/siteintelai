@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Hero } from "@/components/sections/Hero";
 import { AssociationLogos } from "@/components/sections/AssociationLogos";
-import { Problem } from "@/components/sections/Problem";
+import { PlatformOverview } from "@/components/sections/PlatformOverview";
 import { Solution } from "@/components/sections/Solution";
 import { InteractiveCalculator } from "@/components/sections/InteractiveCalculator";
 import { InteractiveProcess } from "@/components/sections/InteractiveProcess";
@@ -59,7 +59,7 @@ const Index = () => {
     <div className="min-h-screen">
       <Hero />
       <AssociationLogos />
-      <Problem />
+      <PlatformOverview />
       <Solution />
       <InteractiveCalculator />
       <InteractiveProcess />
