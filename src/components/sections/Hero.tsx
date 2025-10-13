@@ -425,7 +425,7 @@ export const Hero = () => {
           <div className="max-w-3xl">
           {/* Frosted glass card */}
             <motion.div
-              className="rounded-3xl bg-white/15 backdrop-blur-xl border border-[#06B6D4]/20 p-8 md:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
+              className="rounded-3xl bg-[#0A0F2C]/70 backdrop-blur-2xl border border-[#06B6D4]/30 p-8 md:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
               style={{
                 boxShadow: '0 8px 32px 0 rgba(10, 15, 44, 0.37), inset 0 0 60px rgba(255, 122, 0, 0.05)',
               }}
