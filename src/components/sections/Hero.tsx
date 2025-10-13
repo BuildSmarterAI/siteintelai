@@ -23,6 +23,19 @@ export const Hero = () => {
 
   // Motion preference detection
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  
+  // Performance detection for low-power mode
+  const [isLowPower, setIsLowPower] = useState(false);
+  
+  useState(() => {
+    const checkPerformance = () => {
+      const connection = (navigator as any).connection;
+      const isSaveData = connection?.saveData;
+      const isSlowNetwork = connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g';
+      setIsLowPower(isSaveData || isSlowNetwork || prefersReducedMotion);
+    };
+    checkPerformance();
+  });
 
   // Magnetic button handler with motion preference check
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -37,13 +50,13 @@ export const Hero = () => {
     setMousePosition({ x: 0, y: 0 });
   };
 
-  // Animation variants - v6.1 timing
+  // Animation variants - Optimized timing (1.6s → 1.0s)
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.3,
+        duration: 0.2,
         ease: "easeOut" as const,
       },
     },
@@ -54,8 +67,8 @@ export const Hero = () => {
     visible: {
       opacity: 0.08,
       transition: {
-        duration: 0.3,
-        delay: 0.3,
+        duration: 0.2,
+        delay: 0.2,
       },
     },
   };
@@ -67,7 +80,7 @@ export const Hero = () => {
       opacity: 1,
       transition: {
         duration: 0.3,
-        delay: 0.6,
+        delay: 0.3,
       },
     },
   };
@@ -78,7 +91,7 @@ export const Hero = () => {
       opacity: 1,
       transition: {
         duration: 0.2,
-        delay: 0.9,
+        delay: 0.5,
       },
     },
   };
@@ -90,7 +103,7 @@ export const Hero = () => {
       opacity: 1,
       transition: {
         duration: 0.2,
-        delay: 1.1,
+        delay: 0.7,
         type: "spring" as const,
         stiffness: 90,
       },
@@ -102,8 +115,8 @@ export const Hero = () => {
     visible: (i: number) => ({
       opacity: 1,
       transition: {
-        duration: 0.3,
-        delay: 1.3 + i * 0.15,
+        duration: 0.2,
+        delay: 0.9 + i * 0.1,
       },
     }),
   };
@@ -161,14 +174,14 @@ export const Hero = () => {
         }}
       >
         {/* Global Verification Sweep - Orange gradient wave */}
-        {!prefersReducedMotion && (
+        {!isLowPower && (
           <motion.div
             className="absolute inset-0 h-full w-[200%] bg-gradient-to-r from-transparent via-[#FF7A00]/15 to-transparent will-change-transform"
             animate={{
               x: ['-100%', '100%'],
             }}
             transition={{
-              duration: 15,
+              duration: 20,
               repeat: Infinity,
               ease: [0.45, 0, 0.2, 1],
               repeatDelay: 0,
@@ -247,7 +260,7 @@ export const Hero = () => {
 
       {/* Step 3: Data Verification Nodes & Building Footprints */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(window.innerWidth < 768 ? 4 : 8)].map((_, i) => {
+        {[...Array(window.innerWidth < 768 ? 2 : 6)].map((_, i) => {
           const x = 10 + (i % 5) * 20;
           const y = 15 + Math.floor(i / 5) * 22;
           const delay = i * 0.5;
@@ -425,17 +438,17 @@ export const Hero = () => {
           <div className="max-w-3xl">
           {/* Frosted glass card */}
             <motion.div
-              className="rounded-3xl bg-[#0A0F2C]/70 backdrop-blur-2xl border border-[#06B6D4]/30 p-6 md:p-8 lg:p-12 shadow-[0_8px_32px_0_rgba(10,15,44,0.37)] relative overflow-hidden"
+              className="rounded-3xl bg-[#0A0F2C]/80 backdrop-blur-2xl border border-[#06B6D4]/40 p-6 md:p-8 lg:p-12 shadow-elev relative overflow-hidden"
               style={{
-                boxShadow: '0 8px 32px 0 rgba(10, 15, 44, 0.37), inset 0 0 60px rgba(255, 122, 0, 0.05)',
+                boxShadow: '0 8px 32px 0 rgba(10, 15, 44, 0.5), inset 0 0 60px rgba(6, 182, 212, 0.08)',
               }}
             >
-              {/* Inner glow effect with darker overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0A0F2C]/40 to-transparent pointer-events-none" />
+              {/* Inner glow effect with cyan gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#06B6D4]/8 via-transparent to-[#FF7A00]/5 pointer-events-none" />
 
               {/* Headline */}
               <motion.h1
-                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
+                className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-headline font-bold text-white leading-[1.1] mb-6 md:mb-8"
                 variants={headlineVariants}
               >
                 Instant Feasibility Intelligence for <span className="text-[#FF7A00]">Commercial Real Estate</span>
@@ -443,7 +456,7 @@ export const Hero = () => {
 
               {/* Subheadline */}
               <motion.p
-                className="text-sm sm:text-base md:text-xl lg:text-2xl text-[#CBD5E1] leading-relaxed mb-8 md:mb-10 font-body"
+                className="text-sm sm:text-base md:text-xl lg:text-2xl text-white/90 leading-relaxed mb-8 md:mb-12 font-body"
                 style={{ textShadow: '0 2px 8px rgba(10, 15, 44, 0.8)' }}
                 variants={subheadVariants}
               >
@@ -454,19 +467,19 @@ export const Hero = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 1.2 }}
-                className="mb-8"
+                transition={{ duration: 0.6, delay: 0.8 }}
+                className="mb-8 md:mb-10"
               >
                 <QuickCheckWidget />
               </motion.div>
 
               {/* Divider with upgrade prompt */}
-              <div className="relative mb-6">
+              <div className="relative mb-6 md:mb-8">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-[#06B6D4]/20"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-[#0A0F2C]/80 text-[#CBD5E1]/70 font-body">
+                  <span className="px-4 bg-[#0A0F2C]/80 text-white/80 font-body">
                     Want Full Details?
                   </span>
                 </div>
@@ -480,12 +493,12 @@ export const Hero = () => {
                     x: prefersReducedMotion ? 0 : mousePosition.x,
                     y: prefersReducedMotion ? 0 : mousePosition.y,
                   }}
-                  transition={{ type: "spring", stiffness: 150, damping: 15 }}
+                  transition={{ type: "spring", stiffness: 200, damping: 18 }}
                 >
                   <Button
                     ref={buttonRef}
                     size="lg"
-                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 md:py-7 text-lg min-h-[3rem] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-250 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none"
+                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 md:py-7 text-lg min-h-[48px] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none"
                     onClick={() => (window.location.href = "/application?step=2")}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
@@ -506,7 +519,7 @@ export const Hero = () => {
                 </motion.div>
                 
                 {/* Microcopy with Phase 4: Number Counter */}
-                <p className="mt-3 text-sm text-[#CBD5E1]/90 text-center md:text-left">
+                <p className="mt-4 md:mt-6 text-sm text-white/70 text-center md:text-left">
                   <span className="hidden md:inline">
                     Powered by proprietary data fusion from official sources · Cost-calibrated from real projects · 60-second turnaround
                   </span>
@@ -519,19 +532,19 @@ export const Hero = () => {
               {/* Phase 3: Value Icons Strip with Hover Interactions */}
             <TooltipProvider>
               <motion.div
-                className="mt-8 pt-6 border-t border-[#CBD5E1]/20 text-[#CBD5E1] text-sm"
+                className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-[#CBD5E1]/20 text-[#CBD5E1] text-sm"
                 initial="hidden"
                 animate="visible"
               >
                 {/* Mobile: Horizontal scroll */}
                 <div className="md:hidden -mx-6 px-6">
                   <div className="overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
-                    <div className="flex gap-4">
+                    <div className="flex gap-6">
                       {/* Icon 1: Proprietary Data Fusion */}
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
                             custom={0}
                             variants={valueIconVariants}
                           >
@@ -542,7 +555,7 @@ export const Hero = () => {
                             </div>
                           </motion.div>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                        <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                           <p className="text-xs">Municipal records, zoning maps, utility data, and more</p>
                         </TooltipContent>
                       </Tooltip>
@@ -551,7 +564,7 @@ export const Hero = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
                             custom={1}
                             variants={valueIconVariants}
                           >
@@ -562,7 +575,7 @@ export const Hero = () => {
                             </div>
                           </motion.div>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                        <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                           <p className="text-xs">Real-time material costs, labor rates, and project estimates</p>
                         </TooltipContent>
                       </Tooltip>
@@ -571,38 +584,38 @@ export const Hero = () => {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
+                            className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
                             custom={2}
                             variants={valueIconVariants}
                           >
-                            <ShieldCheck className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
+                            <ShieldCheck className="h-5 w-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
                             <div>
                               <div className="font-semibold text-white">Risk Transparency</div>
-                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Instant constraint exposure</div>
-                            </div>
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
-                          <p className="text-xs">Flood zones, easements, environmental restrictions</p>
-                        </TooltipContent>
-                      </Tooltip>
+                            <div className="text-xs text-white/60 mt-0.5">Instant constraint exposure</div>
+                          </div>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
+                        <p className="text-xs">Flood zones, easements, environmental restrictions</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                      {/* Icon 4: Decision Clarity */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[280px] snap-start"
-                            custom={3}
-                            variants={valueIconVariants}
-                          >
-                            <BarChart3 className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                            <div>
-                              <div className="font-semibold text-white">Decision Clarity</div>
-                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Quantified feasibility scores</div>
-                            </div>
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                    {/* Icon 4: Decision Clarity */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <motion.div
+                          className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
+                          custom={3}
+                          variants={valueIconVariants}
+                        >
+                          <BarChart3 className="h-5 w-5 text-[#10B981] flex-shrink-0 mt-0.5" />
+                          <div>
+                            <div className="font-semibold text-white">Decision Clarity</div>
+                            <div className="text-xs text-white/60 mt-0.5">Quantified feasibility scores</div>
+                          </div>
+                        </motion.div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                           <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
                         </TooltipContent>
                       </Tooltip>
@@ -633,11 +646,11 @@ export const Hero = () => {
                         </motion.div>
                         <div>
                           <div className="font-semibold text-white">Proprietary Data Fusion</div>
-                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Multiple verified datasets unified</div>
+                          <div className="text-xs text-white/60 mt-0.5">Multiple verified datasets unified</div>
                         </div>
                       </motion.div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                    <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                       <p className="text-xs">Municipal records, zoning maps, utility data, and more</p>
                     </TooltipContent>
                   </Tooltip>
@@ -656,11 +669,11 @@ export const Hero = () => {
                         </motion.div>
                         <div>
                           <div className="font-semibold text-white">Cost Intelligence</div>
-                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Construction-cost benchmarks</div>
+                          <div className="text-xs text-white/60 mt-0.5">Construction-cost benchmarks</div>
                         </div>
                       </motion.div>
                     </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                    <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                       <p className="text-xs">Real-time material costs, labor rates, and project estimates</p>
                     </TooltipContent>
                   </Tooltip>
@@ -674,16 +687,16 @@ export const Hero = () => {
                         whileHover={{ scale: 1.05, x: 4 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
-                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                          <ShieldCheck className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                        </motion.div>
-                        <div>
-                          <div className="font-semibold text-white">Risk Transparency</div>
-                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Instant constraint exposure</div>
-                        </div>
+                      <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
+                        <ShieldCheck className="h-5 w-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
                       </motion.div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                      <div>
+                        <div className="font-semibold text-white">Risk Transparency</div>
+                        <div className="text-xs text-white/60 mt-0.5">Instant constraint exposure</div>
+                      </div>
+                    </motion.div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                       <p className="text-xs">Flood zones, easements, environmental restrictions</p>
                     </TooltipContent>
                   </Tooltip>
@@ -697,16 +710,16 @@ export const Hero = () => {
                         whileHover={{ scale: 1.05, x: 4 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                       >
-                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                          <BarChart3 className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                        </motion.div>
-                        <div>
-                          <div className="font-semibold text-white">Decision Clarity</div>
-                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Quantified feasibility scores</div>
-                        </div>
+                      <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
+                        <BarChart3 className="h-5 w-5 text-[#10B981] flex-shrink-0 mt-0.5" />
                       </motion.div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-[#0A0F2C] border-[#06B6D4]/30">
+                      <div>
+                        <div className="font-semibold text-white">Decision Clarity</div>
+                        <div className="text-xs text-white/60 mt-0.5">Quantified feasibility scores</div>
+                      </div>
+                    </motion.div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
                       <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
                     </TooltipContent>
                   </Tooltip>
@@ -716,10 +729,10 @@ export const Hero = () => {
 
               {/* Below-the-Fold Follow-Up Line */}
               <motion.p
-                className="mt-8 pt-6 border-t border-white/10 text-xs md:text-sm text-[#CBD5E1]/50 italic"
+                className="mt-8 pt-6 border-t border-white/10 text-xs md:text-sm text-white/50 italic"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1.6, duration: 0.4 }}
+                transition={{ delay: 1.0, duration: 0.4 }}
               >
                 Powered by SiteIntel's proprietary intelligence engine that fuses verified public and municipal datasets into one unified model for true development clarity.
               </motion.p>
