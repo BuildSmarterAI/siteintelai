@@ -52,6 +52,14 @@ export default function Dashboard() {
 
   const fetchReports = async () => {
     try {
+      // Get current session to filter by user
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        navigate('/auth');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('reports')
         .select(`
@@ -61,6 +69,7 @@ export default function Dashboard() {
             property_address
           )
         `)
+        .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;

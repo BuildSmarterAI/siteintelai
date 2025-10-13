@@ -28,6 +28,18 @@ serve(async (req) => {
       const { data: { user } } = await supabase.auth.getUser(token);
       userId = user?.id || null;
     }
+    
+    // Require authentication for application submission
+    if (!userId) {
+      console.error('Authentication required: No user ID found');
+      return new Response(JSON.stringify({ 
+        error: 'Authentication required',
+        message: 'You must be logged in to submit an application'
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {

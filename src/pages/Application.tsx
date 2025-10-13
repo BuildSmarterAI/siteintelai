@@ -377,9 +377,21 @@ export default function Application() {
       try {
         // Get current session to pass auth token
         const { data: { session } } = await supabase.auth.getSession();
-        const headers = session ? {
+        
+        // Verify user is authenticated
+        if (!session?.user) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to submit an application.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+          return;
+        }
+        
+        const headers = {
           'Authorization': `Bearer ${session.access_token}`
-        } : {};
+        };
 
         // Submit to Supabase via edge function
         const { data: result, error } = await supabase.functions.invoke('submit-application', {
