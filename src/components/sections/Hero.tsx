@@ -446,7 +446,7 @@ export const Hero = () => {
                 className="text-lg md:text-xl lg:text-2xl text-[#CBD5E1]/90 leading-relaxed mb-10 font-body"
                 variants={subheadVariants}
               >
-                Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — proprietary AI intelligence that transforms due diligence into competitive advantage.
+                SiteIntel AI™ streamlines site selection with instant insights on buildability, zoning, and compliance. Whether you're evaluating a new development or validating a project for financing, we provide the clarity and confidence to make smarter, faster decisions—so you can focus on building what's next.
               </motion.p>
 
               {/* CTA Group */}
