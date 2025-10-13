@@ -14,6 +14,7 @@ import { LeadMagnet } from "@/components/sections/LeadMagnet";
 import { FinalCTA } from "@/components/sections/FinalCTA";
 import { Footer } from "@/components/sections/Footer";
 import { UnifiedMobileCTA } from "@/components/sections/UnifiedMobileCTA";
+import { KeyAdvantages } from "@/components/sections/KeyAdvantages";
 
 
 const Index = () => {
@@ -56,6 +57,7 @@ const Index = () => {
       <AssociationLogos />
       <PlatformOverview />
       <Solution />
+      <KeyAdvantages />
       <Comparison />
       <IndustriesWeServe />
       <PackagesPricing />
