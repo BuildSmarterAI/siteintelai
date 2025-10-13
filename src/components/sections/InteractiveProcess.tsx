@@ -24,12 +24,12 @@ export const InteractiveProcess = () => {
     {
       title: "AI Data Retrieval",
       duration: "2-3 Minutes", 
-      description: "AI queries official government APIs in real-time: FEMA NFHL, ArcGIS county parcels, TxDOT, EPA, and USFWS datasets.",
+      description: "Our proprietary AI engine queries 20+ official government data sources in real-time, pulling verified federal and municipal datasets through our secure integration network.",
       details: [
-        "FEMA flood zone data (NFHL)",
-        "ArcGIS parcel boundaries", 
-        "TxDOT infrastructure data",
-        "EPA environmental records"
+        "Federal flood risk databases",
+        "County parcel boundary systems", 
+        "State infrastructure networks",
+        "Environmental compliance registries"
       ],
       icon: FileText,
       color: "navy"
@@ -37,12 +37,12 @@ export const InteractiveProcess = () => {
     {
       title: "Automated Report Generation",
       duration: "5-6 Minutes",
-      description: "AI processes retrieved data, calculates feasibility score (0-100), and generates structured JSON with full source citations.",
+      description: "Our Texas-trained AI models analyze data using proprietary risk scoring algorithms, calculating feasibility scores (0-100) and generating structured reports with full source citations.",
       details: [
-        "Feasibility score calculation",
-        "Risk factor analysis",
-        "Cost and timeline projections",
-        "Source citation mapping"
+        "Proprietary feasibility score calculation",
+        "Advanced geospatial risk analysis",
+        "Market-validated cost projections",
+        "Automated source citation mapping"
       ],
       icon: Shield,
       color: "charcoal"

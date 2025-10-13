@@ -7,7 +7,7 @@ export const Solution = () => {
       icon: MapPin,
       iconColor: "text-maxx-red",
       title: "Zoning & Entitlements",
-      description: "Decode zoning overlays, variances, and deed restrictions before you close.",
+      description: "Using advanced geospatial analysis techniques, we decode zoning overlays, variances, and deed restrictions before you close.",
       benefit: "Avoid 9–12 month rezoning delays and six-figure redesigns."
     },
     {
@@ -21,7 +21,7 @@ export const Solution = () => {
       icon: DollarSign,
       iconColor: "text-green-600",
       title: "Cost Benchmarking",
-      description: "Validate $/SF with Texas-specific historical and market data.",
+      description: "Through proprietary market intelligence models, validate $/SF with Texas-specific historical and real-time market data.",
       benefit: "Align your pro forma with reality and keep investors confident."
     },
     {
@@ -41,7 +41,7 @@ export const Solution = () => {
             Accelerate Decisions. Protect Capital. Earn Confidence.
           </h3>
           <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-4xl mx-auto leading-relaxed">
-            Our lender-ready feasibility reports validate every CRE property in under 3 weeks—delivering the clarity you need before capital is at risk.
+            Powered by proprietary AI models trained on Texas commercial real estate patterns, our lender-ready reports validate every property in under 3 weeks—delivering the clarity you need before capital is at risk.
           </h4>
         </div>
         

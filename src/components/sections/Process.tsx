@@ -19,13 +19,13 @@ export const Process = () => {
       icon: Search,
       iconColor: "text-navy",
       title: "2. AI Data Retrieval",
-      description: "Our AI queries FEMA NFHL, ArcGIS, TxDOT, EPA, and USFWS APIs in real-time to gather official datasets."
+      description: "Our proprietary AI engine retrieves data from 20+ verified federal and municipal sources in real-time, synthesizing official datasets through our secure integration network."
     },
     {
       icon: FileText,
       iconColor: "text-green-600",
       title: "3. Automated Report Generation",
-      description: "AI processes data, calculates feasibility score (0-100), and generates JSON with full source citations."
+      description: "Our Texas-trained AI models process data through proprietary risk scoring algorithms, calculating feasibility scores (0-100) and generating structured reports with full source citations."
     },
     {
       icon: FileText,
