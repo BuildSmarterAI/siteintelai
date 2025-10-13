@@ -75,6 +75,7 @@ export function QuickCheckWidget() {
           className="text-base md:text-lg"
         />
         <Button
+          variant="maxx-red"
           size="lg"
           className="w-full min-h-[44px] text-base md:text-lg"
           onClick={handleQuickCheck}
