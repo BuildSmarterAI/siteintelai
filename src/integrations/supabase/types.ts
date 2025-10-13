@@ -49,6 +49,7 @@ export type Database = {
           desired_budget: number | null
           distance_highway_ft: number | null
           distance_transit_ft: number | null
+          draft_saved_at: string | null
           drive_time_15min_population: number | null
           drive_time_30min_population: number | null
           effective_yr: number | null
@@ -205,6 +206,7 @@ export type Database = {
           desired_budget?: number | null
           distance_highway_ft?: number | null
           distance_transit_ft?: number | null
+          draft_saved_at?: string | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
           effective_yr?: number | null
@@ -361,6 +363,7 @@ export type Database = {
           desired_budget?: number | null
           distance_highway_ft?: number | null
           distance_transit_ft?: number | null
+          draft_saved_at?: string | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
           effective_yr?: number | null
@@ -865,6 +868,36 @@ export type Database = {
           source?: string
           updated_at?: string
           year?: number | null
+        }
+        Relationships: []
+      }
+      user_onboarding: {
+        Row: {
+          checklist_completed: Json | null
+          created_at: string | null
+          first_login_at: string | null
+          id: string
+          onboarding_complete: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          checklist_completed?: Json | null
+          created_at?: string | null
+          first_login_at?: string | null
+          id?: string
+          onboarding_complete?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          checklist_completed?: Json | null
+          created_at?: string | null
+          first_login_at?: string | null
+          id?: string
+          onboarding_complete?: boolean | null
+          updated_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }

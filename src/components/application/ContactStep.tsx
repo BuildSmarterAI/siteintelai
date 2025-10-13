@@ -1,5 +1,8 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Info } from "lucide-react";
+import { FIELD_TOOLTIPS } from "@/lib/fieldTooltips";
 
 interface ContactStepProps {
   formData: {
@@ -18,8 +21,22 @@ export function ContactStep({ formData, onChange, errors }: ContactStepProps) {
       <legend className="sr-only">Contact Information</legend>
       
       <div className="space-y-2">
-        <Label htmlFor="fullName" className="text-base">
+        <Label htmlFor="fullName" className="text-base flex items-center gap-2">
           Full Name <span className="text-destructive" aria-label="required">*</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium mb-1">{FIELD_TOOLTIPS.fullName.content}</p>
+                <p className="text-xs text-muted-foreground">Example: {FIELD_TOOLTIPS.fullName.example}</p>
+                {FIELD_TOOLTIPS.fullName.whyWeAsk && (
+                  <p className="text-xs text-primary mt-2">Why we ask: {FIELD_TOOLTIPS.fullName.whyWeAsk}</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </Label>
         <Input
           id="fullName"
@@ -40,8 +57,22 @@ export function ContactStep({ formData, onChange, errors }: ContactStepProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="company" className="text-base">
+        <Label htmlFor="company" className="text-base flex items-center gap-2">
           Company <span className="text-destructive" aria-label="required">*</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium mb-1">{FIELD_TOOLTIPS.company.content}</p>
+                <p className="text-xs text-muted-foreground">Example: {FIELD_TOOLTIPS.company.example}</p>
+                {FIELD_TOOLTIPS.company.whyWeAsk && (
+                  <p className="text-xs text-primary mt-2">Why we ask: {FIELD_TOOLTIPS.company.whyWeAsk}</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </Label>
         <Input
           id="company"
@@ -62,8 +93,22 @@ export function ContactStep({ formData, onChange, errors }: ContactStepProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email" className="text-base">
+        <Label htmlFor="email" className="text-base flex items-center gap-2">
           Email Address <span className="text-destructive" aria-label="required">*</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium mb-1">{FIELD_TOOLTIPS.email.content}</p>
+                <p className="text-xs text-muted-foreground">Example: {FIELD_TOOLTIPS.email.example}</p>
+                {FIELD_TOOLTIPS.email.whyWeAsk && (
+                  <p className="text-xs text-primary mt-2">Why we ask: {FIELD_TOOLTIPS.email.whyWeAsk}</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </Label>
         <Input
           id="email"
@@ -84,8 +129,22 @@ export function ContactStep({ formData, onChange, errors }: ContactStepProps) {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone" className="text-base">
+        <Label htmlFor="phone" className="text-base flex items-center gap-2">
           Phone Number <span className="text-destructive" aria-label="required">*</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="font-medium mb-1">{FIELD_TOOLTIPS.phone.content}</p>
+                <p className="text-xs text-muted-foreground">Example: {FIELD_TOOLTIPS.phone.example}</p>
+                {FIELD_TOOLTIPS.phone.whyWeAsk && (
+                  <p className="text-xs text-primary mt-2">Why we ask: {FIELD_TOOLTIPS.phone.whyWeAsk}</p>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </Label>
         <Input
           id="phone"

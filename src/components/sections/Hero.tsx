@@ -6,6 +6,7 @@ import aerialPropertySite from "@/assets/aerial-property-site.jpg";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useCounter } from "@/hooks/useCounter";
 import { useState, useRef } from "react";
+import { QuickCheckWidget } from "@/components/QuickCheckWidget";
 
 export const Hero = () => {
   // Phase 1: Magnetic CTA - Mouse tracking
@@ -609,6 +610,15 @@ export const Hero = () => {
               >
                 Powered by SiteIntel's proprietary intelligence engine that fuses 20+ verified datasets into one model for true development clarity.
               </motion.p>
+
+              {/* QuickCheck Widget */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.8, duration: 0.4 }}
+              >
+                <QuickCheckWidget />
+              </motion.div>
             </motion.div>
           </div>
         </div>

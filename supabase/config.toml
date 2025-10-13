@@ -37,3 +37,9 @@ verify_jwt = true
 [functions.create-checkout-session]
 [functions.create-subscription]
 [functions.check-subscription]
+
+[functions.save-draft]
+verify_jwt = true
+
+[functions.generate-quick-check]
+verify_jwt = false
