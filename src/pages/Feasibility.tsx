@@ -167,8 +167,8 @@ const Feasibility = () => {
         </div>
       </div>
 
-      {/* Explore Other Products */}
-      <section className="container mx-auto px-6 py-20 border-t border-white/10 bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
+        {/* Explore Other Products */}
+        <section className="container mx-auto px-6 py-20 border-t border-white/10 bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
           <h2 className="text-3xl font-bold text-white text-center mb-12">
             Explore Other <span className="text-[#06B6D4]">Intelligence Products</span>
           </h2>
@@ -208,10 +208,9 @@ const Feasibility = () => {
             </Link>
           </div>
         </section>
-      </>
-    );
-  };
-  
-  export default Feasibility;
+      </div>
+    </>
+  );
+};
 
 export default Feasibility;
