@@ -1,9 +1,9 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Layers, DollarSign, ShieldCheck, BarChart3, Building2, FileCheck } from "lucide-react";
+import { Database, Calculator, ShieldAlert, FileCheck, Building2, DollarSign, ShieldCheck } from "lucide-react";
 import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
 import aerialPropertySite from "@/assets/aerial-property-site.jpg";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { useCounter } from "@/hooks/useCounter";
 import { useState, useRef } from "react";
 import { QuickCheckWidget } from "@/components/QuickCheckWidget";
@@ -529,203 +529,103 @@ export const Hero = () => {
                 </p>
               </motion.div>
 
-              {/* Phase 3: Value Icons Strip with Hover Interactions */}
-            <TooltipProvider>
+              {/* Key Advantages Section */}
               <motion.div
-                className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-[#CBD5E1]/20 text-[#CBD5E1] text-sm"
+                className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-[#CBD5E1]/20"
                 initial="hidden"
                 animate="visible"
               >
-                {/* Mobile: Horizontal scroll */}
-                <div className="md:hidden -mx-6 px-6">
-                  <div className="overflow-x-auto snap-x snap-mandatory pb-4 scrollbar-hide">
-                    <div className="flex gap-6">
-                      {/* Icon 1: Proprietary Data Fusion */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
-                            custom={0}
-                            variants={valueIconVariants}
-                          >
-                            <Layers className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                            <div>
-                              <div className="font-semibold text-white">Proprietary Data Fusion</div>
-                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Multiple verified datasets unified</div>
-                            </div>
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                          <p className="text-xs">Municipal records, zoning maps, utility data, and more</p>
-                        </TooltipContent>
-                      </Tooltip>
+                {/* Section Heading */}
+                <motion.h3
+                  className="text-2xl md:text-[32px] font-semibold text-white mb-8"
+                  variants={headlineVariants}
+                >
+                  Key Advantages of SiteIntel™ Feasibility Platform
+                </motion.h3>
 
-                      {/* Icon 2: Cost Intelligence */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
-                            custom={1}
-                            variants={valueIconVariants}
-                          >
-                            <DollarSign className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                            <div>
-                              <div className="font-semibold text-white">Cost Intelligence</div>
-                              <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Construction-cost benchmarks</div>
-                            </div>
-                          </motion.div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                          <p className="text-xs">Real-time material costs, labor rates, and project estimates</p>
-                        </TooltipContent>
-                      </Tooltip>
-
-                      {/* Icon 3: Risk Transparency */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <motion.div
-                            className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
-                            custom={2}
-                            variants={valueIconVariants}
-                          >
-                            <ShieldCheck className="h-5 w-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
-                            <div>
-                              <div className="font-semibold text-white">Risk Transparency</div>
-                            <div className="text-xs text-white/60 mt-0.5">Instant constraint exposure</div>
-                          </div>
-                        </motion.div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                        <p className="text-xs">Flood zones, easements, environmental restrictions</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    {/* Icon 4: Decision Clarity */}
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <motion.div
-                          className="flex items-start gap-3 cursor-pointer min-w-[260px] snap-start"
-                          custom={3}
-                          variants={valueIconVariants}
-                        >
-                          <BarChart3 className="h-5 w-5 text-[#10B981] flex-shrink-0 mt-0.5" />
-                          <div>
-                            <div className="font-semibold text-white">Decision Clarity</div>
-                            <div className="text-xs text-white/60 mt-0.5">Quantified feasibility scores</div>
-                          </div>
-                        </motion.div>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                          <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
-                        </TooltipContent>
-                      </Tooltip>
+                {/* Features Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+                  {/* Feature 1: Verified Feasibility Intelligence */}
+                  <motion.div
+                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    custom={0}
+                    variants={valueIconVariants}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
+                      <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
+                        <Database className="h-5 w-5 text-[#06B6D4]" />
+                      </motion.div>
                     </div>
-                  </div>
+                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                      Verified Feasibility Intelligence
+                    </h4>
+                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                      SiteIntel™ consolidates official zoning, infrastructure, and environmental datasets into one validated layer of real-estate feasibility insight — giving developers immediate clarity on any Texas parcel.
+                    </p>
+                  </motion.div>
 
-                  {/* Scroll indicator */}
-                  <div className="flex justify-center items-center gap-1 mt-2">
-                    <div className="h-1 w-1 rounded-full bg-[#06B6D4]" />
-                    <div className="h-1 w-8 rounded-full bg-[#CBD5E1]/20" />
-                    <p className="text-xs text-[#CBD5E1]/40 ml-2">Swipe for more →</p>
-                  </div>
-                </div>
-
-                {/* Desktop: Original 2-column grid */}
-                <div className="hidden md:grid md:grid-cols-2 gap-4">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <motion.div
-                        className="flex items-start gap-3 cursor-pointer"
-                        custom={0}
-                        variants={valueIconVariants}
-                        whileHover={{ scale: 1.05, x: 4 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                      >
-                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                          <Layers className="h-5 w-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                        </motion.div>
-                        <div>
-                          <div className="font-semibold text-white">Proprietary Data Fusion</div>
-                          <div className="text-xs text-white/60 mt-0.5">Multiple verified datasets unified</div>
-                        </div>
-                      </motion.div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                      <p className="text-xs">Municipal records, zoning maps, utility data, and more</p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <motion.div
-                        className="flex items-start gap-3 cursor-pointer"
-                        custom={1}
-                        variants={valueIconVariants}
-                        whileHover={{ scale: 1.05, x: 4 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                      >
-                        <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                          <DollarSign className="h-5 w-5 text-[#FF7A00] flex-shrink-0 mt-0.5" />
-                        </motion.div>
-                        <div>
-                          <div className="font-semibold text-white">Cost Intelligence</div>
-                          <div className="text-xs text-white/60 mt-0.5">Construction-cost benchmarks</div>
-                        </div>
-                      </motion.div>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                      <p className="text-xs">Real-time material costs, labor rates, and project estimates</p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <motion.div
-                        className="flex items-start gap-3 cursor-pointer"
-                        custom={2}
-                        variants={valueIconVariants}
-                        whileHover={{ scale: 1.05, x: 4 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                      >
+                  {/* Feature 2: Project-Specific Cost Intelligence */}
+                  <motion.div
+                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    custom={1}
+                    variants={valueIconVariants}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
                       <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                        <ShieldCheck className="h-5 w-5 text-[#EF4444] flex-shrink-0 mt-0.5" />
+                        <Calculator className="h-5 w-5 text-[#06B6D4]" />
                       </motion.div>
-                      <div>
-                        <div className="font-semibold text-white">Risk Transparency</div>
-                        <div className="text-xs text-white/60 mt-0.5">Instant constraint exposure</div>
-                      </div>
-                    </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                      <p className="text-xs">Flood zones, easements, environmental restrictions</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </div>
+                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                      Project-Specific Cost Intelligence
+                    </h4>
+                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                      Our proprietary cost engine tailors design and construction forecasts to each project type — using comparable market data to produce accurate budgets, permitting durations, and build-timeline estimates.
+                    </p>
+                  </motion.div>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <motion.div
-                        className="flex items-start gap-3 cursor-pointer"
-                        custom={3}
-                        variants={valueIconVariants}
-                        whileHover={{ scale: 1.05, x: 4 }}
-                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                      >
+                  {/* Feature 3: Predictive Risk Mapping */}
+                  <motion.div
+                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    custom={2}
+                    variants={valueIconVariants}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
                       <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                        <BarChart3 className="h-5 w-5 text-[#10B981] flex-shrink-0 mt-0.5" />
+                        <ShieldAlert className="h-5 w-5 text-[#06B6D4]" />
                       </motion.div>
-                      <div>
-                        <div className="font-semibold text-white">Decision Clarity</div>
-                        <div className="text-xs text-white/60 mt-0.5">Quantified feasibility scores</div>
-                      </div>
-                    </motion.div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="bg-[#11224F] border-[#06B6D4]/40">
-                      <p className="text-xs">0-100 scores for buildability, cost, and market potential</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </div>
+                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                      Predictive Risk Mapping
+                    </h4>
+                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                      AI-driven spatial analysis identifies potential floodplain, entitlement, and infrastructure challenges automatically, so you can verify buildability before committing capital.
+                    </p>
+                  </motion.div>
+
+                  {/* Feature 4: Decision Assurance for Stakeholders */}
+                  <motion.div
+                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    custom={3}
+                    variants={valueIconVariants}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
+                      <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
+                        <FileCheck className="h-5 w-5 text-[#06B6D4]" />
+                      </motion.div>
+                    </div>
+                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                      Decision Assurance for Stakeholders
+                    </h4>
+                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                      Generates quantified feasibility scores and data-cited due-diligence reports built to satisfy lender, investor, and internal underwriting requirements with full transparency.
+                    </p>
+                  </motion.div>
                 </div>
               </motion.div>
-            </TooltipProvider>
 
               {/* Below-the-Fold Follow-Up Line */}
               <motion.p
