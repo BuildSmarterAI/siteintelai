@@ -33,3 +33,7 @@ verify_jwt = false
 
 [functions.re-enrich-application]
 verify_jwt = true
+
+[functions.create-checkout-session]
+[functions.create-subscription]
+[functions.check-subscription]

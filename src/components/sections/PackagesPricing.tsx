@@ -1,7 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { PaymentButton } from "@/components/PaymentButton";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 export const PackagesPricing = () => {
+  const navigate = useNavigate();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+  }, []);
+
   const packages = [
     {
       name: "Free QuickCheck™",
@@ -10,7 +25,8 @@ export const PackagesPricing = () => {
       description: "Preview zoning & flood data with AI score.",
       benefit: "Perfect for initial property screening and quick go/no-go decisions.",
       popular: false,
-      features: ["Zoning overview", "Flood zone status", "AI feasibility score (0-100)", "Instant results"]
+      features: ["Zoning overview", "Flood zone status", "AI feasibility score (0-100)", "Instant results"],
+      action: "free"
     },
     {
       name: "Professional Report", 
@@ -19,7 +35,8 @@ export const PackagesPricing = () => {
       description: "Full PDF + JSON with cited FEMA & ArcGIS data.",
       benefit: "Lender-ready feasibility report with comprehensive analysis and source citations.",
       popular: true,
-      features: ["Complete PDF report", "JSON data export", "FEMA NFHL citations", "ArcGIS parcel data", "30-60 second turnaround"]
+      features: ["Complete PDF report", "JSON data export", "FEMA NFHL citations", "ArcGIS parcel data", "30-60 second turnaround"],
+      action: "report"
     },
     {
       name: "Pro Subscription",
@@ -28,7 +45,8 @@ export const PackagesPricing = () => {
       description: "10 reports per month with dashboard analytics.",
       benefit: "For active investors and developers managing multiple properties.",
       popular: false,
-      features: ["10 reports/month", "Priority processing", "Dashboard analytics", "Email support", "API access"]
+      features: ["10 reports/month", "Priority processing", "Dashboard analytics", "Email support", "API access"],
+      action: "subscription"
     }
   ];
 
@@ -86,6 +104,34 @@ export const PackagesPricing = () => {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                  
+                  <div className="mt-6">
+                    {pkg.action === 'free' ? (
+                      <Button 
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => navigate('/application?step=2')}
+                      >
+                        Start Free QuickCheck
+                      </Button>
+                    ) : pkg.action === 'report' && isAuthenticated ? (
+                      <PaymentButton type="report" className="w-full">
+                        Purchase Report
+                      </PaymentButton>
+                    ) : pkg.action === 'subscription' && isAuthenticated ? (
+                      <PaymentButton type="subscription" className="w-full">
+                        Subscribe Now
+                      </PaymentButton>
+                    ) : (
+                      <Button 
+                        variant={pkg.popular ? "default" : "outline"}
+                        className="w-full"
+                        onClick={() => navigate('/auth')}
+                      >
+                        Sign In to Purchase
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
 import { AuthButton } from "@/components/AuthButton";
+import { SubscriptionStatus } from "@/components/SubscriptionStatus";
+import { PaymentButton } from "@/components/PaymentButton";
 
 interface Report {
   id: string;
@@ -25,6 +27,7 @@ interface Report {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<Report[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -32,7 +35,23 @@ export default function Dashboard() {
   useEffect(() => {
     checkAuth();
     fetchReports();
-  }, []);
+    
+    // Handle payment success/cancel messages
+    const payment = searchParams.get('payment');
+    const subscription = searchParams.get('subscription');
+    
+    if (payment === 'success') {
+      toast.success('Payment successful! Your report will be generated shortly.');
+    } else if (payment === 'canceled') {
+      toast.error('Payment was canceled.');
+    }
+    
+    if (subscription === 'success') {
+      toast.success('Subscription activated! Welcome to SiteIntel Pro.');
+    } else if (subscription === 'canceled') {
+      toast.error('Subscription was canceled.');
+    }
+  }, [searchParams]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -121,20 +140,32 @@ export default function Dashboard() {
 
           {/* Main Content */}
           <main className="flex-1 container mx-auto px-6 py-12">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-3xl font-headline font-bold text-charcoal">Reports & Applications</h2>
-            <p className="text-charcoal/60">Manage your feasibility reports and applications</p>
-          </div>
-          <Button 
-            onClick={() => navigate("/application?step=1")} 
-            size="lg"
-            className="bg-navy hover:bg-navy/90 text-white"
-          >
-            <Plus className="mr-2 h-5 w-5" />
-            New Application
-          </Button>
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+              <div className="lg:col-span-2">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-3xl font-headline font-bold text-charcoal">Reports & Applications</h2>
+                    <p className="text-charcoal/60">Manage your feasibility reports and applications</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <PaymentButton type="report" variant="outline">
+                      Buy Single Report ($795)
+                    </PaymentButton>
+                    <Button 
+                      onClick={() => navigate("/application?step=1")} 
+                      size="lg"
+                      className="bg-navy hover:bg-navy/90 text-white"
+                    >
+                      <Plus className="mr-2 h-5 w-5" />
+                      New Application
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              <div className="lg:col-span-1">
+                <SubscriptionStatus />
+              </div>
+            </div>
 
         <Tabs defaultValue="all" className="space-y-6">
           <TabsList>

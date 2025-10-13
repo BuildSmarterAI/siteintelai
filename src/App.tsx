@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Header } from "./components/navigation/Header";
 import { Footer } from "./components/navigation/Footer";
 import { SkipLinks } from "./components/SkipLinks";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import Index from "./pages/Index";
 import Application from "./pages/Application";
 import ThankYou from "./pages/ThankYou";
@@ -26,11 +27,12 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <SkipLinks />
-        <Header />
+      <SubscriptionProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <SkipLinks />
+          <Header />
         <main id="main-content" className="pt-24">
           <Routes>
             <Route path="/" element={<Index />} />
@@ -57,6 +59,7 @@ const App = () => (
         </main>
         <Footer />
       </BrowserRouter>
+      </SubscriptionProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
