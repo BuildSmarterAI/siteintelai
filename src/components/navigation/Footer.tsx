@@ -7,10 +7,10 @@ export const Footer = () => {
     {
       title: "Product",
       links: [
-        { label: "Feasibility Overview", href: "/feasibility" },
-        { label: "Verified Reports", href: "/feasibility#reports" },
-        { label: "Cost Intelligence", href: "/feasibility#cost" },
-        { label: "QuickCheck Demo", href: "/application?step=2" },
+        { label: "Feasibility Intelligence", href: "/products/feasibility" },
+        { label: "Cost Intelligence", href: "/products/cost-intelligence" },
+        { label: "Schedule Intelligence", href: "/products/schedule-intelligence" },
+        { label: "Run Free QuickCheck", href: "/application?step=2" },
       ],
     },
     {
@@ -75,10 +75,10 @@ export const Footer = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div>
               <h3 className="text-xl font-bold mb-2">
-                Ready to Verify Your Site's Feasibility?
+                Ready to Build with Intelligence?
               </h3>
               <p className="text-white/70 text-sm">
-                Get instant intelligence from 20+ trusted data sources
+                Powered by proprietary AI trained on Texas commercial real estate data
               </p>
             </div>
             <Button
@@ -95,7 +95,7 @@ export const Footer = () => {
         {/* Trust Bar */}
         <div className="mb-8">
           <p className="text-[#06B6D4] text-sm font-semibold mb-3 text-center">
-            Verified from 20+ trusted data sources
+            Powered by proprietary AI trained on verified government data
           </p>
           <div className="flex flex-wrap justify-center gap-6 text-white/50 text-xs">
             {trustBadges.map((badge) => (

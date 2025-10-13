@@ -107,10 +107,10 @@ const Feasibility = () => {
               <ol className="space-y-6">
                 {[
                   "Enter property address and project parameters",
-                  "SiteIntel engine queries 20+ verified data sources",
-                  "AI analyzes and cross-validates all datasets",
-                  "Intelligence engine generates comprehensive feasibility report",
-                  "Receive verified report with complete transparency",
+                  "Our proprietary AI engine retrieves data from 20+ verified federal and municipal sources",
+                  "Texas-trained AI models analyze and cross-validate all datasets",
+                  "Intelligence engine generates comprehensive feasibility report with proprietary risk scoring",
+                  "Receive verified report with complete source transparency",
                 ].map((step, idx) => (
                   <li key={idx} className="flex gap-4">
                     <span className="flex-shrink-0 w-8 h-8 rounded-full bg-[#06B6D4] text-[#0A0F2C] font-bold flex items-center justify-center">
@@ -145,7 +145,7 @@ const Feasibility = () => {
               </div>
               <div className="mt-6 pt-6 border-t border-white/10 text-center">
                 <p className="text-white/70">
-                  Built by Texas commercial builders. Backed by FEMA, ArcGIS, TxDOT & EPA data.
+                  Powered by proprietary AI models trained on Texas commercial real estate patterns. Built by Texas commercial builders.
                 </p>
               </div>
             </div>
@@ -161,7 +161,7 @@ const Feasibility = () => {
               <Link to="/application?step=2">Run Free QuickCheck →</Link>
             </Button>
             <p className="mt-4 text-white/60 text-sm">
-              60-second turnaround · Verified from 20+ data sources
+              60-second turnaround · Powered by proprietary AI
             </p>
           </div>
         </div>

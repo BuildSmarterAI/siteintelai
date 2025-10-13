@@ -37,14 +37,12 @@ const Products = () => {
   ];
 
   const comparisonFeatures = [
-    { name: "AI-Powered Analysis", feasibility: true, cost: true, schedule: true },
-    { name: "Real-Time Data Updates", feasibility: true, cost: true, schedule: true },
+    { name: "AI-Powered Intelligence", feasibility: true, cost: true, schedule: true },
     { name: "Lender-Ready Reports", feasibility: true, cost: true, schedule: true },
-    { name: "Citation & Transparency", feasibility: true, cost: true, schedule: true },
-    { name: "Zoning & Flood Analysis", feasibility: true, cost: false, schedule: false },
-    { name: "Construction Cost Tracking", feasibility: false, cost: true, schedule: false },
-    { name: "Permit Duration Forecasting", feasibility: false, cost: false, schedule: true },
-    { name: "Market Benchmarking", feasibility: false, cost: true, schedule: true },
+    { name: "Complete Source Citations", feasibility: true, cost: true, schedule: true },
+    { name: "Site & Compliance Analysis", feasibility: true, cost: false, schedule: false },
+    { name: "Cost & Budget Intelligence", feasibility: false, cost: true, schedule: false },
+    { name: "Timeline & Risk Forecasting", feasibility: false, cost: false, schedule: true },
   ];
 
   return (
