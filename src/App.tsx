@@ -14,8 +14,10 @@ import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ReportViewer from "./pages/ReportViewer";
+import Products from "./pages/Products";
 import Feasibility from "./pages/Feasibility";
 import CostIntelligence from "./pages/CostIntelligence";
+import ScheduleIntelligence from "./pages/ScheduleIntelligence";
 import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -42,8 +44,10 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/report/:reportId" element={<ReportViewer />} />
-            <Route path="/feasibility" element={<Feasibility />} />
-            <Route path="/cost-intelligence" element={<CostIntelligence />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/products/feasibility" element={<Feasibility />} />
+            <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
+            <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
             <Route path="/how-it-works" element={<HowItWorks />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />

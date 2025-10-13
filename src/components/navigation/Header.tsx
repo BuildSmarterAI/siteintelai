@@ -9,6 +9,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -48,6 +49,12 @@ export const Header = () => {
         ? "text-[#06B6D4] after:absolute after:bottom-[-8px] after:left-0 after:w-full after:h-[2px] after:bg-[#06B6D4]"
         : "text-white/90"
     }`;
+
+  const products = [
+    { name: "Feasibility Intelligence", href: "/products/feasibility", description: "Zoning, flood, utilities" },
+    { name: "Cost Intelligence", href: "/products/cost-intelligence", description: "Real-time construction costs" },
+    { name: "Schedule Intelligence", href: "/products/schedule-intelligence", description: "Timeline risk & permits", comingSoon: true },
+  ];
 
   const industries = [
     { label: "Developers & Investors", href: "/industries/developers" },
@@ -120,13 +127,36 @@ export const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8" style={{ minHeight: '20px', fontSizeAdjust: '0.5' }}>
-              <NavLink to="/feasibility" className={navLinkClass}>
-                Feasibility
-              </NavLink>
-              
-              <NavLink to="/cost-intelligence" className={navLinkClass}>
-                Cost Intelligence
-              </NavLink>
+          {/* Products Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-white/90 hover:text-[#06B6D4] transition-colors">
+              Products
+              <ChevronDown className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-[#0A0F2C] backdrop-blur-md border-white/10 z-[100]">
+              <DropdownMenuItem asChild>
+                <Link to="/products" className="text-white/90 hover:text-[#06B6D4] font-semibold cursor-pointer">
+                  All Products
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/10" />
+              {products.map((product) => (
+                <DropdownMenuItem key={product.href} asChild>
+                  <Link to={product.href} className="cursor-pointer">
+                    <div className="flex flex-col py-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-white">{product.name}</span>
+                        {product.comingSoon && (
+                          <span className="text-[10px] bg-[#8B5CF6] text-white px-2 py-0.5 rounded-full font-semibold">Soon</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-white/60">{product.description}</span>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <NavLink to="/how-it-works" className={navLinkClass}>
             How It Works
@@ -214,12 +244,23 @@ export const Header = () => {
               <Link to="/" className="text-white hover:text-[#06B6D4] font-medium">
                 Home
               </Link>
-              <Link to="/feasibility" className="text-white hover:text-[#06B6D4] font-medium">
-                Feasibility
-              </Link>
-              <Link to="/cost-intelligence" className="text-white hover:text-[#06B6D4] font-medium">
-                Cost Intelligence
-              </Link>
+              
+              {/* Products */}
+              <div className="space-y-2">
+                <p className="text-[#06B6D4] font-semibold text-sm">PRODUCTS</p>
+                <Link to="/products" className="block pl-4 text-white/90 hover:text-[#06B6D4] text-sm font-medium">
+                  All Products
+                </Link>
+                {products.map((product) => (
+                  <Link key={product.href} to={product.href} className="block pl-4 text-white/80 hover:text-[#06B6D4] text-sm flex items-center gap-2">
+                    {product.name}
+                    {product.comingSoon && (
+                      <span className="text-[10px] bg-[#8B5CF6] text-white px-2 py-0.5 rounded-full font-semibold">Soon</span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+
               <Link to="/how-it-works" className="text-white hover:text-[#06B6D4] font-medium">
                 How It Works
               </Link>

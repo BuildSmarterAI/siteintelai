@@ -1,12 +1,48 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { FileText, Shield, DollarSign, Map } from "lucide-react";
+import { FileText, Shield, DollarSign, Map, TrendingUp, CheckCircle2 } from "lucide-react";
 import AuthorityBadges from "@/components/sections/AuthorityBadges";
+import { Helmet } from "react-helmet";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 const Feasibility = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
-      <div className="container mx-auto px-6 py-24">
+    <>
+      <Helmet>
+        <title>Feasibility Intelligence | SiteIntel™ Products</title>
+        <meta
+          name="description"
+          content="AI-powered feasibility analysis for commercial real estate. Zoning, flood, utilities & compliance verified in minutes."
+        />
+        <link rel="canonical" href="https://siteintel.com/products/feasibility" />
+      </Helmet>
+
+      <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
+        {/* Breadcrumbs */}
+        <div className="container mx-auto px-6 pt-8">
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/products" className="text-white/60 hover:text-white">Products</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator className="text-white/40" />
+              <BreadcrumbItem>
+                <BreadcrumbPage className="text-white">Feasibility Intelligence</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+
+        <div className="container mx-auto px-6 py-16">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
             AI-Powered Due Diligence Feasibility for <span className="text-[#FF7A00]">Commercial Real Estate</span>
@@ -130,8 +166,52 @@ const Feasibility = () => {
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+
+      {/* Explore Other Products */}
+      <section className="container mx-auto px-6 py-20 border-t border-white/10 bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
+          <h2 className="text-3xl font-bold text-white text-center mb-12">
+            Explore Other <span className="text-[#06B6D4]">Intelligence Products</span>
+          </h2>
+          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            <Link
+              to="/products/cost-intelligence"
+              className="bg-gradient-to-br from-[#FF7A00]/20 to-[#FF9240]/20 backdrop-blur-md border border-[#FF7A00]/30 rounded-2xl p-8 hover:border-[#FF7A00] transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF7A00] to-[#FF9240] flex items-center justify-center flex-shrink-0">
+                  <TrendingUp className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#FF7A00] transition-colors">
+                    Cost Intelligence
+                  </h3>
+                  <p className="text-white/70">Real-time construction cost tracking & benchmarking</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              to="/products/schedule-intelligence"
+              className="bg-gradient-to-br from-[#8B5CF6]/20 to-[#A78BFA]/20 backdrop-blur-md border border-[#8B5CF6]/30 rounded-2xl p-8 hover:border-[#8B5CF6] transition-all group"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#A78BFA] flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2 group-hover:text-[#8B5CF6] transition-colors">
+                    Schedule Intelligence
+                  </h3>
+                  <p className="text-white/70">Timeline risk & permit duration forecasting</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </section>
+      </>
+    );
+  };
+  
+  export default Feasibility;
 
 export default Feasibility;
