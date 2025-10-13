@@ -18,29 +18,29 @@ const HowItWorks = () => {
   const flowStages = [
     {
       icon: Database,
-      title: "Data Collection",
-      description: "Builds live connections to municipal, environmental, and infrastructure sources.",
+      title: "Data Retrieval",
+      description: "Our proprietary AI engine connects to verified government and municipal sources.",
       color: "#06B6D4",
       delay: 0,
     },
     {
       icon: Layers,
-      title: "Normalization",
-      description: "Cleans and aligns heterogeneous formats into a unified schema.",
+      title: "Intelligence Synthesis",
+      description: "Texas-trained models process and validate data through advanced algorithms.",
       color: "#14B8A6",
       delay: 0.2,
     },
     {
       icon: CheckCircle2,
-      title: "Verification",
-      description: "Cross-checks values across datasets and internal cost intelligence.",
+      title: "Risk Analysis",
+      description: "Proprietary scoring models identify constraints and opportunities.",
       color: "#FF7A00",
       delay: 0.4,
     },
     {
       icon: Brain,
-      title: "Insight Generation",
-      description: "AI model calculates feasibility, cost, and risk outputs.",
+      title: "Report Generation",
+      description: "AI produces lender-ready intelligence with complete source transparency.",
       color: "#FF9240",
       delay: 0.6,
     },
@@ -49,31 +49,31 @@ const HowItWorks = () => {
   const verificationLayers = [
     {
       number: 1,
-      title: "Parcel & Zoning",
-      description: "Defines buildable footprint, use, and density constraints.",
+      title: "Site & Compliance Analysis",
+      description: "Validates buildable footprint and regulatory requirements.",
       icon: Map,
-      detail: "Municipal zoning codes, setback requirements, permitted uses, and density restrictions verified from official records.",
+      detail: "Our proprietary geospatial AI analyzes municipal regulations, use restrictions, and development constraints from verified government sources.",
     },
     {
       number: 2,
-      title: "Infrastructure & Utilities",
-      description: "Detects nearest connections and capacity.",
+      title: "Infrastructure Intelligence",
+      description: "Maps critical utility connections and capacity.",
       icon: Zap,
-      detail: "Water, sewer, electric, and gas infrastructure mapped with distance calculations and capacity verification.",
+      detail: "Advanced algorithms assess infrastructure proximity and availability using verified public utility data.",
     },
     {
       number: 3,
-      title: "Environmental & Risk",
-      description: "Highlights flood, soil, and environmental overlays.",
+      title: "Environmental & Risk Assessment",
+      description: "Identifies site constraints and development risks.",
       icon: Shield,
-      detail: "FEMA flood zones, soil composition, wetlands, endangered species habitats, and environmental restrictions.",
+      detail: "Texas-trained AI models evaluate flood risk, soil conditions, and environmental factors from federal and state databases.",
     },
     {
       number: 4,
       title: "Cost & Schedule Intelligence",
-      description: "Applies SiteIntel's proprietary cost database for true project feasibility.",
+      description: "Applies SiteIntel's proprietary market intelligence for accurate projections.",
       icon: DollarSign,
-      detail: "Real-time material costs, labor rates, and schedule estimates calibrated from thousands of completed projects.",
+      detail: "Proprietary cost models calibrated from real Texas projects deliver market-validated estimates you can trust.",
     },
   ];
 
@@ -125,7 +125,7 @@ const HowItWorks = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              Every QuickCheck activates SiteIntel's proprietary data fusion engine—verifying 20+ public and internal datasets in seconds to produce a single, lender-ready source of truth.
+              Every QuickCheck activates SiteIntel's proprietary data fusion engine—powered by Texas-trained AI models that synthesize verified federal and municipal sources in seconds to produce a single, lender-ready source of truth.
             </motion.p>
 
             <motion.div
@@ -253,7 +253,7 @@ const HowItWorks = () => {
                 }}
               />
               <p className="text-white/80 text-center relative z-10">
-                <span className="font-semibold text-[#06B6D4]">Live data fusion:</span> Every report queries 20+ sources simultaneously, normalizes formats, cross-validates accuracy, and generates verified intelligence—all in under 60 seconds.
+                <span className="font-semibold text-[#06B6D4]">Proprietary data fusion:</span> Our Texas-trained AI models synthesize 20+ verified sources through advanced algorithms, delivering lender-ready intelligence in under 60 seconds.
               </p>
             </motion.div>
           </div>
@@ -335,7 +335,7 @@ const HowItWorks = () => {
                   viewport={{ once: true }}
                   transition={{ delay: 0.2 }}
                 >
-                  Watch SiteIntel™ analyze a real parcel—connecting datasets, validating cost inputs, and generating an executive-ready feasibility score.
+                  Watch SiteIntel™ analyze a real parcel—our proprietary AI models synthesize verified data and generate an executive-ready feasibility score.
                 </motion.p>
               </div>
 
@@ -354,7 +354,7 @@ const HowItWorks = () => {
                     <Play className="h-10 w-10 text-white ml-1" />
                   </motion.div>
                   <p className="text-white/70 text-sm">Demo: QuickCheck in Action</p>
-                  <p className="text-white/50 text-xs mt-2">Geocoding → Verification → Cost Model → Report Ready</p>
+                  <p className="text-white/50 text-xs mt-2">Powered by proprietary AI trained on Texas commercial real estate</p>
                 </div>
               </motion.div>
             </div>
