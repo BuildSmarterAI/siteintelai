@@ -7,17 +7,17 @@ export const PlatformOverview = () => {
     {
       title: "Feasibility Intelligence",
       icon: MapPin,
-      description: "Land feasibility and project validation."
+      description: "Verify site feasibility in under 10 minutes with AI-powered zoning, floodplain, utilities, and environmental constraint analysis. Eliminate $250K+ surprises with lender-ready reports backed by FEMA, TxDOT, and ArcGIS data."
     },
     {
       title: "Cost Intelligence",
       icon: Calculator,
-      description: "Real-time construction feasibility analysis."
+      description: "Track real-time material and labor costs across Texas markets with AI-powered construction cost intelligence. Avoid budget overruns and validate design-phase estimates with market-aligned data from 1,200+ active projects."
     },
     {
       title: "Schedule Intelligence",
       icon: Clock,
-      description: "Timeline forecasting for property development."
+      description: "Predict permit approval timelines and construction schedules before breaking ground. AI-powered forecasting helps you avoid 9-12 month delays and confidently commit to lender and investor deadlines with accurate milestone predictions."
     }
   ];
 
