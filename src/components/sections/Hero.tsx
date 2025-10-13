@@ -446,7 +446,7 @@ export const Hero = () => {
                 className="text-lg md:text-xl lg:text-2xl text-[#CBD5E1]/90 leading-relaxed mb-10 font-body"
                 variants={subheadVariants}
               >
-                Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — the only AI platform that delivers cited, lender-ready reports instantly.
+                Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — proprietary AI intelligence that transforms due diligence into competitive advantage.
               </motion.p>
 
               {/* CTA Group */}
@@ -484,7 +484,7 @@ export const Hero = () => {
                 
                 {/* Microcopy with Phase 4: Number Counter */}
                 <p className="mt-3 text-sm text-[#CBD5E1]/90">
-                  Verified from <span className="font-semibold text-[#06B6D4]">{dataSourceCount}+</span> trusted data sources · Cost-calibrated from real projects · 60-second turnaround
+                  Powered by proprietary data fusion from official sources · Cost-calibrated from real projects · 60-second turnaround
                 </p>
               </motion.div>
 
@@ -512,7 +512,7 @@ export const Hero = () => {
                         </motion.div>
                         <div>
                           <div className="font-semibold text-white">Proprietary Data Fusion</div>
-                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">20+ verified datasets unified</div>
+                          <div className="text-xs text-[#CBD5E1]/60 mt-0.5">Multiple verified datasets unified</div>
                         </div>
                       </motion.div>
                     </TooltipTrigger>
@@ -608,7 +608,7 @@ export const Hero = () => {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.6, duration: 0.4 }}
               >
-                Powered by SiteIntel's proprietary intelligence engine that fuses 20+ verified datasets into one model for true development clarity.
+                Powered by SiteIntel's proprietary intelligence engine that fuses verified public and municipal datasets into one unified model for true development clarity.
               </motion.p>
 
               {/* QuickCheck Widget */}

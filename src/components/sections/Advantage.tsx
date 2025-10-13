@@ -13,7 +13,7 @@ export const Advantage = () => {
     },
     {
       title: "Proprietary AI Modules",
-      content: "Gain an unfair advantage with our AI-powered tools. CostDB™ provides real-time Texas cost data, while Schedulr™ models accurate project timelines. This is intelligence that traditional consultants simply cannot replicate."
+      content: "Gain an unfair advantage with our AI-powered tools. Our proprietary cost intelligence platform provides real-time Texas market data, while our AI-powered scheduling models predict accurate project timelines. This is intelligence that traditional consultants simply cannot replicate."
     },
     {
       title: "100% Fee Credit: Intelligence That Pays for Itself", 
