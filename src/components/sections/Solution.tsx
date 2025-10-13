@@ -1,83 +1,185 @@
+import { CheckCircle, Clock, ArrowRight, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Droplets, DollarSign, Clock } from "lucide-react";
+import { motion } from "framer-motion";
 
 export const Solution = () => {
-  const pillars = [
+  const comparisonRows = [
     {
-      icon: MapPin,
-      iconColor: "text-maxx-red",
-      title: "Zoning & Entitlements",
-      description: "Using advanced geospatial analysis techniques, we decode zoning overlays, variances, and deed restrictions before you close.",
-      benefit: "Avoid 9–12 month rezoning delays and six-figure redesigns."
+      title: "Speed",
+      traditional: "3–4 weeks for initial report, often delayed by consultant availability",
+      siteintel: "10 minutes — instant AI-powered analysis with no waiting"
     },
     {
-      icon: Droplets,
-      iconColor: "text-navy",
-      title: "Utilities & Infrastructure", 
-      description: "Verify site capacity for water, sewer, and power.",
-      benefit: "Prevent costly $250K+ mid-project upgrades."
+      title: "Cost",
+      traditional: "$8,000–$15,000 per study, plus additional fees for revisions",
+      siteintel: "$795 flat fee — unlimited revisions included in Pro tier"
     },
     {
-      icon: DollarSign,
-      iconColor: "text-green-600",
-      title: "Cost Benchmarking",
-      description: "Through proprietary market intelligence models, validate $/SF with Texas-specific historical and real-time market data.",
-      benefit: "Align your pro forma with reality and keep investors confident."
+      title: "Scope",
+      traditional: "Limited to consultant's local expertise and data access",
+      siteintel: "Comprehensive statewide coverage across all Texas counties with 8+ federal data sources"
     },
     {
-      icon: Clock,
-      iconColor: "text-amber-500",
-      title: "Schedule & Risk Map",
-      description: "Uncover permitting timelines, municipal bottlenecks, and site risks.",
-      benefit: "Protect IRR and ensure lender-ready schedules."
+      title: "Data Accuracy",
+      traditional: "Manual research, subject to human error and outdated records",
+      siteintel: "Real-time API integration with FEMA, ArcGIS, EPA, and TxDOT — auto-updated"
+    },
+    {
+      title: "Report Format",
+      traditional: "PDF summary with limited citations and no interactive analysis",
+      siteintel: "Lender-ready PDF + interactive dashboard with full citation transparency"
+    },
+    {
+      title: "Scalability",
+      traditional: "One property at a time — bulk analysis requires separate contracts",
+      siteintel: "Analyze 10, 50, or 500 sites simultaneously with API or CSV upload"
+    },
+    {
+      title: "Transparency",
+      traditional: "Black box methodology — unclear how conclusions were reached",
+      siteintel: "Every data point cited with source, timestamp, and methodology exposed"
     }
   ];
 
   return (
-    <section className="bg-light-gray py-16 md:py-24 lg:py-32">
+    <section className="bg-white py-16 md:py-24 lg:py-32">
       <div className="container mx-auto px-6 lg:px-8">
-        <div className="text-center mb-16 lg:mb-20">
-          <h3 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-6 lg:mb-8">
-            Accelerate Decisions. Protect Capital. Earn Confidence.
-          </h3>
-          <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-4xl mx-auto leading-relaxed">
-            Powered by proprietary AI models trained on Texas commercial real estate patterns, our lender-ready reports validate every property in under 3 weeks—delivering the clarity you need before capital is at risk.
-          </h4>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 mb-10 md:mb-15">
-          {pillars.map((pillar, index) => (
-            <div key={index} className="group">
-              <div className="bg-white border border-gray-200 rounded-lg p-6 md:p-8 hover:shadow-lg hover:-translate-y-1 active:scale-[0.98] hover:border-navy transition-all duration-300 h-full">
-                <div className="flex items-center space-x-4 mb-4">
-                  <pillar.icon className={`w-8 h-8 ${pillar.iconColor}`} />
-                  <h5 className="font-body font-semibold text-lg md:text-xl text-navy">
-                    {pillar.title}
-                  </h5>
-                </div>
-                
-                <p className="font-body text-base md:text-lg text-charcoal mb-3 leading-relaxed">
-                  {pillar.description}
-                </p>
-                
-                <p className="font-body text-sm md:text-base text-charcoal/80 leading-relaxed">
-                  <span className="font-bold text-maxx-red">Benefit:</span> {pillar.benefit}
-                </p>
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="text-center mb-12 lg:mb-16"
+        >
+          <h2 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-4 relative inline-block">
+            Traditional Feasibility vs. SiteIntel™ — A New Standard for Speed and Accuracy
+            <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-maxx-red"></span>
+          </h2>
+          <p className="font-body text-lg md:text-xl text-charcoal/70 max-w-2xl mx-auto mt-6 leading-relaxed">
+            Compare the old consultant-driven process to the new standard in automated land feasibility study and construction feasibility study workflows.
+          </p>
+        </motion.div>
+
+        {/* Comparison Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-12"
+        >
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-hidden rounded-lg border border-charcoal/10 shadow-md">
+            {/* Header Row */}
+            <div className="grid grid-cols-2 border-t-4 border-maxx-red bg-charcoal/5">
+              <div className="p-6 border-r border-charcoal/10">
+                <h3 className="font-headline text-xl text-charcoal font-semibold">Traditional Consultant-Based Feasibility</h3>
+              </div>
+              <div className="p-6">
+                <h3 className="font-headline text-xl text-charcoal font-semibold">SiteIntel™ Automated Feasibility</h3>
               </div>
             </div>
-          ))}
-        </div>
-        
-        <div className="text-center">
+
+            {/* Comparison Rows */}
+            {comparisonRows.map((row, index) => (
+              <div
+                key={index}
+                className={`grid grid-cols-2 ${index % 2 === 0 ? 'bg-white' : 'bg-charcoal/[0.02]'} hover:bg-accent/5 transition-colors duration-200`}
+              >
+                <div className="p-6 border-r border-charcoal/10">
+                  <h4 className="font-body text-lg font-semibold text-charcoal mb-2">{row.title}</h4>
+                  <div className="flex items-start space-x-2">
+                    <Clock className="w-5 h-5 text-charcoal/40 flex-shrink-0 mt-0.5" />
+                    <p className="font-body text-base text-charcoal/70">{row.traditional}</p>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h4 className="font-body text-lg font-semibold text-charcoal mb-2">{row.title}</h4>
+                  <div className="flex items-start space-x-2">
+                    <CheckCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" aria-label="Advantage in this category" />
+                    <p className="font-body text-base text-charcoal">{row.siteintel}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile/Tablet Accordion */}
+          <div className="lg:hidden space-y-4">
+            {comparisonRows.map((row, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                className="bg-white rounded-lg border border-charcoal/10 shadow-sm overflow-hidden"
+              >
+                <div className="border-l-4 border-maxx-red p-6">
+                  <h4 className="font-headline text-xl text-charcoal mb-4">{row.title}</h4>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <p className="font-body text-sm font-semibold text-charcoal/60 mb-2">Traditional</p>
+                      <div className="flex items-start space-x-2">
+                        <Clock className="w-4 h-4 text-charcoal/40 flex-shrink-0 mt-1" />
+                        <p className="font-body text-base text-charcoal/70">{row.traditional}</p>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="font-body text-sm font-semibold text-charcoal/60 mb-2">SiteIntel™</p>
+                      <div className="flex items-start space-x-2">
+                        <CheckCircle className="w-4 h-4 text-accent flex-shrink-0 mt-1" />
+                        <p className="font-body text-base text-charcoal">{row.siteintel}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Supporting Paragraph */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="font-body text-lg md:text-xl text-charcoal/70 max-w-3xl mx-auto text-center mb-10 leading-relaxed"
+        >
+          The feasibility process hasn't changed in 30 years — until now. SiteIntel™ brings construction feasibility study precision and land feasibility study speed into the AI era, empowering developers to make faster, data-backed decisions without sacrificing accuracy.
+        </motion.p>
+
+        {/* CTA Group */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+        >
           <Button 
-            variant="maxx-red" 
+            variant="maxx-red"
             size="lg"
-            className="text-lg md:text-xl px-8 py-4 h-auto font-cta"
+            className="text-base px-8 py-4 h-auto font-cta group w-full sm:w-auto"
             onClick={() => window.location.href = '/application?step=2'}
           >
-            Start My Feasibility Review
+            Run a Feasibility Comparison
+            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
           </Button>
-        </div>
+          <Button 
+            variant="outline"
+            size="lg"
+            className="text-base px-8 py-4 h-auto font-cta border-accent text-accent hover:bg-accent/10 w-full sm:w-auto group"
+            onClick={() => window.open('/sample-report.pdf', '_blank')}
+          >
+            View Sample Report
+            <FileCheck className="ml-2 w-5 h-5 group-hover:scale-110 transition-transform duration-300" />
+          </Button>
+        </motion.div>
       </div>
     </section>
   );
