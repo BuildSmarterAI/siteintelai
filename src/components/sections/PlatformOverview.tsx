@@ -7,12 +7,12 @@ export const PlatformOverview = () => {
     {
       title: "Feasibility Intelligence",
       icon: MapPin,
-      description: "Verify site feasibility in under 10 minutes with AI-powered zoning, floodplain, utilities, and environmental constraint analysis. Eliminate $250K+ surprises with lender-ready reports backed by FEMA, TxDOT, and ArcGIS data."
+      description: "Verify site feasibility in under 10 minutes with AI-powered zoning, floodplain, utilities, and environmental constraint analysis. Eliminate $250K+ surprises with comprehensive, lender-ready reports."
     },
     {
       title: "Cost Intelligence",
       icon: Calculator,
-      description: "Track real-time material and labor costs across Texas markets with AI-powered construction cost intelligence. Avoid budget overruns and validate design-phase estimates with market-aligned data from 1,200+ active projects."
+      description: "Track real-time material and labor costs across Texas markets with AI-powered construction cost intelligence. Avoid budget overruns and validate design-phase estimates with current market data."
     },
     {
       title: "Schedule Intelligence",
