@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useSearchParams } from "react-router-dom";
 import { motion, useScroll } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu } from "lucide-react";
-import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
+import siteIntelLogo from "@/assets/siteintel-logo.png";
 import { AuthButton } from "@/components/AuthButton";
 import {
   DropdownMenu,
@@ -78,8 +78,8 @@ export const Header = () => {
         {/* Logo */}
         <Link to="/" className="flex-shrink-0">
           <motion.img
-            src={buildSmarterLogo}
-            alt="SiteIntel"
+            src={siteIntelLogo}
+            alt="SiteIntel AI"
             className={`transition-all duration-300 ${
               isScrolled ? "h-7" : "h-9"
             }`}
