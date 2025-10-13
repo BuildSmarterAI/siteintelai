@@ -9,7 +9,7 @@ import { InteractiveCalculator } from "@/components/sections/InteractiveCalculat
 import { InteractiveProcess } from "@/components/sections/InteractiveProcess";
 import { Process } from "@/components/sections/Process";
 import { Comparison } from "@/components/sections/Comparison";
-import { WhoWeServe } from "@/components/sections/WhoWeServe";
+import { IndustriesWeServe } from "@/components/sections/IndustriesWeServe";
 import { PackagesPricing } from "@/components/sections/PackagesPricing";
 import { Advantage } from "@/components/sections/Advantage";
 import { ValueComparison } from "@/components/sections/ValueComparison";
@@ -65,7 +65,7 @@ const Index = () => {
       <InteractiveProcess />
       <Process />
       <Comparison />
-      <WhoWeServe />
+      <IndustriesWeServe />
       <PackagesPricing />
       <Advantage />
       <ValueComparison />
