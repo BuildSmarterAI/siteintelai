@@ -10,7 +10,6 @@ import { Comparison } from "@/components/sections/Comparison";
 import { IndustriesWeServe } from "@/components/sections/IndustriesWeServe";
 import { PackagesPricing } from "@/components/sections/PackagesPricing";
 import { Advantage } from "@/components/sections/Advantage";
-import { ValueComparison } from "@/components/sections/ValueComparison";
 import { FAQ } from "@/components/sections/FAQ";
 import { LeadMagnet } from "@/components/sections/LeadMagnet";
 import { FinalCTA } from "@/components/sections/FinalCTA";
@@ -63,7 +62,6 @@ const Index = () => {
       <IndustriesWeServe />
       <PackagesPricing />
       <Advantage />
-      <ValueComparison />
       <FAQ />
       <LeadMagnet />
       <FinalCTA />
