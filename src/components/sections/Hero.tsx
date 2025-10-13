@@ -432,16 +432,6 @@ export const Hero = () => {
               {/* Inner glow effect with darker overlay */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#0A0F2C]/40 to-transparent pointer-events-none" />
 
-              {/* Logo */}
-              <motion.div
-                className="mb-6"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                <img src={buildSmarterLogo} alt="SiteIntel" className="h-8 md:h-10" />
-              </motion.div>
-
               {/* Headline */}
               <motion.h1
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-headline font-bold text-white leading-[1.1] mb-6"
