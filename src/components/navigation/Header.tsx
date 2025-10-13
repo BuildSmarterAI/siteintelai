@@ -75,6 +75,15 @@ export const Header = () => {
       transition={{ duration: 0.3 }}
     >
       <div className="container mx-auto px-6 h-full flex items-center justify-between gap-4">
+        
+        {/* Logo as Home Link */}
+        <Link to="/" className="flex items-center transition-transform hover:scale-105 duration-200">
+          <img 
+            src="/src/assets/siteintel-logo.png" 
+            alt="SiteIntel" 
+            className="h-8 md:h-10 w-auto"
+          />
+        </Link>
 
         {/* Application Progress Indicator */}
         {isApplicationPage && (
@@ -198,6 +207,9 @@ export const Header = () => {
           </SheetTrigger>
           <SheetContent side="right" className="bg-[#0A0F2C] border-white/10 w-[300px]">
             <nav className="flex flex-col gap-6 mt-8">
+              <Link to="/" className="text-white hover:text-[#06B6D4] font-medium">
+                Home
+              </Link>
               <Link to="/feasibility" className="text-white hover:text-[#06B6D4] font-medium">
                 Feasibility
               </Link>
