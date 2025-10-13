@@ -16,6 +16,8 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [company, setCompany] = useState("");
+  const [phone, setPhone] = useState("");
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -30,6 +32,8 @@ export default function Auth() {
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
             full_name: fullName,
+            company: company,
+            phone: phone,
           }
         }
       });
@@ -40,6 +44,8 @@ export default function Auth() {
       setEmail("");
       setPassword("");
       setFullName("");
+      setCompany("");
+      setPhone("");
     } catch (error: any) {
       toast.error(error.message || "Sign up failed");
     } finally {
@@ -203,6 +209,28 @@ export default function Auth() {
                     placeholder="John Doe"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-company">Company</Label>
+                  <Input
+                    id="signup-company"
+                    type="text"
+                    placeholder="Your Company LLC"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone</Label>
+                  <Input
+                    id="signup-phone"
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                     required
                   />
                 </div>

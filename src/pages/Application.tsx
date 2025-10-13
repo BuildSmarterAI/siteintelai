@@ -59,9 +59,23 @@ export default function Application() {
             if (Object.keys(updates).length > 0) {
               updateMultipleFields(updates);
               
-              // If all required contact fields are present, mark Step 1 as complete
+              // If all required contact fields are present, mark Step 1 as complete and skip to Step 2
               if (profile.full_name && profile.email && profile.phone && profile.company) {
                 setCompletedSteps(prev => new Set([...prev, 1]));
+                
+                // Auto-navigate to Step 2 if user is on Step 1
+                const stepParam = new URLSearchParams(window.location.search).get('step');
+                const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 1;
+                if (currentStepFromUrl === 1) {
+                  setTimeout(() => {
+                    navigate('/application?step=2', { replace: true });
+                    setCurrentStep(2);
+                    toast({
+                      title: "Welcome Back!",
+                      description: "Your contact information has been saved. Let's continue with your property details.",
+                    });
+                  }, 500);
+                }
               }
             }
           }
