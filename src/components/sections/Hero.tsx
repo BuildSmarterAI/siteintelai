@@ -531,13 +531,13 @@ export const Hero = () => {
 
               {/* Key Advantages Section */}
               <motion.div
-                className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-[#CBD5E1]/20"
+                className="mt-10 md:mt-12 pt-8 md:pt-10 border-t border-data-cyan/15"
                 initial="hidden"
                 animate="visible"
               >
                 {/* Section Heading */}
                 <motion.h3
-                  className="text-2xl md:text-[32px] font-semibold text-white mb-8"
+                  className="text-2xl sm:text-[28px] md:text-h2 font-headline text-cloud-white mb-6 md:mb-8"
                   variants={headlineVariants}
                 >
                   Key Advantages of SiteIntel™ Feasibility Platform
@@ -547,80 +547,84 @@ export const Hero = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                   {/* Feature 1: Verified Feasibility Intelligence */}
                   <motion.div
-                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    className="flex flex-col gap-4 p-5 md:p-7 rounded-2xl glass-subtle border-data-cyan/20 hover:border-data-cyan/60 hover:bg-white/8 transition-all duration-250 hover:shadow-lg hover:shadow-data-cyan/20"
                     custom={0}
                     variants={valueIconVariants}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0 8px 32px rgba(6, 182, 212, 0.25)" }}
+                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-data-cyan/15 ring-1 ring-data-cyan/30">
                       <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                        <Database className="h-5 w-5 text-[#06B6D4]" />
+                        <Database className="w-6 h-6 text-data-cyan" />
                       </motion.div>
                     </div>
-                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                    <h4 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange">
                       Verified Feasibility Intelligence
                     </h4>
-                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                    <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7] max-w-prose">
                       SiteIntel™ consolidates official zoning, infrastructure, and environmental datasets into one validated layer of real-estate feasibility insight — giving developers immediate clarity on any Texas parcel.
                     </p>
                   </motion.div>
 
                   {/* Feature 2: Project-Specific Cost Intelligence */}
                   <motion.div
-                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    className="flex flex-col gap-4 p-5 md:p-7 rounded-2xl glass-subtle border-data-cyan/20 hover:border-data-cyan/60 hover:bg-white/8 transition-all duration-250 hover:shadow-lg hover:shadow-data-cyan/20"
                     custom={1}
                     variants={valueIconVariants}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0 8px 32px rgba(6, 182, 212, 0.25)" }}
+                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-data-cyan/15 ring-1 ring-data-cyan/30">
                       <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                        <Calculator className="h-5 w-5 text-[#06B6D4]" />
+                        <Calculator className="w-6 h-6 text-data-cyan" />
                       </motion.div>
                     </div>
-                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                    <h4 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange">
                       Project-Specific Cost Intelligence
                     </h4>
-                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                    <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7] max-w-prose">
                       Our proprietary cost engine tailors design and construction forecasts to each project type — using comparable market data to produce accurate budgets, permitting durations, and build-timeline estimates.
                     </p>
                   </motion.div>
 
                   {/* Feature 3: Predictive Risk Mapping */}
                   <motion.div
-                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    className="flex flex-col gap-4 p-5 md:p-7 rounded-2xl glass-subtle border-data-cyan/20 hover:border-data-cyan/60 hover:bg-white/8 transition-all duration-250 hover:shadow-lg hover:shadow-data-cyan/20"
                     custom={2}
                     variants={valueIconVariants}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0 8px 32px rgba(6, 182, 212, 0.25)" }}
+                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-data-cyan/15 ring-1 ring-data-cyan/30">
                       <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                        <ShieldAlert className="h-5 w-5 text-[#06B6D4]" />
+                        <ShieldAlert className="w-6 h-6 text-data-cyan" />
                       </motion.div>
                     </div>
-                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                    <h4 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange">
                       Predictive Risk Mapping
                     </h4>
-                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                    <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7] max-w-prose">
                       AI-driven spatial analysis identifies potential floodplain, entitlement, and infrastructure challenges automatically, so you can verify buildability before committing capital.
                     </p>
                   </motion.div>
 
                   {/* Feature 4: Decision Assurance for Stakeholders */}
                   <motion.div
-                    className="flex flex-col gap-3 p-4 md:p-6 rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 hover:border-[#06B6D4]/40 transition-all duration-300 hover:shadow-lg hover:shadow-[#06B6D4]/20"
+                    className="flex flex-col gap-4 p-5 md:p-7 rounded-2xl glass-subtle border-data-cyan/20 hover:border-data-cyan/60 hover:bg-white/8 transition-all duration-250 hover:shadow-lg hover:shadow-data-cyan/20"
                     custom={3}
                     variants={valueIconVariants}
-                    whileHover={{ scale: 1.02 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0 8px 32px rgba(6, 182, 212, 0.25)" }}
+                    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#06B6D4]/10">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-data-cyan/15 ring-1 ring-data-cyan/30">
                       <motion.div whileHover={{ rotate: 5 }} transition={{ duration: 0.2 }}>
-                        <FileCheck className="h-5 w-5 text-[#06B6D4]" />
+                        <FileCheck className="w-6 h-6 text-data-cyan" />
                       </motion.div>
                     </div>
-                    <h4 className="text-base font-semibold text-[#FF7A00]">
+                    <h4 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange">
                       Decision Assurance for Stakeholders
                     </h4>
-                    <p className="text-sm text-[#E5E7EB] leading-relaxed max-w-prose">
+                    <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7] max-w-prose">
                       Generates quantified feasibility scores and data-cited due-diligence reports built to satisfy lender, investor, and internal underwriting requirements with full transparency.
                     </p>
                   </motion.div>
