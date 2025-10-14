@@ -100,105 +100,74 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---------- FEMA FLOOD ZONES (by County Bounding Box) ----------
-    console.log('Fetching FEMA flood zones by county extent...');
+    // ---------- FEMA FLOOD ZONES (by DFIRM_ID) ----------
+    console.log('\n=== Fetching FEMA Flood Zones by DFIRM_ID ===');
+    
+    // DFIRM IDs for Texas counties (Digital Flood Insurance Rate Map IDs)
+    const COUNTY_DFIRM_IDS: Record<string, string> = {
+      'HARRIS COUNTY': '48201C',
+      'FORT BEND COUNTY': '48157C',
+      'MONTGOMERY COUNTY': '48339C'
+    };
+
+    let totalFemaSuccess = 0;
+    let totalFemaErrors = 0;
+
     try {
-      // Get county boundaries from database
-      const { data: counties, error: countyError } = await supabase
-        .from('county_boundaries')
-        .select('county_name, geometry');
-
-      if (countyError) {
-        throw new Error(`Failed to fetch counties: ${countyError.message}`);
-      }
-
-      if (!counties || counties.length === 0) {
-        throw new Error('No counties found in database. Please populate county boundaries first.');
-      }
-
-      let totalFemaSuccess = 0;
-      let totalFemaErrors = 0;
-
-      // Query FEMA for each county's bounding box
-      for (const county of counties) {
-        console.log(`Querying FEMA flood zones for ${county.county_name}...`);
+      for (const [countyName, dfirmId] of Object.entries(COUNTY_DFIRM_IDS)) {
+        console.log(`Querying FEMA for ${countyName} (DFIRM_ID: ${dfirmId})...`);
         
-        // Calculate bounding box from county geometry
-        const geometry = county.geometry;
-        let bbox = { xmin: 180, ymin: 90, xmax: -180, ymax: -90 };
-        
-        if (geometry.type === 'Polygon') {
-          geometry.coordinates[0].forEach((coord: number[]) => {
-            bbox.xmin = Math.min(bbox.xmin, coord[0]);
-            bbox.ymin = Math.min(bbox.ymin, coord[1]);
-            bbox.xmax = Math.max(bbox.xmax, coord[0]);
-            bbox.ymax = Math.max(bbox.ymax, coord[1]);
-          });
-        } else if (geometry.type === 'MultiPolygon') {
-          geometry.coordinates.forEach((polygon: number[][][]) => {
-            polygon[0].forEach((coord: number[]) => {
-              bbox.xmin = Math.min(bbox.xmin, coord[0]);
-              bbox.ymin = Math.min(bbox.ymin, coord[1]);
-              bbox.xmax = Math.max(bbox.xmax, coord[0]);
-              bbox.ymax = Math.max(bbox.ymax, coord[1]);
-            });
-          });
-        }
-
-        // Query FEMA with spatial extent
+        // Query by DFIRM_ID - no geometry encoding required!
         const femaUrl = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query` +
-          `?where=1=1` +
-          `&geometry=${bbox.xmin},${bbox.ymin},${bbox.xmax},${bbox.ymax}` +
-          `&geometryType=esriGeometryEnvelope` +
-          `&spatialRel=esriSpatialRelIntersects` +
+          `?where=DFIRM_ID='${dfirmId}'` +
           `&outFields=OBJECTID,DFIRM_ID,FLD_ZONE,ZONE_SUBTY,STATIC_BFE` +
           `&outSR=4326` +
           `&f=geojson` +
-          `&resultRecordCount=5000`;
+          `&resultRecordCount=10000`; // Higher limit for bulk loading
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 45000);
-        
-        const femaRes = await fetch(femaUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (!femaRes.ok) {
-          console.warn(`FEMA API returned status ${femaRes.status} for ${county.county_name}`);
-          continue;
-        }
-        
-        const femaData = await femaRes.json();
-        const femaFeatures = femaData?.features || [];
-
-        console.log(`Processing ${femaFeatures.length} FEMA features for ${county.county_name}...`);
-        
-        for (const feature of femaFeatures) {
-          if (!feature.geometry || !feature.properties) {
-            totalFemaErrors++;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+          
+          const femaRes = await fetch(femaUrl, { signal: controller.signal });
+          clearTimeout(timeoutId);
+          
+          if (!femaRes.ok) {
+            console.error(`FEMA API error for ${countyName}: ${femaRes.status} ${femaRes.statusText}`);
             continue;
           }
-
-          const femaId = feature.properties.OBJECTID?.toString() || 
-                         feature.properties.DFIRM_ID || 
-                         `fema_${county.county_name}_${Date.now()}_${Math.random()}`;
-
-          const { error } = await supabase.from('fema_flood_zones').upsert({
-            fema_id: femaId,
-            zone: feature.properties.FLD_ZONE || feature.properties.ZONE_SUBTY || 'UNKNOWN',
-            geometry: feature.geometry,
-            source: 'FEMA NFHL',
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'fema_id' });
-
-          if (error) {
-            console.error('FEMA upsert error:', error);
-            totalFemaErrors++;
-          } else {
-            totalFemaSuccess++;
+          
+          const femaData = await femaRes.json();
+          const femaFeatures = femaData?.features || [];
+          
+          console.log(`✓ Retrieved ${femaFeatures.length} flood zones for ${countyName}`);
+          
+          // Upsert each feature
+          for (const feature of femaFeatures) {
+            if (!feature.geometry || !feature.properties) continue;
+            
+            const { error } = await supabase
+              .from('fema_flood_zones')
+              .upsert({
+                fema_id: feature.properties.OBJECTID?.toString() || `${dfirmId}-${Math.random()}`,
+                zone: feature.properties.FLD_ZONE,
+                geometry: feature.geometry,
+                source: `FEMA NFHL MapServer 28 - DFIRM ${dfirmId}`,
+                updated_at: new Date().toISOString()
+              }, { onConflict: 'fema_id' });
+            
+            if (error) {
+              console.error(`Error upserting FEMA feature:`, error);
+              totalFemaErrors++;
+            } else {
+              totalFemaSuccess++;
+            }
           }
+          
+        } catch (countyErr) {
+          const errorMsg = countyErr instanceof Error ? countyErr.message : String(countyErr);
+          console.error(`Error fetching FEMA data for ${countyName}:`, errorMsg);
         }
-
-        console.log(`✓ ${county.county_name}: ${femaFeatures.length} flood zones processed`);
       }
 
       console.log(`✓ FEMA zones updated: ${totalFemaSuccess} success, ${totalFemaErrors} errors`);
@@ -206,13 +175,14 @@ Deno.serve(async (req) => {
         type: 'fema',
         record_count: totalFemaSuccess,
         errors: totalFemaErrors,
-        source: 'FEMA NFHL (spatial query)'
+        source: `FEMA NFHL (DFIRM query)`
       });
+      
     } catch (err) {
       console.error('Failed to fetch FEMA data:', err);
       results.push({
         type: 'fema',
-        error: err.message,
+        error: err instanceof Error ? err.message : String(err),
         source: 'FEMA NFHL'
       });
     }
