@@ -205,7 +205,21 @@ Deno.serve(async (req) => {
     let minDistance = Infinity;
 
     for (const segment of trafficSegments || []) {
-      const distance = distanceToLineString(point, segment.geometry);
+      let distance: number;
+      
+      // Handle both Point and LineString geometries
+      if (segment.geometry.type === 'Point') {
+        // Point geometry: single coordinate pair [lng, lat]
+        const [segLng, segLat] = segment.geometry.coordinates;
+        distance = pointToSegmentDistance(point, [segLng, segLat], [segLng, segLat]);
+      } else if (segment.geometry.type === 'LineString') {
+        // LineString geometry: array of coordinate pairs
+        distance = distanceToLineString(point, segment.geometry);
+      } else {
+        console.warn(`Unknown geometry type: ${segment.geometry.type}`);
+        continue;
+      }
+      
       if (distance < minDistance) {
         minDistance = distance;
         nearestSegment = segment;
