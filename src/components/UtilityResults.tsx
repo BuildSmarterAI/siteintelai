@@ -8,6 +8,7 @@ interface UtilityLine {
   status?: string | null;
   install_date?: string | null;
   distance_ft?: number;
+  source?: string;
 }
 
 interface UtilityResultsProps {
@@ -21,14 +22,17 @@ function UtilityTable({
   lines, 
   type, 
   icon: Icon, 
-  color 
+  color,
+  dataFlags
 }: { 
   lines: UtilityLine[] | null; 
   type: string; 
   icon: any; 
   color: string;
+  dataFlags: string[];
 }) {
   const hasData = lines && lines.length > 0;
+  const isOsmData = lines?.[0]?.source === "OSM_DATA" || lines?.[0]?.material === "OSM_DATA";
 
   return (
     <Card className={hasData ? '' : 'border-yellow-500/30 bg-yellow-50/50'}>
@@ -37,14 +41,40 @@ function UtilityTable({
           <Icon className={`w-5 h-5 ${color}`} />
           <span className="font-headline text-xl">{type} Lines</span>
           {hasData && (
-            <Badge variant="outline" className="ml-2">
-              {lines.length} line{lines.length !== 1 ? 's' : ''} found
-            </Badge>
+            <>
+              <Badge variant="outline" className="ml-2">
+                {lines.length} line{lines.length !== 1 ? 's' : ''} found
+              </Badge>
+              {isOsmData && (
+                <Badge variant="secondary" className="ml-2 bg-amber-100 text-amber-800 border-amber-300">
+                  OSM Data
+                </Badge>
+              )}
+            </>
           )}
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {hasData ? (
+        {isOsmData && (
+          <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-body text-sm text-charcoal mb-2">
+                  ⚠️ <strong>Community-Contributed Data (OpenStreetMap)</strong>
+                </p>
+                <p className="font-body text-xs text-charcoal/70 mb-2">
+                  This utility data comes from OpenStreetMap and may not be city-verified. 
+                  Please confirm with the local public works department or utility provider before making design decisions.
+                </p>
+                <p className="font-body text-xs text-charcoal/70">
+                  <strong>Recommended:</strong> Request manual verification with city records.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {hasData && !isOsmData ? (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
@@ -94,6 +124,11 @@ function UtilityTable({
               </tbody>
             </table>
           </div>
+        ) : hasData && isOsmData ? (
+          <p className="font-body text-sm text-charcoal/70">
+            Utility infrastructure detected in OpenStreetMap within 800 ft of the property.
+            Exact specifications not available from community data.
+          </p>
         ) : (
           <div className="flex items-start gap-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
@@ -128,7 +163,8 @@ export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }
         lines={waterLines} 
         type="Water" 
         icon={Droplet} 
-        color="text-blue-600" 
+        color="text-blue-600"
+        dataFlags={dataFlags}
       />
 
       {/* Sewer Lines */}
@@ -136,7 +172,8 @@ export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }
         lines={sewerLines} 
         type="Sewer" 
         icon={Waves} 
-        color="text-purple-600" 
+        color="text-purple-600"
+        dataFlags={dataFlags}
       />
 
       {/* Storm Drain Lines */}
@@ -144,10 +181,33 @@ export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }
         lines={stormLines} 
         type="Storm Drain" 
         icon={CloudRain} 
-        color="text-slate-600" 
+        color="text-slate-600"
+        dataFlags={dataFlags}
       />
 
       {/* Additional Context */}
+      {dataFlags?.includes('utilities_from_osm') && (
+        <Card className="border-2 border-amber-500/30 bg-amber-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1" />
+              <div>
+                <h4 className="font-headline text-lg font-bold text-charcoal mb-2">
+                  Using OpenStreetMap Data
+                </h4>
+                <p className="font-body text-sm text-charcoal/70 mb-3">
+                  City utility GIS returned no results, so this report includes community-contributed data from OpenStreetMap as a fallback. 
+                  This data is not city-verified and may be incomplete or outdated.
+                </p>
+                <p className="font-body text-sm text-charcoal/70">
+                  <strong>Recommended Action:</strong> Contact the local public works department to verify utility availability and obtain official infrastructure maps before proceeding with design.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {dataFlags?.includes('utilities_api_unreachable') && (
         <Card className="border-2 border-red-500/30 bg-red-50">
           <CardContent className="p-6">

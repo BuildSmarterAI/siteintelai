@@ -7,7 +7,8 @@
     "default_retry_attempts": 3,
     "default_retry_delays_ms": [500, 1000, 2000],
     "default_search_radius_ft": 500,
-    "urban_search_radius_ft": 2500
+    "urban_cities": ["Houston", "Dallas", "Austin", "San Antonio"],
+    "urban_search_radius_multiplier": 1.6
   },
   "houston": {
     "water": {
@@ -19,7 +20,8 @@
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 500,
+      "search_radius_ft": 800,
+      "urban_search_radius_ft": 800,
       "notes": "HPW Utility Network - Drinking Water Pipe Network (Layer 22) - EPSG:2278 (NAD 1983 StatePlane Texas South Central). Migrated from legacy WaterUNPublic/4 endpoint.",
       "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUtilitiesScaled/MapServer/22/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=500&units=9002&outFields=FACILITYID,DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=pjson"
     },
@@ -32,7 +34,8 @@
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 300,
+      "search_radius_ft": 600,
+      "urban_search_radius_ft": 600,
       "notes": "HPW Utility Network - Sewer Gravity Main (Layer 25) - EPSG:2278. Contains gravity sewer mains for Houston's wastewater collection system. Migrated from WastewaterUtilities/23.",
       "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/25/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=300&units=9002&outFields=FACILITYID,DIAMETER,MATERIAL,LIFECYCLESTATUS&returnGeometry=true&f=pjson"
     },
@@ -45,21 +48,23 @@
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 250,
+      "search_radius_ft": 400,
+      "urban_search_radius_ft": 400,
       "notes": "HPW Utility Network - Sewer Force Main (Layer 24) - EPSG:2278. Includes 320+ miles of force mains. Migrated from WastewaterUtilities/24.",
       "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/24/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=250&units=9002&outFields=FACILITYID,DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=pjson"
     },
     "storm": {
       "name": "TDO Stormdrain Gravity Mains",
       "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query",
-      "outFields": ["FACILITYID", "WIDTH", "HEIGHT", "MATERIAL", "DIAMETER"],
+      "outFields": ["FACILITYID", "PIPEWIDTH", "PIPEHEIGHT", "MATERIAL", "PIPEDIAMETER"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 300,
-      "notes": "HPW TDO - Stormwater Gravity Mains (Layer 18) - EPSG:2278. Represents stormwater drainage conveyance. Migrated from StormDrainageUtilityAssets/7.",
+      "search_radius_ft": 600,
+      "urban_search_radius_ft": 600,
+      "notes": "HPW TDO - Stormwater Gravity Mains (Layer 18) - EPSG:2278. Field names updated to match Esri Utility Network schema (PIPEWIDTH, PIPEHEIGHT, PIPEDIAMETER).",
       "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=300&units=9002&outFields=FACILITYID,WIDTH,HEIGHT,MATERIAL,DIAMETER&returnGeometry=true&f=pjson"
     }
   },

@@ -65,5 +65,8 @@ verify_jwt = true
 [functions.fetch-drivetimes]
 verify_jwt = true
 
+[functions.enrich-utilities-osm]
+verify_jwt = true
+
 [functions.fetch-places-context]
 verify_jwt = true

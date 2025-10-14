@@ -64,11 +64,16 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
       ? minDistanceToLine(geo_lat, geo_lng, geom.paths)
       : null;
     
-    // Handle storm drainage with WIDTH/HEIGHT instead of DIAMETER
-    let diameter = attrs.DIAMETER || null;
-    if (!diameter && (attrs.WIDTH || attrs.HEIGHT)) {
+    // Handle storm drainage with PIPEWIDTH/PIPEHEIGHT/PIPEDIAMETER
+    let diameter = attrs.DIAMETER || attrs.PIPEDIAMETER || null;
+    if (!diameter && (attrs.WIDTH || attrs.HEIGHT || attrs.PIPEWIDTH || attrs.PIPEHEIGHT)) {
       // For storm drains with width/height, use the larger dimension
-      diameter = Math.max(attrs.WIDTH || 0, attrs.HEIGHT || 0) || null;
+      diameter = Math.max(
+        attrs.WIDTH || 0, 
+        attrs.HEIGHT || 0, 
+        attrs.PIPEWIDTH || 0, 
+        attrs.PIPEHEIGHT || 0
+      ) || null;
     }
     
     return {
@@ -340,20 +345,34 @@ serve(async (req) => {
       if (cityLower.includes("houston")) {
         console.log('Using Houston endpoints');
         const eps = endpointCatalog.houston;
+        const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
+          cityLower.includes(c.toLowerCase())
+        );
+        
+        // Use urban search radius if available
+        const waterRadius = isUrbanArea && eps.water.urban_search_radius_ft 
+          ? eps.water.urban_search_radius_ft 
+          : eps.water.search_radius_ft;
+        
         water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
           timeout_ms: eps.water.timeout_ms,
           retry_attempts: eps.water.retry_attempts,
           retry_delays_ms: eps.water.retry_delays_ms,
-          search_radius_ft: eps.water.search_radius_ft,
+          search_radius_ft: waterRadius,
           crs: eps.water.crs || 2278
         });
+        
+        // Use urban search radius for sewer
+        const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft 
+          ? eps.sewer.urban_search_radius_ft 
+          : eps.sewer.search_radius_ft;
         
         // Query both gravity and force mains for comprehensive sewer data
         const sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
-          search_radius_ft: eps.sewer.search_radius_ft,
+          search_radius_ft: sewerRadius,
           crs: eps.sewer.crs || 2278
         });
         
@@ -361,11 +380,15 @@ serve(async (req) => {
         let sewerForce: any[] = [];
         try {
           if (eps.sewer_force) {
+            const forceRadius = isUrbanArea && eps.sewer_force.urban_search_radius_ft 
+              ? eps.sewer_force.urban_search_radius_ft 
+              : eps.sewer_force.search_radius_ft;
+            
             sewerForce = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
               timeout_ms: eps.sewer_force.timeout_ms,
               retry_attempts: eps.sewer_force.retry_attempts,
               retry_delays_ms: eps.sewer_force.retry_delays_ms,
-              search_radius_ft: eps.sewer_force.search_radius_ft,
+              search_radius_ft: forceRadius,
               crs: eps.sewer_force.crs || 2278
             });
           }
@@ -378,11 +401,15 @@ serve(async (req) => {
         
         // Storm endpoint - try with fallback and graceful degradation
         try {
+          const stormRadius = isUrbanArea && eps.storm.urban_search_radius_ft 
+            ? eps.storm.urban_search_radius_ft 
+            : eps.storm.search_radius_ft;
+          
           storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
             timeout_ms: eps.storm.timeout_ms,
             retry_attempts: eps.storm.retry_attempts,
             retry_delays_ms: eps.storm.retry_delays_ms,
-            search_radius_ft: eps.storm.search_radius_ft,
+            search_radius_ft: stormRadius,
             crs: eps.storm.crs || 2278
           });
         } catch (stormErr) {
@@ -468,6 +495,58 @@ serve(async (req) => {
         flags.push("utilities_api_unreachable");
       } else {
         throw err;
+      }
+    }
+
+    // 2.5. Try OSM fallback if all utilities are empty and it's an urban area
+    const allUtilitiesEmpty = !water.length && !sewer.length && !storm.length;
+    const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
+      cityLower.includes(c.toLowerCase())
+    );
+    
+    if (allUtilitiesEmpty && isUrbanArea && !apiUnreachable) {
+      console.log('⚠️ All HPW utilities returned 0 features, triggering OSM fallback...');
+      
+      try {
+        const osmResult = await supabase.functions.invoke('enrich-utilities-osm', {
+          body: { lat: geo_lat, lng: geo_lng, radius_ft: 800 }
+        });
+        
+        if (osmResult.data && !osmResult.error) {
+          console.log('✅ OSM fallback succeeded:', osmResult.data);
+          
+          // Store OSM data as utility summaries (will be used later in buildUtilitySummary)
+          if (osmResult.data.water?.has_service) {
+            water = [{ 
+              attributes: { DIAMETER: null, MATERIAL: 'OSM_DATA', OWNER: 'OpenStreetMap' },
+              geometry: null,
+              _osmSource: true
+            }];
+          }
+          if (osmResult.data.sewer?.has_service) {
+            sewer = [{ 
+              attributes: { DIAMETER: null, MATERIAL: 'OSM_DATA', OWNER: 'OpenStreetMap' },
+              geometry: null,
+              _osmSource: true
+            }];
+          }
+          if (osmResult.data.storm?.has_service) {
+            storm = [{ 
+              attributes: { DIAMETER: null, MATERIAL: 'OSM_DATA', OWNER: 'OpenStreetMap' },
+              geometry: null,
+              _osmSource: true
+            }];
+          }
+          
+          // Add flag to indicate OSM was used
+          if (!flags.includes("utilities_from_osm")) {
+            flags.push("utilities_from_osm");
+          }
+        } else {
+          console.error('OSM fallback failed:', osmResult.error);
+        }
+      } catch (osmErr) {
+        console.error('OSM fallback error:', osmErr instanceof Error ? osmErr.message : String(osmErr));
       }
     }
 
