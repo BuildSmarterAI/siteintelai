@@ -3,13 +3,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Database, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Database, CheckCircle, XCircle, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+
+const TEST_COORDINATES = [
+  { name: 'Houston (Downtown)', lat: 29.7604, lng: -95.3698 },
+  { name: 'Sugar Land', lat: 29.6196, lng: -95.6349 },
+  { name: 'The Woodlands', lat: 30.1658, lng: -95.4613 },
+];
 
 export default function AdminGeospatial() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResults, setTestResults] = useState<any>(null);
+  const [testError, setTestError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchGeospatialLayers = async () => {
@@ -47,8 +56,168 @@ export default function AdminGeospatial() {
     }
   };
 
+  const testGeospatialScore = async (location: { name: string; lat: number; lng: number }) => {
+    setTestLoading(true);
+    setTestError(null);
+    setTestResults(null);
+
+    try {
+      console.log(`Testing compute-geospatial-score for ${location.name}...`);
+      
+      const { data, error: functionError } = await supabase.functions.invoke(
+        'compute-geospatial-score',
+        {
+          body: {
+            parcel_id: `test_${Date.now()}`,
+            lat: location.lat,
+            lng: location.lng
+          }
+        }
+      );
+
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+
+      setTestResults({ ...data, location: location.name });
+      toast({
+        title: 'Test Successful',
+        description: `Geospatial score computed for ${location.name}`,
+      });
+    } catch (err: any) {
+      const errorMsg = err.message || 'Failed to compute geospatial score';
+      setTestError(errorMsg);
+      toast({
+        title: 'Test Error',
+        description: errorMsg,
+        variant: 'destructive',
+      });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 space-y-6">
+      {/* Test compute-geospatial-score */}
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="h-6 w-6" />
+            Phase 1: Test Geospatial Score Computation
+          </CardTitle>
+          <CardDescription>
+            Test on-demand FEMA queries and geospatial scoring with sample coordinates
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Alert>
+            <AlertDescription>
+              <strong>Testing:</strong> This will call <code>compute-geospatial-score</code> which invokes <code>query-fema-by-point</code> to fetch real-time FEMA flood data, query TxDOT traffic segments, and compute a geospatial intelligence score.
+            </AlertDescription>
+          </Alert>
+
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm">Test Coordinates:</h3>
+            {TEST_COORDINATES.map((location, index) => (
+              <Button
+                key={index}
+                onClick={() => testGeospatialScore(location)}
+                disabled={testLoading}
+                variant="outline"
+                className="w-full justify-start"
+              >
+                {testLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <MapPin className="mr-2 h-4 w-4" />
+                )}
+                {location.name} ({location.lat}, {location.lng})
+              </Button>
+            ))}
+          </div>
+
+          {testError && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>{testError}</AlertDescription>
+            </Alert>
+          )}
+
+          {testResults && (
+            <div className="space-y-4">
+              <Alert>
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertDescription className="text-green-600">
+                  Score computed for {testResults.location}
+                </AlertDescription>
+              </Alert>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Geospatial Score</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="text-3xl font-bold">
+                    {testResults.score || testResults.data?.geospatial_score?.overall_geospatial_score || 'N/A'}
+                  </div>
+                  
+                  {testResults.data?.fema_flood_risk && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">FEMA Flood Data:</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Zone:</strong> {testResults.data.fema_flood_risk.zone_code}</p>
+                        <p><strong>In Flood Zone:</strong> {testResults.data.fema_flood_risk.in_flood_zone ? 'Yes' : 'No'}</p>
+                        {testResults.data.fema_flood_risk.bfe && (
+                          <p><strong>Base Flood Elevation:</strong> {testResults.data.fema_flood_risk.bfe} ft</p>
+                        )}
+                        <p className="text-muted-foreground">
+                          <strong>Source:</strong> {testResults.data.fema_flood_risk.source}
+                        </p>
+                        <p className="text-muted-foreground text-xs">
+                          Last updated: {new Date(testResults.data.fema_flood_risk.last_refreshed).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {testResults.data?.traffic_exposure && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Traffic Data:</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Roadway:</strong> {testResults.data.traffic_exposure.roadway_name}</p>
+                        <p><strong>AADT:</strong> {testResults.data.traffic_exposure.aadt?.toLocaleString()}</p>
+                        <p><strong>Distance:</strong> {testResults.data.traffic_exposure.distance_to_segment_ft} ft</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {testResults.data?.county_boundary && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">County:</h4>
+                      <p className="text-sm">{testResults.data.county_boundary.county_name}</p>
+                    </div>
+                  )}
+
+                  {testResults.data?.geospatial_score && (
+                    <div>
+                      <h4 className="font-semibold text-sm mb-2">Score Components:</h4>
+                      <div className="space-y-1 text-sm">
+                        <p><strong>Jurisdiction Confidence:</strong> {testResults.data.geospatial_score.jurisdiction_confidence}</p>
+                        <p><strong>Flood Risk Index:</strong> {testResults.data.geospatial_score.flood_risk_index}</p>
+                        <p><strong>Traffic Visibility Index:</strong> {testResults.data.geospatial_score.traffic_visibility_index}</p>
+                        <p className="text-muted-foreground mt-2">{testResults.data.geospatial_score.scoring_notes}</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Bulk geospatial data loading */}
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -56,7 +225,7 @@ export default function AdminGeospatial() {
             Geospatial Database Management
           </CardTitle>
           <CardDescription>
-            Populate the database with FEMA flood zones, TxDOT traffic segments, and county boundaries
+            Populate the database with county boundaries and TxDOT traffic segments
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -65,11 +234,10 @@ export default function AdminGeospatial() {
               This process will fetch data from:
               <ul className="list-disc list-inside mt-2 space-y-1">
                 <li>Harris, Fort Bend, and Montgomery County boundaries</li>
-                <li>FEMA National Flood Hazard Layer (up to 2,000 zones)</li>
                 <li>TxDOT traffic segments with AADT data (up to 2,000 segments)</li>
               </ul>
               <p className="mt-2 text-sm text-muted-foreground">
-                This operation takes approximately 2-3 minutes to complete.
+                <strong>Note:</strong> FEMA flood data is now queried on-demand per parcel using <code>query-fema-by-point</code>.
               </p>
             </AlertDescription>
           </Alert>
