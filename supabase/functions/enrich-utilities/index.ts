@@ -498,14 +498,42 @@ serve(async (req) => {
       }
     }
 
-    // 2.5. Try OSM fallback if all utilities are empty and it's an urban area
+    // 2.5. Check for MUD district if Houston property has no utilities
     const allUtilitiesEmpty = !water.length && !sewer.length && !storm.length;
     const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
       cityLower.includes(c.toLowerCase())
     );
     
+    if (allUtilitiesEmpty && cityLower.includes("houston") && !apiUnreachable) {
+      console.log('⚠️ Houston property with 0 utilities - checking for MUD district...');
+      
+      try {
+        const mudEp = endpointCatalog.harris_county_etj.mud;
+        const mudHits = await queryPolygon(mudEp.url, mudEp.outFields, geo_lat, geo_lng);
+        
+        if (mudHits.length > 0) {
+          const mudAttrs = mudHits[0].attributes;
+          const mudDistrict = mudAttrs.DISTRICT_NA || mudAttrs.DISTRICT_NO || null;
+          console.log('✅ MUD district found:', mudDistrict);
+          
+          // Update application with MUD info
+          await supabase.from("applications").update({
+            mud_district: mudDistrict,
+            etj_provider: mudAttrs.AGENCY || "MUD"
+          }).eq("id", application_id);
+          
+          flags.push("served_by_mud_district");
+          console.log(`Property is in ${mudDistrict} - utilities managed by MUD, not HPW`);
+        } else {
+          console.log('No MUD district found - triggering OSM fallback...');
+        }
+      } catch (mudErr) {
+        console.error('MUD lookup failed:', mudErr instanceof Error ? mudErr.message : String(mudErr));
+      }
+    }
+    
     if (allUtilitiesEmpty && isUrbanArea && !apiUnreachable) {
-      console.log('⚠️ All HPW utilities returned 0 features, triggering OSM fallback...');
+      console.log('⚠️ All utilities returned 0 features, triggering OSM fallback...');
       
       try {
         const osmResult = await supabase.functions.invoke('enrich-utilities-osm', {

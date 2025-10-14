@@ -56,7 +56,7 @@
     "storm": {
       "name": "TDO Stormdrain Gravity Mains",
       "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query",
-      "outFields": ["FACILITYID", "PIPEWIDTH", "PIPEHEIGHT", "MATERIAL", "PIPEDIAMETER"],
+      "outFields": ["OBJECTID", "FACILITYID"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
@@ -64,8 +64,8 @@
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 600,
       "urban_search_radius_ft": 600,
-      "notes": "HPW TDO - Stormwater Gravity Mains (Layer 18) - EPSG:2278. Field names updated to match Esri Utility Network schema (PIPEWIDTH, PIPEHEIGHT, PIPEDIAMETER).",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=300&units=9002&outFields=FACILITYID,WIDTH,HEIGHT,MATERIAL,DIAMETER&returnGeometry=true&f=pjson"
+      "notes": "HPW TDO - Stormwater Gravity Mains (Layer 18) - EPSG:2278. Using minimal fields (OBJECTID, FACILITYID) to avoid HTTP 400 errors.",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=600&units=9002&outFields=OBJECTID,FACILITYID&returnGeometry=true&f=pjson"
     }
   },
   "austin": {
