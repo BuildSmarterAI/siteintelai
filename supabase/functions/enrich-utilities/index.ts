@@ -335,6 +335,7 @@ serve(async (req) => {
     let water: any[] = [];
     let sewer: any[] = [];
     let storm: any[] = [];
+    let sewer_force: any[] = [];
     let flags: string[] = [];
     let apiUnreachable = false;
 
@@ -381,14 +382,13 @@ serve(async (req) => {
         }
         
         // Try to get force mains as well
-        let sewerForce: any[] = [];
         try {
           if (eps.sewer_force) {
             const forceRadius = isUrbanArea && eps.sewer_force.urban_search_radius_ft 
               ? eps.sewer_force.urban_search_radius_ft 
               : eps.sewer_force.search_radius_ft;
             
-            sewerForce = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
+            sewer_force = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
               timeout_ms: eps.sewer_force.timeout_ms,
               retry_attempts: eps.sewer_force.retry_attempts,
               retry_delays_ms: eps.sewer_force.retry_delays_ms,
@@ -396,7 +396,7 @@ serve(async (req) => {
               crs: eps.sewer_force.crs || 2278
             });
             
-            if (sewerForce.length > 0) {
+            if (sewer_force.length > 0) {
               flags.push("sewer_force_via_arcgis_online");
             }
           }
@@ -405,7 +405,7 @@ serve(async (req) => {
         }
         
         // Combine gravity and force mains
-        sewer = [...sewerGravity, ...sewerForce];
+        sewer = [...sewerGravity, ...sewer_force];
         
         // Storm endpoint - try with fallback and graceful degradation
         try {
@@ -562,7 +562,7 @@ serve(async (req) => {
     }
 
     // 2.6. Check for MUD district if Houston property has no utilities
-    const allUtilitiesEmpty = !water.length && !sewer.length && !sewerForce.length && !storm.length;
+    const allUtilitiesEmpty = !water.length && !sewer.length && !sewer_force.length && !storm.length;
     const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
       cityLower.includes(c.toLowerCase())
     );

@@ -307,6 +307,7 @@ export default function ReportViewer() {
             enterprise_zone,
             foreign_trade_zone,
             mud_district,
+            wcid_district,
             etj_provider,
             power_kv_nearby,
             fiber_available,
