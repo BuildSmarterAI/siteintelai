@@ -32,6 +32,9 @@ interface MapLibreCanvasProps {
   drawnParcels?: DrawParcel[];
   drawingEnabled?: boolean;
   onParcelDrawn?: (geometry: any) => void;
+  onParcelSelected?: (parcel: DrawParcel | null) => void;
+  selectedParcelId?: string | null;
+  editingParcelId?: string | null;
   className?: string;
   propertyAddress?: string;
   femaFloodZone?: string;
@@ -61,6 +64,9 @@ export function MapLibreCanvas({
   drawnParcels = [],
   drawingEnabled = false,
   onParcelDrawn,
+  onParcelSelected,
+  selectedParcelId = null,
+  editingParcelId = null,
   className = '',
   propertyAddress = 'Property location',
   femaFloodZone,

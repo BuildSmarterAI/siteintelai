@@ -14,6 +14,8 @@ interface DrawParcelControlProps {
   onCancelDrawing: () => void;
   calculatedAcreage?: number;
   isSaving?: boolean;
+  editMode?: boolean;
+  editingParcelName?: string;
 }
 
 export function DrawParcelControl({
@@ -23,13 +25,19 @@ export function DrawParcelControl({
   onCancelDrawing,
   calculatedAcreage,
   isSaving = false,
+  editMode = false,
+  editingParcelName = '',
 }: DrawParcelControlProps) {
   const [showNameDialog, setShowNameDialog] = useState(false);
-  const [parcelName, setParcelName] = useState('');
+  const [parcelName, setParcelName] = useState(editingParcelName);
 
   const handleStartDrawing = () => {
     onToggleDrawing();
-    toast.info('Click on the map to start drawing. Double-click to finish.');
+    if (editMode) {
+      toast.info('Drag vertices to edit the parcel. Click Finish when done.');
+    } else {
+      toast.info('Click on the map to start drawing. Double-click to finish.');
+    }
   };
 
   const handleFinishDrawing = () => {
@@ -64,14 +72,14 @@ export function DrawParcelControl({
       {/* Drawing Control Button */}
       <Card className="absolute top-4 right-4 z-10 shadow-lg">
         <div className="p-2">
-          {!drawingActive ? (
+      {!drawingActive ? (
             <Button
               onClick={handleStartDrawing}
               size="sm"
               className="gap-2"
             >
               <Pencil className="h-4 w-4" />
-              Draw Parcel
+              {editMode ? 'Edit Parcel' : 'Draw Parcel'}
             </Button>
           ) : (
             <div className="flex gap-2">
@@ -116,9 +124,9 @@ export function DrawParcelControl({
       <Dialog open={showNameDialog} onOpenChange={setShowNameDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save Drawn Parcel</DialogTitle>
+            <DialogTitle>{editMode ? 'Update Parcel' : 'Save Drawn Parcel'}</DialogTitle>
             <DialogDescription>
-              Give your parcel a name to save it for future reference.
+              {editMode ? 'Update the name for this parcel.' : 'Give your parcel a name to save it for future reference.'}
             </DialogDescription>
           </DialogHeader>
           
@@ -156,7 +164,7 @@ export function DrawParcelControl({
               onClick={handleSave}
               disabled={isSaving || !parcelName.trim()}
             >
-              {isSaving ? 'Saving...' : 'Save Parcel'}
+              {isSaving ? 'Saving...' : editMode ? 'Update Parcel' : 'Save Parcel'}
             </Button>
           </DialogFooter>
         </DialogContent>

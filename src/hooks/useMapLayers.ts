@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MapLayersData {
   parcel: any | null;
@@ -25,7 +26,9 @@ interface MapLayersData {
  * @returns Query result with layer data
  */
 export function useMapLayers(applicationId: string) {
-  return useQuery<MapLayersData>({
+  const queryClient = useQueryClient();
+
+  const query = useQuery<MapLayersData>({
     queryKey: ['map-layers', applicationId],
     queryFn: async () => {
       // Fetch application data with relevant fields including coordinates
@@ -172,4 +175,69 @@ export function useMapLayers(applicationId: string) {
     gcTime: 10 * 60 * 1000,   // 10 minutes garbage collection
     enabled: !!applicationId,
   });
+
+  // Mutation for updating parcels
+  const updateParcel = useMutation({
+    mutationFn: async ({
+      parcelId,
+      name,
+      geometry,
+    }: {
+      parcelId: string;
+      name: string;
+      geometry: any;
+    }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('update-drawn-parcel', {
+        body: { parcel_id: parcelId, name, geometry },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      return data.parcel;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['map-layers', applicationId] });
+      toast.success('Parcel updated successfully');
+    },
+    onError: (error) => {
+      console.error('Failed to update parcel:', error);
+      toast.error('Failed to update parcel');
+    },
+  });
+
+  // Mutation for deleting parcels
+  const deleteParcel = useMutation({
+    mutationFn: async (parcelId: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const { data, error } = await supabase.functions.invoke('delete-drawn-parcel', {
+        body: { parcel_id: parcelId },
+      });
+
+      if (error) throw error;
+      if (!data.success) throw new Error(data.error);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['map-layers', applicationId] });
+      toast.success('Parcel deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Failed to delete parcel:', error);
+      toast.error('Failed to delete parcel');
+    },
+  });
+
+  return {
+    ...query,
+    updateParcel,
+    deleteParcel,
+    refetchDrawnParcels: () => queryClient.invalidateQueries({ queryKey: ['map-layers', applicationId] }),
+  };
 }
