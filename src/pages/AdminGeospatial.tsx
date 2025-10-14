@@ -155,59 +155,100 @@ export default function AdminGeospatial() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg">Geospatial Score</CardTitle>
+                  <CardTitle className="text-lg">Geospatial Intelligence Score</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-3xl font-bold">
-                    {testResults.score || testResults.data?.geospatial_score?.overall_geospatial_score || 'N/A'}
+                <CardContent className="space-y-6">
+                  {/* Overall Score Gauge */}
+                  <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg">
+                    <div className="text-5xl font-bold text-primary mb-2">
+                      {testResults.score || testResults.data?.geospatial_score?.overall_geospatial_score || 'N/A'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Overall Geospatial Score</div>
                   </div>
-                  
+
+                  {/* Score Components Grid */}
+                  {testResults.data?.geospatial_score && (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="flex flex-col items-center p-4 bg-accent/50 rounded-lg">
+                        <div className="text-2xl font-bold text-foreground">
+                          {testResults.data.geospatial_score.jurisdiction_confidence}
+                        </div>
+                        <div className="text-xs text-center text-muted-foreground mt-1">
+                          Jurisdiction Confidence
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center p-4 bg-accent/50 rounded-lg">
+                        <div className="text-2xl font-bold text-foreground">
+                          {testResults.data.geospatial_score.flood_risk_index}
+                        </div>
+                        <div className="text-xs text-center text-muted-foreground mt-1">
+                          Flood Risk Index
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-center p-4 bg-accent/50 rounded-lg">
+                        <div className="text-2xl font-bold text-foreground">
+                          {testResults.data.geospatial_score.traffic_visibility_index}
+                        </div>
+                        <div className="text-xs text-center text-muted-foreground mt-1">
+                          Traffic Visibility
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Scoring Notes */}
+                  {testResults.data?.geospatial_score?.scoring_notes && (
+                    <Alert>
+                      <AlertDescription className="text-sm">
+                        {testResults.data.geospatial_score.scoring_notes}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {/* FEMA Flood Data with Color-Coded Badge */}
                   {testResults.data?.fema_flood_risk && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">FEMA Flood Data:</h4>
+                    <div className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-sm">FEMA Flood Risk</h4>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          testResults.data.fema_flood_risk.zone_code === 'X' || testResults.data.fema_flood_risk.zone_code === 'C'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : (testResults.data.fema_flood_risk.zone_code === 'A' || testResults.data.fema_flood_risk.zone_code === 'AE' || testResults.data.fema_flood_risk.zone_code === 'VE')
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                        }`}>
+                          Zone {testResults.data.fema_flood_risk.zone_code}
+                        </span>
+                      </div>
                       <div className="space-y-1 text-sm">
-                        <p><strong>Zone:</strong> {testResults.data.fema_flood_risk.zone_code}</p>
                         <p><strong>In Flood Zone:</strong> {testResults.data.fema_flood_risk.in_flood_zone ? 'Yes' : 'No'}</p>
                         {testResults.data.fema_flood_risk.bfe && (
                           <p><strong>Base Flood Elevation:</strong> {testResults.data.fema_flood_risk.bfe} ft</p>
                         )}
-                        <p className="text-muted-foreground">
-                          <strong>Source:</strong> {testResults.data.fema_flood_risk.source}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          Last updated: {new Date(testResults.data.fema_flood_risk.last_refreshed).toLocaleString()}
+                        <p className="text-muted-foreground text-xs mt-2">
+                          {testResults.data.fema_flood_risk.source} • Last updated: {new Date(testResults.data.fema_flood_risk.last_refreshed).toLocaleString()}
                         </p>
                       </div>
                     </div>
                   )}
 
+                  {/* Traffic Data */}
                   {testResults.data?.traffic_exposure && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Traffic Data:</h4>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-sm mb-3">Traffic Exposure</h4>
                       <div className="space-y-1 text-sm">
                         <p><strong>Roadway:</strong> {testResults.data.traffic_exposure.roadway_name}</p>
-                        <p><strong>AADT:</strong> {testResults.data.traffic_exposure.aadt?.toLocaleString()}</p>
+                        <p><strong>AADT:</strong> {testResults.data.traffic_exposure.aadt?.toLocaleString()} vehicles/day</p>
                         <p><strong>Distance:</strong> {testResults.data.traffic_exposure.distance_to_segment_ft} ft</p>
                       </div>
                     </div>
                   )}
 
+                  {/* County */}
                   {testResults.data?.county_boundary && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">County:</h4>
+                    <div className="border rounded-lg p-4">
+                      <h4 className="font-semibold text-sm mb-2">Jurisdiction</h4>
                       <p className="text-sm">{testResults.data.county_boundary.county_name}</p>
-                    </div>
-                  )}
-
-                  {testResults.data?.geospatial_score && (
-                    <div>
-                      <h4 className="font-semibold text-sm mb-2">Score Components:</h4>
-                      <div className="space-y-1 text-sm">
-                        <p><strong>Jurisdiction Confidence:</strong> {testResults.data.geospatial_score.jurisdiction_confidence}</p>
-                        <p><strong>Flood Risk Index:</strong> {testResults.data.geospatial_score.flood_risk_index}</p>
-                        <p><strong>Traffic Visibility Index:</strong> {testResults.data.geospatial_score.traffic_visibility_index}</p>
-                        <p className="text-muted-foreground mt-2">{testResults.data.geospatial_score.scoring_notes}</p>
-                      </div>
                     </div>
                   )}
                 </CardContent>

@@ -12,6 +12,7 @@ interface MapCanvasProps {
   employmentCenters?: any[];
   className?: string;
   propertyAddress?: string;
+  femaFloodZone?: string; // Add FEMA zone overlay support
 }
 
 export function MapCanvas({ 
@@ -23,7 +24,8 @@ export function MapCanvas({
   traffic = [],
   employmentCenters = [],
   className = "h-96 w-full rounded-lg",
-  propertyAddress
+  propertyAddress,
+  femaFloodZone
 }: MapCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -87,6 +89,46 @@ export function MapCanvas({
       }
     };
   }, []);
+
+  // Add FEMA flood zone overlay with color coding
+  useEffect(() => {
+    if (!mapRef.current || !femaFloodZone) return;
+
+    // Determine color based on FEMA flood zone
+    const getFloodColor = (zone: string) => {
+      const upperZone = zone.toUpperCase();
+      if (upperZone === 'X' || upperZone === 'C') {
+        return { color: '#10B981', label: 'Low Risk' }; // Green
+      } else if (upperZone === 'A' || upperZone === 'AE' || upperZone === 'VE') {
+        return { color: '#EF4444', label: 'High Risk' }; // Red
+      } else {
+        return { color: '#F59E0B', label: 'Moderate Risk' }; // Yellow
+      }
+    };
+
+    const { color, label } = getFloodColor(femaFloodZone);
+
+    // Add flood zone circle overlay
+    const floodCircle = L.circle(center, {
+      color: color,
+      fillColor: color,
+      fillOpacity: 0.2,
+      radius: 500, // 500m radius
+      weight: 2,
+    }).addTo(mapRef.current);
+
+    floodCircle.bindPopup(`
+      <div style="text-align: center;">
+        <strong style="font-size: 14px;">FEMA Flood Zone</strong><br/>
+        <span style="color: ${color}; font-weight: bold; font-size: 16px;">Zone ${femaFloodZone}</span><br/>
+        <span style="color: #6B7280; font-size: 12px;">${label}</span>
+      </div>
+    `);
+
+    return () => {
+      floodCircle.remove();
+    };
+  }, [femaFloodZone, center]);
 
   useEffect(() => {
     if (!mapRef.current) return;
