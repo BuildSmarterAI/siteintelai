@@ -25,6 +25,7 @@ export default function Application() {
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [hasCompleteProfile, setHasCompleteProfile] = useState(false);
   
   // Use form hook
   const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors, updateMultipleFields } = useApplicationForm();
@@ -59,22 +60,17 @@ export default function Application() {
             if (Object.keys(updates).length > 0) {
               updateMultipleFields(updates);
               
-              // If all required contact fields are present, mark Step 1 as complete and skip to Step 2
+              // If all required contact fields are present, mark Step 1 as complete
               if (profile.full_name && profile.email && profile.phone && profile.company) {
                 setCompletedSteps(prev => new Set([...prev, 1]));
+                setHasCompleteProfile(true);
                 
-                // Auto-navigate to Step 2 if user is on Step 1
+                // Auto-navigate to Step 2 immediately if user is on Step 1
                 const stepParam = new URLSearchParams(window.location.search).get('step');
                 const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 1;
                 if (currentStepFromUrl === 1) {
-                  setTimeout(() => {
-                    navigate('/application?step=2', { replace: true });
-                    setCurrentStep(2);
-                    toast({
-                      title: "Welcome Back!",
-                      description: "Your contact information has been saved. Let's continue with your property details.",
-                    });
-                  }, 500);
+                  navigate('/application?step=2', { replace: true });
+                  setCurrentStep(2);
                 }
               }
             }
@@ -634,16 +630,34 @@ export default function Application() {
                              />
                            )}
 
-                           <ContactStep
-                             formData={{
-                               fullName: formData.fullName,
-                               company: formData.company,
-                               email: formData.email,
-                               phone: formData.phone,
-                             }}
-                             onChange={handleInputChange}
-                             errors={errors}
-                           />
+                            {/* Contact Step - show form or confirmation based on profile status */}
+                            {!hasCompleteProfile ? (
+                              <ContactStep
+                                formData={{
+                                  fullName: formData.fullName,
+                                  company: formData.company,
+                                  email: formData.email,
+                                  phone: formData.phone,
+                                }}
+                                onChange={handleInputChange}
+                                errors={errors}
+                              />
+                            ) : (
+                              <Card className="p-6 bg-primary/5 border-primary/20">
+                                <div className="flex items-start gap-4">
+                                  <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                                  <div className="flex-1">
+                                    <h3 className="font-semibold text-lg mb-2">Welcome Back!</h3>
+                                    <p className="text-sm text-muted-foreground mb-4">
+                                      Your contact information has been loaded: <strong>{formData.fullName}</strong> ({formData.email})
+                                    </p>
+                                    <Button onClick={() => goToStep(2)} className="gap-2">
+                                      Continue to Property Details <ArrowRight className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </Card>
+                            )}
                          </div>
                        )}
 
