@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, ZoomIn, MapPin } from 'lucide-react';
+import { Edit, Trash2, ZoomIn, MapPin, Download } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface DrawnParcel {
   id: string;
@@ -46,6 +47,28 @@ export function DrawnParcelsList({
     }
   };
 
+  const exportAsGeoJSON = () => {
+    const geojson = {
+      type: 'FeatureCollection',
+      features: parcels.map(parcel => ({
+        type: 'Feature',
+        properties: {
+          name: parcel.name,
+          acreage: parcel.acreage_calc,
+          created_at: parcel.created_at,
+        },
+        geometry: parcel.geometry,
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.download = `SiteIntel_Parcels_${Date.now()}.geojson`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    toast.success('Parcels exported as GeoJSON');
+  };
+
   if (isLoading) {
     return (
       <Card className="w-full">
@@ -78,9 +101,17 @@ export function DrawnParcelsList({
                 </Badge>
               )}
             </CardTitle>
-            <Button onClick={onDrawNew} size="sm">
-              Draw New
-            </Button>
+            <div className="flex gap-2">
+              {parcels.length > 0 && (
+                <Button onClick={exportAsGeoJSON} size="sm" variant="outline">
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
+              )}
+              <Button onClick={onDrawNew} size="sm">
+                Draw New
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-3">

@@ -3,10 +3,14 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import { Eye, EyeOff, Maximize2 } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
+import { MeasurementTools, MeasurementMode } from './MeasurementTools';
+import { MapSearchBar } from './MapSearchBar';
+import { toast } from 'sonner';
+import * as turf from '@turf/turf';
 
 interface EmploymentCenter {
   name: string;
@@ -76,6 +80,11 @@ export function MapLibreCanvas({
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [activeMeasurementTool, setActiveMeasurementTool] = useState<MeasurementMode>(null);
+  const [measurementResult, setMeasurementResult] = useState<any>(null);
+  const [measurementPoints, setMeasurementPoints] = useState<[number, number][]>([]);
+  const measurementSourceId = 'measurement-source';
   
   // Layer visibility state (persisted in localStorage)
   const [layerVisibility, setLayerVisibility] = useState(() => {
@@ -90,6 +99,16 @@ export function MapLibreCanvas({
     };
   });
 
+  // Layer opacity state (persisted in localStorage)
+  const [layerOpacity, setLayerOpacity] = useState(() => {
+    const saved = localStorage.getItem('mapLayerOpacity');
+    return saved ? JSON.parse(saved) : {
+      flood: 0.7,
+      traffic: 0.8,
+      utilities: 0.8,
+    };
+  });
+
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
   const toMapLibre = (coords: [number, number]): [number, number] => [coords[1], coords[0]];
 
@@ -98,9 +117,72 @@ export function MapLibreCanvas({
     localStorage.setItem('mapLayerVisibility', JSON.stringify(layerVisibility));
   }, [layerVisibility]);
 
+  // Save opacity state to localStorage
+  useEffect(() => {
+    localStorage.setItem('mapLayerOpacity', JSON.stringify(layerOpacity));
+  }, [layerOpacity]);
+
   // Toggle layer visibility
   const toggleLayer = (layerName: keyof typeof layerVisibility) => {
     setLayerVisibility(prev => ({ ...prev, [layerName]: !prev[layerName] }));
+  };
+
+  // Update layer opacity
+  const updateLayerOpacity = (layerName: keyof typeof layerOpacity, opacity: number) => {
+    setLayerOpacity(prev => ({ ...prev, [layerName]: opacity }));
+  };
+
+  // Toggle fullscreen mode
+  const toggleFullscreen = () => {
+    setIsFullscreen(prev => !prev);
+  };
+
+  // Export map as PNG
+  const exportMapAsPNG = () => {
+    if (!map.current) return;
+    
+    try {
+      const canvas = map.current.getCanvas();
+      const link = document.createElement('a');
+      link.download = `SiteIntel_Map_${propertyAddress.replace(/\s+/g, '_')}_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png', 2.0); // 2x resolution for retina
+      link.click();
+      toast.success('Map exported as PNG');
+    } catch (error) {
+      console.error('Failed to export map:', error);
+      toast.error('Export failed');
+    }
+  };
+
+  // Handle measurement tool changes
+  const handleMeasurementToolChange = (tool: MeasurementMode) => {
+    setActiveMeasurementTool(tool);
+    setMeasurementPoints([]);
+    setMeasurementResult(null);
+    
+    // Clear measurement layer if exists
+    if (map.current && map.current.getSource(measurementSourceId)) {
+      if (map.current.getLayer('measurement-line')) map.current.removeLayer('measurement-line');
+      if (map.current.getLayer('measurement-fill')) map.current.removeLayer('measurement-fill');
+      if (map.current.getLayer('measurement-points')) map.current.removeLayer('measurement-points');
+      map.current.removeSource(measurementSourceId);
+    }
+  };
+
+  // Calculate distance using Haversine formula
+  const calculateDistance = (point1: [number, number], point2: [number, number]): number => {
+    const from = turf.point(point1);
+    const to = turf.point(point2);
+    const distance = turf.distance(from, to, { units: 'miles' });
+    return distance;
+  };
+
+  // Calculate area
+  const calculateArea = (points: [number, number][]): number => {
+    if (points.length < 3) return 0;
+    const polygon = turf.polygon([[...points, points[0]]]);
+    const area = turf.area(polygon);
+    return area / 4046.86; // Convert to acres
   };
 
   // Fit map to parcel bounds
@@ -146,6 +228,7 @@ export function MapLibreCanvas({
     try {
       map.current = new maplibregl.Map({
         container: mapContainer.current,
+        preserveDrawingBuffer: true, // Enable PNG export
         style: {
           version: 8,
           sources: {
@@ -172,7 +255,6 @@ export function MapLibreCanvas({
         },
         center: toMapLibre(center),
         zoom: zoom,
-        preserveDrawingBuffer: true,
         antialias: true,
       });
 
@@ -1020,10 +1102,10 @@ export function MapLibreCanvas({
   }, [layerVisibility.drawnParcels, mapLoaded]);
 
   return (
-    <div className="relative">
+    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
       <div
         ref={mapContainer}
-        className={`${className} rounded-lg overflow-hidden ${drawingEnabled ? 'ring-4 ring-primary/50 animate-pulse' : ''}`}
+        className={`${isFullscreen ? 'h-screen w-screen' : className} rounded-lg overflow-hidden ${drawingEnabled ? 'ring-4 ring-primary/50 animate-pulse' : ''}`}
         role="img"
         aria-label={getMapDescription()}
         tabIndex={0}
@@ -1037,18 +1119,27 @@ export function MapLibreCanvas({
         hasEmployment={employmentCenters.length > 0}
       />
 
-      {/* Zoom to Parcel Button */}
-      {parcel && (
+      {/* Top-right controls */}
+      <div className="absolute top-2 right-2 z-10 flex gap-2">
         <Button
-          onClick={fitToParcel}
+          onClick={exportMapAsPNG}
           size="sm"
           variant="secondary"
-          className="absolute top-2 left-2 z-10 shadow-lg"
-          title="Zoom to parcel boundary"
+          className="shadow-lg"
+          title="Export map as PNG"
         >
-          <Maximize2 className="h-4 w-4" />
+          <Download className="h-4 w-4" />
         </Button>
-      )}
+        <Button
+          onClick={toggleFullscreen}
+          size="sm"
+          variant="secondary"
+          className="shadow-lg"
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+        </Button>
+      </div>
 
       {/* Layer Toggle Controls - Desktop Only */}
       <div className="hidden lg:block absolute top-2 right-14 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-2 space-y-1 text-sm">

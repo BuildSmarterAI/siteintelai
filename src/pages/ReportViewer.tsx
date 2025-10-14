@@ -808,7 +808,7 @@ export default function ReportViewer() {
                       if (acreage < 10) return 15;
                       return 14;
                     })()}
-                    className="h-[300px] md:h-96 w-full rounded-lg"
+                    className="h-[500px] md:h-[600px] lg:h-[700px] w-full rounded-lg"
                     propertyAddress={report.applications.formatted_address}
                     femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
                     parcel={mapLayers?.parcel}
