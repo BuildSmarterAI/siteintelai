@@ -2087,6 +2087,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      save_drawn_parcel_with_acreage: {
+        Args: {
+          p_application_id?: string
+          p_geometry: string
+          p_name: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       sparsevec_out: {
         Args: { "": unknown }
         Returns: unknown

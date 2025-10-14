@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
+import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
@@ -143,13 +144,16 @@ export default function ReportViewer() {
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfError, setPdfError] = useState(false);
   const [geospatialData, setGeospatialData] = useState<any>(null);
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [drawnGeometry, setDrawnGeometry] = useState<any>(null);
+  const [isSavingParcel, setIsSavingParcel] = useState(false);
 
   // Feature flag for MapLibre GL
   const useMapLibre = import.meta.env.VITE_USE_MAPLIBRE === 'true';
   const MapComponent = useMapLibre ? MapLibreCanvas : MapCanvas;
 
-  // Map layers (parcel, flood, utilities, traffic, employment)
-  const { data: mapLayers } = useMapLayers(report?.application_id || '');
+  // Map layers (parcel, flood, utilities, traffic, employment, drawnParcels)
+  const { data: mapLayers, refetch: refetchMapLayers } = useMapLayers(report?.application_id || '');
 
   // Fetch geospatial intelligence data
   useEffect(() => {
@@ -352,6 +356,53 @@ export default function ReportViewer() {
     setShowPreview(false);
     checkAuthAndFetchReport();
     toast.success('Welcome! Full report unlocked');
+  };
+
+  // Handle parcel drawing completion
+  const handleParcelDrawn = (geometry: any) => {
+    console.log('📐 Parcel drawn:', geometry);
+    setDrawnGeometry(geometry);
+    setDrawingMode(false);
+  };
+
+  // Handle save drawn parcel
+  const handleSaveParcel = async (name: string) => {
+    if (!drawnGeometry || !report?.application_id) {
+      toast.error('No parcel drawn or application not found');
+      return;
+    }
+
+    setIsSavingParcel(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('save-drawn-parcel', {
+        body: {
+          geometry: drawnGeometry,
+          name,
+          application_id: report.application_id,
+        },
+      });
+
+      if (error) throw error;
+
+      console.log('✅ Parcel saved:', data);
+      toast.success(`Parcel "${name}" saved with ${data.acreage_calc?.toFixed(2)} acres`);
+      
+      // Clear drawn geometry and refetch layers
+      setDrawnGeometry(null);
+      await refetchMapLayers();
+    } catch (error: any) {
+      console.error('❌ Failed to save parcel:', error);
+      toast.error(error.message || 'Failed to save parcel');
+      throw error;
+    } finally {
+      setIsSavingParcel(false);
+    }
+  };
+
+  // Handle cancel drawing
+  const handleCancelDrawing = () => {
+    setDrawingMode(false);
+    setDrawnGeometry(null);
   };
 
   if (loading) {
@@ -678,43 +729,85 @@ export default function ReportViewer() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <MapComponent
-                center={[report.applications.geo_lat, report.applications.geo_lng]}
-                zoom={(() => {
-                  // Calculate zoom based on parcel size for optimal visibility
-                  const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
-                  console.log('🎯 Auto-zoom calculation:', { acreage, zoom: acreage < 1 ? 18 : acreage < 5 ? 16 : acreage < 10 ? 15 : 14 });
-                  if (acreage < 1) return 18;    // Small lots: street-level detail
-                  if (acreage < 5) return 16;    // Medium lots: neighborhood view
-                  if (acreage < 10) return 15;   // Large lots: block view
-                  return 14;                     // Very large parcels: district view
-                })()}
-                className="h-[300px] md:h-96 w-full rounded-lg"
-                propertyAddress={report.applications.formatted_address}
-                femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
-                parcel={mapLayers?.parcel}
-                employmentCenters={
-                  (mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0)
-                    ? mapLayers.employmentCenters
-                    : (
-                        report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
-                          ? report.applications.employment_clusters
-                              .filter((c: any) => c.lat && c.lng)
-                              .map((cluster: any) => ({
-                                name: cluster.name || 'Employment Center',
-                                jobs: cluster.jobs || 0,
-                                distance_miles: cluster.distance || 0,
-                                coordinates: [cluster.lat, cluster.lng] as [number, number],
-                                // Keep original format for backward compatibility with MapCanvas
-                                lat: cluster.lat,
-                                lng: cluster.lng,
-                                distance: cluster.distance,
-                                industries: cluster.industries
-                              }))
-                          : []
-                      )
-                }
-              />
+              <div className="relative">
+                {useMapLibre ? (
+                  <MapLibreCanvas
+                    center={[report.applications.geo_lat, report.applications.geo_lng]}
+                    zoom={(() => {
+                      const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
+                      if (acreage < 1) return 18;
+                      if (acreage < 5) return 16;
+                      if (acreage < 10) return 15;
+                      return 14;
+                    })()}
+                    className="h-[300px] md:h-96 w-full rounded-lg"
+                    propertyAddress={report.applications.formatted_address}
+                    femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
+                    parcel={mapLayers?.parcel}
+                    drawnParcels={mapLayers?.drawnParcels}
+                    drawingEnabled={drawingMode}
+                    onParcelDrawn={handleParcelDrawn}
+                    employmentCenters={
+                      (mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0)
+                        ? mapLayers.employmentCenters
+                        : (
+                            report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
+                              ? report.applications.employment_clusters
+                                  .filter((c: any) => c.lat && c.lng)
+                                  .map((cluster: any) => ({
+                                    name: cluster.name || 'Employment Center',
+                                    jobs: cluster.jobs || 0,
+                                    distance_miles: cluster.distance || 0,
+                                    coordinates: [cluster.lat, cluster.lng] as [number, number],
+                                  }))
+                              : []
+                          )
+                    }
+                  />
+                ) : (
+                  <MapCanvas
+                    center={[report.applications.geo_lat, report.applications.geo_lng]}
+                    zoom={(() => {
+                      const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
+                      if (acreage < 1) return 18;
+                      if (acreage < 5) return 16;
+                      if (acreage < 10) return 15;
+                      return 14;
+                    })()}
+                    className="h-[300px] md:h-96 w-full rounded-lg"
+                    propertyAddress={report.applications.formatted_address}
+                    femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
+                    parcel={mapLayers?.parcel}
+                    employmentCenters={
+                      report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
+                        ? report.applications.employment_clusters
+                            .filter((c: any) => c.lat && c.lng)
+                            .map((cluster: any) => ({
+                              name: cluster.name || 'Employment Center',
+                              jobs: cluster.jobs || 0,
+                              distance_miles: cluster.distance || 0,
+                              coordinates: [cluster.lat, cluster.lng] as [number, number],
+                              lat: cluster.lat,
+                              lng: cluster.lng,
+                              distance: cluster.distance,
+                              industries: cluster.industries
+                            }))
+                        : []
+                    }
+                  />
+                )}
+                
+                {/* Drawing Control - Only for MapLibre and authenticated owners */}
+                {useMapLibre && isAuthenticated && isOwner && (
+                  <DrawParcelControl
+                    drawingActive={drawingMode}
+                    onToggleDrawing={() => setDrawingMode(!drawingMode)}
+                    onSaveParcel={handleSaveParcel}
+                    onCancelDrawing={handleCancelDrawing}
+                    isSaving={isSavingParcel}
+                  />
+                )}
+              </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
