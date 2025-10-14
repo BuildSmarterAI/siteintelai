@@ -4,6 +4,12 @@ project_id = "mcmfwlgovubpdcfiqfvk"
 [functions.google-places]
 [functions.google-place-details]
 
+[functions.check-feature-flag]
+verify_jwt = false
+
+[functions.v2_health_check]
+verify_jwt = false
+
 [functions.enrich-feasibility]
 verify_jwt = true
 
