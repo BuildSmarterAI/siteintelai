@@ -199,6 +199,19 @@ export default function Application() {
     updateField(field, value);
   };
 
+  // Format currency with commas for display
+  const formatCurrency = (value: string): string => {
+    const numeric = value.replace(/[^0-9]/g, '');
+    if (numeric === '') return '';
+    return parseInt(numeric, 10).toLocaleString('en-US');
+  };
+
+  // Handle budget changes - strip non-numeric and store raw value
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/[^0-9]/g, '');
+    handleInputChange('budget', rawValue);
+  };
+
   const handleMultiSelectChange = (field: string, value: string, checked: boolean) => {
     const currentValues = formData[field as keyof typeof formData] as string[];
     let newValues: string[];
@@ -1646,8 +1659,8 @@ export default function Application() {
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/60">$</span>
                               <Input
                                 id="budget"
-                                value={formData.budget}
-                                onChange={(e) => handleInputChange('budget', e.target.value)}
+                                value={formData.budget ? formatCurrency(formData.budget) : ''}
+                                onChange={handleBudgetChange}
                                 placeholder="25,000,000"
                                 className="pl-7 border-charcoal/20"
                               />
