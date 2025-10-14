@@ -7,6 +7,12 @@ interface MapLayersData {
   utilities: any[];
   traffic: any[];
   employmentCenters: any[];
+  drawnParcels: Array<{
+    id: string;
+    name: string;
+    geometry: any;
+    acreage_calc: number;
+  }>;
 }
 
 /**
@@ -138,12 +144,28 @@ export function useMapLayers(applicationId: string) {
             }))
         : [];
 
+      // Fetch user's drawn parcels
+      const { data: { user } } = await supabase.auth.getUser();
+      let drawnParcels: any[] = [];
+      
+      if (user) {
+        const { data: parcelsData } = await supabase
+          .from('drawn_parcels')
+          .select('id, name, geometry, acreage_calc')
+          .eq('user_id', user.id)
+          .eq('application_id', applicationId)
+          .order('created_at', { ascending: false });
+        
+        drawnParcels = parcelsData || [];
+      }
+
       return {
         parcel,
         floodZones,
         utilities,
         traffic,
         employmentCenters,
+        drawnParcels,
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache

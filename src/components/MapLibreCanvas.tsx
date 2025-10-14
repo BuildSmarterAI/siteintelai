@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import MapboxDraw from '@mapbox/mapbox-gl-draw';
+import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { Eye, EyeOff, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
@@ -12,6 +14,13 @@ interface EmploymentCenter {
   coordinates: [number, number];
 }
 
+interface DrawParcel {
+  id: string;
+  name: string;
+  geometry: any;
+  acreage_calc: number;
+}
+
 interface MapLibreCanvasProps {
   center: [number, number]; // [lat, lng] - Leaflet format
   zoom?: number;
@@ -20,6 +29,9 @@ interface MapLibreCanvasProps {
   utilities?: any[];
   traffic?: any[];
   employmentCenters?: EmploymentCenter[];
+  drawnParcels?: DrawParcel[];
+  drawingEnabled?: boolean;
+  onParcelDrawn?: (geometry: any) => void;
   className?: string;
   propertyAddress?: string;
   femaFloodZone?: string;
@@ -46,12 +58,16 @@ export function MapLibreCanvas({
   utilities = [],
   traffic = [],
   employmentCenters = [],
+  drawnParcels = [],
+  drawingEnabled = false,
+  onParcelDrawn,
   className = '',
   propertyAddress = 'Property location',
   femaFloodZone,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const draw = useRef<MapboxDraw | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   
   // Layer visibility state (persisted in localStorage)
@@ -63,6 +79,7 @@ export function MapLibreCanvas({
       utilities: true,
       traffic: true,
       employment: true,
+      drawnParcels: true,
     };
   });
 
@@ -763,6 +780,184 @@ export function MapLibreCanvas({
     }
   }, [layerVisibility.employment, mapLoaded]);
 
+  // Initialize drawing plugin
+  useEffect(() => {
+    if (!map.current || !mapLoaded || draw.current) return;
+
+    try {
+      draw.current = new MapboxDraw({
+        displayControlsDefault: false,
+        styles: [
+          // Polygon fill
+          {
+            id: 'gl-draw-polygon-fill',
+            type: 'fill',
+            filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+            paint: {
+              'fill-color': '#FF7A00',
+              'fill-opacity': 0.3,
+            },
+          },
+          // Polygon outline
+          {
+            id: 'gl-draw-polygon-stroke-active',
+            type: 'line',
+            filter: ['all', ['==', '$type', 'Polygon'], ['!=', 'mode', 'static']],
+            paint: {
+              'line-color': '#FF7A00',
+              'line-width': 2.5,
+            },
+          },
+          // Vertex points
+          {
+            id: 'gl-draw-polygon-and-line-vertex-active',
+            type: 'circle',
+            filter: ['all', ['==', 'meta', 'vertex'], ['==', '$type', 'Point']],
+            paint: {
+              'circle-radius': 5,
+              'circle-color': '#FF7A00',
+            },
+          },
+        ],
+      });
+
+      map.current.addControl(draw.current);
+    } catch (error) {
+      console.error('Failed to initialize drawing plugin:', error);
+    }
+  }, [mapLoaded]);
+
+  // Handle drawing mode toggle
+  useEffect(() => {
+    if (!draw.current) return;
+
+    if (drawingEnabled) {
+      draw.current.changeMode('draw_polygon');
+    } else {
+      draw.current.changeMode('simple_select');
+      draw.current.deleteAll();
+    }
+  }, [drawingEnabled]);
+
+  // Handle polygon completion
+  useEffect(() => {
+    if (!map.current || !draw.current) return;
+
+    const handleCreate = (e: any) => {
+      const features = e.features;
+      if (features.length > 0 && onParcelDrawn) {
+        const geometry = features[0].geometry;
+        onParcelDrawn(geometry);
+      }
+    };
+
+    map.current.on('draw.create', handleCreate);
+    return () => {
+      if (map.current) {
+        map.current.off('draw.create', handleCreate);
+      }
+    };
+  }, [onParcelDrawn]);
+
+  // Add drawn parcels layer
+  useEffect(() => {
+    if (!map.current || !mapLoaded || drawnParcels.length === 0) return;
+
+    const sourceId = 'drawn-parcels-source';
+    const fillLayerId = 'drawn-parcels-fill';
+    const lineLayerId = 'drawn-parcels-line';
+
+    try {
+      // Remove existing layers/source
+      if (map.current.getLayer(fillLayerId)) map.current.removeLayer(fillLayerId);
+      if (map.current.getLayer(lineLayerId)) map.current.removeLayer(lineLayerId);
+      if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+
+      // Add source
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features: drawnParcels.map(p => ({
+            type: 'Feature',
+            geometry: p.geometry,
+            properties: {
+              id: p.id,
+              name: p.name,
+              acreage: p.acreage_calc,
+            },
+          })),
+        },
+      });
+
+      // Add fill layer - Feasibility Orange at 30% opacity
+      map.current.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': '#FF7A00',
+          'fill-opacity': 0.3,
+        },
+        layout: {
+          visibility: layerVisibility.drawnParcels ? 'visible' : 'none',
+        },
+      });
+
+      // Add line layer - 2.5px solid border
+      map.current.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: sourceId,
+        paint: {
+          'line-color': '#FF7A00',
+          'line-width': 2.5,
+        },
+        layout: {
+          visibility: layerVisibility.drawnParcels ? 'visible' : 'none',
+        },
+      });
+
+      // Add click handler for popups
+      map.current.on('click', fillLayerId, (e: any) => {
+        if (!e.features || e.features.length === 0) return;
+        const props = e.features[0].properties;
+        
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 4px; font-size: 13px;">
+              <strong>${props.name || 'Drawn Parcel'}</strong><br/>
+              ${props.acreage?.toFixed(2) || 'N/A'} acres
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      // Change cursor on hover
+      map.current.on('mouseenter', fillLayerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', fillLayerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+    } catch (error) {
+      console.error('Failed to add drawn parcels layer:', error);
+    }
+  }, [drawnParcels, mapLoaded, layerVisibility.drawnParcels]);
+
+  // Update drawn parcels visibility
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.drawnParcels ? 'visible' : 'none';
+    if (map.current.getLayer('drawn-parcels-fill')) {
+      map.current.setLayoutProperty('drawn-parcels-fill', 'visibility', visibility);
+    }
+    if (map.current.getLayer('drawn-parcels-line')) {
+      map.current.setLayoutProperty('drawn-parcels-line', 'visibility', visibility);
+    }
+  }, [layerVisibility.drawnParcels, mapLoaded]);
+
   return (
     <div className="relative">
       <div
@@ -849,6 +1044,17 @@ export function MapLibreCanvas({
             {layerVisibility.employment ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
             <span className={layerVisibility.employment ? '' : 'opacity-50'}>Jobs</span>
             <div className="ml-auto w-3 h-3 rounded-full" style={{ backgroundColor: '#FF7A00' }} />
+          </button>
+        )}
+        {drawnParcels.length > 0 && (
+          <button
+            onClick={() => toggleLayer('drawnParcels')}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted transition-colors"
+            aria-label={`${layerVisibility.drawnParcels ? 'Hide' : 'Show'} my parcels`}
+          >
+            {layerVisibility.drawnParcels ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
+            <span className={layerVisibility.drawnParcels ? '' : 'opacity-50'}>My Parcels</span>
+            <div className="ml-auto w-3 h-3 rounded-full" style={{ backgroundColor: '#FF7A00', opacity: 0.6 }} />
           </button>
         )}
       </div>
