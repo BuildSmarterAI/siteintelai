@@ -89,11 +89,42 @@ export function useMapLayers(applicationId: string) {
         });
       }
 
-      const floodZones: any[] = []; // TODO: Fetch from fema_flood_zones table
+      // Fetch geospatial intelligence data
+      const { data: geoData } = await supabase
+        .from('feasibility_geospatial')
+        .select('fema_flood_risk, traffic_exposure, county_boundary')
+        .eq('application_id', applicationId)
+        .maybeSingle();
+
+      // Transform FEMA flood zones from geospatial data
+      const floodData = geoData?.fema_flood_risk as any;
+      const floodZones = floodData?.in_flood_zone && floodData?.geometry_ref
+        ? [{
+            geometry: floodData.geometry_ref,
+            properties: {
+              zone: floodData.zone_code || 'Unknown',
+              source: floodData.source || 'FEMA',
+              bfe: floodData.bfe,
+            },
+          }]
+        : [];
 
       const utilities: any[] = []; // TODO: Fetch from utility data
 
-      const traffic: any[] = []; // TODO: Fetch from txdot_traffic_segments table
+      // Transform TxDOT traffic segments
+      const trafficData = geoData?.traffic_exposure as any;
+      const traffic = trafficData?.nearest_segment_id && trafficData?.geometry_ref
+        ? [{
+            geometry: trafficData.geometry_ref,
+            properties: {
+              roadway: trafficData.roadway_name || 'Unknown',
+              aadt: trafficData.aadt || 0,
+              year: trafficData.year,
+              distance_ft: trafficData.distance_to_segment_ft,
+              source: trafficData.source || 'TxDOT',
+            },
+          }]
+        : [];
 
       // Transform employment centers from JSON to array format
       const employmentCenters = Array.isArray(app.employment_clusters)

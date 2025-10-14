@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { Eye, EyeOff, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { MapLegend } from './MapLegend';
 
 interface EmploymentCenter {
   name: string;
@@ -313,7 +314,7 @@ export function MapLibreCanvas({
         },
       });
 
-      // Add layer with risk-based colors (design system status colors)
+      // Add fill layer with risk-based colors and click handler
       map.current.addLayer({
         id: layerId,
         type: 'fill',
@@ -322,15 +323,42 @@ export function MapLibreCanvas({
           'fill-color': [
             'match',
             ['get', 'zone'],
-            ['A', 'AE', 'AO', 'AH'], 'hsl(0, 84%, 60%)',  // High risk - status-error
-            ['X', 'AREA OF MINIMAL FLOOD HAZARD'], 'hsl(38, 92%, 50%)',  // Moderate - status-warning
-            'hsl(142, 76%, 36%)',  // Low risk - status-success
+            ['A', 'AE', 'AO', 'AH'], '#EF4444',  // High risk - red
+            ['X', 'AREA OF MINIMAL FLOOD HAZARD'], '#10B981',  // Low risk - green
+            '#F59E0B',  // Moderate - orange (default)
           ],
-          'fill-opacity': 0.15,
+          'fill-opacity': 0.25,
         },
         layout: {
           visibility: layerVisibility.flood ? 'visible' : 'none',
         },
+      });
+
+      // Add click handler for flood zone info
+      map.current.on('click', layerId, (e) => {
+        if (!e.features || e.features.length === 0) return;
+        
+        const props = e.features[0].properties;
+        const zone = floodZones.find(z => z.properties.zone === props.zone);
+        
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 8px;">
+              <strong>FEMA Flood Zone ${props.zone}</strong><br>
+              ${zone?.properties.bfe ? `Base Flood Elevation: ${zone.properties.bfe} ft` : 'No BFE data'}<br>
+              Source: ${zone?.properties.source || 'FEMA NFHL'}
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      // Cursor changes
+      map.current.on('mouseenter', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
       });
     } catch (error) {
       console.error('Failed to add flood zones layer:', error);
@@ -433,31 +461,59 @@ export function MapLibreCanvas({
         },
       });
 
-      // Add layer with AADT-based styling
+      // Add layer with AADT-based styling and click handlers
       map.current.addLayer({
         id: layerId,
         type: 'line',
         source: sourceId,
         paint: {
           'line-color': [
-            'step',
+            'interpolate',
+            ['linear'],
             ['get', 'aadt'],
-            'hsl(142, 76%, 36%)',  // <10k - green
-            10000, 'hsl(38, 92%, 50%)',  // 10k-20k - yellow
-            20000, 'hsl(0, 84%, 60%)',  // >20k - red
+            0, '#10B981',      // Low traffic (green)
+            50000, '#F59E0B',  // Medium (orange)
+            100000, '#EF4444'  // High (red)
           ],
           'line-width': [
             'interpolate',
             ['linear'],
-            ['get', 'aadt'],
-            0, 2,
-            20000, 6,
+            ['zoom'],
+            10, 2,
+            15, 6
           ],
           'line-opacity': 0.8,
         },
         layout: {
           visibility: layerVisibility.traffic ? 'visible' : 'none',
         },
+      });
+
+      // Add click handler for traffic info
+      map.current.on('click', layerId, (e) => {
+        if (!e.features || e.features.length === 0) return;
+        
+        const props = e.features[0].properties;
+        const segment = traffic.find(t => t.properties.aadt === props.aadt);
+        
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 8px;">
+              <strong>${segment?.properties.roadway || 'Road Segment'}</strong><br>
+              AADT: ${props.aadt?.toLocaleString() || 'Unknown'} vehicles/day<br>
+              ${segment?.properties.year ? `Year: ${segment.properties.year}` : ''}
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      // Cursor changes
+      map.current.on('mouseenter', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
       });
     } catch (error) {
       console.error('Failed to add traffic layer:', error);
@@ -619,6 +675,13 @@ export function MapLibreCanvas({
         aria-label={getMapDescription()}
         tabIndex={0}
         style={{ minHeight: '300px' }}
+      />
+
+      {/* Map Legend */}
+      <MapLegend
+        hasFloodZones={floodZones.length > 0}
+        hasTraffic={traffic.length > 0}
+        hasEmployment={employmentCenters.length > 0}
       />
 
       {/* Zoom to Parcel Button */}
