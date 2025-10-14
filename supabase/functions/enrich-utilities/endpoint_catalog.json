@@ -1,7 +1,7 @@
 {
-  "version": "1.3.1",
-  "last_updated": "2025-10-06",
-  "changelog": "Added retry policies, test URLs, CRS notes, timeout settings, and fallback strategies",
+  "version": "2.0.0",
+  "last_updated": "2025-10-14",
+  "changelog": "Major migration: Updated all Houston utility endpoints to HPW Utility Network (geogimstest). Added FACILITYID field. Water: 4→22, Sewer: 23→25, Force: 24→24 (new service), Storm: 7→18. Endpoints now use Scaled Utilities and Stormwater services.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -11,56 +11,56 @@
   },
   "houston": {
     "water": {
-      "name": "HW Water UNPublic (Production)",
-      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
-      "outFields": ["DIAMETER", "MATERIAL", "OWNER"],
+      "name": "HW Drinking Water Pipe Network (Scaled Utilities)",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUtilitiesScaled/MapServer/22/query",
+      "outFields": ["FACILITYID", "DIAMETER", "MATERIAL", "OWNER"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 500,
-      "notes": "Production server - WaterLine layer (4) - EPSG:2278 (Texas South Central)",
-      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=json"
+      "notes": "HPW Utility Network - Drinking Water Pipe Network (Layer 22) - EPSG:2278 (NAD 1983 StatePlane Texas South Central). Migrated from legacy WaterUNPublic/4 endpoint.",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUtilitiesScaled/MapServer/22/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=500&units=9002&outFields=FACILITYID,DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=pjson"
     },
     "sewer": {
-      "name": "Houston Wastewater Gravity Main (Production)",
-      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query",
-      "outFields": ["DIAMETER", "MATERIAL", "LIFECYCLESTATUS"],
+      "name": "HW Sewer Water Pipe Network - Gravity Main",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/25/query",
+      "outFields": ["FACILITYID", "DIAMETER", "MATERIAL", "LIFECYCLESTATUS"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 300,
-      "notes": "Production server - Wastewater Gravity Main layer (23) - EPSG:2278",
-      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/23/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,LIFECYCLESTATUS&returnGeometry=true&f=json"
+      "notes": "HPW Utility Network - Sewer Gravity Main (Layer 25) - EPSG:2278. Contains gravity sewer mains for Houston's wastewater collection system. Migrated from WastewaterUtilities/23.",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/25/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=300&units=9002&outFields=FACILITYID,DIAMETER,MATERIAL,LIFECYCLESTATUS&returnGeometry=true&f=pjson"
     },
     "sewer_force": {
-      "name": "Houston Wastewater Force Main (Production)",
-      "url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/24/query",
-      "outFields": ["DIAMETER", "MATERIAL", "OWNER"],
+      "name": "HW Sewer Water Pipe Network - Force Main",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/24/query",
+      "outFields": ["FACILITYID", "DIAMETER", "MATERIAL", "OWNER"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 250,
-      "notes": "Production server - Wastewater Force Main layer (24) - EPSG:2278",
-      "test_url": "https://geogimsprod.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/24/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=250&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=json"
+      "notes": "HPW Utility Network - Sewer Force Main (Layer 24) - EPSG:2278. Includes 320+ miles of force mains. Migrated from WastewaterUtilities/24.",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/24/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=250&units=9002&outFields=FACILITYID,DIAMETER,MATERIAL,OWNER&returnGeometry=true&f=pjson"
     },
     "storm": {
-      "name": "Houston Storm Drainage Gravity Mains (Production)",
-      "url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7/query",
-      "outFields": ["WIDTH", "HEIGHT", "MATERIAL"],
+      "name": "TDO Stormdrain Gravity Mains",
+      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query",
+      "outFields": ["FACILITYID", "WIDTH", "HEIGHT", "MATERIAL", "DIAMETER"],
       "geometryType": "esriGeometryPolyline",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 300,
-      "notes": "Production FeatureServer - Storm Drainage Gravity Mains layer (7) - EPSG:2278",
-      "test_url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7/query?geometry=8687100,33008615&geometryType=esriGeometryPoint&inSR=2278&outSR=2278&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=WIDTH,HEIGHT,MATERIAL&returnGeometry=true&f=json"
+      "notes": "HPW TDO - Stormwater Gravity Mains (Layer 18) - EPSG:2278. Represents stormwater drainage conveyance. Migrated from StormDrainageUtilityAssets/7.",
+      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18/query?geometry=-95.3698,29.7604&geometryType=esriGeometryPoint&inSR=4326&distance=300&units=9002&outFields=FACILITYID,WIDTH,HEIGHT,MATERIAL,DIAMETER&returnGeometry=true&f=pjson"
     }
   },
   "austin": {

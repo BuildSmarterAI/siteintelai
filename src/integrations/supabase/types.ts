@@ -216,6 +216,7 @@ export type Database = {
           user_id: string
           utilities_map_url: string | null
           utilities_output: string | null
+          utilities_summary: Json | null
           utility_access: string[] | null
           utm_campaign: string | null
           utm_medium: string | null
@@ -375,6 +376,7 @@ export type Database = {
           user_id: string
           utilities_map_url?: string | null
           utilities_output?: string | null
+          utilities_summary?: Json | null
           utility_access?: string[] | null
           utm_campaign?: string | null
           utm_medium?: string | null
@@ -534,6 +536,7 @@ export type Database = {
           user_id?: string
           utilities_map_url?: string | null
           utilities_output?: string | null
+          utilities_summary?: Json | null
           utility_access?: string[] | null
           utm_campaign?: string | null
           utm_medium?: string | null

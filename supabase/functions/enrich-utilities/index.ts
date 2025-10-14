@@ -478,7 +478,67 @@ serve(async (req) => {
       flags.push("utilities_not_found");
     }
 
-    // 4. Save results with api_meta and enrichment_status
+    // 4. Build utilities_summary structure
+    const buildUtilitySummary = (features: any[], utilityType: string, serviceUrl: string) => {
+      if (!features || features.length === 0) {
+        return {
+          has_service: false,
+          min_distance_ft: null,
+          service_url: serviceUrl,
+          last_verified: new Date().toISOString()
+        };
+      }
+
+      // Find closest feature
+      let minDistance = Infinity;
+      for (const feature of features) {
+        const formatted = formatLines([feature], geo_lat, geo_lng, utilityType)[0];
+        if (formatted.distance_ft && formatted.distance_ft < minDistance) {
+          minDistance = formatted.distance_ft;
+        }
+      }
+
+      return {
+        has_service: true,
+        min_distance_ft: minDistance !== Infinity ? Math.round(minDistance) : null,
+        service_url: serviceUrl,
+        last_verified: new Date().toISOString()
+      };
+    };
+
+    const utilitiesSummary = {
+      water: buildUtilitySummary(
+        water, 
+        "water",
+        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUtilitiesScaled/MapServer/22" :
+        cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0" :
+        null
+      ),
+      sewer: buildUtilitySummary(
+        sewer,
+        "sewer", 
+        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/25" :
+        cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Wastewaterlines/FeatureServer/0" :
+        null
+      ),
+      force_main: buildUtilitySummary(
+        sewer.filter(s => {
+          const formatted = formatLines([s], geo_lat, geo_lng)[0];
+          return formatted.diameter && formatted.diameter > 18; // Force mains typically larger
+        }),
+        "force_main",
+        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/24" : null
+      ),
+      storm: buildUtilitySummary(
+        storm,
+        "storm",
+        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18" :
+        cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_ReclaimedWaterlines/FeatureServer/0" :
+        null
+      )
+    };
+
+    // 5. Save results with api_meta, enrichment_status, and utilities_summary
     const hasStormUnavailableFlag = flags.includes("storm_drainage_unavailable");
     const enrichmentStatus = apiUnreachable ? "failed" : 
                             (water.length || sewer.length || storm.length) ? "complete" :
@@ -488,6 +548,7 @@ serve(async (req) => {
       water_lines: formatLines(water, geo_lat, geo_lng),
       sewer_lines: formatLines(sewer, geo_lat, geo_lng),
       storm_lines: formatLines(storm, geo_lat, geo_lng),
+      utilities_summary: utilitiesSummary,
       data_flags: flags,
       api_meta: apiMeta,
       enrichment_status: enrichmentStatus

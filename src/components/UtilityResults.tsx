@@ -64,22 +64,33 @@ function UtilityTable({
                 </tr>
               </thead>
               <tbody>
-                {lines.map((line, idx) => (
-                  <tr key={idx} className="border-b border-charcoal/5 hover:bg-charcoal/5">
-                    <td className="py-3 px-4 font-body text-charcoal">
-                      {line.diameter ? `${line.diameter}"` : '—'}
-                    </td>
-                    <td className="py-3 px-4 font-body text-charcoal">
-                      {line.material || 'Unknown'}
-                    </td>
-                    <td className="py-3 px-4 font-body text-charcoal">
-                      {line.status || '—'}
-                    </td>
-                    <td className="py-3 px-4 font-body text-charcoal/70">
-                      {line.distance_ft ? Math.round(line.distance_ft) : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {lines.map((line, idx) => {
+                  const distanceFt = line.distance_ft ? Math.round(line.distance_ft) : null;
+                  const getDistanceColor = (dist: number | null) => {
+                    if (!dist) return 'text-charcoal/70';
+                    if (dist <= 250) return 'text-emerald-600 font-semibold';
+                    if (dist <= 500) return 'text-blue-600 font-semibold';
+                    if (dist <= 1000) return 'text-amber-600 font-semibold';
+                    return 'text-orange-600 font-semibold';
+                  };
+                  
+                  return (
+                    <tr key={idx} className="border-b border-charcoal/5 hover:bg-charcoal/5">
+                      <td className="py-3 px-4 font-body text-charcoal">
+                        {line.diameter ? `${line.diameter}"` : '—'}
+                      </td>
+                      <td className="py-3 px-4 font-body text-charcoal">
+                        {line.material || 'Unknown'}
+                      </td>
+                      <td className="py-3 px-4 font-body text-charcoal">
+                        {line.status || '—'}
+                      </td>
+                      <td className={`py-3 px-4 font-body ${getDistanceColor(distanceFt)}`}>
+                        {distanceFt ? `${distanceFt} ft` : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
