@@ -2088,13 +2088,31 @@ export type Database = {
         Returns: string
       }
       save_drawn_parcel_with_acreage: {
-        Args: {
-          p_application_id?: string
-          p_geometry: string
-          p_name: string
-          p_user_id: string
-        }
-        Returns: Json
+        Args:
+          | {
+              p_application_id: string
+              p_geometry: Json
+              p_name: string
+              p_parcel_id?: string
+              p_user_id: string
+            }
+          | {
+              p_application_id?: string
+              p_geometry: string
+              p_name: string
+              p_user_id: string
+            }
+        Returns: {
+          acreage_calc: number
+          application_id: string
+          created_at: string
+          geometry: unknown
+          id: string
+          name: string
+          source: string
+          updated_at: string
+          user_id: string
+        }[]
       }
       sparsevec_out: {
         Args: { "": unknown }

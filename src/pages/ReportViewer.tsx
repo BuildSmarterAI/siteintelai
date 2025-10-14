@@ -9,6 +9,7 @@ import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
+import { DrawnParcelsList } from "@/components/DrawnParcelsList";
 import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
@@ -147,13 +148,15 @@ export default function ReportViewer() {
   const [drawingMode, setDrawingMode] = useState(false);
   const [drawnGeometry, setDrawnGeometry] = useState<any>(null);
   const [isSavingParcel, setIsSavingParcel] = useState(false);
+  const [selectedParcel, setSelectedParcel] = useState<any>(null);
+  const [editingParcel, setEditingParcel] = useState<any>(null);
 
   // Feature flag for MapLibre GL
   const useMapLibre = import.meta.env.VITE_USE_MAPLIBRE === 'true';
   const MapComponent = useMapLibre ? MapLibreCanvas : MapCanvas;
 
   // Map layers (parcel, flood, utilities, traffic, employment, drawnParcels)
-  const { data: mapLayers, refetch: refetchMapLayers } = useMapLayers(report?.application_id || '');
+  const { data: mapLayers, refetch: refetchMapLayers, updateParcel, deleteParcel } = useMapLayers(report?.application_id || '');
 
   // Fetch geospatial intelligence data
   useEffect(() => {
@@ -365,8 +368,30 @@ export default function ReportViewer() {
     setDrawingMode(false);
   };
 
-  // Handle save drawn parcel
+  // Handle save drawn parcel (for new parcels)
   const handleSaveParcel = async (name: string) => {
+    // If editing, use update mutation
+    if (editingParcel) {
+      try {
+        setIsSavingParcel(true);
+        await updateParcel.mutateAsync({
+          parcelId: editingParcel.id,
+          name,
+          geometry: drawnGeometry,
+        });
+        setEditingParcel(null);
+        setDrawnGeometry(null);
+        setSelectedParcel(null);
+      } catch (error: any) {
+        console.error('Failed to update parcel:', error);
+        throw error;
+      } finally {
+        setIsSavingParcel(false);
+      }
+      return;
+    }
+
+    // Otherwise, create new parcel
     if (!drawnGeometry || !report?.application_id) {
       toast.error('No parcel drawn or application not found');
       return;
@@ -403,6 +428,46 @@ export default function ReportViewer() {
   const handleCancelDrawing = () => {
     setDrawingMode(false);
     setDrawnGeometry(null);
+    setEditingParcel(null);
+    setSelectedParcel(null);
+  };
+
+  // Handle parcel selection from map
+  const handleParcelSelected = (parcel: any) => {
+    setSelectedParcel(parcel);
+  };
+
+  // Handle edit parcel from list or map
+  const handleEditParcel = (parcel: any) => {
+    setEditingParcel(parcel);
+    setDrawnGeometry(parcel.geometry);
+    setDrawingMode(true);
+    toast.info('Edit mode activated. Modify the parcel and save changes.');
+  };
+
+  // Handle delete parcel
+  const handleDeleteParcel = async (parcelId: string) => {
+    try {
+      await deleteParcel.mutateAsync(parcelId);
+      setSelectedParcel(null);
+    } catch (error) {
+      console.error('Failed to delete parcel:', error);
+    }
+  };
+
+  // Handle zoom to parcel
+  const handleZoomToParcel = (parcel: any) => {
+    // This will be handled by the map component
+    setSelectedParcel(parcel);
+    toast.info(`Zooming to ${parcel.name}`);
+  };
+
+  // Handle draw new parcel
+  const handleDrawNewParcel = () => {
+    setEditingParcel(null);
+    setSelectedParcel(null);
+    setDrawnGeometry(null);
+    setDrawingMode(true);
   };
 
   if (loading) {
@@ -747,6 +812,9 @@ export default function ReportViewer() {
                     drawnParcels={mapLayers?.drawnParcels}
                     drawingEnabled={drawingMode}
                     onParcelDrawn={handleParcelDrawn}
+                    onParcelSelected={handleParcelSelected}
+                    selectedParcelId={selectedParcel?.id || null}
+                    editingParcelId={editingParcel?.id || null}
                     employmentCenters={
                       (mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0)
                         ? mapLayers.employmentCenters
@@ -805,6 +873,8 @@ export default function ReportViewer() {
                     onSaveParcel={handleSaveParcel}
                     onCancelDrawing={handleCancelDrawing}
                     isSaving={isSavingParcel}
+                    editMode={!!editingParcel}
+                    editingParcelName={editingParcel?.name || ''}
                   />
                 )}
               </div>
@@ -822,6 +892,20 @@ export default function ReportViewer() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* ⭐ PHASE 3: Drawn Parcels Management */}
+        {useMapLibre && isAuthenticated && isOwner && mapLayers?.drawnParcels && (
+          <div className="mb-8">
+            <DrawnParcelsList
+              parcels={mapLayers.drawnParcels}
+              onEdit={handleEditParcel}
+              onDelete={handleDeleteParcel}
+              onZoomTo={handleZoomToParcel}
+              onDrawNew={handleDrawNewParcel}
+              isLoading={!mapLayers}
+            />
+          </div>
         )}
 
         {/* ⭐ PHASE 3: Geospatial Intelligence Card */}

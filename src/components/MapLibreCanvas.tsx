@@ -924,21 +924,75 @@ export function MapLibreCanvas({
         },
       });
 
-      // Add click handler for popups
+      // Add click handler for popups with edit/delete actions
       map.current.on('click', fillLayerId, (e: any) => {
         if (!e.features || e.features.length === 0) return;
-        const props = e.features[0].properties;
+        const feature = e.features[0];
+        const props = feature.properties;
         
-        new maplibregl.Popup()
+        // Notify parent component of selection
+        if (onParcelSelected) {
+          const parcel = drawnParcels.find(p => p.id === props.id);
+          if (parcel) onParcelSelected(parcel);
+        }
+        
+        new maplibregl.Popup({ closeButton: true, closeOnClick: true })
           .setLngLat(e.lngLat)
           .setHTML(`
-            <div style="padding: 4px; font-size: 13px;">
-              <strong>${props.name || 'Drawn Parcel'}</strong><br/>
-              ${props.acreage?.toFixed(2) || 'N/A'} acres
+            <div style="padding: 8px; font-size: 13px; min-width: 180px;">
+              <div style="font-weight: 600; margin-bottom: 4px; color: #FF7A00;">${props.name || 'Drawn Parcel'}</div>
+              <div style="margin-bottom: 8px; font-size: 18px; font-weight: bold; color: #FF7A00;">
+                ${props.acreage?.toFixed(2) || 'N/A'} acres
+              </div>
+              <div id="parcel-actions-${props.id}" style="display: flex; gap: 8px; margin-top: 8px;">
+                <button 
+                  id="edit-parcel-${props.id}"
+                  style="flex: 1; padding: 6px 12px; background: hsl(var(--primary)); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;"
+                >
+                  Edit
+                </button>
+              </div>
             </div>
           `)
           .addTo(map.current!);
+        
+        // Add event listeners after popup is added to DOM
+        setTimeout(() => {
+          const editBtn = document.getElementById(`edit-parcel-${props.id}`);
+          if (editBtn) {
+            editBtn.onclick = () => {
+              const parcel = drawnParcels.find(p => p.id === props.id);
+              if (parcel && onParcelSelected) {
+                onParcelSelected(parcel);
+              }
+            };
+          }
+        }, 50);
       });
+
+      // Highlight selected parcel
+      if (selectedParcelId) {
+        map.current.setPaintProperty('drawn-parcels-fill', 'fill-opacity', [
+          'case',
+          ['==', ['get', 'id'], selectedParcelId],
+          0.5, // Selected parcel
+          0.3  // Normal parcels
+        ]);
+        map.current.setPaintProperty('drawn-parcels-line', 'line-width', [
+          'case',
+          ['==', ['get', 'id'], selectedParcelId],
+          3,   // Selected parcel
+          2.5  // Normal parcels
+        ]);
+      } else {
+        // Reset to default
+        if (map.current.getLayer('drawn-parcels-fill')) {
+          map.current.setPaintProperty('drawn-parcels-fill', 'fill-opacity', 0.3);
+        }
+        if (map.current.getLayer('drawn-parcels-line')) {
+          map.current.setPaintProperty('drawn-parcels-line', 'line-width', 2.5);
+        }
+      }
 
       // Change cursor on hover
       map.current.on('mouseenter', fillLayerId, () => {
@@ -950,7 +1004,7 @@ export function MapLibreCanvas({
     } catch (error) {
       console.error('Failed to add drawn parcels layer:', error);
     }
-  }, [drawnParcels, mapLoaded, layerVisibility.drawnParcels]);
+  }, [drawnParcels, mapLoaded, layerVisibility.drawnParcels, selectedParcelId, onParcelSelected]);
 
   // Update drawn parcels visibility
   useEffect(() => {
