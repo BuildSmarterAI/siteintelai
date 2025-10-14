@@ -71,6 +71,10 @@ export interface ApplicationFormData {
   overlayDistrict: string;
   floodplainZone: string;
   baseFloodElevation: number | null;
+  
+  // Drawing tool data
+  drawnParcelGeometry: any | null;
+  drawnParcelName: string;
 }
 
 const initialFormData: ApplicationFormData = {
@@ -131,6 +135,8 @@ const initialFormData: ApplicationFormData = {
   overlayDistrict: "",
   floodplainZone: "",
   baseFloodElevation: null,
+  drawnParcelGeometry: null,
+  drawnParcelName: "",
 };
 
 export function useApplicationForm() {

@@ -50,6 +50,10 @@ serve(async (req) => {
 
     const requestData = await req.json();
     console.log('Received application submission:', requestData);
+    
+    // Extract drawn parcel data
+    const drawnParcelGeometry = requestData.drawnParcelGeometry || null;
+    const drawnParcelName = requestData.drawnParcelName || null;
 
     // Extract UTM parameters and page URL from headers if available
     const utmSource = req.headers.get('utm-source') || requestData.utm_source;
@@ -294,6 +298,30 @@ serve(async (req) => {
     }
 
     console.log('Application submitted successfully:', data);
+    
+    // Save drawn parcel to drawn_parcels table if geometry provided
+    if (drawnParcelGeometry && data.id) {
+      try {
+        const { error: parcelError } = await supabase
+          .from('drawn_parcels')
+          .insert({
+            application_id: data.id,
+            user_id: userId,
+            name: drawnParcelName || 'Primary Parcel',
+            geometry: drawnParcelGeometry,
+            source: 'user_drawn',
+            created_at: new Date().toISOString()
+          });
+        
+        if (parcelError) {
+          console.error('[submit-application] Failed to save drawn parcel:', parcelError);
+        } else {
+          console.log('[submit-application] Drawn parcel saved successfully');
+        }
+      } catch (parcelErr) {
+        console.error('[submit-application] Error saving drawn parcel:', parcelErr);
+      }
+    }
 
     // If data flags exist, log conflicts for admin review
     if (applicationData.data_flags && Array.isArray(applicationData.data_flags)) {

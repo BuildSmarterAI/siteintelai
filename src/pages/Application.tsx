@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload, Edit, AlertCircle } from "lucide-react";
+import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload, Edit, AlertCircle, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,9 @@ import { ContactStep } from "@/components/application/ContactStep";
 import { PropertyStep } from "@/components/application/PropertyStep";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
 import { Progress } from "@/components/ui/progress";
+import { MapLibreCanvas } from "@/components/MapLibreCanvas";
+import { DrawParcelControl } from "@/components/DrawParcelControl";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function Application() {
   const { toast } = useToast();
@@ -137,6 +140,11 @@ export default function Application() {
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [enrichedData, setEnrichedData] = useState<any>(null);
+  
+  // Drawing tool state
+  const [drawingMode, setDrawingMode] = useState(false);
+  const [drawnGeometry, setDrawnGeometry] = useState<any>(null);
+  const [isSavingParcel, setIsSavingParcel] = useState(false);
 
   // Track which fields were auto-enriched (to show lock UI)
   const [enrichedFields, setEnrichedFields] = useState<{
@@ -225,6 +233,40 @@ export default function Application() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
+  };
+  
+  // Drawing handlers
+  const handleDrawingComplete = (geometry: any) => {
+    setDrawnGeometry(geometry);
+    setDrawingMode(false);
+    
+    // Store geometry in formData for submission
+    updateField('drawnParcelGeometry', geometry);
+    
+    toast({
+      title: "Parcel Boundary Drawn",
+      description: "Boundary will be included in your feasibility report.",
+    });
+  };
+
+  const handleSaveParcel = async (name: string) => {
+    setIsSavingParcel(true);
+    try {
+      // Save to temporary state (will be submitted with application)
+      updateField('drawnParcelName', name);
+      toast({
+        title: "Parcel Saved",
+        description: `Parcel "${name}" will be submitted with your application.`,
+      });
+    } finally {
+      setIsSavingParcel(false);
+    }
+  };
+
+  const handleCancelDrawing = () => {
+    setDrawingMode(false);
+    setDrawnGeometry(null);
+    updateField('drawnParcelGeometry', null);
   };
 
   // Use validation from hook
@@ -383,6 +425,10 @@ export default function Application() {
         utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
         utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
         pageUrl: window.location.href,
+        
+        // Add drawn parcel data
+        drawnParcelGeometry: formData.drawnParcelGeometry,
+        drawnParcelName: formData.drawnParcelName,
         
         // Include enriched GIS data from formData state
         situsAddress: formData.situsAddress,
@@ -1186,8 +1232,56 @@ export default function Application() {
                                   <span>Status selected ✓</span>
                                 </div>
                               )}
-                            </div>
+                             </div>
                           </div>
+                          
+                          {/* Interactive Map for Parcel Drawing */}
+                          {formData.geoLat && formData.geoLng && (
+                            <Card className="mt-6">
+                              <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                  <MapPin className="h-5 w-5 text-primary" />
+                                  Draw Parcel Boundary (Optional)
+                                </CardTitle>
+                                <p className="text-sm text-muted-foreground">
+                                  Draw your parcel boundary on the map for enhanced site visualization in your report.
+                                </p>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                <MapLibreCanvas
+                                  center={[formData.geoLat, formData.geoLng]}
+                                  zoom={17}
+                                  drawingEnabled={drawingMode}
+                                  onParcelDrawn={handleDrawingComplete}
+                                  drawnParcels={drawnGeometry ? [{
+                                    id: 'temp',
+                                    name: formData.drawnParcelName || 'Your Parcel',
+                                    geometry: drawnGeometry,
+                                    acreage_calc: 0
+                                  }] : []}
+                                  className="h-[500px] w-full rounded-lg"
+                                />
+                                
+                                <DrawParcelControl
+                                  drawingActive={drawingMode}
+                                  onToggleDrawing={() => setDrawingMode(!drawingMode)}
+                                  onSaveParcel={handleSaveParcel}
+                                  onCancelDrawing={handleCancelDrawing}
+                                  isSaving={isSavingParcel}
+                                />
+                                
+                                {drawnGeometry && (
+                                  <Alert className="bg-green-50 border-green-200">
+                                    <CheckCircle className="h-4 w-4 text-green-600" />
+                                    <AlertTitle>Parcel Boundary Saved</AlertTitle>
+                                    <AlertDescription>
+                                      Your parcel boundary will be included in the site visualization.
+                                    </AlertDescription>
+                                  </Alert>
+                                )}
+                              </CardContent>
+                            </Card>
+                          )}
                         </div>
                       )}
 
