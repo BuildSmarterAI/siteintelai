@@ -924,10 +924,13 @@ export default function ReportViewer() {
                 <FileText className="h-5 w-5" />
                 Property Owner & Account Information
               </CardTitle>
-              <DataSourceBadge 
-                datasetName="HCAD Official Records" 
-                timestamp={report.applications.updated_at || report.created_at}
-              />
+              {/* Only show data source badges to enterprise users */}
+              {productId === 'enterprise' && (
+                <DataSourceBadge 
+                  datasetName="HCAD Official Records" 
+                  timestamp={report.applications.updated_at || report.created_at}
+                />
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1005,10 +1008,13 @@ export default function ReportViewer() {
                 <Building2 className="h-5 w-5" />
                 Property Valuation & Building Characteristics
               </CardTitle>
-              <DataSourceBadge 
-                datasetName="HCAD Official Assessment" 
-                timestamp={report.applications.updated_at || report.created_at}
-              />
+              {/* Only show data source badges to enterprise users */}
+              {productId === 'enterprise' && (
+                <DataSourceBadge 
+                  datasetName="HCAD Official Assessment" 
+                  timestamp={report.applications.updated_at || report.created_at}
+                />
+              )}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1719,7 +1725,8 @@ export default function ReportViewer() {
                   {report.applications?.zoning_code && (
                     <Badge variant="outline">{report.applications.zoning_code}</Badge>
                   )}
-                  {getSourcesForSection('zoning').map((source: any, idx: number) => (
+                  {/* Only show data source badges to enterprise users */}
+                  {productId === 'enterprise' && getSourcesForSection('zoning').map((source: any, idx: number) => (
                     <DataSourceBadge
                       key={idx}
                       datasetName={source.dataset_name}
@@ -1757,7 +1764,8 @@ export default function ReportViewer() {
                       Zone {report.applications.floodplain_zone}
                     </Badge>
                   )}
-                  {getSourcesForSection('flood').map((source: any, idx: number) => (
+                  {/* Only show data source badges to enterprise users */}
+                  {productId === 'enterprise' && getSourcesForSection('flood').map((source: any, idx: number) => (
                     <DataSourceBadge
                       key={idx}
                       datasetName={source.dataset_name}
@@ -1806,7 +1814,8 @@ export default function ReportViewer() {
                 <CardTitle>Utilities Analysis</CardTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {utilities.component_score || 'N/A'}</Badge>
-                  {getSourcesForSection('utilities').map((source: any, idx: number) => (
+                  {/* Only show data source badges to enterprise users */}
+                  {productId === 'enterprise' && getSourcesForSection('utilities').map((source: any, idx: number) => (
                     <DataSourceBadge
                       key={idx}
                       datasetName={source.dataset_name}
@@ -1910,7 +1919,8 @@ export default function ReportViewer() {
                 <CardTitle>Environmental Analysis</CardTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {environmental.component_score || 'N/A'}</Badge>
-                  {getSourcesForSection('environmental').map((source: any, idx: number) => (
+                  {/* Only show data source badges to enterprise users */}
+                  {productId === 'enterprise' && getSourcesForSection('environmental').map((source: any, idx: number) => (
                     <DataSourceBadge
                       key={idx}
                       datasetName={source.dataset_name}
@@ -2092,7 +2102,8 @@ export default function ReportViewer() {
                   {traffic.component_score && (
                     <Badge>Score: {traffic.component_score}</Badge>
                   )}
-                  {getSourcesForSection('traffic').map((source: any, idx: number) => (
+                  {/* Only show data source badges to enterprise users */}
+                  {productId === 'enterprise' && getSourcesForSection('traffic').map((source: any, idx: number) => (
                     <DataSourceBadge
                       key={idx}
                       datasetName={source.dataset_name}
