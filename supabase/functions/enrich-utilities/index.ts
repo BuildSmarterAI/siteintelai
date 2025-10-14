@@ -95,7 +95,7 @@ const queryArcGIS = async (
   utilityType: string,
   config: {
     timeout_ms: number;
-    retry_attempts: number;
+    retry_attempts?: number; // Optional, defaults to 3
     retry_delays_ms: number[];
     search_radius_ft: number;
     crs?: number; // Optional CRS (e.g., 2278 for Texas South Central)
@@ -142,8 +142,9 @@ const queryArcGIS = async (
     console.log(`Querying ${utilityType}:`, queryUrl);
     
     let lastError: Error | null = null;
+    const retryAttempts = config.retry_attempts ?? 3;
   
-    for (let attempt = 0; attempt <= config.retry_attempts; attempt++) {
+    for (let attempt = 0; attempt <= retryAttempts; attempt++) {
       const startTime = Date.now();
       let status = 0;
       
@@ -221,7 +222,7 @@ const queryArcGIS = async (
         const errorMsg = err instanceof Error ? err.message : String(err);
         lastError = err instanceof Error ? err : new Error(String(err));
         
-        console.error(`${utilityType} attempt ${attempt + 1}/${config.retry_attempts + 1} failed:`, errorMsg);
+        console.error(`${utilityType} attempt ${attempt + 1}/${retryAttempts + 1} failed:`, errorMsg);
         
         // If fallback error, break to try next CRS strategy
         if (errorMsg === "HTTP_400_FALLBACK") {
@@ -247,7 +248,7 @@ const queryArcGIS = async (
         }
         
         // If we have more attempts, wait before retrying
-        if (attempt < config.retry_attempts && config.retry_delays_ms[attempt]) {
+        if (attempt < retryAttempts && config.retry_delays_ms[attempt]) {
           console.log(`Retrying ${utilityType} in ${config.retry_delays_ms[attempt]}ms...`);
           await new Promise(resolve => setTimeout(resolve, config.retry_delays_ms[attempt]));
         }
@@ -261,7 +262,7 @@ const queryArcGIS = async (
     }
     
     // All retries exhausted for this CRS
-    throw lastError || new Error(`Failed after ${config.retry_attempts + 1} attempts`);
+    throw lastError || new Error(`Failed after ${retryAttempts + 1} attempts`);
   }
   
   // All CRS strategies exhausted
