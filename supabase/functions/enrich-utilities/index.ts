@@ -368,10 +368,6 @@ serve(async (req) => {
           : eps.sewer.search_radius_ft;
         
         // Sewer gravity mains (ArcGIS Online)
-        const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft 
-          ? eps.sewer.urban_search_radius_ft 
-          : eps.sewer.search_radius_ft;
-        
         const sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
