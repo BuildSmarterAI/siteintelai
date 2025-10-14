@@ -105,18 +105,29 @@ const queryArcGIS = async (
 ) => {
   // Helper function to build query URL
   const buildQueryUrl = (useCrs: boolean) => {
-    let geometryCoords = `${geo_lng},${geo_lat}`;
-    let spatialReference = "4326";
+    let geometryObj: any;
+    let spatialReference: number;
     
     if (useCrs && config.crs === 2278) {
       const wgs84 = "EPSG:4326";
       const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
       const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
-      geometryCoords = `${x2278},${y2278}`;
-      spatialReference = "2278";
-      console.log(`${utilityType}: Using EPSG:2278: ${geometryCoords}`);
+      
+      geometryObj = {
+        x: x2278,
+        y: y2278,
+        spatialReference: { wkid: 2278 }
+      };
+      spatialReference = 2278;
+      console.log(`${utilityType}: Using EPSG:2278: ${JSON.stringify(geometryObj)}`);
     } else {
-      console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${geometryCoords}`);
+      geometryObj = {
+        x: geo_lng,
+        y: geo_lat,
+        spatialReference: { wkid: 4326 }
+      };
+      spatialReference = 4326;
+      console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${JSON.stringify(geometryObj)}`);
     }
     
     const geometryType = config.geometryType || "esriGeometryPoint";
@@ -124,10 +135,10 @@ const queryArcGIS = async (
     
     const params = new URLSearchParams({
       f: "json",
-      geometry: geometryCoords,
+      geometry: JSON.stringify(geometryObj),
       geometryType: geometryType,
-      inSR: spatialReference,
-      outSR: spatialReference,
+      inSR: String(spatialReference),
+      outSR: String(spatialReference),
       spatialRel: spatialRel,
       outFields: fields.join(","),
       returnGeometry: "true",
