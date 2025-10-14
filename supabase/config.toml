@@ -52,3 +52,18 @@ verify_jwt = true
 
 [functions.generate-quick-check]
 verify_jwt = false
+
+[functions.render-static-map]
+verify_jwt = true
+
+[functions.render-streetview]
+verify_jwt = true
+
+[functions.fetch-elevation]
+verify_jwt = true
+
+[functions.fetch-drivetimes]
+verify_jwt = true
+
+[functions.fetch-places-context]
+verify_jwt = true
