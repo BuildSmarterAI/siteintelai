@@ -147,39 +147,47 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ---------- FEMA FLOOD RISK ----------
-    console.log('Querying FEMA flood zones...');
-    const { data: femaZones, error: femaError } = await supabase
-      .from('fema_flood_zones')
-      .select('*')
-      .limit(1000);
-
-    if (femaError) console.error('FEMA query error:', femaError);
-
+    // ---------- FEMA FLOOD RISK (ON-DEMAND QUERY) ----------
+    console.log('Querying FEMA flood zone for point...');
+    
     let femaFloodRisk = null;
     let floodRiskValue = 0;
 
-    for (const zone of femaZones || []) {
-      if (pointInPolygon(point, zone.geometry)) {
-        const zoneCode = zone.zone || 'X';
-        
-        // Assign flood risk based on zone code
-        if (['AE', 'VE', 'A', 'AO', 'AH'].includes(zoneCode)) floodRiskValue = 0.8;
-        else if (['X', '0.2 PCT ANNUAL CHANCE FLOOD HAZARD'].includes(zoneCode)) floodRiskValue = 0.2;
-        else floodRiskValue = 0.5;
+    try {
+      // Call the new on-demand FEMA query function
+      const femaResponse = await supabase.functions.invoke('query-fema-by-point', {
+        body: { lat, lng }
+      });
+
+      if (femaResponse.error) {
+        console.error('FEMA query error:', femaResponse.error);
+      } else if (femaResponse.data) {
+        const femaData = femaResponse.data;
+        floodRiskValue = femaData.flood_risk_level || 0.2;
 
         femaFloodRisk = {
-          in_flood_zone: floodRiskValue > 0.3,
-          zone_code: zoneCode,
-          bfe: null, // Would need to parse from properties if available
-          source: zone.source,
-          geometry_ref: zone.id,
-          last_refreshed: zone.updated_at
+          in_flood_zone: femaData.in_flood_zone || false,
+          zone_code: femaData.flood_zone || 'X',
+          bfe: femaData.base_flood_elevation || null,
+          zone_subtype: femaData.zone_subtype || null,
+          dfirm_id: femaData.dfirm_id || null,
+          source: femaData.source || 'FEMA NFHL MapServer 28',
+          last_refreshed: femaData.query_timestamp || new Date().toISOString()
         };
         
-        console.log(`✓ In flood zone: ${zoneCode} (risk: ${floodRiskValue})`);
-        break;
+        console.log(`✓ FEMA flood zone: ${femaData.flood_zone} (risk: ${floodRiskValue})`);
       }
+    } catch (err) {
+      console.error('Error calling query-fema-by-point:', err);
+      // Set safe defaults on error
+      floodRiskValue = 0.5; // Assume moderate risk if query fails
+      femaFloodRisk = {
+        in_flood_zone: true,
+        zone_code: 'UNKNOWN',
+        bfe: null,
+        source: 'Error - unable to query FEMA',
+        last_refreshed: new Date().toISOString()
+      };
     }
 
     // ---------- TRAFFIC EXPOSURE ----------
