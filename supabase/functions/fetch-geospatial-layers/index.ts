@@ -31,7 +31,7 @@ const COUNTY_ENDPOINTS = [
 ];
 
 // ---------- FEMA NFHL (Flood Hazard Zones) ----------
-const FEMA_URL = 'https://www.fema.gov/api/open/v1/NfhlFloodHazardZones?&$top=10000&$format=geojson';
+const FEMA_URL = 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query?where=1%3D1&outFields=OBJECTID,DFIRM_ID,FLD_ZONE,ZONE_SUBTY,STATIC_BFE&outSR=4326&f=geojson&resultRecordCount=2000';
 
 // ---------- TxDOT AADT (Traffic Volumes) ----------
 const TXDOT_URL = 'https://gis-txdot.opendata.arcgis.com/datasets/d5f56ecd2b274b4d8dc3c2d6fe067d37_0.geojson';
@@ -103,43 +103,74 @@ Deno.serve(async (req) => {
     // ---------- FEMA FLOOD ZONES ----------
     console.log('Fetching FEMA flood zones...');
     try {
-      const femaRes = await fetch(FEMA_URL);
-      const femaData = await femaRes.json();
-      const femaFeatures = femaData?.features?.slice(0, 2000) || [];
-
-      console.log(`Processing ${femaFeatures.length} FEMA features...`);
-      let femaSuccess = 0;
-      let femaErrors = 0;
-
-      for (const feature of femaFeatures) {
-        const { error } = await supabase.from('fema_flood_zones').upsert({
-          fema_id: feature?.properties?.DFIRM_ID || feature?.id || `fema_${Date.now()}_${Math.random()}`,
-          zone: feature?.properties?.FLD_ZONE,
-          geometry: feature.geometry,
-          source: 'OpenFEMA',
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'fema_id' });
-
-        if (error) {
-          console.error('FEMA upsert error:', error);
-          femaErrors++;
-        } else {
-          femaSuccess++;
-        }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+      
+      const femaRes = await fetch(FEMA_URL, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      if (!femaRes.ok) {
+        throw new Error(`FEMA API returned status ${femaRes.status}`);
       }
+      
+      const femaData = await femaRes.json();
+      const femaFeatures = femaData?.features || [];
 
-      console.log(`✓ FEMA zones updated: ${femaSuccess} success, ${femaErrors} errors`);
-      results.push({
-        type: 'fema',
-        record_count: femaSuccess,
-        errors: femaErrors,
-        source: 'OpenFEMA'
-      });
+      console.log(`Processing ${femaFeatures.length} FEMA features from NFHL MapServer...`);
+      
+      if (femaFeatures.length === 0) {
+        console.warn('No FEMA flood zones returned from API');
+        results.push({
+          type: 'fema',
+          record_count: 0,
+          source: 'FEMA NFHL',
+          warning: 'No features returned'
+        });
+      } else {
+        let femaSuccess = 0;
+        let femaErrors = 0;
+
+        for (const feature of femaFeatures) {
+          // Validate feature has required fields
+          if (!feature.geometry || !feature.properties) {
+            femaErrors++;
+            continue;
+          }
+
+          const femaId = feature.properties.OBJECTID?.toString() || 
+                         feature.properties.DFIRM_ID || 
+                         `fema_${Date.now()}_${Math.random()}`;
+
+          const { error } = await supabase.from('fema_flood_zones').upsert({
+            fema_id: femaId,
+            zone: feature.properties.FLD_ZONE || feature.properties.ZONE_SUBTY,
+            geometry: feature.geometry,
+            source: 'FEMA NFHL',
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'fema_id' });
+
+          if (error) {
+            console.error('FEMA upsert error:', error);
+            femaErrors++;
+          } else {
+            femaSuccess++;
+          }
+        }
+
+        console.log(`✓ FEMA zones updated: ${femaSuccess} success, ${femaErrors} errors`);
+        results.push({
+          type: 'fema',
+          record_count: femaSuccess,
+          errors: femaErrors,
+          source: 'FEMA NFHL'
+        });
+      }
     } catch (err) {
       console.error('Failed to fetch FEMA data:', err);
       results.push({
         type: 'fema',
-        error: err.message
+        error: err.message,
+        source: 'FEMA NFHL'
       });
     }
 
