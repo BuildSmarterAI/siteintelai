@@ -41,6 +41,15 @@ export function useMapLayers(applicationId: string) {
         const acreage = app.acreage_cad || app.lot_size_value || 1;
         const radiusMeters = Math.sqrt(acreage * 4046.86) / 2; // Convert acres to approx radius
         
+        console.log('🗺️ Parcel generation starting:', {
+          applicationId,
+          center: { lat: app.geo_lat, lng: app.geo_lng },
+          acreage_cad: app.acreage_cad,
+          lot_size_value: app.lot_size_value,
+          calculated_acreage: acreage,
+          radiusMeters: radiusMeters.toFixed(2),
+        });
+        
         // Generate circular approximation (simplified for Phase 1)
         const centerLng = app.geo_lng;
         const centerLat = app.geo_lat;
@@ -70,6 +79,14 @@ export function useMapLayers(applicationId: string) {
             acreage: acreage,
           },
         };
+        
+        console.log('✅ Parcel geometry created:', {
+          type: parcel.geometry.type,
+          pointCount: coordinates[0].length,
+          firstPoint: coordinates[0][0],
+          lastPoint: coordinates[0][coordinates[0].length - 1],
+          acreage: parcel.properties.acreage,
+        });
       }
 
       const floodZones: any[] = []; // TODO: Fetch from fema_flood_zones table

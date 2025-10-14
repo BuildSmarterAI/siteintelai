@@ -113,6 +113,7 @@ interface Report {
     // Lot size fields
     lot_size_value?: number | null;
     lot_size_unit?: string | null;
+    acreage_cad?: number | null;
     // Permitting fields
     average_permit_time_months?: number | null;
     city?: string | null;
@@ -655,7 +656,15 @@ export default function ReportViewer() {
             <CardContent>
               <MapComponent
                 center={[report.applications.geo_lat, report.applications.geo_lng]}
-                zoom={13}
+                zoom={(() => {
+                  // Calculate zoom based on parcel size for optimal visibility
+                  const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
+                  console.log('🎯 Auto-zoom calculation:', { acreage, zoom: acreage < 1 ? 18 : acreage < 5 ? 16 : acreage < 10 ? 15 : 14 });
+                  if (acreage < 1) return 18;    // Small lots: street-level detail
+                  if (acreage < 5) return 16;    // Medium lots: neighborhood view
+                  if (acreage < 10) return 15;   // Large lots: block view
+                  return 14;                     // Very large parcels: district view
+                })()}
                 className="h-[300px] md:h-96 w-full rounded-lg"
                 propertyAddress={report.applications.formatted_address}
                 employmentCenters={
