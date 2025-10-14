@@ -69,8 +69,8 @@ export function DrawParcelControl({
 
   return (
     <>
-      {/* Drawing Control Button */}
-      <Card className="absolute top-4 right-4 z-10 shadow-lg">
+      {/* Drawing Control Button - Responsive positioning */}
+      <Card className="absolute top-4 right-4 lg:right-4 z-10 shadow-lg">
         <div className="p-2">
       {!drawingActive ? (
             <Button

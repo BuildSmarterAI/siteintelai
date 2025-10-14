@@ -6,6 +6,7 @@ import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { Eye, EyeOff, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
+import { MapLayerFAB } from './MapLayerFAB';
 
 interface EmploymentCenter {
   name: string;
@@ -1049,8 +1050,8 @@ export function MapLibreCanvas({
         </Button>
       )}
 
-      {/* Layer Toggle Controls */}
-      <div className="absolute top-2 right-14 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-2 space-y-1 text-sm">
+      {/* Layer Toggle Controls - Desktop Only */}
+      <div className="hidden lg:block absolute top-2 right-14 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-2 space-y-1 text-sm">
         {parcel && (
           <button
             onClick={() => toggleLayer('parcel')}
@@ -1118,6 +1119,17 @@ export function MapLibreCanvas({
           </button>
         )}
       </div>
+
+      {/* Mobile FAB - Layer Controls */}
+      <MapLayerFAB
+        layerVisibility={layerVisibility}
+        onToggleLayer={toggleLayer}
+        hasFlood={floodZones.length > 0}
+        hasUtilities={utilities.length > 0}
+        hasTraffic={traffic.length > 0}
+        hasEmployment={employmentCenters.length > 0}
+        hasDrawnParcels={drawnParcels.length > 0}
+      />
       
       {/* Text alternative for screen readers */}
       <details className="sr-only">
