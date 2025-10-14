@@ -443,9 +443,9 @@ export function MapLibreCanvas({
           'fill-color': [
             'match',
             ['get', 'zone'],
-            ['A', 'AE', 'AO', 'AH'], '#EF4444',  // High risk - red
-            ['X', 'AREA OF MINIMAL FLOOD HAZARD'], '#10B981',  // Low risk - green
-            '#F59E0B',  // Moderate - orange (default)
+            ['A', 'AE', 'AO', 'AH'], '#EF4444',  // High risk - Error Red
+            ['X', 'AREA OF MINIMAL FLOOD HAZARD'], '#10B981',  // Low risk - Success Green
+            '#FF7A00',  // Moderate - Feasibility Orange (brand aligned)
           ],
           'fill-opacity': 0.25,
         },
@@ -464,7 +464,7 @@ export function MapLibreCanvas({
         new maplibregl.Popup()
           .setLngLat(e.lngLat)
           .setHTML(`
-            <div style="padding: 8px;">
+            <div style="padding: 32px; font-family: 'IBM Plex Sans', sans-serif;">
               <strong>FEMA Flood Zone ${props.zone}</strong><br>
               ${zone?.properties.bfe ? `Base Flood Elevation: ${zone.properties.bfe} ft` : 'No BFE data'}<br>
               Source: ${zone?.properties.source || 'FEMA NFHL'}
@@ -591,9 +591,9 @@ export function MapLibreCanvas({
             'interpolate',
             ['linear'],
             ['get', 'aadt'],
-            0, '#10B981',      // Low traffic (green)
-            50000, '#F59E0B',  // Medium (orange)
-            100000, '#EF4444'  // High (red)
+            0, '#06B6D4',      // Low traffic - Data Cyan (brand aligned)
+            50000, '#F59E0B',  // Medium - Warning Orange
+            100000, '#EF4444'  // High - Error Red
           ],
           'line-width': [
             'interpolate',
@@ -619,7 +619,7 @@ export function MapLibreCanvas({
         new maplibregl.Popup()
           .setLngLat(e.lngLat)
           .setHTML(`
-            <div style="padding: 8px;">
+            <div style="padding: 32px; font-family: 'IBM Plex Sans', sans-serif;">
               <strong>${segment?.properties.roadway || 'Road Segment'}</strong><br>
               AADT: ${props.aadt?.toLocaleString() || 'Unknown'} vehicles/day<br>
               ${segment?.properties.year ? `Year: ${segment.properties.year}` : ''}
@@ -750,7 +750,7 @@ export function MapLibreCanvas({
         new maplibregl.Popup()
           .setLngLat(e.lngLat)
           .setHTML(`
-            <div style="padding: 8px;">
+            <div style="padding: 32px; font-family: 'IBM Plex Sans', sans-serif;">
               <strong>${props.name}</strong><br>
               Jobs: ${props.jobs?.toLocaleString()}<br>
               Distance: ${props.distance?.toFixed(1)} mi
@@ -939,7 +939,7 @@ export function MapLibreCanvas({
         new maplibregl.Popup({ closeButton: true, closeOnClick: true })
           .setLngLat(e.lngLat)
           .setHTML(`
-            <div style="padding: 8px; font-size: 13px; min-width: 180px;">
+            <div style="padding: 32px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; min-width: 180px;">
               <div style="font-weight: 600; margin-bottom: 4px; color: #FF7A00;">${props.name || 'Drawn Parcel'}</div>
               <div style="margin-bottom: 8px; font-size: 18px; font-weight: bold; color: #FF7A00;">
                 ${props.acreage?.toFixed(2) || 'N/A'} acres
@@ -947,7 +947,7 @@ export function MapLibreCanvas({
               <div id="parcel-actions-${props.id}" style="display: flex; gap: 8px; margin-top: 8px;">
                 <button 
                   id="edit-parcel-${props.id}"
-                  style="flex: 1; padding: 6px 12px; background: hsl(var(--primary)); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500;"
+                  style="flex: 1; padding: 6px 12px; background: hsl(var(--primary)); color: white; border: none; border-radius: 12px; cursor: pointer; font-size: 12px; font-weight: 500;"
                 >
                   Edit
                 </button>
@@ -1022,7 +1022,7 @@ export function MapLibreCanvas({
     <div className="relative">
       <div
         ref={mapContainer}
-        className={`${className} rounded-lg overflow-hidden`}
+        className={`${className} rounded-lg overflow-hidden ${drawingEnabled ? 'ring-4 ring-primary/50 animate-pulse' : ''}`}
         role="img"
         aria-label={getMapDescription()}
         tabIndex={0}

@@ -68,7 +68,7 @@ export function MapLegend({
                     <span className="text-muted-foreground">High (Zone AE)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: '#F59E0B' }} />
+                    <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: '#FF7A00' }} />
                     <span className="text-muted-foreground">Moderate (Zone A)</span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -93,7 +93,7 @@ export function MapLegend({
                     <span className="text-muted-foreground">50K-100K vehicles/day</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#10B981' }} />
+                    <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#06B6D4' }} />
                     <span className="text-muted-foreground">&lt;50K vehicles/day</span>
                   </div>
                 </div>

@@ -108,14 +108,35 @@ export function DrawParcelControl({
 
       {/* Drawing Instructions Overlay */}
       {drawingActive && (
-        <div className="absolute top-20 right-4 z-10">
-          <Card className="p-4 bg-accent/90 backdrop-blur-sm border-primary/20 max-w-xs">
-            <p className="text-sm font-medium text-primary">
-              Drawing Mode Active
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Click to add points. Double-click or press Enter to finish.
-            </p>
+        <div className="absolute top-20 right-4 z-10 animate-fade-in">
+          <Card className="p-4 bg-primary/10 backdrop-blur-sm border-primary/30 max-w-xs shadow-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <p className="text-sm font-semibold text-primary">
+                Drawing Mode Active
+              </p>
+            </div>
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <span className="font-mono bg-background/50 px-1.5 py-0.5 rounded text-[10px]">Click</span>
+                Add vertices to parcel boundary
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="font-mono bg-background/50 px-1.5 py-0.5 rounded text-[10px]">Double-click</span>
+                Complete polygon
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="font-mono bg-background/50 px-1.5 py-0.5 rounded text-[10px]">Escape</span>
+                Cancel drawing
+              </p>
+              {calculatedAcreage !== undefined && (
+                <div className="mt-3 pt-2 border-t border-primary/20">
+                  <p className="text-primary font-semibold">
+                    Current Area: {calculatedAcreage.toFixed(2)} acres
+                  </p>
+                </div>
+              )}
+            </div>
           </Card>
         </div>
       )}
