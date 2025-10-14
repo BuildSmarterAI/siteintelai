@@ -97,8 +97,10 @@ const queryArcGIS = async (
     timeout_ms: number;
     retry_attempts?: number; // Optional, defaults to 3
     retry_delays_ms: number[];
-    search_radius_ft: number;
+    search_radius_ft?: number; // Optional for polygon queries
     crs?: number; // Optional CRS (e.g., 2278 for Texas South Central)
+    geometryType?: string; // e.g., esriGeometryPolygon, esriGeometryPolyline
+    spatialRel?: string; // e.g., esriSpatialRelIntersects
   }
 ) => {
   // Helper function to build query URL
@@ -117,19 +119,26 @@ const queryArcGIS = async (
       console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${geometryCoords}`);
     }
     
+    const geometryType = config.geometryType || "esriGeometryPoint";
+    const spatialRel = config.spatialRel || "esriSpatialRelIntersects";
+    
     const params = new URLSearchParams({
       f: "json",
       geometry: geometryCoords,
-      geometryType: "esriGeometryPoint",
+      geometryType: geometryType,
       inSR: spatialReference,
       outSR: spatialReference,
-      spatialRel: "esriSpatialRelIntersects",
+      spatialRel: spatialRel,
       outFields: fields.join(","),
       returnGeometry: "true",
-      distance: String(config.search_radius_ft),
-      units: "esriSRUnit_Foot",
       where: "1=1"
     });
+    
+    // Only add distance parameter for non-polygon queries
+    if (geometryType !== "esriGeometryPolygon" && config.search_radius_ft) {
+      params.append("distance", String(config.search_radius_ft));
+      params.append("units", "esriSRUnit_Foot");
+    }
     
     return `${url}?${params.toString()}`;
   };
@@ -361,7 +370,9 @@ serve(async (req) => {
           retry_attempts: eps.water.retry_attempts,
           retry_delays_ms: eps.water.retry_delays_ms,
           search_radius_ft: waterRadius,
-          crs: eps.water.crs || 2278
+          crs: eps.water.crs || 2278,
+          geometryType: eps.water.geometryType,
+          spatialRel: eps.water.spatialRel
         });
         
         // Use urban search radius for sewer
@@ -375,7 +386,9 @@ serve(async (req) => {
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
           search_radius_ft: sewerRadius,
-          crs: eps.sewer.crs || 2278
+          crs: eps.sewer.crs || 2278,
+          geometryType: eps.sewer.geometryType,
+          spatialRel: eps.sewer.spatialRel
         });
         
         if (sewerGravity.length > 0) {
@@ -394,7 +407,9 @@ serve(async (req) => {
               retry_attempts: eps.sewer_force.retry_attempts,
               retry_delays_ms: eps.sewer_force.retry_delays_ms,
               search_radius_ft: forceRadius,
-              crs: eps.sewer_force.crs || 2278
+              crs: eps.sewer_force.crs || 2278,
+              geometryType: eps.sewer_force.geometryType,
+              spatialRel: eps.sewer_force.spatialRel
             });
             
             if (sewer_force.length > 0) {
@@ -419,7 +434,9 @@ serve(async (req) => {
             retry_attempts: eps.storm.retry_attempts,
             retry_delays_ms: eps.storm.retry_delays_ms,
             search_radius_ft: stormRadius,
-            crs: eps.storm.crs || 2278
+            crs: eps.storm.crs || 2278,
+            geometryType: eps.storm.geometryType,
+            spatialRel: eps.storm.spatialRel
           });
           
           if (storm.length > 0) {
@@ -444,7 +461,9 @@ serve(async (req) => {
               retry_attempts: eps.traffic.retry_attempts || 3,
               retry_delays_ms: eps.traffic.retry_delays_ms || [500, 1000, 2000],
               search_radius_ft: eps.traffic.search_radius_ft,
-              crs: eps.traffic.crs || 2278
+              crs: eps.traffic.crs || 2278,
+              geometryType: eps.traffic.geometryType,
+              spatialRel: eps.traffic.spatialRel
             });
             
             if (traffic.length > 0) {
@@ -463,14 +482,18 @@ serve(async (req) => {
           retry_attempts: eps.water.retry_attempts,
           retry_delays_ms: eps.water.retry_delays_ms,
           search_radius_ft: eps.water.search_radius_ft,
-          crs: eps.water.crs // Austin uses WGS84 (4326) by default
+          crs: eps.water.crs, // Austin uses WGS84 (4326) by default
+          geometryType: eps.water.geometryType,
+          spatialRel: eps.water.spatialRel
         });
         sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "austin_sewer", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
           search_radius_ft: eps.sewer.search_radius_ft,
-          crs: eps.sewer.crs
+          crs: eps.sewer.crs,
+          geometryType: eps.sewer.geometryType,
+          spatialRel: eps.sewer.spatialRel
         });
         if (eps.reclaimed) {
           storm = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "austin_reclaimed", {
@@ -478,7 +501,9 @@ serve(async (req) => {
             retry_attempts: eps.reclaimed.retry_attempts,
             retry_delays_ms: eps.reclaimed.retry_delays_ms,
             search_radius_ft: eps.reclaimed.search_radius_ft,
-            crs: eps.reclaimed.crs
+            crs: eps.reclaimed.crs,
+            geometryType: eps.reclaimed.geometryType,
+            spatialRel: eps.reclaimed.spatialRel
           });
         }
       } else if (county?.toLowerCase().includes("harris")) {
