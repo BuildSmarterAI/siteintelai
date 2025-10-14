@@ -18,6 +18,7 @@ import Products from "./pages/Products";
 import Feasibility from "./pages/Feasibility";
 import CostIntelligence from "./pages/CostIntelligence";
 import ScheduleIntelligence from "./pages/ScheduleIntelligence";
+import AdminGeospatial from "./pages/AdminGeospatial";
 import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -59,6 +60,7 @@ const App = () => (
             <Route path="/resources/case-studies" element={<Blog />} />
             <Route path="/resources/documentation" element={<Blog />} />
             <Route path="/resources/api" element={<Blog />} />
+            <Route path="/admin/geospatial" element={<AdminGeospatial />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
