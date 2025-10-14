@@ -5,9 +5,15 @@ interface DataSourceBadgeProps {
   datasetName: string;
   timestamp: string;
   endpointUrl?: string;
+  showEndpoint?: boolean;
 }
 
-export const DataSourceBadge = ({ datasetName, timestamp, endpointUrl }: DataSourceBadgeProps) => {
+export const DataSourceBadge = ({ 
+  datasetName, 
+  timestamp, 
+  endpointUrl,
+  showEndpoint = true 
+}: DataSourceBadgeProps) => {
   const formattedDate = new Date(timestamp).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -19,7 +25,9 @@ export const DataSourceBadge = ({ datasetName, timestamp, endpointUrl }: DataSou
       <Badge variant="outline" className="text-xs font-normal">
         {datasetName} • As of {formattedDate}
       </Badge>
-      {endpointUrl && <CitationTooltip datasetName={datasetName} endpointUrl={endpointUrl} />}
+      {endpointUrl && showEndpoint && (
+        <CitationTooltip datasetName={datasetName} endpointUrl={endpointUrl} />
+      )}
     </div>
   );
 };

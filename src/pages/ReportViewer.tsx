@@ -13,11 +13,12 @@ import { DrawnParcelsList } from "@/components/DrawnParcelsList";
 import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
-import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
+import { DataSourcesDisplay } from "@/components/DataSourcesDisplay";
 import { ReportPreviewGate } from "@/components/ReportPreviewGate";
 import { GeospatialIntelligenceCard } from "@/components/GeospatialIntelligenceCard";
 import DOMPurify from 'dompurify';
 import { useMapLayers } from "@/hooks/useMapLayers";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 interface Report {
   id: string;
   application_id: string;
@@ -136,6 +137,7 @@ interface Report {
 export default function ReportViewer() {
   const { reportId } = useParams();
   const navigate = useNavigate();
+  const { productId } = useSubscription();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -2582,7 +2584,15 @@ export default function ReportViewer() {
 
       {/* Data Sources Sidebar */}
       <div className="lg:col-span-1">
-        <DataSourcesSidebar dataSources={dataSources} />
+        <DataSourcesDisplay 
+          dataSources={dataSources}
+          accessLevel={
+            !isAuthenticated ? 'public' :
+            !isOwner ? 'authenticated' :
+            productId === 'enterprise' ? 'enterprise' :
+            'owner'
+          }
+        />
       </div>
     </div>
         )}
