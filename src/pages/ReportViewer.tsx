@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
+import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
@@ -139,6 +140,10 @@ export default function ReportViewer() {
   const [showPreview, setShowPreview] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+
+  // Feature flag for MapLibre GL
+  const useMapLibre = import.meta.env.VITE_USE_MAPLIBRE === 'true';
+  const MapComponent = useMapLibre ? MapLibreCanvas : MapCanvas;
 
   useEffect(() => {
     if (reportId) {
@@ -640,22 +645,31 @@ export default function ReportViewer() {
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
                 Property Location & Context
+                {useMapLibre && (
+                  <Badge variant="outline" className="text-xs">
+                    MapLibre GL
+                  </Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <MapCanvas
+              <MapComponent
                 center={[report.applications.geo_lat, report.applications.geo_lng]}
                 zoom={13}
                 className="h-[300px] md:h-96 w-full rounded-lg"
+                propertyAddress={report.applications.formatted_address}
                 employmentCenters={
                   report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
                     ? report.applications.employment_clusters
                         .filter((c: any) => c.lat && c.lng)
                         .map((cluster: any) => ({
+                          name: cluster.name || 'Employment Center',
+                          jobs: cluster.jobs || 0,
+                          distance_miles: cluster.distance || 0,
+                          coordinates: [cluster.lat, cluster.lng] as [number, number],
+                          // Keep original format for backward compatibility with MapCanvas
                           lat: cluster.lat,
                           lng: cluster.lng,
-                          name: cluster.name,
-                          jobs: cluster.jobs,
                           distance: cluster.distance,
                           industries: cluster.industries
                         }))
