@@ -44,15 +44,25 @@ serve(async (req) => {
       throw new Error('Invalid report JSON structure');
     }
 
-    // NEW: Step 2.5 - Generate static map composite
+    // NEW: Step 2.5 - Generate static map composite with parcel boundary
     console.log('[generate-pdf] Generating static map...');
+    
+    // Fetch drawn parcels for the application to include geometry
+    const { data: drawnParcels } = await supabase
+      .from('drawn_parcels')
+      .select('geometry')
+      .eq('application_id', application.id)
+      .limit(1)
+      .single();
+    
     try {
       await supabase.functions.invoke('render-static-map', {
         body: {
           application_id: application.id,
           center: { lat: application.geo_lat, lng: application.geo_lng },
           zoom: 17,
-          size: '800x600'
+          size: '800x600',
+          parcel_geometry: drawnParcels?.geometry || null
         }
       });
     } catch (err) {

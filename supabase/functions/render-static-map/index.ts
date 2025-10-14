@@ -21,12 +21,13 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { application_id, center, zoom = 17, size = '800x600' } = await req.json();
+    const { application_id, center, zoom = 17, size = '800x600', parcel_geometry } = await req.json();
     console.log('[render-static-map] Request received:', {
       application_id,
       center,
       zoom,
       size,
+      has_parcel_geometry: !!parcel_geometry,
       timestamp: new Date().toISOString()
     });
 
@@ -35,19 +36,42 @@ serve(async (req) => {
       throw new Error('GOOGLE_MAPS_API_KEY not configured');
     }
 
-    // Build Google Static Maps URL with styling
+    // Build Google Static Maps URL with enhanced styling
     const baseUrl = new URL('https://maps.googleapis.com/maps/api/staticmap');
     baseUrl.searchParams.set('center', `${center.lat},${center.lng}`);
     baseUrl.searchParams.set('zoom', zoom.toString());
     baseUrl.searchParams.set('size', size);
-    baseUrl.searchParams.set('maptype', 'roadmap');
+    baseUrl.searchParams.set('scale', '2'); // High-DPI support for retina displays
+    baseUrl.searchParams.set('maptype', 'hybrid');
     baseUrl.searchParams.set('key', googleApiKey);
 
-    // Add styled basemap
-    baseUrl.searchParams.set('style', 'feature:all|element:labels|visibility:on');
+    // Add custom styling to simplify the map (hide POIs and transit)
+    baseUrl.searchParams.append('style', 'feature:poi|visibility:off');
+    baseUrl.searchParams.append('style', 'feature:transit|visibility:off');
+
+    // Add parcel boundary path if geometry is available
+    if (parcel_geometry && parcel_geometry.coordinates && parcel_geometry.coordinates.length > 0) {
+      try {
+        // Handle Polygon geometry type (coordinates[0] is the outer ring)
+        const coords = parcel_geometry.type === 'Polygon' 
+          ? parcel_geometry.coordinates[0] 
+          : parcel_geometry.coordinates;
+        
+        // Convert coordinates to lat,lng format and close the polygon
+        const pathCoords = coords
+          .map((coord: number[]) => `${coord[1]},${coord[0]}`)
+          .join('|');
+        
+        // Add the path overlay with high visibility (red color, 3px weight, full opacity)
+        baseUrl.searchParams.set('path', `color:0xff0000ff|weight:3|${pathCoords}`);
+        console.log('[render-static-map] Added parcel boundary path with', coords.length, 'points');
+      } catch (error) {
+        console.warn('[render-static-map] Failed to add parcel boundary:', error);
+      }
+    }
 
     // Add center marker (property location)
-    baseUrl.searchParams.set('markers', `color:blue|${center.lat},${center.lng}`);
+    baseUrl.searchParams.set('markers', `color:red|${center.lat},${center.lng}`);
 
     console.log('[render-static-map] Fetching from Google Static Maps API...');
     const mapStartTime = Date.now();
