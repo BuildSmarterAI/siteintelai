@@ -367,7 +367,11 @@ serve(async (req) => {
           ? eps.sewer.urban_search_radius_ft 
           : eps.sewer.search_radius_ft;
         
-        // Query both gravity and force mains for comprehensive sewer data
+        // Sewer gravity mains (ArcGIS Online)
+        const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft 
+          ? eps.sewer.urban_search_radius_ft 
+          : eps.sewer.search_radius_ft;
+        
         const sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
@@ -375,6 +379,10 @@ serve(async (req) => {
           search_radius_ft: sewerRadius,
           crs: eps.sewer.crs || 2278
         });
+        
+        if (sewerGravity.length > 0) {
+          flags.push("sewer_via_arcgis_online");
+        }
         
         // Try to get force mains as well
         let sewerForce: any[] = [];
@@ -391,6 +399,10 @@ serve(async (req) => {
               search_radius_ft: forceRadius,
               crs: eps.sewer_force.crs || 2278
             });
+            
+            if (sewerForce.length > 0) {
+              flags.push("sewer_force_via_arcgis_online");
+            }
           }
         } catch (forceErr) {
           console.log('Force main query failed, continuing with gravity only:', forceErr instanceof Error ? forceErr.message : String(forceErr));
@@ -412,12 +424,38 @@ serve(async (req) => {
             search_radius_ft: stormRadius,
             crs: eps.storm.crs || 2278
           });
+          
+          if (storm.length > 0) {
+            flags.push("storm_via_production_server");
+          }
         } catch (stormErr) {
           console.error('Houston storm endpoint failed:', stormErr instanceof Error ? stormErr.message : String(stormErr));
           console.log('Continuing without storm data - water and sewer data will still be available');
           storm = [];
           if (!flags.includes("storm_drainage_unavailable")) {
             flags.push("storm_drainage_unavailable");
+          }
+        }
+        
+        // Traffic counts (new integration)
+        let traffic: any[] = [];
+        if (eps.traffic) {
+          try {
+            console.log('Querying traffic counts...');
+            traffic = await queryArcGIS(eps.traffic.url, eps.traffic.outFields, geo_lat, geo_lng, "houston_traffic", {
+              timeout_ms: eps.traffic.timeout_ms || 8000,
+              retry_attempts: eps.traffic.retry_attempts || 3,
+              retry_delays_ms: eps.traffic.retry_delays_ms || [500, 1000, 2000],
+              search_radius_ft: eps.traffic.search_radius_ft,
+              crs: eps.traffic.crs || 2278
+            });
+            
+            if (traffic.length > 0) {
+              flags.push("traffic_via_city");
+              console.log(`✅ Traffic count found: ${traffic[0].attributes.ADT || 'N/A'} ADT`);
+            }
+          } catch (trafficErr) {
+            console.error('Traffic query failed:', trafficErr instanceof Error ? trafficErr.message : String(trafficErr));
           }
         }
       } else if (cityLower.includes("austin")) {
@@ -498,8 +536,8 @@ serve(async (req) => {
       }
     }
 
-    // 2.5. Check for MUD district if Houston property has no utilities
-    const allUtilitiesEmpty = !water.length && !sewer.length && !storm.length;
+    // 2.6. Check for MUD district if Houston property has no utilities
+    const allUtilitiesEmpty = !water.length && !sewer.length && !sewerForce.length && !storm.length;
     const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
       cityLower.includes(c.toLowerCase())
     );
@@ -613,18 +651,28 @@ serve(async (req) => {
       };
     };
 
+    // Build water summary with special handling for service area proxy
+    const waterSummary = water.length > 0 && water[0].attributes.PROVIDER_NAME
+      ? {
+          has_service: true,
+          service_provider: water[0].attributes.PROVIDER_NAME,
+          service_url: "TCEQ Water Service Area (Proxy)",
+          last_verified: new Date().toISOString(),
+          note: "Service area proxy - not line-specific data"
+        }
+      : {
+          has_service: false,
+          min_distance_ft: null,
+          service_url: null,
+          last_verified: new Date().toISOString()
+        };
+
     const utilitiesSummary = {
-      water: buildUtilitySummary(
-        water, 
-        "water",
-        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUtilitiesScaled/MapServer/22" :
-        cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0" :
-        null
-      ),
+      water: waterSummary,
       sewer: buildUtilitySummary(
-        sewer,
-        "sewer", 
-        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/25" :
+        sewer, 
+        "sewer",
+        cityLower.includes("houston") ? "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Gravity_Main/FeatureServer/0" :
         cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Wastewaterlines/FeatureServer/0" :
         null
       ),
@@ -634,12 +682,12 @@ serve(async (req) => {
           return formatted.diameter && formatted.diameter > 18; // Force mains typically larger
         }),
         "force_main",
-        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilitiesScaled/MapServer/24" : null
+        cityLower.includes("houston") ? "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Force_Main/FeatureServer/0" : null
       ),
       storm: buildUtilitySummary(
         storm,
         "storm",
-        cityLower.includes("houston") ? "https://geogimstest.houstontx.gov/arcgis/rest/services/TDO/StormwaterUtilities/MapServer/18" :
+        cityLower.includes("houston") ? "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7" :
         cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_ReclaimedWaterlines/FeatureServer/0" :
         null
       )
@@ -658,7 +706,13 @@ serve(async (req) => {
       utilities_summary: utilitiesSummary,
       data_flags: flags,
       api_meta: apiMeta,
-      enrichment_status: enrichmentStatus
+      enrichment_status: enrichmentStatus,
+      // Add traffic data if available
+      ...(traffic && traffic.length > 0 && {
+        traffic_aadt: traffic[0].attributes.ADT || null,
+        traffic_road_name: traffic[0].attributes.LOCATION || null,
+        traffic_year: traffic[0].attributes.ADT_YEAR || null
+      })
     }).eq("id", application_id);
 
     if (updateError) {

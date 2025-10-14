@@ -1,5 +1,8 @@
 project_id = "mcmfwlgovubpdcfiqfvk"
 
+[functions.validate-gis-endpoints]
+verify_jwt = false
+
 [functions.submit-application]
 [functions.google-places]
 [functions.google-place-details]

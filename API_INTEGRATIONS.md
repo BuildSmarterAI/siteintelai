@@ -3,6 +3,57 @@
 ## Overview
 This document maps each external API to the database fields it populates in the `applications` table.
 
+## 🔄 Houston GIS Migration (January 2025)
+
+**Critical Update:** City of Houston's legacy COHGIS endpoints on `cohgis.houstontx.gov` and `geogimstest.houstontx.gov` have been **retired** and migrated to new production servers.
+
+### Migrated Endpoints
+
+| Utility Type | Old Endpoint (Deprecated) | New Endpoint (Production) | Status |
+|--------------|--------------------------|---------------------------|--------|
+| **Water Mains** | `geogimstest.../WaterUNPublic/MapServer/4` | No public API - Using TCEQ service areas | ⚠️ Proxy |
+| **Sewer Gravity** | `geogimstest.../WastewaterUtilitiesScaled/MapServer/25` | `services.arcgis.com/.../Sewer_Water_Pipe_Network_-_Gravity_Main/FeatureServer/0` | ✅ Live |
+| **Sewer Force** | `geogimstest.../WastewaterUtilitiesScaled/MapServer/26` | `services.arcgis.com/.../Sewer_Water_Pipe_Network_-_Force_Main/FeatureServer/0` | ✅ Live |
+| **Storm Drainage** | `geogimstest.../StormwaterUtilities/MapServer/18` | `mapsop1.houstontx.gov/.../TDO/StormDrainageUtilityAssets/FeatureServer/7` | ✅ Live |
+| **Traffic Counts** | Not implemented | `services.arcgis.com/.../City_of_Houston_Traffic_Counts/FeatureServer/0` | ✅ New |
+
+### Migration Notes
+
+- **Water:** Direct water main data is no longer publicly accessible. We now use TCEQ Water District boundaries as a proxy to determine service provider (City of Houston vs MUD). This provides service area confirmation but not line-specific proximity data.
+- **Sewer:** Migrated to ArcGIS Online feature services with full CRUD capabilities. Data updated 2023.
+- **Storm:** Moved from test server to production `mapsop1` server. Layer 7 contains gravity storm mains.
+- **Traffic:** New integration with City of Houston's traffic count layer (Annual Daily Traffic on major thoroughfares).
+
+### Fallback Hierarchy
+
+**Water Fallbacks:**
+1. TCEQ Water Service Areas (primary - polygon intersection)
+2. MUD District lookup (Harris County)
+3. OpenStreetMap water pipelines (tertiary - community data)
+
+**Sewer Fallbacks:**
+1. ArcGIS Online Gravity/Force mains (primary)
+2. TCEQ Wastewater Outfalls (secondary - estimate proximity to treatment)
+3. OpenStreetMap sewer lines (tertiary)
+
+**Storm Fallbacks:**
+1. mapsop1 production Layer 7 (primary)
+2. Harris County Flood Control District channels (secondary - major drainage)
+3. OpenStreetMap drains/culverts (tertiary)
+
+**Traffic Fallbacks:**
+1. City of Houston Traffic Counts (primary - local roads)
+2. TxDOT AADT (secondary - state highways)
+3. H-GAC regional data (tertiary - older snapshots)
+
+### Revalidation Schedule
+
+- **Quarterly automated tests** run via `validate-gis-endpoints` edge function
+- Last validated: **January 10, 2025**
+- Next validation: **April 1, 2025**
+
+All endpoints include `last_validated` timestamp in `endpoint_catalog.json` for tracking.
+
 ---
 
 ## 🔹 1. Google Maps APIs

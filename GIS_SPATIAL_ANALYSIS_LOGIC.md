@@ -1,5 +1,18 @@
 # BuildSmarter™ Feasibility — GIS & Spatial Analysis Logic Document
 
+## 🔄 Houston GIS Endpoint Migration (January 2025)
+
+**IMPORTANT:** City of Houston utility endpoints have migrated from legacy test servers to production infrastructure:
+
+- **Water:** No direct API available. Using TCEQ Water Service Area polygons as proxy for service provider identification.
+- **Sewer:** Migrated to ArcGIS Online feature services (`services.arcgis.com/04HiymDgLlsbhaV4/...`)
+- **Storm:** Moved to production `mapsop1.houstontx.gov` server (Layer 7)
+- **Traffic:** New integration with City of Houston Traffic Counts layer
+
+All queries now use production endpoints with quarterly validation. See `API_INTEGRATIONS.md` for complete migration details.
+
+---
+
 ## 1. Purpose & Scope
 
 This document defines the geospatial computation logic underlying the BuildSmarter™ Feasibility Engine. It explains how parcel, floodplain, utility, environmental, and transportation datasets are spatially joined, buffered, and normalized to produce canonical fields consumed by the AI Feasibility Engine and OData outputs.
