@@ -188,6 +188,13 @@ export function MapLibreCanvas({
     } catch (error) {
       console.error('Failed to add parcel layer:', error);
     }
+
+    if (map.current?.getLayer(lineLayerId)) {
+      console.log('🧩 Parcel layer added', {
+        featureType: parcel.geometry?.type,
+        points: Array.isArray(parcel.geometry?.coordinates?.[0]) ? parcel.geometry.coordinates[0].length : undefined,
+      });
+    }
   }, [parcel, mapLoaded]);
 
   // Add flood zones layer

@@ -14,7 +14,7 @@ import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
 import { ReportPreviewGate } from "@/components/ReportPreviewGate";
 import DOMPurify from 'dompurify';
-
+import { useMapLayers } from "@/hooks/useMapLayers";
 interface Report {
   id: string;
   application_id: string;
@@ -145,6 +145,9 @@ export default function ReportViewer() {
   // Feature flag for MapLibre GL
   const useMapLibre = import.meta.env.VITE_USE_MAPLIBRE === 'true';
   const MapComponent = useMapLibre ? MapLibreCanvas : MapCanvas;
+
+  // Map layers (parcel, flood, utilities, traffic, employment)
+  const { data: mapLayers } = useMapLayers(report?.application_id || '');
 
   useEffect(() => {
     if (reportId) {
@@ -667,22 +670,27 @@ export default function ReportViewer() {
                 })()}
                 className="h-[300px] md:h-96 w-full rounded-lg"
                 propertyAddress={report.applications.formatted_address}
+                parcel={mapLayers?.parcel}
                 employmentCenters={
-                  report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
-                    ? report.applications.employment_clusters
-                        .filter((c: any) => c.lat && c.lng)
-                        .map((cluster: any) => ({
-                          name: cluster.name || 'Employment Center',
-                          jobs: cluster.jobs || 0,
-                          distance_miles: cluster.distance || 0,
-                          coordinates: [cluster.lat, cluster.lng] as [number, number],
-                          // Keep original format for backward compatibility with MapCanvas
-                          lat: cluster.lat,
-                          lng: cluster.lng,
-                          distance: cluster.distance,
-                          industries: cluster.industries
-                        }))
-                    : []
+                  (mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0)
+                    ? mapLayers.employmentCenters
+                    : (
+                        report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
+                          ? report.applications.employment_clusters
+                              .filter((c: any) => c.lat && c.lng)
+                              .map((cluster: any) => ({
+                                name: cluster.name || 'Employment Center',
+                                jobs: cluster.jobs || 0,
+                                distance_miles: cluster.distance || 0,
+                                coordinates: [cluster.lat, cluster.lng] as [number, number],
+                                // Keep original format for backward compatibility with MapCanvas
+                                lat: cluster.lat,
+                                lng: cluster.lng,
+                                distance: cluster.distance,
+                                industries: cluster.industries
+                              }))
+                          : []
+                      )
                 }
               />
               <div className="mt-4 flex flex-wrap gap-2">
