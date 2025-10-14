@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_logs: {
+        Row: {
+          application_id: string | null
+          cache_key: string | null
+          duration_ms: number
+          endpoint: string
+          error_message: string | null
+          expires_at: string | null
+          id: string
+          source: string
+          success: boolean
+          timestamp: string
+        }
+        Insert: {
+          application_id?: string | null
+          cache_key?: string | null
+          duration_ms: number
+          endpoint: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          source: string
+          success: boolean
+          timestamp?: string
+        }
+        Update: {
+          application_id?: string | null
+          cache_key?: string | null
+          duration_ms?: number
+          endpoint?: string
+          error_message?: string | null
+          expires_at?: string | null
+          id?: string
+          source?: string
+          success?: boolean
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_logs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "api_logs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
       applications: {
         Row: {
           access_priorities: string[] | null
@@ -52,6 +106,7 @@ export type Database = {
           draft_saved_at: string | null
           drive_time_15min_population: number | null
           drive_time_30min_population: number | null
+          drivetimes: Json | null
           effective_yr: number | null
           elevation: number | null
           email: string
@@ -99,6 +154,7 @@ export type Database = {
           median_income: number | null
           mud_district: string | null
           nda_confidentiality: boolean
+          nearby_places: Json | null
           nearest_highway: string | null
           nearest_transit_stop: string | null
           neighborhood: string | null
@@ -209,6 +265,7 @@ export type Database = {
           draft_saved_at?: string | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
+          drivetimes?: Json | null
           effective_yr?: number | null
           elevation?: number | null
           email: string
@@ -256,6 +313,7 @@ export type Database = {
           median_income?: number | null
           mud_district?: string | null
           nda_confidentiality?: boolean
+          nearby_places?: Json | null
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
@@ -366,6 +424,7 @@ export type Database = {
           draft_saved_at?: string | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
+          drivetimes?: Json | null
           effective_yr?: number | null
           elevation?: number | null
           email?: string
@@ -413,6 +472,7 @@ export type Database = {
           median_income?: number | null
           mud_district?: string | null
           nda_confidentiality?: boolean
+          nearby_places?: Json | null
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
@@ -853,6 +913,7 @@ export type Database = {
           id: string
           json_data: Json | null
           pdf_url: string | null
+          report_assets: Json | null
           report_type: string
           score_band: string | null
           status: string
@@ -870,6 +931,7 @@ export type Database = {
           id?: string
           json_data?: Json | null
           pdf_url?: string | null
+          report_assets?: Json | null
           report_type: string
           score_band?: string | null
           status?: string
@@ -887,6 +949,7 @@ export type Database = {
           id?: string
           json_data?: Json | null
           pdf_url?: string | null
+          report_assets?: Json | null
           report_type?: string
           score_band?: string | null
           status?: string
