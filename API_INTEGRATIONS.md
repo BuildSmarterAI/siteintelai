@@ -3,6 +3,46 @@
 ## Overview
 This document maps each external API to the database fields it populates in the `applications` table.
 
+## 🆕 Harris County WCID Detection (January 2025)
+
+### Background
+Water Control & Improvement Districts (WCIDs) provide water/wastewater services to unincorporated areas of Harris County, similar to MUDs but covering different territories. Previously, properties in WCIDs were incorrectly labeled as "Harris_ETJ" without utility provider identification.
+
+### Integration Details
+**Endpoint:** `https://services.arcgis.com/KTcxiTD9dsQwVSFh/.../WCID_Boundaries/FeatureServer/0`  
+**Query Type:** Point-in-polygon intersection (WGS84)  
+**Fields Retrieved:**
+- `DISTRICT_NA` - WCID district name
+- `DISTRICT_NO` - WCID district number
+
+**Database Schema:**
+- New column: `applications.wcid_district` (TEXT, nullable)
+- Existing column: `applications.etj_provider` (updated to "WCID" when WCID found)
+
+### Query Hierarchy
+1. **Check MUD first** (existing logic)
+   - If found → `mud_district` populated, `etj_provider = "MUD"`
+2. **If no MUD, check WCID** (new logic)
+   - If found → `wcid_district` populated, `etj_provider = "WCID"`
+3. **If neither found** (existing fallback)
+   - `etj_provider = "Harris_ETJ"` (unincorporated county area)
+
+### Data Flags
+- `etj_provider_wcid` - Property located in WCID district
+- `etj_provider_boundary_only` - Property in unincorporated Harris County (neither MUD nor WCID)
+
+### Performance Impact
+- **Properties in MUD:** 0 seconds added (WCID check skipped)
+- **Properties in WCID:** +2 seconds enrichment time (1 additional API call)
+- **Unincorporated properties:** +2 seconds enrichment time (WCID query returns empty)
+
+### Error Handling
+- WCID endpoint timeout: 8 seconds (configured)
+- On failure: Falls back to "Harris_ETJ" designation
+- Logs error but continues enrichment process
+
+---
+
 ## 🔄 Houston GIS Migration (January 2025)
 
 **Critical Update:** City of Houston's legacy COHGIS endpoints on `cohgis.houstontx.gov` and `geogimstest.houstontx.gov` have been **retired** and migrated to new production servers.

@@ -224,6 +224,7 @@ export type Database = {
           utm_term: string | null
           water_capacity_mgd: number | null
           water_lines: Json | null
+          wcid_district: string | null
           wetlands_type: string | null
           year_built: number | null
           zoning_code: string | null
@@ -384,6 +385,7 @@ export type Database = {
           utm_term?: string | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
+          wcid_district?: string | null
           wetlands_type?: string | null
           year_built?: number | null
           zoning_code?: string | null
@@ -544,6 +546,7 @@ export type Database = {
           utm_term?: string | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
+          wcid_district?: string | null
           wetlands_type?: string | null
           year_built?: number | null
           zoning_code?: string | null

@@ -508,16 +508,45 @@ serve(async (req) => {
           console.error("MUD lookup failed:", mudErr instanceof Error ? mudErr.message : String(mudErr));
         }
         
-        // If no MUD found, mark as Harris ETJ
-        if (!mudFound) {
-          console.log('No MUD district found - marking as Harris ETJ');
+    // If no MUD found, check WCID
+    if (!mudFound) {
+      console.log('No MUD found - checking WCID districts');
+      
+      const wcidEp = endpointCatalog.harris_county_etj.wcid;
+      let wcidFound = false;
+      
+      try {
+        const wcidHits = await queryPolygon(wcidEp.url, wcidEp.outFields, geo_lat, geo_lng);
+        
+        if (wcidHits.length > 0) {
+          const wcidAttrs = wcidHits[0].attributes;
+          const wcidDistrict = wcidAttrs.DISTRICT_NA || wcidAttrs.DISTRICT_NO || null;
+          console.log('✅ WCID district found:', wcidDistrict);
+          
+          // Update with WCID info
           await supabase.from("applications").update({
-            mud_district: null,
-            etj_provider: "Harris_ETJ"
+            wcid_district: wcidDistrict,
+            etj_provider: "WCID"
           }).eq("id", application_id);
           
-          flags.push("etj_provider_boundary_only");
+          wcidFound = true;
+          flags.push("etj_provider_wcid");
         }
+      } catch (wcidErr) {
+        console.error("❌ WCID lookup failed:", wcidErr instanceof Error ? wcidErr.message : String(wcidErr));
+      }
+      
+      // If neither MUD nor WCID found, mark as Harris ETJ
+      if (!wcidFound) {
+        console.log('No MUD or WCID found - marking as Harris ETJ');
+        await supabase.from("applications").update({
+          mud_district: null,
+          etj_provider: "Harris_ETJ"
+        }).eq("id", application_id);
+        
+        flags.push("etj_provider_boundary_only");
+      }
+    }
       } else {
         console.log('No city-specific endpoints, using statewide fallback');
         flags.push("texas_statewide_tceq");
