@@ -27,6 +27,14 @@ interface Report {
   json_data: any;
   pdf_url: string | null;
   created_at: string;
+  report_assets?: {
+    static_map_url?: string;
+    streetview?: Array<{
+      direction: string;
+      heading: number;
+      url: string;
+    }>;
+  };
   applications: {
     formatted_address: string;
     geo_lat: number;
@@ -131,6 +139,17 @@ interface Report {
     growth_rate_5yr?: number | null;
     median_income?: number | null;
     households_5mi?: number | null;
+    // Google Maps integration
+    drivetimes?: Array<{
+      destination: string;
+      duration_min: number;
+      distance_mi: number;
+    }>;
+    nearby_places?: Array<{
+      name: string;
+      type: string;
+      distance_ft: number;
+    }>;
   };
 }
 
@@ -326,14 +345,27 @@ export default function ReportViewer() {
             median_income,
             households_5mi,
             updated_at,
-            user_id
+            user_id,
+            drivetimes,
+            nearby_places
           )
         `)
         .eq('id', reportId)
         .single();
 
       if (error) throw error;
-      setReport(data);
+      
+      // Type assertion for complex JSON fields
+      const typedData: Report = {
+        ...data,
+        report_assets: data.report_assets as Report['report_assets'],
+        applications: {
+          ...data.applications,
+          drivetimes: data.applications.drivetimes as Report['applications']['drivetimes'],
+          nearby_places: data.applications.nearby_places as Report['applications']['nearby_places']
+        }
+      };
+      setReport(typedData);
 
       // Check ownership if authenticated
       if (userId && data.applications?.user_id) {
@@ -1706,15 +1738,63 @@ export default function ReportViewer() {
           </Card>
         )}
 
+        {/* Visual Assets Section */}
+        {report.report_assets?.static_map_url && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-primary" />
+                Site Visualization
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <img 
+                  src={report.report_assets.static_map_url} 
+                  alt="Property map with parcel, flood zones, and utilities"
+                  className="w-full rounded-lg shadow-lg"
+                />
+                <p className="text-sm text-muted-foreground mt-2 text-center">
+                  Property boundary (blue), FEMA flood zone (yellow), utilities (orange)
+                </p>
+              </div>
+              
+              {report.report_assets.streetview && report.report_assets.streetview.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3">Street View Photos</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    {report.report_assets.streetview.map((sv) => (
+                      <div key={sv.direction}>
+                        <img 
+                          src={sv.url} 
+                          alt={`Street view looking ${sv.direction}`}
+                          className="rounded-lg shadow-md w-full"
+                        />
+                        <p className="text-sm text-center mt-2 text-muted-foreground">
+                          {sv.direction} View
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-1">
             <TabsTrigger value="zoning" className="text-xs md:text-sm">Zoning</TabsTrigger>
             <TabsTrigger value="flood" className="text-xs md:text-sm">Flood Risk</TabsTrigger>
             <TabsTrigger value="utilities" className="text-xs md:text-sm">Utilities</TabsTrigger>
             <TabsTrigger value="environmental" className="text-xs md:text-sm">Environmental</TabsTrigger>
             <TabsTrigger value="traffic" className="text-xs md:text-sm">Traffic</TabsTrigger>
             <TabsTrigger value="market" className="text-xs md:text-sm">Market</TabsTrigger>
+            <TabsTrigger value="access" className="text-xs md:text-sm">
+              <Car className="w-3 h-3 mr-1" />
+              Access
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="zoning" className="mt-6">
@@ -2588,6 +2668,80 @@ export default function ReportViewer() {
                 <div className="prose prose-sm max-w-none">
                   <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>') }} />
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* NEW: Access & Mobility Tab */}
+          <TabsContent value="access" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Car className="w-5 h-5 text-primary" />
+                  Access & Mobility
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {report.applications.drivetimes && report.applications.drivetimes.length > 0 ? (
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Drive Times to Key Destinations
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {report.applications.drivetimes.map((dt) => (
+                        <div 
+                          key={dt.destination}
+                          className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted"
+                        >
+                          <h5 className="font-medium text-sm mb-2">{dt.destination}</h5>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-bold text-primary">{dt.duration_min}</span>
+                            <span className="text-sm text-muted-foreground">min</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {dt.distance_mi?.toFixed(1)} miles
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                    Drive time data unavailable for this location
+                  </div>
+                )}
+                
+                {report.applications.nearby_places && report.applications.nearby_places.length > 0 ? (
+                  <div>
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Nearby Amenities
+                    </h4>
+                    <div className="space-y-2">
+                      {report.applications.nearby_places.map((place, idx) => (
+                        <div 
+                          key={idx}
+                          className="flex justify-between items-center border-b pb-2 last:border-0"
+                        >
+                          <div>
+                            <span className="font-medium">{place.name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({place.type?.replace(/_/g, ' ')})
+                            </span>
+                          </div>
+                          <span className="text-sm text-muted-foreground">
+                            {(place.distance_ft / 5280).toFixed(2)} mi
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                    Nearby amenities data unavailable for this location
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

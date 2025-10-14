@@ -44,8 +44,47 @@ serve(async (req) => {
       throw new Error('Invalid report JSON structure');
     }
 
+    // NEW: Step 2.5 - Generate static map composite
+    console.log('[generate-pdf] Generating static map...');
+    try {
+      await supabase.functions.invoke('render-static-map', {
+        body: {
+          application_id: application.id,
+          center: { lat: application.geo_lat, lng: application.geo_lng },
+          zoom: 17,
+          size: '800x600'
+        }
+      });
+    } catch (err) {
+      console.error('[generate-pdf] Static map generation failed:', err);
+    }
+
+    // NEW: Step 2.6 - Generate street view images
+    console.log('[generate-pdf] Generating street view images...');
+    try {
+      await supabase.functions.invoke('render-streetview', {
+        body: {
+          application_id: application.id,
+          location: { lat: application.geo_lat, lng: application.geo_lng },
+          headings: [0, 90, 180, 270],
+          size: '640x400'
+        }
+      });
+    } catch (err) {
+      console.error('[generate-pdf] Street view generation failed:', err);
+    }
+
+    // NEW: Fetch updated report with assets
+    const { data: updatedReport } = await supabase
+      .from('reports')
+      .select('report_assets')
+      .eq('id', report_id)
+      .single();
+
+    const reportAssets = updatedReport?.report_assets || {};
+
     // 3. Generate HTML content
-    const htmlContent = generateReportHTML(report, application, jsonData);
+    const htmlContent = generateReportHTML(report, application, jsonData, reportAssets);
 
     // 4. Convert HTML to PDF using external service (placeholder)
     // In production, you would use Puppeteer or a PDF service
@@ -117,7 +156,7 @@ serve(async (req) => {
   }
 });
 
-function generateReportHTML(report: any, application: any, jsonData: any): string {
+function generateReportHTML(report: any, application: any, jsonData: any, reportAssets: any = {}): string {
   const summary = jsonData.summary || {};
   const zoning = jsonData.zoning || {};
   const flood = jsonData.flood || {};
@@ -441,6 +480,41 @@ function generateReportHTML(report: any, application: any, jsonData: any): strin
       </table>
     ` : '<p>No data sources recorded.</p>'}
   </div>
+
+  <!-- NEW: Site Visualization Appendix -->
+  ${reportAssets.static_map_url ? `
+  <div class="section" style="page-break-before: always;">
+    <h2>Appendix: Site Visualization</h2>
+    
+    <div style="margin-bottom: 32pt;">
+      <img src="${reportAssets.static_map_url}" 
+           alt="Parcel Map with Overlays" 
+           style="width: 100%; max-width: 800px; border-radius: 12pt; box-shadow: 0 4pt 16pt rgba(0,0,0,0.1);" />
+      <p style="font-size: 10pt; color: #6B7280; margin-top: 8pt; text-align: center;">
+        Figure 1: Property boundary (blue), FEMA flood zone (yellow), utilities (orange)
+      </p>
+    </div>
+    
+    ${reportAssets.streetview && reportAssets.streetview.length > 0 ? `
+      <div>
+        <h3 style="margin-bottom: 16pt;">Street View Photos</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16pt;">
+          ${reportAssets.streetview.map((sv: any) => `
+            <div>
+              <img src="${sv.url}" 
+                   alt="View ${sv.direction}" 
+                   style="width: 100%; border-radius: 8pt;" />
+              <p style="text-align: center; font-size: 10pt; margin-top: 4pt; color: #6B7280;">
+                ${sv.direction} View (${sv.heading}°)
+              </p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    ` : '<p style="color: #9CA3AF;">Street View not available for this location.</p>'}
+  </div>
+  ` : ''}
+
 
   <!-- Footer -->
   <div class="footer">

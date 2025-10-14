@@ -3042,6 +3042,80 @@ serve(async (req) => {
     }
     enrichedData.employment_clusters = employmentClusters;
     
+    // NEW: Step 7.5 - Fetch precise elevation
+    console.log('Step 7.5: Fetching elevation...');
+    try {
+      const elevationResp = await supabase.functions.invoke('fetch-elevation', {
+        body: { lat: geoLat, lng: geoLng, application_id }
+      });
+      if (elevationResp.data?.elevation_ft) {
+        enrichedData.elevation = elevationResp.data.elevation_ft;
+      }
+    } catch (err) {
+      console.error('Elevation fetch failed:', err);
+      dataFlags.push('elevation_api_failed');
+    }
+
+    // NEW: Step 7.6 - Calculate drive times to key destinations
+    console.log('Step 7.6: Calculating drive times...');
+    try {
+      let destinations = [];
+      
+      if (cityLower.includes('houston')) {
+        destinations = [
+          { name: "Downtown Houston", lat: 29.7604, lng: -95.3698 },
+          { name: "IAH Airport", lat: 29.9844, lng: -95.3414 },
+          { name: "Texas Medical Center", lat: 29.7066, lng: -95.4007 }
+        ];
+      } else if (cityLower.includes('dallas')) {
+        destinations = [
+          { name: "Downtown Dallas", lat: 32.7767, lng: -96.7970 },
+          { name: "DFW Airport", lat: 32.8998, lng: -97.0403 }
+        ];
+      } else if (cityLower.includes('austin')) {
+        destinations = [
+          { name: "Downtown Austin", lat: 30.2672, lng: -97.7431 },
+          { name: "AUS Airport", lat: 30.1975, lng: -97.6664 }
+        ];
+      }
+      
+      if (destinations.length > 0) {
+        const drivetimesResp = await supabase.functions.invoke('fetch-drivetimes', {
+          body: { 
+            application_id,
+            origin: { lat: geoLat, lng: geoLng }, 
+            destinations 
+          }
+        });
+        if (drivetimesResp.data) {
+          enrichedData.drivetimes = drivetimesResp.data;
+        }
+      }
+    } catch (err) {
+      console.error('Drive times fetch failed:', err);
+      dataFlags.push('drivetimes_api_failed');
+    }
+
+    // NEW: Step 7.7 - Find nearby places
+    console.log('Step 7.7: Finding nearby places...');
+    try {
+      const placesResp = await supabase.functions.invoke('fetch-places-context', {
+        body: { 
+          lat: geoLat, 
+          lng: geoLng,
+          application_id,
+          radius_meters: 3000, 
+          types: ['hospital', 'school', 'transit_station', 'shopping_mall'] 
+        }
+      });
+      if (placesResp.data) {
+        enrichedData.nearby_places = placesResp.data;
+      }
+    } catch (err) {
+      console.error('Nearby places fetch failed:', err);
+      dataFlags.push('places_api_failed');
+    }
+    
 
     // Step 9: Financial / Incentives
     console.log('Fetching property tax data...');
@@ -3220,6 +3294,10 @@ serve(async (req) => {
       if (enrichedData.enterprise_zone !== undefined) updateData.enterprise_zone = enrichedData.enterprise_zone;
       if (enrichedData.foreign_trade_zone !== undefined) updateData.foreign_trade_zone = enrichedData.foreign_trade_zone;
       if (enrichedData.average_permit_time_months) updateData.average_permit_time_months = enrichedData.average_permit_time_months;
+      
+      // NEW: Google Maps integration data
+      if (enrichedData.drivetimes) updateData.drivetimes = enrichedData.drivetimes;
+      if (enrichedData.nearby_places) updateData.nearby_places = enrichedData.nearby_places;
 
       console.log('Updating database with enriched data:', updateData);
 
