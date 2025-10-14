@@ -504,6 +504,50 @@ export default function ReportViewer() {
     setDrawingMode(true);
   };
 
+  // Handle regenerate map assets
+  const handleRegenerateMapAssets = async () => {
+    if (!report?.application_id || !report.applications.geo_lat || !report.applications.geo_lng) {
+      toast.error('Missing location data for map generation');
+      return;
+    }
+    
+    toast.info('Regenerating map assets...');
+    
+    try {
+      await Promise.all([
+        supabase.functions.invoke('render-static-map', {
+          body: {
+            application_id: report.application_id,
+            center: { 
+              lat: report.applications.geo_lat, 
+              lng: report.applications.geo_lng 
+            },
+            zoom: 17,
+            size: '1200x800'
+          }
+        }),
+        supabase.functions.invoke('render-streetview', {
+          body: {
+            application_id: report.application_id,
+            location: { 
+              lat: report.applications.geo_lat, 
+              lng: report.applications.geo_lng 
+            },
+            headings: [0, 90, 180, 270],
+            size: '640x400'
+          }
+        })
+      ]);
+      
+      // Refetch report to get updated assets
+      await fetchReport();
+      toast.success('Map assets regenerated successfully');
+    } catch (error) {
+      console.error('Map regeneration failed:', error);
+      toast.error('Failed to regenerate maps. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -814,13 +858,86 @@ export default function ReportViewer() {
               </CardContent>
             </Card>
 
+        {/* Google Maps Visualization */}
+        {report.applications?.geo_lat && report.applications?.geo_lng && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Site Visualization
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Static Map */}
+              {report.report_assets?.static_map_url ? (
+                <div className="space-y-4">
+                  <img 
+                    src={report.report_assets.static_map_url} 
+                    alt="Google Static Map of site"
+                    className="w-full rounded-lg border shadow-sm"
+                  />
+                  <p className="text-sm text-muted-foreground">
+                    Aerial view from Google Maps • Updated: {new Date(report.applications.updated_at || report.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-lg">
+                  <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Map assets are being generated...
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    This typically takes 10-15 seconds. Refresh the page if this persists.
+                  </p>
+                  {isOwner && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-4"
+                      onClick={handleRegenerateMapAssets}
+                    >
+                      <Zap className="h-4 w-4 mr-2" />
+                      Generate Now
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {/* Street View */}
+              {report.report_assets?.streetview && report.report_assets.streetview.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <Car className="h-5 w-5" />
+                    Street View
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {report.report_assets.streetview.map((sv) => (
+                      <div key={sv.heading} className="space-y-2">
+                        <img 
+                          src={sv.url} 
+                          alt={`Street view facing ${sv.direction}`}
+                          className="w-full rounded border shadow-sm cursor-pointer hover:opacity-80 transition"
+                          onClick={() => window.open(sv.url, '_blank')}
+                        />
+                        <p className="text-xs text-center text-muted-foreground">
+                          {sv.direction} View
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Property Map */}
         {report.applications?.geo_lat && report.applications?.geo_lng && (
           <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
-                Property Location & Context
+                Interactive Property Map
                 {useMapLibre && (
                   <Badge variant="outline" className="text-xs">
                     MapLibre GL

@@ -22,11 +22,36 @@ serve(async (req) => {
     );
 
     const { application_id, location, headings = [0, 90, 180, 270], size = '640x400' } = await req.json();
-    console.log(`[render-streetview] Generating Street View for application ${application_id}`);
+    console.log('[render-streetview] Request received:', {
+      application_id,
+      location,
+      headings,
+      size,
+      timestamp: new Date().toISOString()
+    });
 
     const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
     if (!googleApiKey) {
       throw new Error('GOOGLE_MAPS_API_KEY not configured');
+    }
+
+    // Fetch with retry logic
+    async function fetchWithRetry(url: string, maxRetries = 3) {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) return response;
+          
+          if (attempt < maxRetries - 1) {
+            const delay = Math.pow(2, attempt) * 500;
+            console.log(`[render-streetview] Retry ${attempt + 1} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        } catch (error) {
+          if (attempt === maxRetries - 1) throw error;
+        }
+      }
+      throw new Error('Max retries exceeded');
     }
 
     const directionLabels = ['N', 'E', 'S', 'W'];
@@ -46,7 +71,7 @@ serve(async (req) => {
       console.log(`[render-streetview] Fetching ${direction} view (heading ${heading})`);
       const viewStartTime = Date.now();
       
-      const response = await fetch(streetViewUrl.toString());
+      const response = await fetchWithRetry(streetViewUrl.toString());
       await logExternalCall(
         supabase,
         'google_street_view',

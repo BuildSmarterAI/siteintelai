@@ -154,6 +154,48 @@ serve(async (req) => {
         // Non-blocking - report is still accessible
       }
 
+      // 🗺️ GENERATE MAP ASSETS (asynchronous, non-blocking)
+      const lat = application.geo_lat;
+      const lng = application.geo_lng;
+      
+      if (lat && lng) {
+        console.log('[generate-ai-report] Triggering map asset generation...');
+        
+        // Invoke render-static-map
+        supabase.functions.invoke('render-static-map', {
+          body: {
+            application_id,
+            center: { lat, lng },
+            zoom: 17,
+            size: '1200x800'
+          }
+        }).then(mapResult => {
+          if (mapResult.error) {
+            console.error('[generate-ai-report] Static map failed:', mapResult.error);
+          } else {
+            console.log('[generate-ai-report] Static map generated successfully');
+          }
+        });
+        
+        // Invoke render-streetview
+        supabase.functions.invoke('render-streetview', {
+          body: {
+            application_id,
+            location: { lat, lng },
+            headings: [0, 90, 180, 270],
+            size: '640x400'
+          }
+        }).then(svResult => {
+          if (svResult.error) {
+            console.error('[generate-ai-report] Street View failed:', svResult.error);
+          } else {
+            console.log('[generate-ai-report] Street View images generated');
+          }
+        });
+      } else {
+        console.warn('[generate-ai-report] No coordinates available for map generation');
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 

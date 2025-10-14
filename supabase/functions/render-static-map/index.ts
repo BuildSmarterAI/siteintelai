@@ -22,7 +22,13 @@ serve(async (req) => {
     );
 
     const { application_id, center, zoom = 17, size = '800x600' } = await req.json();
-    console.log(`[render-static-map] Generating map for application ${application_id}`);
+    console.log('[render-static-map] Request received:', {
+      application_id,
+      center,
+      zoom,
+      size,
+      timestamp: new Date().toISOString()
+    });
 
     const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
     if (!googleApiKey) {
@@ -43,15 +49,37 @@ serve(async (req) => {
     // Add center marker (property location)
     baseUrl.searchParams.set('markers', `color:blue|${center.lat},${center.lng}`);
 
-    console.log('[render-static-map] Fetching from Google Static Maps API');
+    console.log('[render-static-map] Fetching from Google Static Maps API...');
     const mapStartTime = Date.now();
     
-    const mapResponse = await fetch(baseUrl.toString());
+    // Fetch with retry logic
+    async function fetchWithRetry(url: string, maxRetries = 3) {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) return response;
+          
+          if (attempt < maxRetries - 1) {
+            const delay = Math.pow(2, attempt) * 500;
+            console.log(`[render-static-map] Retry ${attempt + 1} after ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        } catch (error) {
+          if (attempt === maxRetries - 1) throw error;
+        }
+      }
+      throw new Error('Max retries exceeded');
+    }
+    
+    const mapResponse = await fetchWithRetry(baseUrl.toString());
+    const apiDuration = Date.now() - mapStartTime;
+    console.log(`[render-static-map] Google API response: ${mapResponse.status} in ${apiDuration}ms`);
+    
     await logExternalCall(
       supabase,
       'google_static_maps',
       baseUrl.toString(),
-      Date.now() - mapStartTime,
+      apiDuration,
       mapResponse.ok,
       application_id
     );
