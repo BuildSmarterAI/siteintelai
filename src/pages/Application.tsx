@@ -741,19 +741,22 @@ export default function Application() {
                                // Set loading state when address is being populated
                                setIsAddressLoading(true);
                                
-                               if (coordinates || addressDetails) {
-                                 setFormData(prev => ({
-                                   ...prev,
-                                   geoLat: coordinates?.lat || prev.geoLat,
-                                   geoLng: coordinates?.lng || prev.geoLng,
-                                   county: addressDetails?.county || prev.county,
-                                   city: addressDetails?.city || prev.city,
-                                   state: addressDetails?.state || prev.state,
-                                   zipCode: addressDetails?.zipCode || prev.zipCode,
-                                   neighborhood: addressDetails?.neighborhood || prev.neighborhood,
-                                   sublocality: addressDetails?.sublocality || prev.sublocality,
-                                   placeId: addressDetails?.placeId || prev.placeId
-                                 }));
+                                if (coordinates || addressDetails) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    geoLat: coordinates?.lat || prev.geoLat,
+                                    geoLng: coordinates?.lng || prev.geoLng,
+                                    county: addressDetails?.county || prev.county,
+                                    city: addressDetails?.city || prev.city,
+                                    state: addressDetails?.state || prev.state,
+                                    zipCode: addressDetails?.zipCode || prev.zipCode,
+                                    neighborhood: addressDetails?.neighborhood || prev.neighborhood,
+                                    sublocality: addressDetails?.sublocality || prev.sublocality,
+                                    placeId: addressDetails?.placeId || prev.placeId,
+                                    submarket: addressDetails?.submarket || prev.submarket,
+                                    currentUse: addressDetails?.currentUse || prev.currentUse,
+                                    utilityAccess: addressDetails?.utilityAccess || prev.utilityAccess
+                                  }));
                                  
                                  // Mark Google-populated fields as enriched
                                  setEnrichedFields(prev => ({

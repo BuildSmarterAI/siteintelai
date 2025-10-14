@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from './input';
 import { Label } from './label';
 import { supabase } from '@/integrations/supabase/client';
+import submarketMapping from '@/data/submarket-mapping.json';
 
 // Simple debounce function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
@@ -29,6 +30,9 @@ interface AddressDetails {
   neighborhood?: string;
   sublocality?: string;
   placeId?: string;
+  submarket?: string;
+  currentUse?: string;
+  utilityAccess?: string[];
 }
 
 interface AddressAutocompleteProps {
@@ -191,6 +195,29 @@ export function AddressAutocomplete({
         addressDetails.placeId = data.result.place_id;
       }
 
+      // Auto-detect current use from place types
+      if (data?.result?.types) {
+        const types = data.result.types;
+        if (types.includes('parking')) {
+          addressDetails.currentUse = 'parking-lot';
+        } else if (types.includes('point_of_interest') || types.includes('establishment') || types.includes('store')) {
+          addressDetails.currentUse = 'existing-occupied';
+        } else if (types.length === 1 && types[0] === 'street_address') {
+          addressDetails.currentUse = 'vacant-land';
+        }
+      }
+
+      // Auto-detect submarket from neighborhood
+      if (addressDetails.city && addressDetails.neighborhood) {
+        const cityData = submarketMapping[addressDetails.city as keyof typeof submarketMapping];
+        if (cityData) {
+          const submarket = cityData[addressDetails.neighborhood as keyof typeof cityData];
+          if (submarket) {
+            addressDetails.submarket = submarket;
+          }
+        }
+      }
+
       const finalAddress = data?.result?.formatted_address || suggestion.description;
       
       if (data?.result?.formatted_address) {
@@ -213,6 +240,33 @@ export function AddressAutocomplete({
         if (enrichData?.success) {
           const hasFlags = Array.isArray(enrichData.data_flags) && enrichData.data_flags.length > 0;
           setEnrichmentStatus(hasFlags ? 'partial' : 'success');
+          
+          // Auto-populate utility access from enriched data
+          if (coordinates) {
+            try {
+              const { data: utilityData, error: utilityError } = await supabase.functions.invoke('enrich-utilities', {
+                body: {
+                  latitude: coordinates.lat,
+                  longitude: coordinates.lng
+                }
+              });
+
+              if (!utilityError && utilityData) {
+                const utilityAccess: string[] = [];
+                if (utilityData.water_nearby) utilityAccess.push('water');
+                if (utilityData.sewer_nearby) utilityAccess.push('sewer');
+                if (utilityData.storm_nearby) utilityAccess.push('storm');
+                // Gas and electric are typically available in developed areas
+                if (addressDetails.city) {
+                  utilityAccess.push('electric');
+                }
+                addressDetails.utilityAccess = utilityAccess;
+              }
+            } catch (utilityError) {
+              console.error('Utility enrichment error:', utilityError);
+            }
+          }
+          
           onEnrichmentComplete?.(enrichData);
         } else {
           setEnrichmentStatus('error');
