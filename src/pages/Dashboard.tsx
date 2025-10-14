@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Clock, CheckCircle, Menu } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
@@ -13,6 +13,8 @@ import { AuthButton } from "@/components/AuthButton";
 import { SubscriptionStatus } from "@/components/SubscriptionStatus";
 import { PaymentButton } from "@/components/PaymentButton";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAdminRole } from "@/hooks/useAdminRole";
+import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
 
 interface Report {
   id: string;
@@ -32,6 +34,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<Report[]>([]);
   const [profile, setProfile] = useState<any>(null);
+  const { isAdmin } = useAdminRole();
+  const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
 
   useEffect(() => {
     checkAuth();
@@ -236,13 +240,39 @@ export default function Dashboard() {
                               Score: {report.feasibility_score}
                             </Badge>
                           )}
-                          <Badge className={getStatusColor(report.status)}>
-                            {report.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge className={getStatusColor(report.status)}>
+                              {report.status}
+                            </Badge>
+                            {isAdmin && report.status === 'failed' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  const result = await reEnrich(report.id);
+                                  if (result.success) {
+                                    setTimeout(() => fetchReports(), 3000);
+                                  }
+                                }}
+                                disabled={reEnrichLoading}
+                                className="h-8 text-xs"
+                              >
+                                <RefreshCw className={`h-3 w-3 mr-1 ${reEnrichLoading ? 'animate-spin' : ''}`} />
+                                Re-enrich
+                              </Button>
+                            )}
+                          </div>
                           {report.status === 'completed' && (
                             <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
                               View Report
                             </Button>
+                          )}
+                          {report.status === 'failed' && (
+                            <div className="flex items-center gap-1 text-xs text-destructive">
+                              <AlertCircle className="h-3 w-3" />
+                              <span>Failed</span>
+                            </div>
                           )}
                         </div>
                       </div>
