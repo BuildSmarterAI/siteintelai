@@ -1,5 +1,4 @@
 import { TrustBadgesGrid } from "./TrustBadgesGrid";
-import { SimplifiedSourcesList } from "./SimplifiedSourcesList";
 import { DataSourcesSidebar } from "./DataSourcesSidebar";
 
 interface DataSource {
@@ -18,15 +17,12 @@ export const DataSourcesDisplay = ({ dataSources, accessLevel }: DataSourcesDisp
   switch (accessLevel) {
     case 'public':
     case 'authenticated':
-      // Show trust badges only for unauthenticated or non-owners
+    case 'owner':
+      // Show trust badges only for all non-enterprise users
       return <TrustBadgesGrid />;
       
-    case 'owner':
-      // Show dataset names + timestamps (day-level) for report owners
-      return <SimplifiedSourcesList dataSources={dataSources} />;
-      
     case 'enterprise':
-      // Full transparency with endpoints for enterprise tier
+      // Full transparency with endpoints for enterprise tier only
       return <DataSourcesSidebar dataSources={dataSources} />;
       
     default:
