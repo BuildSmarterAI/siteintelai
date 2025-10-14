@@ -1352,6 +1352,89 @@ export type Database = {
           },
         ]
       }
+      v_reports_sanitized: {
+        Row: {
+          ai_completion_tokens: number | null
+          ai_prompt_tokens: number | null
+          application_id: string | null
+          created_at: string | null
+          error_message: string | null
+          feasibility_score: number | null
+          id: string | null
+          json_data: Json | null
+          pdf_url: string | null
+          report_type: string | null
+          score_band: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
+          validation_status: string | null
+        }
+        Insert: {
+          ai_completion_tokens?: number | null
+          ai_prompt_tokens?: number | null
+          application_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          feasibility_score?: number | null
+          id?: string | null
+          json_data?: never
+          pdf_url?: string | null
+          report_type?: string | null
+          score_band?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          validation_status?: string | null
+        }
+        Update: {
+          ai_completion_tokens?: number | null
+          ai_prompt_tokens?: number | null
+          application_id?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          feasibility_score?: number | null
+          id?: string | null
+          json_data?: never
+          pdf_url?: string | null
+          report_type?: string | null
+          score_band?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          validation_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_reports_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_reports_application"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
     }
     Functions: {
       _postgis_deprecate: {
@@ -2086,6 +2169,10 @@ export type Database = {
       postgis_wagyu_version: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      sanitize_report_json: {
+        Args: { report_json: Json; user_id: string }
+        Returns: Json
       }
       save_drawn_parcel_with_acreage: {
         Args:
