@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         // Query FEMA with spatial extent
         const femaUrl = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query` +
           `?where=1=1` +
-          `&geometry=${JSON.stringify(bbox)}` +
+          `&geometry=${bbox.xmin},${bbox.ymin},${bbox.xmax},${bbox.ymax}` +
           `&geometryType=esriGeometryEnvelope` +
           `&spatialRel=esriSpatialRelIntersects` +
           `&outFields=OBJECTID,DFIRM_ID,FLD_ZONE,ZONE_SUBTY,STATIC_BFE` +
