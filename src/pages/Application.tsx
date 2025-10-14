@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { CheckCircle, Clock, Shield, Award, ArrowRight, ArrowLeft, Zap, Database, Users, Upload, Edit, AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
 import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
@@ -630,19 +631,15 @@ export default function Application() {
                              />
                            )}
 
-                            {/* Contact Step - show form or confirmation based on profile status */}
-                            {!hasCompleteProfile ? (
-                              <ContactStep
-                                formData={{
-                                  fullName: formData.fullName,
-                                  company: formData.company,
-                                  email: formData.email,
-                                  phone: formData.phone,
-                                }}
-                                onChange={handleInputChange}
-                                errors={errors}
-                              />
-                            ) : (
+                           {/* Contact Step - gated behind authLoading to prevent flash */}
+                            {authLoading ? (
+                              <div className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                              </div>
+                            ) : hasCompleteProfile ? (
                               <Card className="p-6 bg-primary/5 border-primary/20">
                                 <div className="flex items-start gap-4">
                                   <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
@@ -657,6 +654,17 @@ export default function Application() {
                                   </div>
                                 </div>
                               </Card>
+                            ) : (
+                              <ContactStep
+                                formData={{
+                                  fullName: formData.fullName,
+                                  company: formData.company,
+                                  email: formData.email,
+                                  phone: formData.phone,
+                                }}
+                                onChange={handleInputChange}
+                                errors={errors}
+                              />
                             )}
                          </div>
                        )}
