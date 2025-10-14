@@ -22,20 +22,55 @@ export function useMapLayers(applicationId: string) {
   return useQuery<MapLayersData>({
     queryKey: ['map-layers', applicationId],
     queryFn: async () => {
-      // Fetch application data with relevant fields
+      // Fetch application data with relevant fields including coordinates
       const { data: app, error } = await supabase
         .from('applications')
-        .select('parcel_id, formatted_address, employment_clusters')
+        .select('parcel_id, formatted_address, employment_clusters, geo_lat, geo_lng, acreage_cad, lot_size_value, lot_size_unit')
         .eq('id', applicationId)
         .single();
 
       if (error) throw error;
 
-      // Note: Parcel geometry, flood zones, utilities, and traffic layers
-      // will be populated in future phases when geospatial data is integrated
-      // For now, returning empty arrays as placeholders
+      // Create parcel boundary representation
+      // Phase 1: Generate approximate boundary from property coordinates
+      // Future: Replace with actual parcel geometry from county GIS data
+      let parcel = null;
       
-      const parcel = null; // TODO: Fetch from parcel table or enrichment_raw
+      if (app.geo_lat && app.geo_lng) {
+        // Estimate parcel size - use lot_size if available, otherwise default
+        const acreage = app.acreage_cad || app.lot_size_value || 1;
+        const radiusMeters = Math.sqrt(acreage * 4046.86) / 2; // Convert acres to approx radius
+        
+        // Generate circular approximation (simplified for Phase 1)
+        const centerLng = app.geo_lng;
+        const centerLat = app.geo_lat;
+        const points = 32;
+        const coordinates: number[][][] = [[]];
+        
+        for (let i = 0; i <= points; i++) {
+          const angle = (i / points) * 2 * Math.PI;
+          const dx = radiusMeters * Math.cos(angle);
+          const dy = radiusMeters * Math.sin(angle);
+          
+          // Approximate degrees offset (1 degree ≈ 111km at equator)
+          const lat = centerLat + (dy / 111000);
+          const lng = centerLng + (dx / (111000 * Math.cos(centerLat * Math.PI / 180)));
+          
+          coordinates[0].push([lng, lat]);
+        }
+        
+        parcel = {
+          geometry: {
+            type: 'Polygon',
+            coordinates,
+          },
+          properties: {
+            parcel_id: app.parcel_id,
+            address: app.formatted_address,
+            acreage: acreage,
+          },
+        };
+      }
 
       const floodZones: any[] = []; // TODO: Fetch from fema_flood_zones table
 
