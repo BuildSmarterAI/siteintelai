@@ -508,7 +508,8 @@ export default function ReportViewer() {
   const environmental = parsedData.environmental || {};
   const traffic = parsedData.traffic || {};
   const marketDemographics = parsedData.market_demographics || {};
-  const dataSources = parsedData.data_sources || [];
+  // 🔒 IP Protection: Only load data_sources for enterprise users
+  const dataSources = (productId === 'enterprise' && parsedData.data_sources) || [];
   
   // Helper to get data sources for a specific section
   const getSourcesForSection = (section: string) => {
