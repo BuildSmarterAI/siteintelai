@@ -33,9 +33,29 @@ serve(async (req) => {
       throw new Error(`Application not found: ${appError?.message}`);
     }
 
+    // 🚀 PHASE 3: Fetch geospatial intelligence data
+    let geospatialData = null;
+    try {
+      const { data: geoData, error: geoError } = await supabase
+        .from('feasibility_geospatial')
+        .select('*')
+        .eq('application_id', application_id)
+        .single();
+      
+      if (!geoError && geoData) {
+        geospatialData = geoData;
+        console.log('[generate-ai-report] Geospatial data loaded:', {
+          overall_score: geoData.geospatial_score?.overall_geospatial_score,
+          flood_zone: geoData.fema_flood_risk?.zone_code
+        });
+      }
+    } catch (geoError) {
+      console.log('[generate-ai-report] No geospatial data found (non-blocking)');
+    }
+
     // Build structured prompt based on enriched data
     const systemPrompt = buildSystemPrompt(report_type);
-    const userPrompt = buildUserPrompt(application, report_type);
+    const userPrompt = buildUserPrompt(application, report_type, geospatialData);
 
     console.log('[generate-ai-report] Calling Lovable AI...');
 
@@ -338,7 +358,7 @@ PROJECT INTENT ANALYSIS RULES:
 Never use placeholders or "TBD" - use actual data or mark as "data unavailable".`;
 }
 
-function buildUserPrompt(application: any, reportType: string): string {
+function buildUserPrompt(application: any, reportType: string, geospatialData?: any): string {
   const address = application.formatted_address || application.property_address || 'Unknown';
   
   const dataPoints = [
@@ -348,6 +368,29 @@ function buildUserPrompt(application: any, reportType: string): string {
     `Acreage: ${application.acreage_cad || 'N/A'}`,
     `Coordinates: ${application.geo_lat}, ${application.geo_lng}`
   ];
+  
+  // 🚀 PHASE 3: Include geospatial intelligence in AI context
+  if (geospatialData) {
+    const geoScore = geospatialData.geospatial_score;
+    const floodRisk = geospatialData.fema_flood_risk;
+    const trafficExposure = geospatialData.traffic_exposure;
+    const countyBoundary = geospatialData.county_boundary;
+    
+    dataPoints.push('');
+    dataPoints.push('=== GEOSPATIAL INTELLIGENCE ===');
+    if (geoScore) {
+      dataPoints.push(`Overall Geospatial Score: ${geoScore.overall_geospatial_score}/100`);
+      dataPoints.push(`- Jurisdiction Confidence: ${geoScore.jurisdiction_confidence}% (${countyBoundary?.county_name || 'Unknown'})`);
+      dataPoints.push(`- Flood Risk Index: ${geoScore.flood_risk_index} (${floodRisk?.zone_code || 'Unknown'})`);
+      dataPoints.push(`- Traffic Visibility Index: ${geoScore.traffic_visibility_index}`);
+      if (geoScore.scoring_notes) {
+        dataPoints.push(`- Analysis: ${geoScore.scoring_notes}`);
+      }
+    }
+    if (trafficExposure) {
+      dataPoints.push(`Traffic Exposure: ${trafficExposure.roadway_name} (AADT: ${trafficExposure.aadt}, ${trafficExposure.distance_to_segment_ft}ft away)`);
+    }
+  }
   
   // ⭐ NEW: Property Valuation Section
   if (application.tot_appr_val || application.tot_market_val) {

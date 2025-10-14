@@ -3240,6 +3240,30 @@ serve(async (req) => {
         });
       }
       console.log('Enrichment saved to database');
+      
+      // 🚀 PHASE 3: Trigger geospatial scoring
+      if (enrichedData.geo_lat && enrichedData.geo_lng) {
+        try {
+          console.log('Triggering geospatial score computation...');
+          const geoResponse = await supabase.functions.invoke('compute-geospatial-score', {
+            body: {
+              application_id,
+              lat: enrichedData.geo_lat,
+              lng: enrichedData.geo_lng
+            }
+          });
+          
+          if (geoResponse.error) {
+            console.error('Geospatial scoring failed:', geoResponse.error);
+            dataFlags.push('geospatial_score_unavailable');
+          } else {
+            console.log('Geospatial score computed successfully:', geoResponse.data);
+          }
+        } catch (geoError) {
+          console.error('Failed to invoke compute-geospatial-score:', geoError);
+          dataFlags.push('geospatial_score_error');
+        }
+      }
     }
 
     // Return success response (Step 10 AI Generation would happen after this in a separate process)

@@ -22,6 +22,7 @@ interface MapLibreCanvasProps {
   employmentCenters?: EmploymentCenter[];
   className?: string;
   propertyAddress?: string;
+  femaFloodZone?: string;
 }
 
 /**
@@ -47,6 +48,7 @@ export function MapLibreCanvas({
   employmentCenters = [],
   className = '',
   propertyAddress = 'Property location',
+  femaFloodZone,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -287,6 +289,101 @@ export function MapLibreCanvas({
       map.current.setLayoutProperty('parcel-line', 'visibility', visibility);
     }
   }, [layerVisibility.parcel, mapLoaded]);
+
+  // Add FEMA flood zone overlay circle
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !femaFloodZone) return;
+
+    const sourceId = 'flood-zone-circle';
+    const fillLayerId = 'flood-zone-circle-fill';
+    const lineLayerId = 'flood-zone-circle-line';
+
+    try {
+      // Remove existing layers
+      if (map.current.getLayer(fillLayerId)) map.current.removeLayer(fillLayerId);
+      if (map.current.getLayer(lineLayerId)) map.current.removeLayer(lineLayerId);
+      if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+
+      // Determine color based on flood zone
+      const floodColor = femaFloodZone === 'Zone X' ? '#10b981' : 
+                        femaFloodZone.includes('A') || femaFloodZone.includes('V') ? '#ef4444' : 
+                        '#eab308';
+      const floodRisk = femaFloodZone === 'Zone X' ? 'Low Risk' : 
+                       femaFloodZone.includes('A') || femaFloodZone.includes('V') ? 'High Risk' : 
+                       'Moderate Risk';
+      
+      // Create circle geometry (150m radius)
+      const radiusMeters = 150;
+      const radiusInDegrees = radiusMeters / 111320;
+      const numPoints = 64;
+      const coordinates: number[][] = [];
+      
+      for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * 2 * Math.PI;
+        const dx = radiusInDegrees * Math.cos(angle);
+        const dy = radiusInDegrees * Math.sin(angle);
+        coordinates.push([center[1] + dx, center[0] + dy]);
+      }
+      coordinates.push(coordinates[0]); // Close the polygon
+      
+      // Add source
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Polygon',
+            coordinates: [coordinates]
+          },
+          properties: {
+            zone: femaFloodZone,
+            risk: floodRisk
+          }
+        }
+      });
+      
+      // Add fill layer
+      map.current.addLayer({
+        id: fillLayerId,
+        type: 'fill',
+        source: sourceId,
+        paint: {
+          'fill-color': floodColor,
+          'fill-opacity': 0.15
+        }
+      });
+      
+      // Add outline layer
+      map.current.addLayer({
+        id: lineLayerId,
+        type: 'line',
+        source: sourceId,
+        paint: {
+          'line-color': floodColor,
+          'line-width': 2,
+          'line-opacity': 0.6
+        }
+      });
+      
+      // Add click handler
+      map.current.on('click', fillLayerId, (e: any) => {
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 8px;">
+              <strong>FEMA Flood Zone</strong><br>
+              Zone: ${femaFloodZone}<br>
+              Risk Level: <span style="color: ${floodColor};">${floodRisk}</span>
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      console.log('🌊 Flood zone overlay added:', femaFloodZone);
+    } catch (error) {
+      console.error('Failed to add flood zone overlay:', error);
+    }
+  }, [femaFloodZone, center, mapLoaded]);
 
   // Add flood zones layer
   useEffect(() => {

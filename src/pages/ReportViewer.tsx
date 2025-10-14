@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesSidebar } from "@/components/DataSourcesSidebar";
 import { ReportPreviewGate } from "@/components/ReportPreviewGate";
+import { GeospatialIntelligenceCard } from "@/components/GeospatialIntelligenceCard";
 import DOMPurify from 'dompurify';
 import { useMapLayers } from "@/hooks/useMapLayers";
 interface Report {
@@ -141,6 +142,7 @@ export default function ReportViewer() {
   const [showPreview, setShowPreview] = useState(false);
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [geospatialData, setGeospatialData] = useState<any>(null);
 
   // Feature flag for MapLibre GL
   const useMapLibre = import.meta.env.VITE_USE_MAPLIBRE === 'true';
@@ -148,6 +150,25 @@ export default function ReportViewer() {
 
   // Map layers (parcel, flood, utilities, traffic, employment)
   const { data: mapLayers } = useMapLayers(report?.application_id || '');
+
+  // Fetch geospatial intelligence data
+  useEffect(() => {
+    if (!report?.application_id) return;
+    
+    async function fetchGeospatialData() {
+      const { data } = await supabase
+        .from('feasibility_geospatial')
+        .select('*')
+        .eq('application_id', report.application_id)
+        .single();
+      
+      if (data) {
+        setGeospatialData(data);
+      }
+    }
+    
+    fetchGeospatialData();
+  }, [report?.application_id]);
 
   useEffect(() => {
     if (reportId) {
@@ -670,6 +691,7 @@ export default function ReportViewer() {
                 })()}
                 className="h-[300px] md:h-96 w-full rounded-lg"
                 propertyAddress={report.applications.formatted_address}
+                femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
                 parcel={mapLayers?.parcel}
                 employmentCenters={
                   (mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0)
@@ -708,6 +730,12 @@ export default function ReportViewer() {
             </CardContent>
           </Card>
         )}
+
+        {/* ⭐ PHASE 3: Geospatial Intelligence Card */}
+        <GeospatialIntelligenceCard 
+          applicationId={report.application_id} 
+          reportCreatedAt={report.created_at}
+        />
 
         {/* ⭐ PHASE 1: Property Owner & Account Information Card */}
         {(report.applications?.parcel_owner || report.applications?.parcel_id) && (
