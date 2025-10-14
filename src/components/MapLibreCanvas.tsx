@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { Eye, EyeOff, Maximize2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface EmploymentCenter {
   name: string;
@@ -48,21 +50,66 @@ export function MapLibreCanvas({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  
+  // Layer visibility state (persisted in localStorage)
+  const [layerVisibility, setLayerVisibility] = useState(() => {
+    const saved = localStorage.getItem('mapLayerVisibility');
+    return saved ? JSON.parse(saved) : {
+      parcel: true,
+      flood: true,
+      utilities: true,
+      traffic: true,
+      employment: true,
+    };
+  });
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
   const toMapLibre = (coords: [number, number]): [number, number] => [coords[1], coords[0]];
 
+  // Save visibility state to localStorage
+  useEffect(() => {
+    localStorage.setItem('mapLayerVisibility', JSON.stringify(layerVisibility));
+  }, [layerVisibility]);
+
+  // Toggle layer visibility
+  const toggleLayer = (layerName: keyof typeof layerVisibility) => {
+    setLayerVisibility(prev => ({ ...prev, [layerName]: !prev[layerName] }));
+  };
+
+  // Fit map to parcel bounds
+  const fitToParcel = () => {
+    if (!map.current || !parcel?.geometry?.coordinates?.[0]) return;
+    
+    try {
+      const coords = parcel.geometry.coordinates[0];
+      const lngs = coords.map((c: [number, number]) => c[0]);
+      const lats = coords.map((c: [number, number]) => c[1]);
+      
+      const bounds = new maplibregl.LngLatBounds(
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)]
+      );
+      
+      map.current.fitBounds(bounds, { padding: 32, duration: 800 });
+    } catch (error) {
+      console.error('Failed to fit bounds:', error);
+    }
+  };
+
   // Generate accessible description for screen readers
   const getMapDescription = () => {
     const parts = [`Map showing ${propertyAddress}`];
+    const visible = [];
     
-    if (parcel) parts.push('with parcel boundary highlighted');
-    if (floodZones.length > 0) parts.push(`${floodZones.length} flood zone(s)`);
-    if (utilities.length > 0) parts.push(`${utilities.length} utility line(s)`);
-    if (traffic.length > 0) parts.push(`${traffic.length} traffic segment(s)`);
-    if (employmentCenters.length > 0) parts.push(`${employmentCenters.length} employment center(s)`);
+    if (parcel && layerVisibility.parcel) visible.push('parcel boundary in orange');
+    if (floodZones.length > 0 && layerVisibility.flood) visible.push(`${floodZones.length} flood zone(s)`);
+    if (utilities.length > 0 && layerVisibility.utilities) visible.push(`${utilities.length} utility line(s)`);
+    if (traffic.length > 0 && layerVisibility.traffic) visible.push(`${traffic.length} traffic segment(s)`);
+    if (employmentCenters.length > 0 && layerVisibility.employment) visible.push(`${employmentCenters.length} employment center(s)`);
     
-    return parts.join(', ');
+    if (visible.length > 0) parts.push(`with ${visible.join(', ')}`);
+    
+    return parts.join(' ');
   };
 
   // Initialize map
@@ -164,14 +211,17 @@ export function MapLibreCanvas({
         },
       });
 
-      // Add fill layer - use Feasibility Orange from design system
+      // Add fill layer - Feasibility Orange #FF7A00
       map.current.addLayer({
         id: fillLayerId,
         type: 'fill',
         source: sourceId,
         paint: {
-          'fill-color': 'hsl(24, 100%, 50%)', // --feasibility-orange
+          'fill-color': '#FF7A00',
           'fill-opacity': 0.2,
+        },
+        layout: {
+          visibility: layerVisibility.parcel ? 'visible' : 'none',
         },
       });
 
@@ -181,10 +231,38 @@ export function MapLibreCanvas({
         type: 'line',
         source: sourceId,
         paint: {
-          'line-color': 'hsl(24, 100%, 50%)', // --feasibility-orange
-          'line-width': 2,
+          'line-color': '#FF7A00',
+          'line-width': 2.5,
+        },
+        layout: {
+          visibility: layerVisibility.parcel ? 'visible' : 'none',
         },
       });
+
+      // Add click handler for parcel info
+      map.current.on('click', lineLayerId, (e) => {
+        const acreage = parcel.properties?.acreage || 'Unknown';
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 8px;">
+              <strong>${propertyAddress}</strong><br>
+              Acreage: ${typeof acreage === 'number' ? acreage.toFixed(2) : acreage}
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      // Change cursor on hover
+      map.current.on('mouseenter', lineLayerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', lineLayerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+
+      // Fit to parcel on initial load
+      fitToParcel();
     } catch (error) {
       console.error('Failed to add parcel layer:', error);
     }
@@ -195,7 +273,19 @@ export function MapLibreCanvas({
         points: Array.isArray(parcel.geometry?.coordinates?.[0]) ? parcel.geometry.coordinates[0].length : undefined,
       });
     }
-  }, [parcel, mapLoaded]);
+  }, [parcel, mapLoaded, layerVisibility.parcel, propertyAddress]);
+
+  // Update parcel visibility when toggle changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.parcel ? 'visible' : 'none';
+    if (map.current.getLayer('parcel-fill')) {
+      map.current.setLayoutProperty('parcel-fill', 'visibility', visibility);
+    }
+    if (map.current.getLayer('parcel-line')) {
+      map.current.setLayoutProperty('parcel-line', 'visibility', visibility);
+    }
+  }, [layerVisibility.parcel, mapLoaded]);
 
   // Add flood zones layer
   useEffect(() => {
@@ -238,11 +328,23 @@ export function MapLibreCanvas({
           ],
           'fill-opacity': 0.15,
         },
+        layout: {
+          visibility: layerVisibility.flood ? 'visible' : 'none',
+        },
       });
     } catch (error) {
       console.error('Failed to add flood zones layer:', error);
     }
-  }, [floodZones, mapLoaded]);
+  }, [floodZones, mapLoaded, layerVisibility.flood]);
+
+  // Update flood visibility
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.flood ? 'visible' : 'none';
+    if (map.current.getLayer('flood-layer')) {
+      map.current.setLayoutProperty('flood-layer', 'visibility', visibility);
+    }
+  }, [layerVisibility.flood, mapLoaded]);
 
   // Add utilities layer
   useEffect(() => {
@@ -287,11 +389,23 @@ export function MapLibreCanvas({
           'line-width': 3,
           'line-opacity': 0.7,
         },
+        layout: {
+          visibility: layerVisibility.utilities ? 'visible' : 'none',
+        },
       });
     } catch (error) {
       console.error('Failed to add utilities layer:', error);
     }
-  }, [utilities, mapLoaded]);
+  }, [utilities, mapLoaded, layerVisibility.utilities]);
+
+  // Update utilities visibility
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.utilities ? 'visible' : 'none';
+    if (map.current.getLayer('utilities-layer')) {
+      map.current.setLayoutProperty('utilities-layer', 'visibility', visibility);
+    }
+  }, [layerVisibility.utilities, mapLoaded]);
 
   // Add traffic layer
   useEffect(() => {
@@ -341,11 +455,23 @@ export function MapLibreCanvas({
           ],
           'line-opacity': 0.8,
         },
+        layout: {
+          visibility: layerVisibility.traffic ? 'visible' : 'none',
+        },
       });
     } catch (error) {
       console.error('Failed to add traffic layer:', error);
     }
-  }, [traffic, mapLoaded]);
+  }, [traffic, mapLoaded, layerVisibility.traffic]);
+
+  // Update traffic visibility
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.traffic ? 'visible' : 'none';
+    if (map.current.getLayer('traffic-layer')) {
+      map.current.setLayoutProperty('traffic-layer', 'visibility', visibility);
+    }
+  }, [layerVisibility.traffic, mapLoaded]);
 
   // Add employment centers layer
   useEffect(() => {
@@ -390,10 +516,13 @@ export function MapLibreCanvas({
         source: sourceId,
         filter: ['!', ['has', 'point_count']],
         paint: {
-          'circle-color': 'hsl(24, 100%, 50%)', // --feasibility-orange
+          'circle-color': '#FF7A00',
           'circle-radius': 8,
           'circle-stroke-width': 2,
           'circle-stroke-color': '#fff',
+        },
+        layout: {
+          visibility: layerVisibility.employment ? 'visible' : 'none',
         },
       });
 
@@ -405,7 +534,7 @@ export function MapLibreCanvas({
           source: sourceId,
           filter: ['has', 'point_count'],
           paint: {
-            'circle-color': 'hsl(24, 100%, 50%)',
+            'circle-color': '#FF7A00',
             'circle-radius': [
               'step',
               ['get', 'point_count'],
@@ -413,6 +542,9 @@ export function MapLibreCanvas({
               20, 10,
               25,
             ],
+          },
+          layout: {
+            visibility: layerVisibility.employment ? 'visible' : 'none',
           },
         });
 
@@ -424,6 +556,7 @@ export function MapLibreCanvas({
           layout: {
             'text-field': '{point_count_abbreviated}',
             'text-size': 12,
+            visibility: layerVisibility.employment ? 'visible' : 'none',
           },
           paint: {
             'text-color': '#fff',
@@ -460,7 +593,22 @@ export function MapLibreCanvas({
     } catch (error) {
       console.error('Failed to add employment centers layer:', error);
     }
-  }, [employmentCenters, mapLoaded]);
+  }, [employmentCenters, mapLoaded, layerVisibility.employment]);
+
+  // Update employment visibility
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.employment ? 'visible' : 'none';
+    if (map.current.getLayer('employment-layer')) {
+      map.current.setLayoutProperty('employment-layer', 'visibility', visibility);
+    }
+    if (map.current.getLayer('employment-layer-clusters')) {
+      map.current.setLayoutProperty('employment-layer-clusters', 'visibility', visibility);
+    }
+    if (map.current.getLayer('employment-layer-count')) {
+      map.current.setLayoutProperty('employment-layer-count', 'visibility', visibility);
+    }
+  }, [layerVisibility.employment, mapLoaded]);
 
   return (
     <div className="relative">
@@ -472,6 +620,78 @@ export function MapLibreCanvas({
         tabIndex={0}
         style={{ minHeight: '300px' }}
       />
+
+      {/* Zoom to Parcel Button */}
+      {parcel && (
+        <Button
+          onClick={fitToParcel}
+          size="sm"
+          variant="secondary"
+          className="absolute top-2 left-2 z-10 shadow-lg"
+          title="Zoom to parcel boundary"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </Button>
+      )}
+
+      {/* Layer Toggle Controls */}
+      <div className="absolute top-2 right-14 z-10 bg-background/95 backdrop-blur-sm rounded-lg shadow-lg p-2 space-y-1 text-sm">
+        {parcel && (
+          <button
+            onClick={() => toggleLayer('parcel')}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted transition-colors"
+            aria-label={`${layerVisibility.parcel ? 'Hide' : 'Show'} parcel boundary`}
+          >
+            {layerVisibility.parcel ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
+            <span className={layerVisibility.parcel ? '' : 'opacity-50'}>Parcel</span>
+            <div className="ml-auto w-3 h-3 rounded-full" style={{ backgroundColor: '#FF7A00' }} />
+          </button>
+        )}
+        {floodZones.length > 0 && (
+          <button
+            onClick={() => toggleLayer('flood')}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted transition-colors"
+            aria-label={`${layerVisibility.flood ? 'Hide' : 'Show'} flood zones`}
+          >
+            {layerVisibility.flood ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
+            <span className={layerVisibility.flood ? '' : 'opacity-50'}>Flood</span>
+            <div className="ml-auto w-3 h-3 rounded-full bg-red-500/30 border border-red-500" />
+          </button>
+        )}
+        {utilities.length > 0 && (
+          <button
+            onClick={() => toggleLayer('utilities')}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted transition-colors"
+            aria-label={`${layerVisibility.utilities ? 'Hide' : 'Show'} utilities`}
+          >
+            {layerVisibility.utilities ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
+            <span className={layerVisibility.utilities ? '' : 'opacity-50'}>Utilities</span>
+            <div className="ml-auto w-3 h-3 rounded-full bg-cyan-500" />
+          </button>
+        )}
+        {traffic.length > 0 && (
+          <button
+            onClick={() => toggleLayer('traffic')}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted transition-colors"
+            aria-label={`${layerVisibility.traffic ? 'Hide' : 'Show'} traffic`}
+          >
+            {layerVisibility.traffic ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
+            <span className={layerVisibility.traffic ? '' : 'opacity-50'}>Traffic</span>
+            <div className="ml-auto w-3 h-3 rounded-full bg-yellow-500" />
+          </button>
+        )}
+        {employmentCenters.length > 0 && (
+          <button
+            onClick={() => toggleLayer('employment')}
+            className="flex items-center gap-2 w-full px-2 py-1 rounded hover:bg-muted transition-colors"
+            aria-label={`${layerVisibility.employment ? 'Hide' : 'Show'} employment centers`}
+          >
+            {layerVisibility.employment ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 opacity-50" />}
+            <span className={layerVisibility.employment ? '' : 'opacity-50'}>Jobs</span>
+            <div className="ml-auto w-3 h-3 rounded-full" style={{ backgroundColor: '#FF7A00' }} />
+          </button>
+        )}
+      </div>
       
       {/* Text alternative for screen readers */}
       <details className="sr-only">
