@@ -133,6 +133,21 @@
       "notes": "Annual Daily Traffic counts on major roads. ArcGIS Online layer. New integration.",
       "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/City_of_Houston_Traffic_Counts/FeatureServer/0/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=250&units=esriSRUnit_Foot&outFields=LOCATION,ADT_YEAR,ADT&f=json",
       "last_validated": "2025-01-10"
+    },
+    "parcels_hcad": {
+      "name": "HCAD Parcel Boundaries (Official Tax Records)",
+      "url": "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
+      "outFields": ["LOWPARCELI", "HCAD_NUM", "CurrOwner", "LocAddr", "city", "zip", "parcel_typ", "StatedArea", "mill_cd", "Tax_Year", "Mail_State"],
+      "geometryType": "esriGeometryPolygon",
+      "crs": 2278,
+      "timeout_ms": 10000,
+      "retry_attempts": 3,
+      "retry_delays_ms": [1000, 2000, 4000],
+      "search_radius_ft": 0,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Point-in-polygon query for official HCAD parcel boundaries. Returns exact parcel geometry, ownership, and tax data. Critical for property boundary verification.",
+      "test_url": "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=LOWPARCELI,HCAD_NUM,CurrOwner,LocAddr,city,zip,parcel_typ,StatedArea,mill_cd,Tax_Year,Mail_State&returnGeometry=true&f=json",
+      "last_validated": "2025-10-15"
     }
   },
   "austin": {

@@ -55,6 +55,18 @@ function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
   return Math.round(minDist);
 }
 
+// Calculate polygon area in square feet from ring coordinates (Texas South Central EPSG:2278)
+function calculatePolygonArea(ring: number[][]): number {
+  if (!ring || ring.length < 3) return 0;
+  
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    area += ring[i][0] * ring[i + 1][1];
+    area -= ring[i + 1][0] * ring[i][1];
+  }
+  return Math.abs(area / 2); // Returns area in square feet (when coords are in feet)
+}
+
 // Format ArcGIS features → JSON with distance
 function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityType?: string) {
   return features.map((f) => {
@@ -101,6 +113,7 @@ const queryArcGIS = async (
     crs?: number; // Optional CRS (e.g., 2278 for Texas South Central)
     geometryType?: string; // e.g., esriGeometryPolygon, esriGeometryPolyline
     spatialRel?: string; // e.g., esriSpatialRelIntersects
+    returnGeometry?: boolean; // Whether to return geometry (default: true)
   }
 ) => {
   // Helper function to build query URL
@@ -151,7 +164,7 @@ const queryArcGIS = async (
       outSR: String(spatialReference),
       spatialRel: spatialRel,
       outFields: fields.join(","),
-      returnGeometry: "true",
+      returnGeometry: config.returnGeometry !== undefined ? String(config.returnGeometry) : "true",
       where: "1=1"
     });
     
@@ -493,6 +506,57 @@ serve(async (req) => {
             }
           } catch (err) {
             console.error('Address validation query failed:', err instanceof Error ? err.message : String(err));
+          }
+        }
+        
+        // Query HCAD Parcels (official parcel boundaries and ownership)
+        let hcad_parcels: any[] = [];
+        let parcel_geometry: any = null;
+        let calculated_acreage: number | null = null;
+        
+        if (eps.parcels_hcad) {
+          try {
+            hcad_parcels = await queryArcGIS(
+              eps.parcels_hcad.url,
+              eps.parcels_hcad.outFields,
+              geo_lat,
+              geo_lng,
+              "houston_parcels_hcad",
+              {
+                timeout_ms: eps.parcels_hcad.timeout_ms,
+                retry_attempts: eps.parcels_hcad.retry_attempts,
+                retry_delays_ms: eps.parcels_hcad.retry_delays_ms,
+                search_radius_ft: eps.parcels_hcad.search_radius_ft,
+                crs: eps.parcels_hcad.crs,
+                geometryType: eps.parcels_hcad.geometryType,
+                spatialRel: eps.parcels_hcad.spatialRel,
+                returnGeometry: true
+              }
+            );
+            
+            if (hcad_parcels.length > 0) {
+              const parcel = hcad_parcels[0];
+              flags.push("hcad_parcel_verified");
+              console.log(`✅ HCAD Parcel found: ${parcel.attributes.LOWPARCELI || 'N/A'}`);
+              
+              // Store parcel geometry for visualization
+              parcel_geometry = parcel.geometry;
+              
+              // Calculate exact acreage from polygon geometry
+              if (parcel_geometry && parcel_geometry.rings && parcel_geometry.rings.length > 0) {
+                const area_sqft = calculatePolygonArea(parcel_geometry.rings[0]);
+                calculated_acreage = area_sqft / 43560; // Convert sqft to acres
+                console.log(`✅ Calculated acreage: ${calculated_acreage.toFixed(2)} acres (stated: ${parcel.attributes.StatedArea || 'N/A'})`);
+              }
+              
+              // Flag out-of-state ownership
+              if (parcel.attributes.Mail_State && parcel.attributes.Mail_State !== 'TX') {
+                flags.push("out_of_state_owner");
+                console.log(`⚠️ Out-of-state owner detected: ${parcel.attributes.Mail_State}`);
+              }
+            }
+          } catch (err) {
+            console.error('HCAD parcels query failed:', err instanceof Error ? err.message : String(err));
           }
         }
         
@@ -885,27 +949,56 @@ serve(async (req) => {
         traffic_road_name: traffic[0].attributes.LOCATION || null,
         traffic_year: traffic[0].attributes.ADT_YEAR || null
       }),
-      // Add Houston water infrastructure details
-      ...(water_laterals.length > 0 && {
-        enrichment_metadata: {
+      // Build single merged enrichment_metadata object (FIX: prevents data loss from overwriting)
+      enrichment_metadata: {
+        // Preserve existing city/county/state
+        city: city || null,
+        county: county || null,
+        enriched_at: new Date().toISOString(),
+        
+        // Water laterals data (Layer 0)
+        ...(water_laterals.length > 0 && {
           water_laterals_count: water_laterals.length,
           water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng)
-        }
-      }),
-      ...(water_fittings.length > 0 && {
-        enrichment_metadata: {
+        }),
+        
+        // Water fittings data (Layer 1 - valves, hydrants, meters)
+        ...(water_fittings.length > 0 && {
           water_fittings_count: water_fittings.length,
           water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng).map((f, idx) => ({
             ...f,
             fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
-          }))
-        }
-      }),
-      ...(address_points.length > 0 && {
-        enrichment_metadata: {
+          })),
+          fire_hydrants_count: water_fittings.filter(f => 
+            f.attributes.FITTING_TYPE?.toLowerCase().includes('hydrant')
+          ).length
+        }),
+        
+        // Address validation data
+        ...(address_points.length > 0 && {
           address_validated: true,
-          validated_address: address_points[0].attributes.FULL_ADDRESS || null
-        }
+          validated_address: address_points[0].attributes.FULL_ADDRESS || null,
+          address_match_distance_ft: address_points[0].distance_ft || null
+        }),
+        
+        // HCAD Parcel data (official boundaries and ownership)
+        ...(hcad_parcels.length > 0 && {
+          hcad_parcel_id: hcad_parcels[0].attributes.LOWPARCELI || null,
+          hcad_number: hcad_parcels[0].attributes.HCAD_NUM || null,
+          parcel_type: hcad_parcels[0].attributes.parcel_typ || null,
+          stated_area_acres: hcad_parcels[0].attributes.StatedArea || null,
+          calculated_area_acres: calculated_acreage,
+          mill_code: hcad_parcels[0].attributes.mill_cd || null,
+          tax_year: hcad_parcels[0].attributes.Tax_Year || null,
+          owner_mail_state: hcad_parcels[0].attributes.Mail_State || null,
+          parcel_geometry: parcel_geometry
+        })
+      },
+      // Update top-level parcel columns with HCAD official data
+      ...(hcad_parcels.length > 0 && {
+        parcel_id: hcad_parcels[0].attributes.LOWPARCELI || null,
+        parcel_owner: hcad_parcels[0].attributes.CurrOwner || null,
+        acreage_cad: calculated_acreage || hcad_parcels[0].attributes.StatedArea || null
       })
     }).eq("id", application_id);
 
