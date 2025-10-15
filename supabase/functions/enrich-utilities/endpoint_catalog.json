@@ -1,7 +1,7 @@
 {
-  "version": "2.0.0",
-  "last_updated": "2025-10-14",
-  "changelog": "2025-10-15: Fixed Houston Water GIS endpoint URL structure - corrected path from /server/rest/services/ to /arcgis/rest/services/INFORHW/. Fixed geometryType to esriGeometryPoint. All other parameters (inSR=4326, 1000 ft radius) remain unchanged.",
+  "version": "2.1.0",
+  "last_updated": "2025-10-15",
+  "changelog": "2025-10-15: Added water_laterals (Layer 0) and address_points layers for Houston. Fixed geometry parameter formatting for point-based queries.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -25,6 +25,38 @@
       "spatialRel": "esriSpatialRelIntersects",
       "notes": "Layer 3 = Water Distribution Mains. Located under INFORHW folder in arcgis/rest/services. Verified working with inSR=4326 and 1000 ft radius.",
       "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,OWNER&f=json",
+      "last_validated": "2025-10-15"
+    },
+    "water_laterals": {
+      "name": "COH Water Lateral Service Lines (ArcGIS Online)",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "SUBTYPECD", "OWNER"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 2278,
+      "timeout_ms": 8000,
+      "retry_attempts": 3,
+      "retry_delays_ms": [500, 1000, 2000],
+      "search_radius_ft": 100,
+      "urban_search_radius_ft": 100,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Layer 0 = Water Lateral Service Lines. Shows existing service connections to properties. Small search radius (100 ft) for property-specific detection.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=100&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,SUBTYPECD,OWNER&f=json",
+      "last_validated": "2025-10-15"
+    },
+    "address_points": {
+      "name": "COH Address Points (ArcGIS Online)",
+      "url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/COH_ADDRESS_POINT/FeatureServer/0/query",
+      "outFields": ["STREET_NUM", "STREET_NAME", "CITY", "ZIPCODE", "STATUS", "TYPES"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 2278,
+      "timeout_ms": 8000,
+      "retry_attempts": 3,
+      "retry_delays_ms": [500, 1000, 2000],
+      "search_radius_ft": 50,
+      "urban_search_radius_ft": 50,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Layer 0 = Address Points. Used for address validation and geocoding verification. Very small search radius (50 ft) for precise address matching.",
+      "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/COH_ADDRESS_POINT/FeatureServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=50&units=esriSRUnit_Foot&outFields=STREET_NUM,STREET_NAME,CITY,ZIPCODE,STATUS,TYPES&f=json",
       "last_validated": "2025-10-15"
     },
     "sewer": {
