@@ -367,6 +367,9 @@ serve(async (req) => {
     let sewer: any[] = [];
     let storm: any[] = [];
     let sewer_force: any[] = [];
+    let water_laterals: any[] = [];
+    let water_fittings: any[] = [];
+    let address_points: any[] = [];
     let flags: string[] = [];
     let apiUnreachable = false;
 
@@ -398,6 +401,99 @@ serve(async (req) => {
         
         if (water.length > 0) {
           flags.push("water_via_houston_gis");
+        }
+        
+        // Query water laterals (Layer 0 - service lines)
+        if (eps.water_laterals) {
+          try {
+            water_laterals = await queryArcGIS(
+              eps.water_laterals.url, 
+              eps.water_laterals.outFields, 
+              geo_lat, 
+              geo_lng, 
+              "houston_water_laterals", 
+              {
+                timeout_ms: eps.water_laterals.timeout_ms,
+                retry_attempts: eps.water_laterals.retry_attempts,
+                retry_delays_ms: eps.water_laterals.retry_delays_ms,
+                search_radius_ft: eps.water_laterals.search_radius_ft,
+                crs: eps.water_laterals.crs,
+                geometryType: eps.water_laterals.geometryType,
+                spatialRel: eps.water_laterals.spatialRel
+              }
+            );
+            if (water_laterals.length > 0) {
+              flags.push("water_lateral_found");
+              console.log(`✅ Water laterals found: ${water_laterals.length} service lines`);
+            }
+          } catch (err) {
+            console.error('Water laterals query failed:', err instanceof Error ? err.message : String(err));
+          }
+        }
+        
+        // Query water fittings (Layer 1 - valves, hydrants, meters)
+        if (eps.water_fittings) {
+          try {
+            water_fittings = await queryArcGIS(
+              eps.water_fittings.url,
+              eps.water_fittings.outFields,
+              geo_lat,
+              geo_lng,
+              "houston_water_fittings",
+              {
+                timeout_ms: eps.water_fittings.timeout_ms,
+                retry_attempts: eps.water_fittings.retry_attempts,
+                retry_delays_ms: eps.water_fittings.retry_delays_ms,
+                search_radius_ft: eps.water_fittings.search_radius_ft,
+                crs: eps.water_fittings.crs,
+                geometryType: eps.water_fittings.geometryType,
+                spatialRel: eps.water_fittings.spatialRel
+              }
+            );
+            if (water_fittings.length > 0) {
+              flags.push("water_fittings_detected");
+              console.log(`✅ Water fittings found: ${water_fittings.length} fittings (valves/hydrants/meters)`);
+              
+              // Count hydrants for fire protection analysis
+              const hydrants = water_fittings.filter(f => 
+                f.attributes.FITTING_TYPE?.toLowerCase().includes('hydrant')
+              );
+              if (hydrants.length > 0) {
+                flags.push("fire_hydrant_nearby");
+                console.log(`✅ Fire hydrants nearby: ${hydrants.length}`);
+              }
+            }
+          } catch (err) {
+            console.error('Water fittings query failed:', err instanceof Error ? err.message : String(err));
+          }
+        }
+        
+        // Query address points for validation
+        if (eps.address_points) {
+          try {
+            address_points = await queryArcGIS(
+              eps.address_points.url,
+              eps.address_points.outFields,
+              geo_lat,
+              geo_lng,
+              "houston_address_points",
+              {
+                timeout_ms: eps.address_points.timeout_ms,
+                retry_attempts: eps.address_points.retry_attempts,
+                retry_delays_ms: eps.address_points.retry_delays_ms,
+                search_radius_ft: eps.address_points.search_radius_ft,
+                crs: eps.address_points.crs,
+                geometryType: eps.address_points.geometryType,
+                spatialRel: eps.address_points.spatialRel
+              }
+            );
+            if (address_points.length > 0) {
+              flags.push("address_validated");
+              console.log(`✅ Address validated: ${address_points[0].attributes.FULL_ADDRESS || 'N/A'}`);
+            }
+          } catch (err) {
+            console.error('Address validation query failed:', err instanceof Error ? err.message : String(err));
+          }
         }
         
         // Use urban search radius for sewer
@@ -788,6 +884,28 @@ serve(async (req) => {
         traffic_aadt: traffic[0].attributes.ADT || null,
         traffic_road_name: traffic[0].attributes.LOCATION || null,
         traffic_year: traffic[0].attributes.ADT_YEAR || null
+      }),
+      // Add Houston water infrastructure details
+      ...(water_laterals.length > 0 && {
+        enrichment_metadata: {
+          water_laterals_count: water_laterals.length,
+          water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng)
+        }
+      }),
+      ...(water_fittings.length > 0 && {
+        enrichment_metadata: {
+          water_fittings_count: water_fittings.length,
+          water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng).map((f, idx) => ({
+            ...f,
+            fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
+          }))
+        }
+      }),
+      ...(address_points.length > 0 && {
+        enrichment_metadata: {
+          address_validated: true,
+          validated_address: address_points[0].attributes.FULL_ADDRESS || null
+        }
       })
     }).eq("id", application_id);
 
