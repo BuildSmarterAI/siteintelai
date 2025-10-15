@@ -1388,226 +1388,7 @@ async function fallbackRoadFromOSM(lat: number, lng: number) {
   return {};
 }
 
-// Helper function to fetch utility infrastructure from city GIS
-/**
- * For Houston utilities, route through proxy to bypass DNS block
- * cohgis.houstontx.gov is unreachable from Supabase edge runtime
- */
-async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy: boolean = false): Promise<any> {
-  const utilities: any = {
-    water_lines: null,
-    sewer_lines: null,
-    storm_lines: null,
-    water_capacity_mgd: null,
-    sewer_capacity_mgd: null,
-    power_kv_nearby: null
-  };
-
-  const searchRadius = 2000; // Increased to 2000 feet radius for better coverage
-  
-  // Get Supabase client for proxy calls
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  try {
-    // Fetch water lines if endpoint exists
-    if (endpoints.water_lines_url) {
-      console.log('Fetching water lines from:', endpoints.water_lines_url);
-      const waterParams = {
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: searchRadius.toString(),
-        units: 'esriFeet',
-        where: '1=1',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      };
-
-      let waterData;
-      
-      if (useProxy) {
-        // Route through utility-proxy edge function
-        console.log('Using proxy for Houston utilities...');
-        const { data, error } = await supabase.functions.invoke('utility-proxy', {
-          body: {
-            url: endpoints.water_lines_url,
-            params: waterParams
-          }
-        });
-        
-        if (error) throw error;
-        waterData = data;
-      } else {
-        // Direct call
-        const waterParamsUrl = new URLSearchParams(waterParams as any);
-        const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParamsUrl}`);
-        waterData = await safeJsonParse(waterResp, 'Water lines query');
-      }
-      
-      console.log('Water lines API response:', {
-        hasFeatures: !!waterData?.features,
-        featureCount: waterData?.features?.length || 0,
-        error: waterData?.error
-      });
-      
-      if (waterData?.features && waterData.features.length > 0) {
-        utilities.water_lines = waterData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return {
-            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
-            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
-            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
-            distance_ft: searchRadius
-          };
-        });
-        const maxDiameter = Math.max(...waterData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
-        }));
-        utilities.water_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
-        console.log('Water lines found:', utilities.water_lines.length, 'capacity:', utilities.water_capacity_mgd);
-      } else {
-        console.log('No water lines found in response');
-      }
-    } else {
-      console.log('No water lines endpoint configured for this county');
-    }
-
-    // Fetch sewer lines if endpoint exists
-    if (endpoints.sewer_lines_url) {
-      console.log('Fetching sewer lines from:', endpoints.sewer_lines_url);
-      const sewerParams = {
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: searchRadius.toString(),
-        units: 'esriFeet',
-        where: '1=1',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      };
-
-      let sewerData;
-      
-      if (useProxy) {
-        const { data, error } = await supabase.functions.invoke('utility-proxy', {
-          body: {
-            url: endpoints.sewer_lines_url,
-            params: sewerParams
-          }
-        });
-        
-        if (error) throw error;
-        sewerData = data;
-      } else {
-        const sewerParamsUrl = new URLSearchParams(sewerParams as any);
-        const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParamsUrl}`);
-        sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
-      }
-      
-      console.log('Sewer lines API response:', {
-        hasFeatures: !!sewerData?.features,
-        featureCount: sewerData?.features?.length || 0,
-        error: sewerData?.error
-      });
-      
-      if (sewerData?.features && sewerData.features.length > 0) {
-        utilities.sewer_lines = sewerData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return {
-            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
-            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
-            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
-            distance_ft: searchRadius
-          };
-        });
-        const maxDiameter = Math.max(...sewerData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
-        }));
-        utilities.sewer_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
-        console.log('Sewer lines found:', utilities.sewer_lines.length, 'capacity:', utilities.sewer_capacity_mgd);
-      } else {
-        console.log('No sewer lines found in response');
-      }
-    } else {
-      console.log('No sewer lines endpoint configured for this county');
-    }
-
-    // Fetch storm lines if endpoint exists
-    if (endpoints.storm_lines_url) {
-      console.log('Fetching storm lines from:', endpoints.storm_lines_url);
-      const stormParams = {
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: searchRadius.toString(),
-        units: 'esriFeet',
-        where: '1=1',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      };
-
-      let stormData;
-      
-      if (useProxy) {
-        const { data, error } = await supabase.functions.invoke('utility-proxy', {
-          body: {
-            url: endpoints.storm_lines_url,
-            params: stormParams
-          }
-        });
-        
-        if (error) throw error;
-        stormData = data;
-      } else {
-        const stormParamsUrl = new URLSearchParams(stormParams as any);
-        const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParamsUrl}`);
-        stormData = await safeJsonParse(stormResp, 'Storm lines query');
-      }
-      
-      console.log('Storm lines API response:', {
-        hasFeatures: !!stormData?.features,
-        featureCount: stormData?.features?.length || 0,
-        error: stormData?.error
-      });
-      
-      if (stormData?.features && stormData.features.length > 0) {
-        utilities.storm_lines = stormData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return {
-            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
-            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
-            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
-            distance_ft: searchRadius
-          };
-        });
-        console.log('Storm lines found:', utilities.storm_lines.length);
-      } else {
-        console.log('No storm lines found in response');
-      }
-    } else {
-      console.log('No storm lines endpoint configured for this county');
-    }
-
-    // Power infrastructure typically requires manual lookup or private utility data
-    // Placeholder for future integration with utility company APIs
-    utilities.power_kv_nearby = null;
-
-  } catch (error) {
-    console.error('Utility infrastructure fetch error:', error);
-  }
-
-  return utilities;
-}
+// fetchUtilities function removed - now using enrich-utilities edge function
 
 // Helper function to fetch property tax data from CAD
 async function fetchPropertyTax(lat: number, lng: number, county: string, endpoints: any): Promise<any> {
@@ -2941,13 +2722,26 @@ serve(async (req) => {
     }
 
     // Step 6: Utilities / Infrastructure
-    console.log('Fetching utility infrastructure data...');
+    console.log('Fetching utility infrastructure data via enrich-utilities edge function...');
     
-    // Try direct connection first (mycity2 subdomain should work)
-    // Proxy fallback removed as mycity2.houstontx.gov should be DNS-resolvable
-    const useProxy = false; // Disabled proxy, using mycity2 subdomain instead
+    // Call enrich-utilities edge function (has proper distance calculation + correction)
+    const utilitiesResp = await supabase.functions.invoke('enrich-utilities', {
+      body: { 
+        application_id,
+        latitude: geoLat,
+        longitude: geoLng
+      }
+    });
     
-    const utilities = await fetchUtilities(geoLat, geoLng, endpoints, useProxy);
+    const utilities = utilitiesResp.data?.utilities || {
+      water_lines: null,
+      sewer_lines: null,
+      storm_lines: null,
+      water_capacity_mgd: null,
+      sewer_capacity_mgd: null,
+      power_kv_nearby: null
+    };
+    
     console.log('Utilities fetched summary:', {
       water: utilities.water_lines?.length || 0,
       sewer: utilities.sewer_lines?.length || 0,
