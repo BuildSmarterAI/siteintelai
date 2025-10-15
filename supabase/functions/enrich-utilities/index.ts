@@ -146,15 +146,8 @@ const queryArcGIS = async (
     const geometryType = config.geometryType || "esriGeometryPoint";
     const spatialRel = config.spatialRel || "esriSpatialRelIntersects";
     
-    // Format geometry based on type
-    let geometryParam: string;
-    if (geometryType === "esriGeometryPoint") {
-      // For points, use simple x,y format expected by ArcGIS
-      geometryParam = `${geometryObj.x},${geometryObj.y}`;
-    } else {
-      // For polygons/polylines, use JSON format
-      geometryParam = JSON.stringify(geometryObj);
-    }
+  // Always use JSON format with spatialReference for proper CRS handling
+  const geometryParam = JSON.stringify(geometryObj);
     
     const params = new URLSearchParams({
       f: "json",
