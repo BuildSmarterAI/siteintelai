@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
   "last_updated": "2025-10-14",
-  "changelog": "2025-10-15: Fixed Houston utilities detection. Increased search radius to 1000 ft for sewer, force, and storm. Replaced TCEQ water fallback with actual Houston Water Distribution Mains (houstonwatergis.org Layer 3). Verified all endpoints working with inSR=4326.",
+  "changelog": "2025-10-15: Fixed Houston Water GIS endpoint URL structure - corrected path from /server/rest/services/ to /arcgis/rest/services/INFORHW/. Fixed geometryType to esriGeometryPoint. All other parameters (inSR=4326, 1000 ft radius) remain unchanged.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -13,7 +13,7 @@
   "houston": {
     "water": {
       "name": "COH Water Distribution Mains (ArcGIS Online)",
-      "url": "https://houstonwatergis.org/server/rest/services/HWWaterLineIPS/MapServer/3/query",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query",
       "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "OWNER"],
       "geometryType": "esriGeometryPoint",
       "crs": 2278,
@@ -23,8 +23,8 @@
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 1000,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 3 = Water Distribution Mains. Verified working with inSR=4326 and 1000 ft radius.",
-      "test_url": "https://houstonwatergis.org/server/rest/services/HWWaterLineIPS/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,OWNER&f=json",
+      "notes": "Layer 3 = Water Distribution Mains. Located under INFORHW folder in arcgis/rest/services. Verified working with inSR=4326 and 1000 ft radius.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,OWNER&f=json",
       "last_validated": "2025-10-15"
     },
     "sewer": {
