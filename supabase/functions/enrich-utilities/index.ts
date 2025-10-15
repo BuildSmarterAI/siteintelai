@@ -149,21 +149,26 @@ const queryArcGIS = async (
   // Always use JSON format with spatialReference for proper CRS handling
   const geometryParam = JSON.stringify(geometryObj);
     
-    const params = new URLSearchParams({
-      f: "json",
+    // Build params object in exact order as working URL
+    const paramsObj: Record<string, string> = {
       geometry: geometryParam,
       geometryType: geometryType,
       inSR: String(spatialReference),
       spatialRel: spatialRel,
-      outFields: fields.join(","),
-      returnGeometry: config.returnGeometry !== undefined ? String(config.returnGeometry) : "true"
-    });
-    
-    // Only add distance parameter for non-polygon queries
+    };
+
+    // Add distance parameters if needed (BEFORE other params)
     if (geometryType !== "esriGeometryPolygon" && config.search_radius_ft) {
-      params.append("distance", String(config.search_radius_ft));
-      params.append("units", "esriSRUnit_Foot");
+      paramsObj.distance = String(config.search_radius_ft);
+      paramsObj.units = "esriSRUnit_Foot";
     }
+
+    // Add remaining params
+    paramsObj.outFields = fields.join(",");
+    paramsObj.returnGeometry = config.returnGeometry !== undefined ? String(config.returnGeometry) : "true";
+    paramsObj.f = "json"; // f=json goes LAST
+
+    const params = new URLSearchParams(paramsObj);
     
     return `${url}?${params.toString()}`;
   };
