@@ -1049,8 +1049,11 @@ function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): n
 async function queryTrafficData(lat: number, lng: number, city?: string): Promise<any> {
   console.log(`🚗 Starting TxDOT AADT query at ${lat}, ${lng}`);
   
-  // Import Turf.js for geospatial calculations
-  const turf = await import('https://esm.sh/@turf/turf@7.1.0');
+  // Import only the Turf.js functions we need (avoids esm.sh parsing issues with full package)
+  const { point } = await import('https://esm.sh/@turf/helpers@7.1.0');
+  const { lineString } = await import('https://esm.sh/@turf/helpers@7.1.0');
+  const { default: nearestPointOnLine } = await import('https://esm.sh/@turf/nearest-point-on-line@7.1.0');
+  const { default: distance } = await import('https://esm.sh/@turf/distance@7.1.0');
   
   try {
     // Build a small envelope buffer around the parcel point (in degrees)
@@ -1095,7 +1098,7 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
     }
 
     // Choose best / nearest feature using Turf.js
-    const parcelPoint = turf.point([lng, lat]);
+    const parcelPoint = point([lng, lat]);
     let best = null;
     let bestDist = Infinity;
 
@@ -1105,9 +1108,9 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
       }
       
       // Geometry is polyline; compute nearest point on that line to parcel point
-      const line = turf.lineString(feat.geometry.paths[0].map((pt: number[]) => [pt[0], pt[1]]));
-      const nearest = turf.nearestPointOnLine(line, parcelPoint);
-      const dist = turf.distance(parcelPoint, nearest, { units: 'meters' });
+      const line = lineString(feat.geometry.paths[0].map((pt: number[]) => [pt[0], pt[1]]));
+      const nearest = nearestPointOnLine(line, parcelPoint);
+      const dist = distance(parcelPoint, nearest, { units: 'meters' });
       
       if (dist < bestDist) {
         bestDist = dist;
