@@ -376,6 +376,7 @@ serve(async (req) => {
     let water_laterals: any[] = [];
     let water_fittings: any[] = [];
     let address_points: any[] = [];
+    let traffic: any[] = [];
     let flags: string[] = [];
     let apiUnreachable = false;
     let failedServices = 0;
@@ -676,7 +677,7 @@ serve(async (req) => {
         console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length}, Storm: ${allStormLines.length}, Failed Services: ${failedServices}/${totalServices}`);
         
         // Traffic counts (new integration)
-        let traffic: any[] = [];
+        traffic = [];
         if (eps.traffic) {
           try {
             console.log('Querying traffic counts...');
