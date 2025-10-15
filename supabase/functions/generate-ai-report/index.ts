@@ -133,9 +133,6 @@ serve(async (req) => {
 
       console.log('[generate-ai-report] Report saved successfully:', report.id);
 
-      // TODO: RE-ENABLE PDF GENERATION BEFORE PRODUCTION
-      // Temporarily disabled during interface development phase
-      /*
       // Trigger PDF generation asynchronously (non-blocking)
       try {
         console.log('[generate-ai-report] Triggering PDF generation...');
@@ -156,8 +153,6 @@ serve(async (req) => {
         console.error('[generate-ai-report] Failed to trigger PDF generation:', pdfError);
         // Non-blocking - report is still accessible
       }
-      */
-      console.log('[generate-ai-report] PDF generation temporarily disabled for development');
 
       // 🗺️ GENERATE MAP ASSETS (asynchronous, non-blocking)
       const lat = application.geo_lat;
