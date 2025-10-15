@@ -154,11 +154,9 @@ const queryArcGIS = async (
       geometry: geometryParam,
       geometryType: geometryType,
       inSR: String(spatialReference),
-      outSR: String(spatialReference),
       spatialRel: spatialRel,
       outFields: fields.join(","),
-      returnGeometry: config.returnGeometry !== undefined ? String(config.returnGeometry) : "true",
-      where: "1=1"
+      returnGeometry: config.returnGeometry !== undefined ? String(config.returnGeometry) : "true"
     });
     
     // Only add distance parameter for non-polygon queries
