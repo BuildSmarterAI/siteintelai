@@ -386,6 +386,10 @@ serve(async (req) => {
           spatialRel: eps.water.spatialRel
         });
         
+        if (water.length > 0) {
+          flags.push("water_via_houston_gis");
+        }
+        
         // Use urban search radius for sewer
         const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft 
           ? eps.sewer.urban_search_radius_ft 

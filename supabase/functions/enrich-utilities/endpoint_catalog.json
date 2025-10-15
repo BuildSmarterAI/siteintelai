@@ -1,7 +1,7 @@
 {
   "version": "2.0.0",
   "last_updated": "2025-10-14",
-  "changelog": "Major migration: Updated all Houston utility endpoints to HPW Utility Network (geogimstest). Added FACILITYID field. Water: 4→22, Sewer: 23→25, Force: 24→24 (new service), Storm: 7→18. Endpoints now use Scaled Utilities and Stormwater services.",
+  "changelog": "2025-10-15: Fixed Houston utilities detection. Increased search radius to 1000 ft for sewer, force, and storm. Replaced TCEQ water fallback with actual Houston Water Distribution Mains (houstonwatergis.org Layer 3). Verified all endpoints working with inSR=4326.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -12,19 +12,20 @@
   },
   "houston": {
     "water": {
-      "name": "TCEQ Water Service Areas (Proxy)",
-      "url": "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/TCEQ_Water_Districts/FeatureServer/0/query",
-      "outFields": ["PROVIDER_NAME", "DISTRICT_TYPE"],
-      "geometryType": "esriGeometryPolygon",
-      "crs": 4326,
+      "name": "COH Water Distribution Mains (ArcGIS Online)",
+      "url": "https://houstonwatergis.org/server/rest/services/HWWaterLineIPS/MapServer/3/query",
+      "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "OWNER"],
+      "geometryType": "esriGeometryPolyline",
+      "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
+      "search_radius_ft": 1000,
+      "urban_search_radius_ft": 1000,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "City of Houston water mains are not publicly available. Using TCEQ service area boundaries as proxy for water availability. Polygon intersection query.",
-      "test_url": "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/TCEQ_Water_Districts/FeatureServer/0/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=PROVIDER_NAME,DISTRICT_TYPE&f=json",
-      "fallback": true,
-      "last_validated": "2025-01-10"
+      "notes": "Layer 3 = Water Distribution Mains. Verified working with inSR=4326 and 1000 ft radius.",
+      "test_url": "https://houstonwatergis.org/server/rest/services/HWWaterLineIPS/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,OWNER&f=json",
+      "last_validated": "2025-10-15"
     },
     "sewer": {
       "name": "COH Wastewater Gravity Mains (ArcGIS Online)",
@@ -35,10 +36,10 @@
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 600,
-      "urban_search_radius_ft": 600,
+      "search_radius_ft": 1000,
+      "urban_search_radius_ft": 1000,
       "notes": "Migrated from geogimstest to ArcGIS Online production layer. Updated 2023. Layer 0 = Gravity Mains.",
-      "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Gravity_Main/FeatureServer/0/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=50&units=esriSRUnit_Foot&outFields=DIAMETER,OWNER,LENGTH,PLANNUMBER&f=json",
+      "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Gravity_Main/FeatureServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,OWNER,LENGTH,PLANNUMBER&f=json",
       "last_validated": "2025-01-10"
     },
     "sewer_force": {
@@ -50,10 +51,10 @@
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 400,
-      "urban_search_radius_ft": 400,
+      "search_radius_ft": 1000,
+      "urban_search_radius_ft": 1000,
       "notes": "Force mains (pressurized sewer). Migrated from geogimstest to ArcGIS Online production layer.",
-      "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Force_Main/FeatureServer/0/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=50&units=esriSRUnit_Foot&outFields=DIAMETER,OWNER,LENGTH,PLANNUMBER&f=json",
+      "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Force_Main/FeatureServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,OWNER,LENGTH,PLANNUMBER&f=json",
       "last_validated": "2025-01-10"
     },
     "storm": {
@@ -65,10 +66,10 @@
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
-      "search_radius_ft": 600,
-      "urban_search_radius_ft": 600,
+      "search_radius_ft": 1000,
+      "urban_search_radius_ft": 1000,
       "notes": "Production endpoint on mapsop1 server. Layer 7 = Stormdrain Gravity Mains. Publicly accessible. Migrated from geogimstest.",
-      "test_url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=100&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_YEAR&f=json",
+      "test_url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_YEAR&f=json",
       "last_validated": "2025-01-10"
     },
     "traffic": {
