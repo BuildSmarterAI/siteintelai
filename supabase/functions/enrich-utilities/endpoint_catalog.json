@@ -108,6 +108,11 @@
       "last_validated": "2025-10-15"
     },
     "storm": {
+      "name": "Houston Storm Drainage",
+      "url": "https://mycity.maps.arcgis.com/apps/View/index.html?appid=c8b7e3a0f8234eacb5c2d8f7e5c3e8a0",
+      "outFields": ["*"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
       "name": "Houston Storm Drain Mains",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query",
       "outFields": ["DIAMETER", "MATERIAL", "INSTALLDATE", "OWNER"],

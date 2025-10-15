@@ -417,6 +417,9 @@ serve(async (req) => {
     let water_fittings: any[] = [];
     let address_points: any[] = [];
     let traffic: any[] = [];
+    let hcad_parcels: any[] = [];
+    let parcel_geometry: any = null;
+    let calculated_acreage: number | null = null;
     let flags: string[] = [];
     let apiUnreachable = false;
     let failedServices = 0;
@@ -569,10 +572,6 @@ serve(async (req) => {
         }
         
         // Query HCAD Parcels (official parcel boundaries and ownership)
-        let hcad_parcels: any[] = [];
-        let parcel_geometry: any = null;
-        let calculated_acreage: number | null = null;
-        
         if (eps.parcels_hcad) {
           try {
             hcad_parcels = await queryArcGIS(
@@ -1039,76 +1038,79 @@ serve(async (req) => {
     };
 
     // 5. Save results with api_meta, enrichment_status, and utilities_summary
-    const { error: updateError } = await supabase.from("applications").update({
-      water_lines: formatLines(water, geo_lat, geo_lng),
-      sewer_lines: formatLines(sewer, geo_lat, geo_lng),
-      storm_lines: formatLines(storm, geo_lat, geo_lng),
-      utilities_summary: utilitiesSummary,
-      data_flags: flags,
-      api_meta: apiMeta,
-      enrichment_status: enrichmentStatus,
-      // Add traffic data if available
-      ...(traffic && traffic.length > 0 && {
-        traffic_aadt: traffic[0].attributes.ADT || null,
-        traffic_road_name: traffic[0].attributes.LOCATION || null,
-        traffic_year: traffic[0].attributes.ADT_YEAR || null
-      }),
-      // Build single merged enrichment_metadata object (FIX: prevents data loss from overwriting)
-      enrichment_metadata: {
-        // Preserve existing city/county/state
-        city: city || null,
-        county: county || null,
-        enriched_at: new Date().toISOString(),
-        
-        // Water laterals data (Layer 0)
-        ...(water_laterals.length > 0 && {
-          water_laterals_count: water_laterals.length,
-          water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng)
+    // Only update database if we have an application_id
+    if (application_id) {
+      const { error: updateError } = await supabase.from("applications").update({
+        water_lines: formatLines(water, geo_lat, geo_lng),
+        sewer_lines: formatLines(sewer, geo_lat, geo_lng),
+        storm_lines: formatLines(storm, geo_lat, geo_lng),
+        utilities_summary: utilitiesSummary,
+        data_flags: flags,
+        api_meta: apiMeta,
+        enrichment_status: enrichmentStatus,
+        // Add traffic data if available
+        ...(traffic && traffic.length > 0 && {
+          traffic_aadt: traffic[0].attributes.ADT || null,
+          traffic_road_name: traffic[0].attributes.LOCATION || null,
+          traffic_year: traffic[0].attributes.ADT_YEAR || null
         }),
-        
-        // Water fittings data (Layer 1 - valves, hydrants, meters)
-        ...(water_fittings.length > 0 && {
-          water_fittings_count: water_fittings.length,
-          water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng).map((f, idx) => ({
-            ...f,
-            fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
-          })),
-          fire_hydrants_count: water_fittings.filter(f => 
-            f.attributes.FITTING_TYPE?.toLowerCase().includes('hydrant')
-          ).length
-        }),
-        
-        // Address validation data
-        ...(address_points.length > 0 && {
-          address_validated: true,
-          validated_address: address_points[0].attributes.FULL_ADDRESS || null,
-          address_match_distance_ft: address_points[0].distance_ft || null
-        }),
-        
-        // HCAD Parcel data (official boundaries and ownership)
+        // Build single merged enrichment_metadata object (FIX: prevents data loss from overwriting)
+        enrichment_metadata: {
+          // Preserve existing city/county/state
+          city: city || null,
+          county: county || null,
+          enriched_at: new Date().toISOString(),
+          
+          // Water laterals data (Layer 0)
+          ...(water_laterals.length > 0 && {
+            water_laterals_count: water_laterals.length,
+            water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng)
+          }),
+          
+          // Water fittings data (Layer 1 - valves, hydrants, meters)
+          ...(water_fittings.length > 0 && {
+            water_fittings_count: water_fittings.length,
+            water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng).map((f, idx) => ({
+              ...f,
+              fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
+            })),
+            fire_hydrants_count: water_fittings.filter(f => 
+              f.attributes.FITTING_TYPE?.toLowerCase().includes('hydrant')
+            ).length
+          }),
+          
+          // Address validation data
+          ...(address_points.length > 0 && {
+            address_validated: true,
+            validated_address: address_points[0].attributes.FULL_ADDRESS || null,
+            address_match_distance_ft: address_points[0].distance_ft || null
+          }),
+          
+          // HCAD Parcel data (official boundaries and ownership)
+          ...(hcad_parcels.length > 0 && {
+            hcad_parcel_id: hcad_parcels[0].attributes.LOWPARCELI || null,
+            hcad_number: hcad_parcels[0].attributes.HCAD_NUM || null,
+            parcel_type: hcad_parcels[0].attributes.parcel_typ || null,
+            stated_area_acres: hcad_parcels[0].attributes.StatedArea || null,
+            calculated_area_acres: calculated_acreage,
+            mill_code: hcad_parcels[0].attributes.mill_cd || null,
+            tax_year: hcad_parcels[0].attributes.Tax_Year || null,
+            owner_mail_state: hcad_parcels[0].attributes.Mail_State || null,
+            parcel_geometry: parcel_geometry
+          })
+        },
+        // Update top-level parcel columns with HCAD official data
         ...(hcad_parcels.length > 0 && {
-          hcad_parcel_id: hcad_parcels[0].attributes.LOWPARCELI || null,
-          hcad_number: hcad_parcels[0].attributes.HCAD_NUM || null,
-          parcel_type: hcad_parcels[0].attributes.parcel_typ || null,
-          stated_area_acres: hcad_parcels[0].attributes.StatedArea || null,
-          calculated_area_acres: calculated_acreage,
-          mill_code: hcad_parcels[0].attributes.mill_cd || null,
-          tax_year: hcad_parcels[0].attributes.Tax_Year || null,
-          owner_mail_state: hcad_parcels[0].attributes.Mail_State || null,
-          parcel_geometry: parcel_geometry
+          parcel_id: hcad_parcels[0].attributes.LOWPARCELI || null,
+          parcel_owner: hcad_parcels[0].attributes.CurrOwner || null,
+          acreage_cad: calculated_acreage || hcad_parcels[0].attributes.StatedArea || null
         })
-      },
-      // Update top-level parcel columns with HCAD official data
-      ...(hcad_parcels.length > 0 && {
-        parcel_id: hcad_parcels[0].attributes.LOWPARCELI || null,
-        parcel_owner: hcad_parcels[0].attributes.CurrOwner || null,
-        acreage_cad: calculated_acreage || hcad_parcels[0].attributes.StatedArea || null
-      })
-    }).eq("id", application_id);
+      }).eq("id", application_id);
 
-    if (updateError) {
-      console.error('Update error:', updateError);
-      throw new Error(`Failed to update application: ${updateError.message}`);
+      if (updateError) {
+        console.error('Update error:', updateError);
+        throw new Error(`Failed to update application: ${updateError.message}`);
+      }
     }
 
     console.log('Utilities enriched successfully:', {
@@ -1120,12 +1122,17 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        status: "ok",
-        data: {
-          water_lines: water.length,
-          sewer_lines: sewer.length,
-          storm_lines: storm.length
-        }
+        success: true,
+        application_id: application_id || null,
+        utilities: {
+          water: water.length,
+          sewer: sewer.length + sewer_force.length,
+          storm: storm.length,
+          water_laterals: water_laterals.length,
+          water_fittings: water_fittings.length
+        },
+        flags,
+        enrichment_status: enrichmentStatus
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
