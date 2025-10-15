@@ -611,7 +611,7 @@ export default function Application() {
               Start Your Feasibility Review
             </h1>
             <h2 className="font-body text-lg md:text-xl text-charcoal/80 max-w-3xl mx-auto mb-6 leading-relaxed">
-              Answer a few quick questions so we can tailor your feasibility package. Only 5 projects accepted monthly.
+              Answer a few quick questions so we can tailor your feasibility package.
             </h2>
 
             {/* Progress Bar */}
