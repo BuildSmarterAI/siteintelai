@@ -41,11 +41,25 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 }
 
 // Compute min distance from point to polyline
-function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
+function minDistanceToLine(lat: number, lng: number, paths: any[][], crs?: number) {
   let minDist = Infinity;
-  for (const path of paths) {
+  
+  // If geometry is in State Plane (EPSG:2278), convert to WGS84 first
+  const convertedPaths = (crs === 2278) 
+    ? paths.map(path => 
+        path.map(([x, y]) => {
+          // Convert State Plane feet → WGS84 degrees
+          const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
+          const wgs84 = "EPSG:4326";
+          const [lng_wgs, lat_wgs] = proj4(epsg2278, wgs84, [x, y]);
+          return [lng_wgs, lat_wgs];
+        })
+      )
+    : paths;  // Already in WGS84, use as-is
+  
+  for (const path of convertedPaths) {
     for (let i = 0; i < path.length - 1; i++) {
-      const [x1, y1] = path[i]; // lon, lat
+      const [x1, y1] = path[i]; // lon, lat (now guaranteed WGS84)
       const [x2, y2] = path[i + 1];
       const d1 = haversineDistance(lat, lng, y1, x1);
       const d2 = haversineDistance(lat, lng, y2, x2);
@@ -68,12 +82,16 @@ function calculatePolygonArea(ring: number[][]): number {
 }
 
 // Format ArcGIS features → JSON with distance
-function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityType?: string) {
+function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityType?: string, crs?: number) {
   return features.map((f) => {
     const attrs = f.attributes || {};
     const geom = f.geometry || {};
+    
+    // Detect CRS from geometry spatialReference if available, otherwise use passed crs
+    const geomCrs = geom.spatialReference?.wkid || crs;
+    
     const distance_ft = geom.paths
-      ? minDistanceToLine(geo_lat, geo_lng, geom.paths)
+      ? minDistanceToLine(geo_lat, geo_lng, geom.paths, geomCrs)
       : null;
     
     // Handle storm drainage with PIPEWIDTH/PIPEHEIGHT/PIPEDIAMETER
@@ -1041,9 +1059,9 @@ serve(async (req) => {
     // Only update database if we have an application_id
     if (application_id) {
       const { error: updateError } = await supabase.from("applications").update({
-        water_lines: formatLines(water, geo_lat, geo_lng),
-        sewer_lines: formatLines(sewer, geo_lat, geo_lng),
-        storm_lines: formatLines(storm, geo_lat, geo_lng),
+        water_lines: formatLines(water, geo_lat, geo_lng, 'water', eps.water?.crs),
+        sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', eps.sewer?.crs),
+        storm_lines: formatLines(storm, geo_lat, geo_lng, 'storm', eps.storm?.crs),
         utilities_summary: utilitiesSummary,
         data_flags: flags,
         api_meta: apiMeta,
@@ -1064,13 +1082,13 @@ serve(async (req) => {
           // Water laterals data (Layer 0)
           ...(water_laterals.length > 0 && {
             water_laterals_count: water_laterals.length,
-            water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng)
+            water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng, 'water_laterals', eps.water_laterals?.crs)
           }),
           
           // Water fittings data (Layer 1 - valves, hydrants, meters)
           ...(water_fittings.length > 0 && {
             water_fittings_count: water_fittings.length,
-            water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng).map((f, idx) => ({
+            water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng, 'water_fittings', eps.water_fittings?.crs).map((f, idx) => ({
               ...f,
               fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
             })),
