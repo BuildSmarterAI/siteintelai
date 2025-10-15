@@ -676,9 +676,9 @@ serve(async (req) => {
         const allStormLines = [...storm];
         console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length}, Storm: ${allStormLines.length}, Failed Services: ${failedServices}/${totalServices}`);
         
-        // Traffic counts (new integration)
+        // Traffic counts (disabled - endpoint unavailable)
         traffic = [];
-        if (eps.traffic) {
+        if (eps.traffic && eps.traffic.enabled !== false) {
           try {
             console.log('Querying traffic counts...');
             traffic = await queryArcGIS(eps.traffic.url, eps.traffic.outFields, geo_lat, geo_lng, "houston_traffic", {
@@ -686,7 +686,7 @@ serve(async (req) => {
               retry_attempts: eps.traffic.retry_attempts || 3,
               retry_delays_ms: eps.traffic.retry_delays_ms || [500, 1000, 2000],
               search_radius_ft: eps.traffic.search_radius_ft,
-              crs: eps.traffic.crs || 2278,
+              crs: eps.traffic.crs || 4326,
               geometryType: eps.traffic.geometryType,
               spatialRel: eps.traffic.spatialRel
             });
@@ -696,8 +696,10 @@ serve(async (req) => {
               console.log(`✅ Traffic count found: ${traffic[0].attributes.ADT || 'N/A'} ADT`);
             }
           } catch (trafficErr) {
-            console.error('Traffic query failed:', trafficErr instanceof Error ? trafficErr.message : String(trafficErr));
+            console.error('Traffic query failed (endpoint disabled):', trafficErr instanceof Error ? trafficErr.message : String(trafficErr));
           }
+        } else {
+          console.log('⚠️ Traffic counts endpoint disabled - will rely on OSM highway tags');
         }
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');

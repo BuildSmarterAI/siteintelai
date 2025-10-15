@@ -1,7 +1,7 @@
 {
-  "version": "2.2.0",
+  "version": "2.3.0",
   "last_updated": "2025-10-15",
-  "changelog": "2025-10-15: Added water_fittings (Layer 1) for Houston. Provides valve, hydrant, and meter detection for comprehensive water infrastructure analysis.",
+  "changelog": "2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -89,53 +89,54 @@
       "spatialRel": "esriSpatialRelIntersects",
       "notes": "Houston sewer gravity main lines from houstonwatergis.org",
       "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/3/query?geometry=%7B%22x%22%3A-95.452118%2C%22y%22%3A29.741815%2C%22spatialReference%22%3A%7B%22wkid%22%3A4326%7D%7D&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&returnGeometry=false&f=json",
-      "last_validated": "2025-05-15"
+      "last_validated": "2025-10-15"
     },
     "sewer_force": {
       "name": "Houston Sewer Force Mains",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/2/query",
       "outFields": ["DIAMETER", "MATERIAL", "OWNER", "STATUS"],
       "geometryType": "esriGeometryPoint",
-      "crs": "EPSG:4326",
+      "crs": 4326,
       "timeout_ms": 15000,
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Houston sewer force main lines from houstonwatergis.org",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/2/query?geometry=%7B%22x%22%3A-95.452118%2C%22y%22%3A29.741815%2C%22spatialReference%22%3A%7B%22wkid%22%3A4326%7D%7D&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&returnGeometry=false&f=json",
-      "last_validated": "2025-05-15"
+      "notes": "Houston sewer force main lines from houstonwatergis.org - Verified operational 2025-10-15",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/2/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&f=json",
+      "last_validated": "2025-10-15"
     },
     "storm": {
       "name": "Houston Storm Drain Mains",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query",
       "outFields": ["DIAMETER", "MATERIAL", "INSTALLDATE", "OWNER"],
       "geometryType": "esriGeometryPoint",
-      "crs": "EPSG:4326",
+      "crs": 4326,
       "timeout_ms": 15000,
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Houston storm drain main lines from houstonwatergis.org",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=%7B%22x%22%3A-95.452118%2C%22y%22%3A29.741815%2C%22spatialReference%22%3A%7B%22wkid%22%3A4326%7D%7D&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALLDATE,OWNER&returnGeometry=false&f=json",
-      "last_validated": "2025-05-15"
+      "notes": "Houston storm drain main lines from houstonwatergis.org - Verified operational 2025-10-15",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALLDATE,OWNER&f=json",
+      "last_validated": "2025-10-15"
     },
     "traffic": {
-      "name": "COH Traffic Counts (Major Thoroughfare ADT)",
-      "url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/City_of_Houston_Traffic_Counts/FeatureServer/0/query",
-      "outFields": ["LOCATION", "ADT_YEAR", "ADT"],
+      "name": "COH Traffic Counts (DISABLED - Endpoint Unavailable)",
+      "url": "",
+      "outFields": [],
       "geometryType": "esriGeometryPoint",
-      "crs": 2278,
+      "crs": 4326,
       "timeout_ms": 8000,
-      "retry_attempts": 3,
-      "retry_delays_ms": [500, 1000, 2000],
+      "retry_attempts": 0,
+      "retry_delays_ms": [],
       "search_radius_ft": 250,
-      "notes": "Annual Daily Traffic counts on major roads. ArcGIS Online layer. New integration.",
-      "test_url": "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/City_of_Houston_Traffic_Counts/FeatureServer/0/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=250&units=esriSRUnit_Foot&outFields=LOCATION,ADT_YEAR,ADT&f=json",
-      "last_validated": "2025-01-10"
+      "enabled": false,
+      "notes": "DISABLED 2025-10-15: Houston Traffic Counts endpoint no longer available. Dataset moved or removed from City of Houston GeoHub. OSM highway tags will be used as fallback.",
+      "test_url": "",
+      "last_validated": "2025-10-15"
     },
     "parcels_hcad": {
       "name": "HCAD Parcel Boundaries (Official Tax Records)",
