@@ -95,6 +95,39 @@ export default function Application() {
               setHasCompleteProfile(false);
             }
           }
+
+          // Load most recent draft application to restore enriched fields
+          const { data: draft } = await supabase
+            .from('applications')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (draft && draft.parcel_id) {
+            console.log('[Draft Load] Restoring enriched data from draft:', draft.parcel_id);
+            
+            // Populate formData with enriched fields from draft
+            setFormData(prev => ({
+              ...prev,
+              parcelId: draft.parcel_id || prev.parcelId,
+              lotSize: draft.lot_size_value ? String(draft.lot_size_value) : prev.lotSize,
+              lotSizeUnit: draft.lot_size_unit || prev.lotSizeUnit,
+              zoning: draft.zoning_code || prev.zoning,
+              ownershipStatus: draft.ownership_status || prev.ownershipStatus,
+              county: draft.county || prev.county,
+              city: draft.city || prev.city,
+            }));
+            
+            // Mark fields as enriched
+            setEnrichedFields(prev => ({
+              ...prev,
+              parcelId: !!draft.parcel_id,
+              lotSize: !!draft.lot_size_value,
+              zoning: !!draft.zoning_code,
+            }));
+          }
         }
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -1103,9 +1136,80 @@ export default function Application() {
                             </div>
 
                             <div>
-                              <Label className="font-body font-semibold text-charcoal">
-                                Lot Size / Acreage
-                              </Label>
+                              <div className="flex items-center justify-between mb-2">
+                                <Label className="font-body font-semibold text-charcoal">
+                                  Lot Size / Acreage
+                                </Label>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (!formData.propertyAddress) {
+                                      toast({ 
+                                        title: "Address Required", 
+                                        description: "Enter a property address first",
+                                        variant: "destructive"
+                                      });
+                                      return;
+                                    }
+                                    
+                                    setIsAddressLoading(true);
+                                    try {
+                                      const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
+                                        body: { address: formData.propertyAddress }
+                                      });
+                                      
+                                      if (!error && data?.success && data?.data) {
+                                        const lotSizeFromApiMetaSqft = data?.api_meta?.hcad_parcel?.parcel_data?.land_sqft;
+                                        const resolvedLotSize =
+                                          (typeof data.data.lot_size_value === 'number' && data.data.lot_size_value)
+                                            || (typeof data.data.acreage_cad === 'number' && data.data.acreage_cad)
+                                            || (typeof lotSizeFromApiMetaSqft === 'number' ? +(lotSizeFromApiMetaSqft / 43560).toFixed(4) : undefined);
+
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          parcelId: data.data.parcel_id || prev.parcelId,
+                                          lotSize: resolvedLotSize ? String(resolvedLotSize) : prev.lotSize,
+                                          zoning: data.data.zoning_code || prev.zoning,
+                                        }));
+
+                                        setEnrichedFields(prev => ({
+                                          ...prev,
+                                          parcelId: !!data.data.parcel_id,
+                                          lotSize: !!resolvedLotSize,
+                                          zoning: !!data.data.zoning_code,
+                                        }));
+
+                                        toast({ 
+                                          title: "Data Refreshed", 
+                                          description: "Property data updated from public records"
+                                        });
+                                      } else {
+                                        toast({ 
+                                          title: "Refresh Failed", 
+                                          description: error?.message || "Could not fetch property data",
+                                          variant: "destructive"
+                                        });
+                                      }
+                                    } catch (err) {
+                                      console.error('Refresh error:', err);
+                                      toast({ 
+                                        title: "Error", 
+                                        description: "Failed to refresh property data",
+                                        variant: "destructive"
+                                      });
+                                    } finally {
+                                      setIsAddressLoading(false);
+                                    }
+                                  }}
+                                  className="flex items-center gap-2 h-8"
+                                  disabled={isAddressLoading}
+                                >
+                                  <Database className="h-4 w-4" />
+                                  Refresh Data
+                                </Button>
+                              </div>
                               <div className="flex gap-2 mt-2">
                                 <Input
                                   value={formData.lotSize}
