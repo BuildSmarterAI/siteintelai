@@ -10,7 +10,7 @@ import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { DrawnParcelsList } from "@/components/DrawnParcelsList";
-import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock } from "lucide-react";
+import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesDisplay } from "@/components/DataSourcesDisplay";
@@ -19,6 +19,8 @@ import { GeospatialIntelligenceCard } from "@/components/GeospatialIntelligenceC
 import DOMPurify from 'dompurify';
 import { useMapLayers } from "@/hooks/useMapLayers";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useAdminRole } from "@/hooks/useAdminRole";
+import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
 interface Report {
   id: string;
   application_id: string;
@@ -178,6 +180,12 @@ export default function ReportViewer() {
 
   // Map layers (parcel, flood, utilities, traffic, employment, drawnParcels)
   const { data: mapLayers, refetch: refetchMapLayers, updateParcel, deleteParcel } = useMapLayers(report?.application_id || '');
+
+  // Admin role check
+  const { isAdmin } = useAdminRole();
+
+  // Re-enrichment hook
+  const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
 
   // Fetch geospatial intelligence data
   useEffect(() => {
@@ -505,6 +513,27 @@ export default function ReportViewer() {
     setDrawingMode(true);
   };
 
+  // Handle re-enrichment
+  const handleReEnrich = async () => {
+    if (!report?.application_id) {
+      toast.error('No application ID found');
+      return;
+    }
+
+    const result = await reEnrich(report.application_id);
+    
+    if (result.success) {
+      toast.info('Re-enrichment started. The page will refresh in 10 seconds...', {
+        duration: 10000
+      });
+      
+      // Refresh the page after 10 seconds to show updated data
+      setTimeout(() => {
+        window.location.reload();
+      }, 10000);
+    }
+  };
+
   // Handle regenerate map assets
   const handleRegenerateMapAssets = async () => {
     if (!report?.application_id || !report.applications.geo_lat || !report.applications.geo_lng) {
@@ -614,6 +643,20 @@ export default function ReportViewer() {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              {/* Admin: Re-enrich Button */}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReEnrich}
+                  disabled={reEnrichLoading}
+                  className="gap-2 w-full sm:w-auto"
+                >
+                  <RefreshCw className={`h-4 w-4 ${reEnrichLoading ? 'animate-spin' : ''}`} />
+                  <span className="hidden sm:inline">{reEnrichLoading ? 'Re-enriching...' : 'Re-enrich Report'}</span>
+                  <span className="sm:hidden">{reEnrichLoading ? 'Re-enriching...' : 'Re-enrich'}</span>
+                </Button>
+              )}
               {pdfGenerating && (
                 <Button variant="outline" disabled className="w-full sm:w-auto">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
