@@ -40,7 +40,7 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c * 3.28084; // meters → feet
 }
 
-// Compute min distance from point to polyline
+// Compute min distance from point to polyline (WGS84 / EPSG:4326)
 function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
   let minDist = Infinity;
   for (const path of paths) {
@@ -49,6 +49,24 @@ function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
       const [x2, y2] = path[i + 1];
       const d1 = haversineDistance(lat, lng, y1, x1);
       const d2 = haversineDistance(lat, lng, y2, x2);
+      minDist = Math.min(minDist, d1, d2);
+    }
+  }
+  return Math.round(minDist);
+}
+
+// Compute min distance from point to polyline in State Plane (EPSG:2278 - feet)
+function minDistanceToLineStatePlane(pointX: number, pointY: number, paths: any[][]) {
+  let minDist = Infinity;
+  for (const path of paths) {
+    for (let i = 0; i < path.length - 1; i++) {
+      const [x1, y1] = path[i];
+      const [x2, y2] = path[i + 1];
+      
+      // Pythagorean distance in feet (State Plane)
+      const d1 = Math.sqrt((pointX - x1) ** 2 + (pointY - y1) ** 2);
+      const d2 = Math.sqrt((pointX - x2) ** 2 + (pointY - y2) ** 2);
+      
       minDist = Math.min(minDist, d1, d2);
     }
   }
@@ -68,13 +86,36 @@ function calculatePolygonArea(ring: number[][]): number {
 }
 
 // Format ArcGIS features → JSON with distance
-function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityType?: string) {
+function formatLines(
+  features: any[], 
+  geo_lat: number, 
+  geo_lng: number, 
+  utilityType?: string,
+  inputCRS?: number,  // CRS used in the query
+  x2278?: number,     // State Plane X (if using 2278)
+  y2278?: number      // State Plane Y (if using 2278)
+) {
   return features.map((f) => {
     const attrs = f.attributes || {};
     const geom = f.geometry || {};
-    const distance_ft = geom.paths
-      ? minDistanceToLine(geo_lat, geo_lng, geom.paths)
-      : null;
+    
+    let distance_ft = null;
+    
+    if (geom.paths) {
+      // Check geometry's spatial reference
+      const geomSR = geom.spatialReference?.wkid || geom.spatialReference?.latestWkid;
+      
+      if (geomSR === 2278 && x2278 !== undefined && y2278 !== undefined) {
+        // Use planar distance for State Plane coordinates
+        distance_ft = minDistanceToLineStatePlane(x2278, y2278, geom.paths);
+      } else if (geomSR === 4326 || !geomSR) {
+        // Use Haversine for WGS84 / unknown CRS
+        distance_ft = minDistanceToLine(geo_lat, geo_lng, geom.paths);
+      } else {
+        console.warn(`Unknown spatial reference: ${geomSR}, using Haversine as fallback`);
+        distance_ft = minDistanceToLine(geo_lat, geo_lng, geom.paths);
+      }
+    }
     
     // Handle storm drainage with PIPEWIDTH/PIPEHEIGHT/PIPEDIAMETER
     let diameter = attrs.DIAMETER || attrs.PIPEDIAMETER || null;
@@ -116,6 +157,10 @@ const queryArcGIS = async (
     returnGeometry?: boolean; // Whether to return geometry (default: true)
   }
 ) => {
+  // Store State Plane coordinates for distance calculations
+  let x2278: number | undefined;
+  let y2278: number | undefined;
+  
   // Helper function to build query URL
   const buildQueryUrl = (useCrs: boolean) => {
     let geometryObj: any;
@@ -134,7 +179,7 @@ const queryArcGIS = async (
     } else if (useCrs && config.crs === 2278) {
       const wgs84 = "EPSG:4326";
       const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
-      const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
+      [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
       
       geometryObj = {
         x: x2278,
@@ -270,7 +315,12 @@ const queryArcGIS = async (
           timestamp: new Date().toISOString()
         });
         
-        return json.features ?? [];
+        return {
+          features: json.features ?? [],
+          crs: spatialReference,
+          x2278,
+          y2278
+        };
         
       } catch (err) {
         const elapsed_ms = Date.now() - startTime;
@@ -446,7 +496,7 @@ serve(async (req) => {
           console.log('🔵 Querying Water Distribution Mains (Layer 3)...');
           console.log(`📍 Using coordinates: ${geo_lng}, ${geo_lat}`);
           console.log(`📏 Search radius: ${waterRadius} ft`);
-          water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
+          const waterResult = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
             timeout_ms: eps.water.timeout_ms,
             retry_attempts: eps.water.retry_attempts,
             retry_delays_ms: eps.water.retry_delays_ms,
@@ -456,7 +506,8 @@ serve(async (req) => {
             spatialRel: eps.water.spatialRel
           });
           
-          if (water.length > 0) {
+          if (waterResult.features && waterResult.features.length > 0) {
+            water = formatLines(waterResult.features, geo_lat, geo_lng, "houston_water", waterResult.crs, waterResult.x2278, waterResult.y2278);
             flags.push("water_via_houston_gis");
             console.log(`✅ Water Mains: ${water.length} lines found`);
           } else {
@@ -472,7 +523,7 @@ serve(async (req) => {
         if (eps.water_laterals) {
           try {
             console.log('🔵 Querying Water Laterals (Layer 0)...');
-            water_laterals = await queryArcGIS(
+            const lateralsResult = await queryArcGIS(
               eps.water_laterals.url, 
               eps.water_laterals.outFields, 
               geo_lat, 
@@ -488,7 +539,8 @@ serve(async (req) => {
                 spatialRel: eps.water_laterals.spatialRel
               }
             );
-            if (water_laterals.length > 0) {
+            if (lateralsResult.features && lateralsResult.features.length > 0) {
+              water_laterals = formatLines(lateralsResult.features, geo_lat, geo_lng, "houston_water_laterals", lateralsResult.crs, lateralsResult.x2278, lateralsResult.y2278);
               flags.push("water_lateral_found");
               console.log(`✅ Water Laterals: ${water_laterals.length} service lines found`);
             } else {
@@ -505,7 +557,7 @@ serve(async (req) => {
         if (eps.water_fittings) {
           try {
             console.log('🔵 Querying Water Fittings (Layer 1)...');
-            water_fittings = await queryArcGIS(
+            const fittingsResult = await queryArcGIS(
               eps.water_fittings.url,
               eps.water_fittings.outFields,
               geo_lat,
@@ -521,7 +573,9 @@ serve(async (req) => {
                 spatialRel: eps.water_fittings.spatialRel
               }
             );
-            if (water_fittings.length > 0) {
+            if (fittingsResult.features && fittingsResult.features.length > 0) {
+              // Store raw features for later processing
+              water_fittings = fittingsResult.features;
               flags.push("water_fittings_detected");
               console.log(`✅ Water Fittings: ${water_fittings.length} fittings found (valves/hydrants/meters)`);
               
@@ -546,7 +600,7 @@ serve(async (req) => {
         // Query address points for validation
         if (eps.address_points) {
           try {
-            address_points = await queryArcGIS(
+            const addressResult = await queryArcGIS(
               eps.address_points.url,
               eps.address_points.outFields,
               geo_lat,
@@ -562,7 +616,8 @@ serve(async (req) => {
                 spatialRel: eps.address_points.spatialRel
               }
             );
-            if (address_points.length > 0) {
+            if (addressResult.features && addressResult.features.length > 0) {
+              address_points = addressResult.features;
               flags.push("address_validated");
               console.log(`✅ Address validated: ${address_points[0].attributes.FULL_ADDRESS || 'N/A'}`);
             }
@@ -574,7 +629,7 @@ serve(async (req) => {
         // Query HCAD Parcels (official parcel boundaries and ownership)
         if (eps.parcels_hcad) {
           try {
-            hcad_parcels = await queryArcGIS(
+            const parcelResult = await queryArcGIS(
               eps.parcels_hcad.url,
               eps.parcels_hcad.outFields,
               geo_lat,
@@ -592,7 +647,8 @@ serve(async (req) => {
               }
             );
             
-            if (hcad_parcels.length > 0) {
+            if (parcelResult.features && parcelResult.features.length > 0) {
+              hcad_parcels = parcelResult.features;
               const parcel = hcad_parcels[0];
               flags.push("hcad_parcel_verified");
               console.log(`✅ HCAD Parcel found: ${parcel.attributes.LOWPARCELI || 'N/A'}`);
@@ -626,7 +682,7 @@ serve(async (req) => {
         
         try {
           console.log('🔵 Querying Sewer Gravity Mains...');
-          sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
+          const sewerResult = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
             timeout_ms: eps.sewer.timeout_ms,
             retry_attempts: eps.sewer.retry_attempts,
             retry_delays_ms: eps.sewer.retry_delays_ms,
@@ -636,7 +692,8 @@ serve(async (req) => {
             spatialRel: eps.sewer.spatialRel
           });
           
-          if (sewerGravity.length > 0) {
+          if (sewerResult.features && sewerResult.features.length > 0) {
+            sewerGravity = formatLines(sewerResult.features, geo_lat, geo_lng, "houston_sewer_gravity", sewerResult.crs, sewerResult.x2278, sewerResult.y2278);
             flags.push("sewer_via_arcgis_online");
             console.log(`✅ Sewer Gravity: ${sewerGravity.length} lines found`);
           } else {
@@ -656,7 +713,7 @@ serve(async (req) => {
               ? eps.sewer_force.urban_search_radius_ft 
               : eps.sewer_force.search_radius_ft;
             
-            sewer_force = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
+            const forceResult = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
               timeout_ms: eps.sewer_force.timeout_ms,
               retry_attempts: eps.sewer_force.retry_attempts,
               retry_delays_ms: eps.sewer_force.retry_delays_ms,
@@ -666,7 +723,8 @@ serve(async (req) => {
               spatialRel: eps.sewer_force.spatialRel
             });
             
-            if (sewer_force.length > 0) {
+            if (forceResult.features && forceResult.features.length > 0) {
+              sewer_force = formatLines(forceResult.features, geo_lat, geo_lng, "houston_sewer_force", forceResult.crs, forceResult.x2278, forceResult.y2278);
               flags.push("sewer_force_via_arcgis_online");
               console.log(`✅ Sewer Force: ${sewer_force.length} lines found`);
             } else {
@@ -689,7 +747,7 @@ serve(async (req) => {
             ? eps.storm.urban_search_radius_ft 
             : eps.storm.search_radius_ft;
           
-          storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
+          const stormResult = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
             timeout_ms: eps.storm.timeout_ms,
             retry_attempts: eps.storm.retry_attempts,
             retry_delays_ms: eps.storm.retry_delays_ms,
@@ -699,7 +757,8 @@ serve(async (req) => {
             spatialRel: eps.storm.spatialRel
           });
           
-          if (storm.length > 0) {
+          if (stormResult.features && stormResult.features.length > 0) {
+            storm = formatLines(stormResult.features, geo_lat, geo_lng, "houston_storm", stormResult.crs, stormResult.x2278, stormResult.y2278);
             flags.push("storm_via_production_server");
             console.log(`✅ Storm Drainage: ${storm.length} lines found`);
           } else {
@@ -722,7 +781,7 @@ serve(async (req) => {
         if (eps.traffic && eps.traffic.enabled !== false) {
           try {
             console.log('Querying traffic counts...');
-            traffic = await queryArcGIS(eps.traffic.url, eps.traffic.outFields, geo_lat, geo_lng, "houston_traffic", {
+            const trafficResult = await queryArcGIS(eps.traffic.url, eps.traffic.outFields, geo_lat, geo_lng, "houston_traffic", {
               timeout_ms: eps.traffic.timeout_ms || 8000,
               retry_attempts: eps.traffic.retry_attempts || 3,
               retry_delays_ms: eps.traffic.retry_delays_ms || [500, 1000, 2000],
@@ -732,7 +791,8 @@ serve(async (req) => {
               spatialRel: eps.traffic.spatialRel
             });
             
-            if (traffic.length > 0) {
+            if (trafficResult.features && trafficResult.features.length > 0) {
+              traffic = trafficResult.features;
               flags.push("traffic_via_city");
               console.log(`✅ Traffic count found: ${traffic[0].attributes.ADT || 'N/A'} ADT`);
             }
@@ -745,7 +805,7 @@ serve(async (req) => {
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');
         const eps = endpointCatalog.austin;
-        water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "austin_water", {
+        const austinWaterResult = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "austin_water", {
           timeout_ms: eps.water.timeout_ms,
           retry_attempts: eps.water.retry_attempts,
           retry_delays_ms: eps.water.retry_delays_ms,
@@ -754,7 +814,9 @@ serve(async (req) => {
           geometryType: eps.water.geometryType,
           spatialRel: eps.water.spatialRel
         });
-        sewer = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "austin_sewer", {
+        water = austinWaterResult.features ? formatLines(austinWaterResult.features, geo_lat, geo_lng, "austin_water", austinWaterResult.crs, austinWaterResult.x2278, austinWaterResult.y2278) : [];
+        
+        const austinSewerResult = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "austin_sewer", {
           timeout_ms: eps.sewer.timeout_ms,
           retry_attempts: eps.sewer.retry_attempts,
           retry_delays_ms: eps.sewer.retry_delays_ms,
@@ -763,8 +825,10 @@ serve(async (req) => {
           geometryType: eps.sewer.geometryType,
           spatialRel: eps.sewer.spatialRel
         });
+        sewer = austinSewerResult.features ? formatLines(austinSewerResult.features, geo_lat, geo_lng, "austin_sewer", austinSewerResult.crs, austinSewerResult.x2278, austinSewerResult.y2278) : [];
+        
         if (eps.reclaimed) {
-          storm = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "austin_reclaimed", {
+          const austinStormResult = await queryArcGIS(eps.reclaimed.url, eps.reclaimed.outFields, geo_lat, geo_lng, "austin_reclaimed", {
             timeout_ms: eps.reclaimed.timeout_ms,
             retry_attempts: eps.reclaimed.retry_attempts,
             retry_delays_ms: eps.reclaimed.retry_delays_ms,
@@ -773,6 +837,7 @@ serve(async (req) => {
             geometryType: eps.reclaimed.geometryType,
             spatialRel: eps.reclaimed.spatialRel
           });
+          storm = austinStormResult.features ? formatLines(austinStormResult.features, geo_lat, geo_lng, "austin_reclaimed", austinStormResult.crs, austinStormResult.x2278, austinStormResult.y2278) : [];
         }
       } else if (county?.toLowerCase().includes("harris")) {
         console.log('Harris County - checking MUD districts');
@@ -967,7 +1032,7 @@ serve(async (req) => {
       }
     }
 
-    // 4. Build utilities_summary structure
+    // 4. Build utilities_summary structure (features already formatted with correct distances)
     const buildUtilitySummary = (features: any[], utilityType: string, serviceUrl: string) => {
       if (!features || features.length === 0) {
         return {
@@ -978,12 +1043,11 @@ serve(async (req) => {
         };
       }
 
-      // Find closest feature
+      // Find closest feature (already formatted with correct distances)
       let minDistance = Infinity;
       for (const feature of features) {
-        const formatted = formatLines([feature], geo_lat, geo_lng, utilityType)[0];
-        if (formatted.distance_ft && formatted.distance_ft < minDistance) {
-          minDistance = formatted.distance_ft;
+        if (feature.distance_ft && feature.distance_ft < minDistance) {
+          minDistance = feature.distance_ft;
         }
       }
 
@@ -996,20 +1060,21 @@ serve(async (req) => {
     };
 
     // Build water summary with special handling for service area proxy
-    const waterSummary = water.length > 0 && water[0].attributes.PROVIDER_NAME
+    const waterSummary = water.length > 0 && water[0].owner === 'OpenStreetMap'
       ? {
           has_service: true,
-          service_provider: water[0].attributes.PROVIDER_NAME,
+          service_provider: water[0].owner,
           service_url: "TCEQ Water Service Area (Proxy)",
           last_verified: new Date().toISOString(),
           note: "Service area proxy - not line-specific data"
         }
-      : {
-          has_service: false,
-          min_distance_ft: null,
-          service_url: null,
-          last_verified: new Date().toISOString()
-        };
+      : buildUtilitySummary(
+          water,
+          "water",
+          cityLower.includes("houston") ? "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Distribution_Main/FeatureServer/3" :
+          cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0" :
+          null
+        );
 
     const utilitiesSummary = {
       water: waterSummary,
@@ -1021,10 +1086,7 @@ serve(async (req) => {
         null
       ),
       force_main: buildUtilitySummary(
-        sewer.filter(s => {
-          const formatted = formatLines([s], geo_lat, geo_lng)[0];
-          return formatted.diameter && formatted.diameter > 18; // Force mains typically larger
-        }),
+        sewer_force,
         "force_main",
         cityLower.includes("houston") ? "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Force_Main/FeatureServer/0" : null
       ),
@@ -1041,9 +1103,9 @@ serve(async (req) => {
     // Only update database if we have an application_id
     if (application_id) {
       const { error: updateError } = await supabase.from("applications").update({
-        water_lines: formatLines(water, geo_lat, geo_lng),
-        sewer_lines: formatLines(sewer, geo_lat, geo_lng),
-        storm_lines: formatLines(storm, geo_lat, geo_lng),
+        water_lines: water, // Already formatted with correct distances
+        sewer_lines: sewer, // Already formatted with correct distances
+        storm_lines: storm, // Already formatted with correct distances
         utilities_summary: utilitiesSummary,
         data_flags: flags,
         api_meta: apiMeta,
@@ -1061,18 +1123,19 @@ serve(async (req) => {
           county: county || null,
           enriched_at: new Date().toISOString(),
           
-          // Water laterals data (Layer 0)
+          // Water laterals data (Layer 0) - already formatted
           ...(water_laterals.length > 0 && {
             water_laterals_count: water_laterals.length,
-            water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng)
+            water_laterals_data: water_laterals
           }),
           
-          // Water fittings data (Layer 1 - valves, hydrants, meters)
+          // Water fittings data (Layer 1 - valves, hydrants, meters) - raw features with attributes
           ...(water_fittings.length > 0 && {
             water_fittings_count: water_fittings.length,
-            water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng).map((f, idx) => ({
-              ...f,
-              fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
+            water_fittings_data: water_fittings.map((f) => ({
+              fitting_type: f.attributes.FITTING_TYPE || null,
+              diameter: f.attributes.DIAMETER || null,
+              material: f.attributes.MATERIAL || null
             })),
             fire_hydrants_count: water_fittings.filter(f => 
               f.attributes.FITTING_TYPE?.toLowerCase().includes('hydrant')
