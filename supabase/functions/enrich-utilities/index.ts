@@ -178,11 +178,11 @@ const queryArcGIS = async (
   // Store State Plane coordinates for distance calculations
   let x2278: number | undefined;
   let y2278: number | undefined;
-  let spatialReference: number = 4326; // Initialize to WGS84, updated by buildQueryUrl
   
   // Helper function to build query URL
   const buildQueryUrl = (useCrs: boolean) => {
     let geometryObj: any;
+    let spatialReference: number;
     const isHoustonWater = utilityType?.includes('houston_water');
     
     // For Houston water with CRS 4326, always use WGS84
@@ -237,7 +237,7 @@ const queryArcGIS = async (
     }
 
     // Add remaining params
-    paramsObj.outFields = fields.length > 0 && fields[0] !== "" ? fields.join(",") : "*";
+    paramsObj.outFields = fields.join(",");
     paramsObj.returnGeometry = config.returnGeometry !== undefined ? String(config.returnGeometry) : "true";
     paramsObj.f = "json"; // f=json goes LAST
 
@@ -252,11 +252,8 @@ const queryArcGIS = async (
     return finalUrl;
   };
   
-  // For Houston water, try WGS84 first (proven working), then fallback to configured CRS
-  const isHoustonWater = utilityType?.includes('houston_water');
-  const crsStrategies = config.crs 
-    ? (isHoustonWater ? [false, true] : [true, false]) // WGS84 first for Houston water
-    : [false];
+  // Try with configured CRS first, then fallback to WGS84 if 400 error
+  const crsStrategies = config.crs ? [true, false] : [false];
   
   for (const useCrs of crsStrategies) {
     const queryUrl = buildQueryUrl(useCrs);
@@ -1052,11 +1049,6 @@ serve(async (req) => {
         enrichmentStatus = 'partial';
       }
     }
-
-    // Apply distance correction for CRS mismatch (all cities, all utility types)
-    water = water.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
-    sewer = sewer.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
-    storm = storm.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
 
     // 4. Build utilities_summary structure (features already formatted with correct distances)
     const buildUtilitySummary = (features: any[], utilityType: string, serviceUrl: string) => {
