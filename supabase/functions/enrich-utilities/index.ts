@@ -385,6 +385,8 @@ serve(async (req) => {
     let address_points: any[] = [];
     let flags: string[] = [];
     let apiUnreachable = false;
+    let failedServices = 0;
+    const totalServices = 6; // water mains, water laterals, water fittings, sewer gravity, sewer force, storm
 
     // 2. Decide which catalog entry to use
     const cityLower = city?.toLowerCase() || '';
@@ -402,23 +404,35 @@ serve(async (req) => {
           ? eps.water.urban_search_radius_ft 
           : eps.water.search_radius_ft;
         
-        water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
-          timeout_ms: eps.water.timeout_ms,
-          retry_attempts: eps.water.retry_attempts,
-          retry_delays_ms: eps.water.retry_delays_ms,
-          search_radius_ft: waterRadius,
-          crs: eps.water.crs || 2278,
-          geometryType: eps.water.geometryType,
-          spatialRel: eps.water.spatialRel
-        });
-        
-        if (water.length > 0) {
-          flags.push("water_via_houston_gis");
+        // 1. Water Distribution Mains (Layer 3) - GRACEFUL DEGRADATION
+        try {
+          console.log('🔵 Querying Water Distribution Mains (Layer 3)...');
+          water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
+            timeout_ms: eps.water.timeout_ms,
+            retry_attempts: eps.water.retry_attempts,
+            retry_delays_ms: eps.water.retry_delays_ms,
+            search_radius_ft: waterRadius,
+            crs: eps.water.crs || 2278,
+            geometryType: eps.water.geometryType,
+            spatialRel: eps.water.spatialRel
+          });
+          
+          if (water.length > 0) {
+            flags.push("water_via_houston_gis");
+            console.log(`✅ Water Mains: ${water.length} lines found`);
+          } else {
+            console.log('ℹ️ Water Mains: No lines found in search radius');
+          }
+        } catch (err) {
+          console.warn('⚠️ Water Distribution Mains (Layer 3) query failed:', err instanceof Error ? err.message : String(err));
+          flags.push('utilities_water_mains_unavailable');
+          failedServices++;
         }
         
-        // Query water laterals (Layer 0 - service lines)
+        // 2. Water Laterals (Layer 0) - GRACEFUL DEGRADATION
         if (eps.water_laterals) {
           try {
+            console.log('🔵 Querying Water Laterals (Layer 0)...');
             water_laterals = await queryArcGIS(
               eps.water_laterals.url, 
               eps.water_laterals.outFields, 
@@ -437,16 +451,21 @@ serve(async (req) => {
             );
             if (water_laterals.length > 0) {
               flags.push("water_lateral_found");
-              console.log(`✅ Water laterals found: ${water_laterals.length} service lines`);
+              console.log(`✅ Water Laterals: ${water_laterals.length} service lines found`);
+            } else {
+              console.log('ℹ️ Water Laterals: No lines found in search radius');
             }
           } catch (err) {
-            console.error('Water laterals query failed:', err instanceof Error ? err.message : String(err));
+            console.warn('⚠️ Water Laterals (Layer 0) query failed:', err instanceof Error ? err.message : String(err));
+            flags.push('utilities_water_laterals_unavailable');
+            failedServices++;
           }
         }
         
-        // Query water fittings (Layer 1 - valves, hydrants, meters)
+        // 3. Water Fittings (Layer 1) - GRACEFUL DEGRADATION
         if (eps.water_fittings) {
           try {
+            console.log('🔵 Querying Water Fittings (Layer 1)...');
             water_fittings = await queryArcGIS(
               eps.water_fittings.url,
               eps.water_fittings.outFields,
@@ -465,7 +484,7 @@ serve(async (req) => {
             );
             if (water_fittings.length > 0) {
               flags.push("water_fittings_detected");
-              console.log(`✅ Water fittings found: ${water_fittings.length} fittings (valves/hydrants/meters)`);
+              console.log(`✅ Water Fittings: ${water_fittings.length} fittings found (valves/hydrants/meters)`);
               
               // Count hydrants for fire protection analysis
               const hydrants = water_fittings.filter(f => 
@@ -475,9 +494,13 @@ serve(async (req) => {
                 flags.push("fire_hydrant_nearby");
                 console.log(`✅ Fire hydrants nearby: ${hydrants.length}`);
               }
+            } else {
+              console.log('ℹ️ Water Fittings: No fittings found in search radius');
             }
           } catch (err) {
-            console.error('Water fittings query failed:', err instanceof Error ? err.message : String(err));
+            console.warn('⚠️ Water Fittings (Layer 1) query failed:', err instanceof Error ? err.message : String(err));
+            flags.push('utilities_water_fittings_unavailable');
+            failedServices++;
           }
         }
         
@@ -560,29 +583,40 @@ serve(async (req) => {
           }
         }
         
-        // Use urban search radius for sewer
+        // 4. Sewer Gravity Mains - GRACEFUL DEGRADATION
+        let sewerGravity: any[] = [];
         const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft 
           ? eps.sewer.urban_search_radius_ft 
           : eps.sewer.search_radius_ft;
         
-        // Sewer gravity mains (ArcGIS Online)
-        const sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
-          timeout_ms: eps.sewer.timeout_ms,
-          retry_attempts: eps.sewer.retry_attempts,
-          retry_delays_ms: eps.sewer.retry_delays_ms,
-          search_radius_ft: sewerRadius,
-          crs: eps.sewer.crs || 2278,
-          geometryType: eps.sewer.geometryType,
-          spatialRel: eps.sewer.spatialRel
-        });
-        
-        if (sewerGravity.length > 0) {
-          flags.push("sewer_via_arcgis_online");
+        try {
+          console.log('🔵 Querying Sewer Gravity Mains...');
+          sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
+            timeout_ms: eps.sewer.timeout_ms,
+            retry_attempts: eps.sewer.retry_attempts,
+            retry_delays_ms: eps.sewer.retry_delays_ms,
+            search_radius_ft: sewerRadius,
+            crs: eps.sewer.crs || 2278,
+            geometryType: eps.sewer.geometryType,
+            spatialRel: eps.sewer.spatialRel
+          });
+          
+          if (sewerGravity.length > 0) {
+            flags.push("sewer_via_arcgis_online");
+            console.log(`✅ Sewer Gravity: ${sewerGravity.length} lines found`);
+          } else {
+            console.log('ℹ️ Sewer Gravity: No lines found in search radius');
+          }
+        } catch (err) {
+          console.warn('⚠️ Sewer Gravity Mains query failed:', err instanceof Error ? err.message : String(err));
+          flags.push('utilities_sewer_gravity_unavailable');
+          failedServices++;
         }
         
-        // Try to get force mains as well
-        try {
-          if (eps.sewer_force) {
+        // 5. Sewer Force Mains - GRACEFUL DEGRADATION
+        if (eps.sewer_force) {
+          try {
+            console.log('🔵 Querying Sewer Force Mains...');
             const forceRadius = isUrbanArea && eps.sewer_force.urban_search_radius_ft 
               ? eps.sewer_force.urban_search_radius_ft 
               : eps.sewer_force.search_radius_ft;
@@ -599,17 +633,23 @@ serve(async (req) => {
             
             if (sewer_force.length > 0) {
               flags.push("sewer_force_via_arcgis_online");
+              console.log(`✅ Sewer Force: ${sewer_force.length} lines found`);
+            } else {
+              console.log('ℹ️ Sewer Force: No lines found in search radius');
             }
+          } catch (err) {
+            console.warn('⚠️ Sewer Force Mains query failed:', err instanceof Error ? err.message : String(err));
+            flags.push('utilities_sewer_force_unavailable');
+            failedServices++;
           }
-        } catch (forceErr) {
-          console.log('Force main query failed, continuing with gravity only:', forceErr instanceof Error ? forceErr.message : String(forceErr));
         }
         
         // Combine gravity and force mains
         sewer = [...sewerGravity, ...sewer_force];
         
-        // Storm endpoint - try with fallback and graceful degradation
+        // 6. Storm Drainage - GRACEFUL DEGRADATION
         try {
+          console.log('🔵 Querying Storm Drainage...');
           const stormRadius = isUrbanArea && eps.storm.urban_search_radius_ft 
             ? eps.storm.urban_search_radius_ft 
             : eps.storm.search_radius_ft;
@@ -626,15 +666,21 @@ serve(async (req) => {
           
           if (storm.length > 0) {
             flags.push("storm_via_production_server");
+            console.log(`✅ Storm Drainage: ${storm.length} lines found`);
+          } else {
+            console.log('ℹ️ Storm Drainage: No lines found in search radius');
           }
-        } catch (stormErr) {
-          console.error('Houston storm endpoint failed:', stormErr instanceof Error ? stormErr.message : String(stormErr));
-          console.log('Continuing without storm data - water and sewer data will still be available');
-          storm = [];
-          if (!flags.includes("storm_drainage_unavailable")) {
-            flags.push("storm_drainage_unavailable");
-          }
+        } catch (err) {
+          console.warn('⚠️ Storm Drainage query failed:', err instanceof Error ? err.message : String(err));
+          flags.push('utilities_storm_unavailable');
+          failedServices++;
         }
+        
+        // Log summary of utility query results
+        const allWaterLines = [...water, ...water_laterals];
+        const allSewerLines = [...sewerGravity, ...sewer_force];
+        const allStormLines = [...storm];
+        console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length}, Storm: ${allStormLines.length}, Failed Services: ${failedServices}/${totalServices}`);
         
         // Traffic counts (new integration)
         let traffic: any[] = [];
@@ -852,11 +898,36 @@ serve(async (req) => {
       }
     }
 
-    // 3. Determine final flags
+    // 3. Determine final flags and enrichment status
+    let enrichmentStatus: 'complete' | 'partial' | 'failed';
+    
     if (apiUnreachable) {
       flags = ["utilities_api_unreachable"];
-    } else if (!water.length && !sewer.length && !storm.length && !flags.length) {
+      enrichmentStatus = 'failed';
+    } else if (failedServices === totalServices) {
+      // All utility services failed
       flags.push("utilities_not_found");
+      enrichmentStatus = 'failed';
+      console.error('❌ All utility services failed');
+    } else if (failedServices > 0) {
+      // Some services failed, but we got partial data
+      enrichmentStatus = 'partial';
+      console.warn(`⚠️ Partial utility data: ${failedServices}/${totalServices} services unavailable`);
+    } else {
+      // All services succeeded
+      enrichmentStatus = 'complete';
+      console.log('✅ All utility services queried successfully');
+    }
+    
+    // Add general "not found" flag if no data returned (even if APIs succeeded)
+    if (!water.length && !sewer.length && !storm.length && !water_laterals.length) {
+      if (!flags.includes("utilities_not_found")) {
+        flags.push("utilities_not_found");
+      }
+      // If we got no data at all but also had no failures, mark as partial (might be rural area)
+      if (enrichmentStatus === 'complete' && failedServices === 0) {
+        enrichmentStatus = 'partial';
+      }
     }
 
     // 4. Build utilities_summary structure
@@ -930,11 +1001,6 @@ serve(async (req) => {
     };
 
     // 5. Save results with api_meta, enrichment_status, and utilities_summary
-    const hasStormUnavailableFlag = flags.includes("storm_drainage_unavailable");
-    const enrichmentStatus = apiUnreachable ? "failed" : 
-                            (water.length || sewer.length || storm.length) ? "complete" :
-                            hasStormUnavailableFlag ? "partial" : "partial";
-    
     const { error: updateError } = await supabase.from("applications").update({
       water_lines: formatLines(water, geo_lat, geo_lng),
       sewer_lines: formatLines(sewer, geo_lat, geo_lng),
