@@ -1211,6 +1211,14 @@ serve(async (req) => {
         success: true,
         application_id: application_id || null,
         utilities: {
+          water_lines: water,
+          sewer_lines: [...sewer, ...sewer_force],
+          storm_lines: storm,
+          water_capacity_mgd: null,
+          sewer_capacity_mgd: null,
+          power_kv_nearby: null
+        },
+        counts: {
           water: water.length,
           sewer: sewer.length + sewer_force.length,
           storm: storm.length,
