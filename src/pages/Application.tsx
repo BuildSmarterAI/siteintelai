@@ -936,11 +936,11 @@ export default function Application() {
                                   </div>
                                 )}
                               </div>
-                              {enrichedFields.county && !isAddressLoading && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                                  ✓ From Google Places
-                                </Badge>
-                              )}
+                {enrichedFields.county && !isAddressLoading && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                    ✓ Auto-filled
+                  </Badge>
+                )}
                             </div>
 
                             <div>
@@ -962,11 +962,11 @@ export default function Application() {
                                   </div>
                                 )}
                               </div>
-                              {enrichedFields.city && !isAddressLoading && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                                  ✓ From Google Places
-                                </Badge>
-                              )}
+                {enrichedFields.city && !isAddressLoading && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                    ✓ Auto-filled
+                  </Badge>
+                )}
                             </div>
                           </div>
 
@@ -990,11 +990,11 @@ export default function Application() {
                                   </div>
                                 )}
                               </div>
-                              {enrichedFields.state && !isAddressLoading && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                                  ✓ From Google Places
-                                </Badge>
-                              )}
+                {enrichedFields.state && !isAddressLoading && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                    ✓ Auto-filled
+                  </Badge>
+                )}
                             </div>
 
                             <div>
@@ -1016,11 +1016,11 @@ export default function Application() {
                                   </div>
                                 )}
                               </div>
-                              {enrichedFields.zipCode && !isAddressLoading && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                                  ✓ From Google Places
-                                </Badge>
-                              )}
+                {enrichedFields.zipCode && !isAddressLoading && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                    ✓ Auto-filled
+                  </Badge>
+                )}
                             </div>
                           </div>
 
@@ -1043,11 +1043,11 @@ export default function Application() {
                                 </div>
                               )}
                             </div>
-                            {enrichedFields.neighborhood && !isAddressLoading && (
-                              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                                ✓ From Google Places
-                              </Badge>
-                            )}
+                {enrichedFields.neighborhood && !isAddressLoading && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                    ✓ Auto-filled
+                  </Badge>
+                )}
                             <p className="text-sm text-charcoal/60 mt-1">
                               Helps determine local market conditions and comparable properties.
                             </p>
