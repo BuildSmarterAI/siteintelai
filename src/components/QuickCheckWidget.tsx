@@ -6,6 +6,8 @@ import { Zap, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QuickCheckResult } from "./QuickCheckResult";
+import { FadeIn } from "@/components/ui/fade-in";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface QuickCheckData {
   score: number;
@@ -19,6 +21,7 @@ export function QuickCheckWidget() {
   const [address, setAddress] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [quickCheckData, setQuickCheckData] = useState<QuickCheckData | null>(null);
+  const [showResults, setShowResults] = useState(false);
 
   const handleQuickCheck = async () => {
     if (!address) {
@@ -27,6 +30,8 @@ export function QuickCheckWidget() {
     }
 
     setIsLoading(true);
+    setShowResults(false);
+    
     try {
       const { data, error } = await supabase.functions.invoke('generate-quick-check', {
         body: { address }
@@ -42,6 +47,7 @@ export function QuickCheckWidget() {
         address: address
       });
 
+      setTimeout(() => setShowResults(true), 150);
       toast.success("QuickCheck™ complete!");
     } catch (error) {
       console.error('QuickCheck error:', error);
@@ -53,7 +59,8 @@ export function QuickCheckWidget() {
 
   const handleAddressSelect = (selectedAddress: string, placeDetails: any) => {
     setAddress(selectedAddress);
-    setQuickCheckData(null); // Reset previous results when address changes
+    setQuickCheckData(null);
+    setShowResults(false);
   };
 
   return (
@@ -94,15 +101,28 @@ export function QuickCheckWidget() {
           )}
         </Button>
 
-        {quickCheckData && (
-          <QuickCheckResult
-            score={quickCheckData.score}
-            band={quickCheckData.band}
-            floodRisk={quickCheckData.floodRisk}
-            zoningVerdict={quickCheckData.zoningVerdict}
-            address={quickCheckData.address}
-          />
+        {isLoading && (
+          <div className="space-y-4" aria-busy="true" role="status" aria-label="Loading property analysis">
+            <div className="py-6 space-y-3">
+              <Skeleton className="h-32 w-32 rounded-full mx-auto" />
+              <Skeleton className="h-6 w-48 mx-auto rounded" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Skeleton className="h-24 rounded-lg" />
+              <Skeleton className="h-24 rounded-lg" />
+            </div>
+          </div>
         )}
+
+        <FadeIn show={showResults && !isLoading && quickCheckData !== null}>
+          <QuickCheckResult
+            score={quickCheckData?.score || 0}
+            band={quickCheckData?.band || 'C'}
+            floodRisk={quickCheckData?.floodRisk || ''}
+            zoningVerdict={quickCheckData?.zoningVerdict || ''}
+            address={quickCheckData?.address || ''}
+          />
+        </FadeIn>
       </CardContent>
     </Card>
   );
