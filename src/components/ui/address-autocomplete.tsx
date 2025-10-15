@@ -405,16 +405,16 @@ export function AddressAutocomplete({
       {enrichmentStatus === 'loading' && (
         <div className="mt-2 flex items-center gap-2 text-sm text-blue-600" role="status" aria-live="polite">
           <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" aria-hidden="true"></div>
-          <span>Loading GIS data...</span>
+          <span>Analyzing property...</span>
         </div>
       )}
-      
+
       {enrichmentStatus === 'success' && (
         <div className="mt-2 flex items-center gap-2 text-sm text-green-600" role="status" aria-live="polite">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
           </svg>
-          <span>GIS Data Loaded ✅</span>
+          <span>Property data loaded ✅</span>
         </div>
       )}
 

@@ -1061,34 +1061,34 @@ export default function Application() {
                               <Input
                                 id="parcelId"
                                 value={formData.parcelId}
-                                onChange={(e) => handleInputChange('parcelId', e.target.value)}
-                                placeholder={enrichedFields.parcelId && !unlockedFields.parcelId ? "Auto-filled from HCAD" : "123-456-789"}
-                                className="mt-2"
-                                readOnly={enrichedFields.parcelId && !unlockedFields.parcelId}
-                              />
-                              {enrichedFields.parcelId && (
-                                <div className="flex items-center gap-2 mt-1">
-                                  {!unlockedFields.parcelId ? (
-                                    <>
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                        ✓ Verified from HCAD
-                                      </Badge>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setUnlockedFields(prev => ({ ...prev, parcelId: true }));
-                                          toast({
-                                            title: "Manual Override Enabled",
-                                            description: "You can now edit the Parcel ID. We'll flag this for review.",
-                                          });
-                                        }}
-                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                      >
-                                        <Edit className="h-3 w-3 mr-1" />
-                                        Edit
-                                      </Button>
+                  onChange={(e) => handleInputChange('parcelId', e.target.value)}
+                  placeholder={enrichedFields.parcelId && !unlockedFields.parcelId ? "Auto-filled" : "123-456-789"}
+                  className="mt-2"
+                  readOnly={enrichedFields.parcelId && !unlockedFields.parcelId}
+                />
+                {enrichedFields.parcelId && (
+                  <div className="flex items-center gap-2 mt-1">
+                    {!unlockedFields.parcelId ? (
+                      <>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                          ✓ Auto-filled
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setUnlockedFields(prev => ({ ...prev, parcelId: true }));
+                            toast({
+                              title: "Manual Override Enabled",
+                              description: "You can now edit the Parcel ID.",
+                            });
+                          }}
+                          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
                                     </>
                                   ) : (
                                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
@@ -1109,49 +1109,49 @@ export default function Application() {
                               <div className="flex gap-2 mt-2">
                                 <Input
                                   value={formData.lotSize}
-                                  onChange={(e) => handleInputChange('lotSize', e.target.value)}
-                                  placeholder={enrichedFields.lotSize && !unlockedFields.lotSize ? "Auto-filled from HCAD" : "5.2"}
-                                  className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                                  readOnly={enrichedFields.lotSize && !unlockedFields.lotSize}
-                                />
-                                <Select 
-                                  value={formData.lotSizeUnit} 
-                                  onValueChange={(value) => handleInputChange('lotSizeUnit', value)}
-                                  disabled={enrichedFields.lotSize && !unlockedFields.lotSize}
-                                >
-                                  <SelectTrigger className="w-32">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="acres">Acres</SelectItem>
-                                    <SelectItem value="sqft">Sq Ft</SelectItem>
-                                    <SelectItem value="hectares">Hectares</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              {enrichedFields.lotSize && (
-                                <div className="flex items-center gap-2 mt-1">
-                                  {!unlockedFields.lotSize ? (
-                                    <>
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                        ✓ Verified from HCAD
-                                      </Badge>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setUnlockedFields(prev => ({ ...prev, lotSize: true }));
-                                          toast({
-                                            title: "Manual Override Enabled",
-                                            description: "You can now edit the Lot Size. Official HCAD value will be preserved for reference.",
-                                          });
-                                        }}
-                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                      >
-                                        <Edit className="h-3 w-3 mr-1" />
-                                        Edit
-                                      </Button>
+                  onChange={(e) => handleInputChange('lotSize', e.target.value)}
+                  placeholder={enrichedFields.lotSize && !unlockedFields.lotSize ? "Auto-filled" : "5.2"}
+                  className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
+                  readOnly={enrichedFields.lotSize && !unlockedFields.lotSize}
+                />
+                <Select 
+                  value={formData.lotSizeUnit} 
+                  onValueChange={(value) => handleInputChange('lotSizeUnit', value)}
+                  disabled={enrichedFields.lotSize && !unlockedFields.lotSize}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="acres">Acres</SelectItem>
+                    <SelectItem value="sqft">Sq Ft</SelectItem>
+                    <SelectItem value="hectares">Hectares</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {enrichedFields.lotSize && (
+                <div className="flex items-center gap-2 mt-1">
+                  {!unlockedFields.lotSize ? (
+                    <>
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                        ✓ Auto-filled
+                      </Badge>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setUnlockedFields(prev => ({ ...prev, lotSize: true }));
+                          toast({
+                            title: "Manual Override Enabled",
+                            description: "You can now edit the Lot Size.",
+                          });
+                        }}
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <Edit className="h-3 w-3 mr-1" />
+                        Edit
+                      </Button>
                                     </>
                                   ) : (
                                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
@@ -1203,34 +1203,34 @@ export default function Application() {
                               <Input
                                 id="zoning"
                                 value={formData.zoning}
-                                onChange={(e) => handleInputChange('zoning', e.target.value)}
-                                placeholder={enrichedFields.zoning && !unlockedFields.zoning ? "Auto-filled from HCAD" : "C-2, R-3, M-1, etc."}
-                                className="mt-2"
-                                readOnly={enrichedFields.zoning && !unlockedFields.zoning}
-                              />
-                              {enrichedFields.zoning && (
-                                <div className="flex items-center gap-2 mt-1">
-                                  {!unlockedFields.zoning ? (
-                                    <>
-                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                        ✓ Verified from HCAD
-                                      </Badge>
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => {
-                                          setUnlockedFields(prev => ({ ...prev, zoning: true }));
-                                          toast({
-                                            title: "Manual Override Enabled",
-                                            description: "You can now edit the Zoning. HCAD data will be flagged for comparison.",
-                                          });
-                                        }}
-                                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                                      >
-                                        <Edit className="h-3 w-3 mr-1" />
-                                        Edit
-                                      </Button>
+                  onChange={(e) => handleInputChange('zoning', e.target.value)}
+                  placeholder={enrichedFields.zoning && !unlockedFields.zoning ? "Auto-filled" : "C-2, R-3, M-1, etc."}
+                  className="mt-2"
+                  readOnly={enrichedFields.zoning && !unlockedFields.zoning}
+                />
+                {enrichedFields.zoning && (
+                  <div className="flex items-center gap-2 mt-1">
+                    {!unlockedFields.zoning ? (
+                      <>
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                          ✓ Auto-filled
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setUnlockedFields(prev => ({ ...prev, zoning: true }));
+                            toast({
+                              title: "Manual Override Enabled",
+                              description: "You can now edit the Zoning.",
+                            });
+                          }}
+                          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
                                     </>
                                   ) : (
                                     <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
