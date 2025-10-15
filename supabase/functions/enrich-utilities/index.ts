@@ -40,6 +40,18 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c * 3.28084; // meters → feet
 }
 
+// Check if coordinates look like State Plane (large magnitude)
+function looksLikeStatePlane(paths: any[][]): boolean {
+  for (const path of paths) {
+    for (const [x, y] of path) {
+      if (Math.abs(x) > 100000 || Math.abs(y) > 100000) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // Compute min distance from point to polyline (WGS84 / EPSG:4326)
 function minDistanceToLine(lat: number, lng: number, paths: any[][]) {
   let minDist = Infinity;
@@ -105,14 +117,20 @@ function formatLines(
       // Check geometry's spatial reference
       const geomSR = geom.spatialReference?.wkid || geom.spatialReference?.latestWkid;
       
-      if (geomSR === 2278 && x2278 !== undefined && y2278 !== undefined) {
-        // Use planar distance for State Plane coordinates
+      // Determine effective CRS: feature SR, then fallback to query CRS
+      const effectiveSR = geomSR || inputCRS;
+      
+      if (effectiveSR === 2278 && x2278 !== undefined && y2278 !== undefined) {
+        // Priority 1: Explicit EPSG:2278
         distance_ft = minDistanceToLineStatePlane(x2278, y2278, geom.paths);
-      } else if (geomSR === 4326 || !geomSR) {
-        // Use Haversine for WGS84 / unknown CRS
+      } else if (effectiveSR === 4326) {
+        // Priority 2: Explicit EPSG:4326
         distance_ft = minDistanceToLine(geo_lat, geo_lng, geom.paths);
+      } else if (!geomSR && looksLikeStatePlane(geom.paths) && x2278 !== undefined && y2278 !== undefined) {
+        // Priority 3: No SR metadata, but coordinates look like State Plane
+        distance_ft = minDistanceToLineStatePlane(x2278, y2278, geom.paths);
       } else {
-        console.warn(`Unknown spatial reference: ${geomSR}, using Haversine as fallback`);
+        // Fallback: Use WGS84 Haversine
         distance_ft = minDistanceToLine(geo_lat, geo_lng, geom.paths);
       }
     }
