@@ -178,11 +178,11 @@ const queryArcGIS = async (
   // Store State Plane coordinates for distance calculations
   let x2278: number | undefined;
   let y2278: number | undefined;
+  let spatialReference: number = 4326; // Initialize to WGS84, updated by buildQueryUrl
   
   // Helper function to build query URL
   const buildQueryUrl = (useCrs: boolean) => {
     let geometryObj: any;
-    let spatialReference: number;
     const isHoustonWater = utilityType?.includes('houston_water');
     
     // For Houston water with CRS 4326, always use WGS84

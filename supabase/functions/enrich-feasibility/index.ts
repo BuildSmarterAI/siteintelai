@@ -2731,7 +2731,7 @@ serve(async (req) => {
     const { data: existingUtilities } = await supabase
       .from('applications')
       .select('water_lines, sewer_lines, storm_lines')
-      .eq('id', applicationId)
+      .eq('id', application_id)
       .single();
     
     // Generate utilities map URL if we have utility data
