@@ -14,17 +14,17 @@
     "water": {
       "name": "COH Water Distribution Mains (ArcGIS Online)",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query",
-      "outFields": ["DIAMETER", "MATERIAL", "INSERVICEDATE", "OWNER"],
+      "outFields": ["*"],
       "geometryType": "esriGeometryPoint",
-      "crs": 2278,
+      "crs": 4326,
       "timeout_ms": 8000,
       "retry_attempts": 3,
       "retry_delays_ms": [500, 1000, 2000],
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 1000,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 3 = Water Distribution Mains. Located under INFORHW folder in arcgis/rest/services. Verified working with inSR=4326 and 1000 ft radius.",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,OWNER&f=json",
+      "notes": "Layer 3 = Water Distribution Mains. Using WGS84 (4326) for direct coordinate matching.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query?geometry=-95.3570979,29.7385701&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json",
       "last_validated": "2025-10-15"
     },
     "water_laterals": {

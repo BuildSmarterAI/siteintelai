@@ -247,7 +247,8 @@ export function AddressAutocomplete({
               const { data: utilityData, error: utilityError } = await supabase.functions.invoke('enrich-utilities', {
                 body: {
                   latitude: coordinates.lat,
-                  longitude: coordinates.lng
+                  longitude: coordinates.lng,
+                  city: addressDetails.city
                 }
               });
 

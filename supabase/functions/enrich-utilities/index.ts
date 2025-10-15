@@ -110,7 +110,7 @@ const queryArcGIS = async (
     retry_attempts?: number; // Optional, defaults to 3
     retry_delays_ms: number[];
     search_radius_ft?: number; // Optional for polygon queries
-    crs?: number; // Optional CRS (e.g., 2278 for Texas South Central)
+    crs?: number; // Optional CRS (e.g., 2278 for Texas South Central, 4326 for WGS84)
     geometryType?: string; // e.g., esriGeometryPolygon, esriGeometryPolyline
     spatialRel?: string; // e.g., esriSpatialRelIntersects
     returnGeometry?: boolean; // Whether to return geometry (default: true)
@@ -120,8 +120,18 @@ const queryArcGIS = async (
   const buildQueryUrl = (useCrs: boolean) => {
     let geometryObj: any;
     let spatialReference: number;
+    const isHoustonWater = utilityType?.includes('houston_water');
     
-    if (useCrs && config.crs === 2278) {
+    // For Houston water with CRS 4326, always use WGS84
+    if (config.crs === 4326 || (!useCrs && isHoustonWater)) {
+      geometryObj = {
+        x: geo_lng,
+        y: geo_lat,
+        spatialReference: { wkid: 4326 }
+      };
+      spatialReference = 4326;
+      console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${JSON.stringify(geometryObj)}`);
+    } else if (useCrs && config.crs === 2278) {
       const wgs84 = "EPSG:4326";
       const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
       const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
@@ -140,7 +150,7 @@ const queryArcGIS = async (
         spatialReference: { wkid: 4326 }
       };
       spatialReference = 4326;
-      console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${JSON.stringify(geometryObj)}`);
+      console.log(`${utilityType}: Using WGS84 (EPSG:4326) as fallback: ${JSON.stringify(geometryObj)}`);
     }
     
     const geometryType = config.geometryType || "esriGeometryPoint";
@@ -169,8 +179,14 @@ const queryArcGIS = async (
     paramsObj.f = "json"; // f=json goes LAST
 
     const params = new URLSearchParams(paramsObj);
+    const finalUrl = `${url}?${params.toString()}`;
     
-    return `${url}?${params.toString()}`;
+    // Log final URL for Houston water queries
+    if (utilityType?.includes('houston_water')) {
+      console.log(`🔗 Final Houston Water URL: ${finalUrl}`);
+    }
+    
+    return finalUrl;
   };
   
   // Try with configured CRS first, then fallback to WGS84 if 400 error
@@ -345,32 +361,53 @@ serve(async (req) => {
   }
 
   try {
-    const { application_id } = await req.json();
-    console.log('Enriching utilities for application:', application_id);
+    const requestBody = await req.json();
+    const { application_id, latitude, longitude, city: cityHint } = requestBody;
+    
+    let geo_lat: number;
+    let geo_lng: number;
+    let county: string | null = null;
+    let city: string | null = cityHint || null;
+    
+    // Support both direct coordinate calls and application_id lookups
+    if (latitude !== undefined && longitude !== undefined) {
+      console.log('🎯 Direct coordinate enrichment:', { latitude, longitude, city: cityHint });
+      geo_lat = latitude;
+      geo_lng = longitude;
+    } else if (application_id) {
+      console.log('📋 Enriching utilities for application:', application_id);
+      
+      // 1. Get application info
+      const { data: app, error: fetchErr } = await supabase
+        .from("applications")
+        .select("geo_lat, geo_lng, county, city")
+        .eq("id", application_id)
+        .maybeSingle();
 
-    // 1. Get application info
-    const { data: app, error: fetchErr } = await supabase
-      .from("applications")
-      .select("geo_lat, geo_lng, county, city")
-      .eq("id", application_id)
-      .maybeSingle();
+      if (fetchErr) {
+        console.error('Fetch error:', fetchErr);
+        throw new Error("Error fetching application");
+      }
 
-    if (fetchErr) {
-      console.error('Fetch error:', fetchErr);
-      throw new Error("Error fetching application");
+      if (!app) {
+        console.error('Application not found:', application_id);
+        throw new Error("Application not found");
+      }
+
+      geo_lat = app.geo_lat;
+      geo_lng = app.geo_lng;
+      county = app.county;
+      city = app.city;
+      
+      if (!geo_lat || !geo_lng) {
+        console.error('Missing coordinates for application:', application_id);
+        throw new Error("Missing coordinates");
+      }
+    } else {
+      throw new Error("Must provide either application_id or latitude/longitude");
     }
-
-    if (!app) {
-      console.error('Application not found:', application_id);
-      throw new Error("Application not found");
-    }
-
-    const { geo_lat, geo_lng, county, city } = app;
-
-    if (!geo_lat || !geo_lng) {
-      console.error('Missing coordinates for application:', application_id);
-      throw new Error("Missing coordinates");
-    }
+    
+    console.log(`🌍 Coordinates: ${geo_lat}, ${geo_lng} | City: ${city || 'unknown'}`)
 
     let water: any[] = [];
     let sewer: any[] = [];
@@ -404,12 +441,14 @@ serve(async (req) => {
         // 1. Water Distribution Mains (Layer 3) - GRACEFUL DEGRADATION
         try {
           console.log('🔵 Querying Water Distribution Mains (Layer 3)...');
+          console.log(`📍 Using coordinates: ${geo_lng}, ${geo_lat}`);
+          console.log(`📏 Search radius: ${waterRadius} ft`);
           water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
             timeout_ms: eps.water.timeout_ms,
             retry_attempts: eps.water.retry_attempts,
             retry_delays_ms: eps.water.retry_delays_ms,
             search_radius_ft: waterRadius,
-            crs: eps.water.crs || 2278,
+            crs: eps.water.crs || 4326,
             geometryType: eps.water.geometryType,
             spatialRel: eps.water.spatialRel
           });
