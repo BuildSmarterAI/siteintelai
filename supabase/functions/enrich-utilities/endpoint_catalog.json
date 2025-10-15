@@ -15,7 +15,7 @@
       "name": "COH Water Distribution Mains (ArcGIS Online)",
       "url": "https://houstonwatergis.org/server/rest/services/HWWaterLineIPS/MapServer/3/query",
       "outFields": ["DIAMETER", "MATERIAL", "INSTALL_DATE", "OWNER"],
-      "geometryType": "esriGeometryPolyline",
+      "geometryType": "esriGeometryPoint",
       "crs": 2278,
       "timeout_ms": 8000,
       "retry_attempts": 3,
