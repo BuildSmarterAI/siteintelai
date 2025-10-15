@@ -3,7 +3,6 @@ import { Input } from './input';
 import { Label } from './label';
 import { supabase } from '@/integrations/supabase/client';
 import submarketMapping from '@/data/submarket-mapping.json';
-import { toast } from 'sonner';
 
 // Simple debounce function
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
@@ -253,15 +252,11 @@ export function AddressAutocomplete({
                 }
               });
 
-              if (!utilityError && utilityData?.success) {
-                toast.success("Utility check complete", {
-                  description: `Water: ${utilityData.utilities?.water || 0}, Sewer: ${utilityData.utilities?.sewer || 0}, Storm: ${utilityData.utilities?.storm || 0}`
-                });
-                
+              if (!utilityError && utilityData) {
                 const utilityAccess: string[] = [];
-                if (utilityData.utilities?.water > 0) utilityAccess.push('water');
-                if (utilityData.utilities?.sewer > 0) utilityAccess.push('sewer');
-                if (utilityData.utilities?.storm > 0) utilityAccess.push('storm');
+                if (utilityData.water_nearby) utilityAccess.push('water');
+                if (utilityData.sewer_nearby) utilityAccess.push('sewer');
+                if (utilityData.storm_nearby) utilityAccess.push('storm');
                 // Gas and electric are typically available in developed areas
                 if (addressDetails.city) {
                   utilityAccess.push('electric');
