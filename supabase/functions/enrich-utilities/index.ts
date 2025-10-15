@@ -134,6 +134,11 @@ function formatLines(
         distance_ft = minDistanceToLine(geo_lat, geo_lng, geom.paths);
       }
     }
+
+    // Apply correction for CRS mismatch
+    if (distance_ft !== null) {
+      distance_ft = Math.round(distance_ft / 1_000_000);
+    }
     
     // Handle storm drainage with PIPEWIDTH/PIPEHEIGHT/PIPEDIAMETER
     let diameter = attrs.DIAMETER || attrs.PIPEDIAMETER || null;
