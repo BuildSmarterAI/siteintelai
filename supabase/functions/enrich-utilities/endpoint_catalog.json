@@ -1,7 +1,7 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "last_updated": "2025-10-15",
-  "changelog": "2025-10-15: Added water_laterals (Layer 0) and address_points layers for Houston. Fixed geometry parameter formatting for point-based queries.",
+  "changelog": "2025-10-15: Added water_fittings (Layer 1) for Houston. Provides valve, hydrant, and meter detection for comprehensive water infrastructure analysis.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -41,6 +41,22 @@
       "spatialRel": "esriSpatialRelIntersects",
       "notes": "Layer 0 = Water Lateral Service Lines. Shows existing service connections to properties. Small search radius (100 ft) for property-specific detection.",
       "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=100&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALL_DATE,SUBTYPECD,OWNER&f=json",
+      "last_validated": "2025-10-15"
+    },
+    "water_fittings": {
+      "name": "COH Water Fittings (Valves, Hydrants, Meters)",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/1/query",
+      "outFields": ["FITTING_TYPE", "DIAMETER", "MATERIAL", "INSTALL_DATE", "STATUS", "OWNER", "SUBTYPECD"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 2278,
+      "timeout_ms": 8000,
+      "retry_attempts": 3,
+      "retry_delays_ms": [500, 1000, 2000],
+      "search_radius_ft": 200,
+      "urban_search_radius_ft": 200,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Layer 1 = Water Fittings (valves, hydrants, tees, meters). Used for service connection verification and infrastructure density analysis. 200 ft radius for nearby fitting detection.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/1/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=200&units=esriSRUnit_Foot&outFields=FITTING_TYPE,DIAMETER,MATERIAL,INSTALL_DATE,STATUS,OWNER,SUBTYPECD&f=json",
       "last_validated": "2025-10-15"
     },
     "address_points": {
