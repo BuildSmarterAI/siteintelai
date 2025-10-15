@@ -237,7 +237,7 @@ const queryArcGIS = async (
     }
 
     // Add remaining params
-    paramsObj.outFields = fields.join(",");
+    paramsObj.outFields = fields.length > 0 && fields[0] !== "" ? fields.join(",") : "*";
     paramsObj.returnGeometry = config.returnGeometry !== undefined ? String(config.returnGeometry) : "true";
     paramsObj.f = "json"; // f=json goes LAST
 
@@ -252,8 +252,11 @@ const queryArcGIS = async (
     return finalUrl;
   };
   
-  // Try with configured CRS first, then fallback to WGS84 if 400 error
-  const crsStrategies = config.crs ? [true, false] : [false];
+  // For Houston water, try WGS84 first (proven working), then fallback to configured CRS
+  const isHoustonWater = utilityType?.includes('houston_water');
+  const crsStrategies = config.crs 
+    ? (isHoustonWater ? [false, true] : [true, false]) // WGS84 first for Houston water
+    : [false];
   
   for (const useCrs of crsStrategies) {
     const queryUrl = buildQueryUrl(useCrs);

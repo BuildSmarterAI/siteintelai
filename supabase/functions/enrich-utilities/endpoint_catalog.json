@@ -14,7 +14,7 @@
     "water": {
       "name": "COH Water Distribution Mains (ArcGIS Online)",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3/query",
-      "outFields": ["*"],
+      "outFields": [""],
       "geometryType": "esriGeometryPoint",
       "crs": 4326,
       "timeout_ms": 8000,

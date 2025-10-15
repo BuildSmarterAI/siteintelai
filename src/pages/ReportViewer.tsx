@@ -356,7 +356,12 @@ export default function ReportViewer() {
             updated_at,
             user_id,
             drivetimes,
-            nearby_places
+            nearby_places,
+            water_lines,
+            sewer_lines,
+            storm_lines,
+            utilities_summary,
+            data_flags
           )
         `)
         .eq('id', reportId)
