@@ -758,11 +758,6 @@ serve(async (req) => {
         // Combine gravity and force mains
         sewer = [...sewerGravity, ...sewer_force];
         
-        // Apply distance correction for CRS mismatch
-        water = water.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
-        sewer = sewer.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
-        storm = storm.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
-        
         // 6. Storm Drainage - GRACEFUL DEGRADATION
         try {
           console.log('🔵 Querying Storm Drainage...');
@@ -1054,6 +1049,11 @@ serve(async (req) => {
         enrichmentStatus = 'partial';
       }
     }
+
+    // Apply distance correction for CRS mismatch (all cities, all utility types)
+    water = water.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
+    sewer = sewer.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
+    storm = storm.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
 
     // 4. Build utilities_summary structure (features already formatted with correct distances)
     const buildUtilitySummary = (features: any[], utilityType: string, serviceUrl: string) => {
