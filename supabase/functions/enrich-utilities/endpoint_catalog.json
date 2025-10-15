@@ -78,7 +78,7 @@
     "sewer": {
       "name": "Houston Sewer Gravity Mains",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/3/query",
-      "outFields": ["DIAMETER", "MATERIAL", "OWNER", "STATUS"],
+      "outFields": ["*"],
       "geometryType": "esriGeometryPoint",
       "crs": "EPSG:4326",
       "timeout_ms": 15000,
@@ -94,7 +94,7 @@
     "sewer_force": {
       "name": "Houston Sewer Force Mains",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/2/query",
-      "outFields": ["DIAMETER", "MATERIAL", "OWNER", "STATUS"],
+      "outFields": ["*"],
       "geometryType": "esriGeometryPoint",
       "crs": 4326,
       "timeout_ms": 15000,
@@ -108,24 +108,19 @@
       "last_validated": "2025-10-15"
     },
     "storm": {
-      "name": "Houston Storm Drainage",
-      "url": "https://mycity.maps.arcgis.com/apps/View/index.html?appid=c8b7e3a0f8234eacb5c2d8f7e5c3e8a0",
-      "outFields": ["*"],
-      "geometryType": "esriGeometryPoint",
-      "crs": 4326,
       "name": "Houston Storm Drain Mains",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query",
-      "outFields": ["DIAMETER", "MATERIAL", "INSTALLDATE", "OWNER"],
+      "outFields": ["*"],
       "geometryType": "esriGeometryPoint",
       "crs": 4326,
       "timeout_ms": 15000,
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
       "search_radius_ft": 1000,
-      "urban_search_radius_ft": 500,
+      "urban_search_radius_ft": 1000,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Houston storm drain main lines from houstonwatergis.org - Verified operational 2025-10-15",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALLDATE,OWNER&f=json",
+      "notes": "Houston storm drain main lines from houstonwatergis.org - Using WGS84 (4326) for direct coordinate matching. Verified operational 2025-10-15",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=*&returnGeometry=true&f=json",
       "last_validated": "2025-10-15"
     },
     "traffic": {
