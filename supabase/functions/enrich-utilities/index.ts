@@ -134,11 +134,6 @@ function formatLines(
         distance_ft = minDistanceToLine(geo_lat, geo_lng, geom.paths);
       }
     }
-
-    // Apply correction for CRS mismatch
-    if (distance_ft !== null) {
-      distance_ft = Math.round(distance_ft / 1_000_000);
-    }
     
     // Handle storm drainage with PIPEWIDTH/PIPEHEIGHT/PIPEDIAMETER
     let diameter = attrs.DIAMETER || attrs.PIPEDIAMETER || null;
@@ -762,6 +757,11 @@ serve(async (req) => {
         
         // Combine gravity and force mains
         sewer = [...sewerGravity, ...sewer_force];
+        
+        // Apply distance correction for CRS mismatch
+        water = water.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
+        sewer = sewer.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
+        storm = storm.map(f => ({ ...f, distance_ft: f.distance_ft == null ? null : f.distance_ft / 1_000_000 }));
         
         // 6. Storm Drainage - GRACEFUL DEGRADATION
         try {
