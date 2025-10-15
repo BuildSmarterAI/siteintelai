@@ -30,6 +30,7 @@ export default function Application() {
   const [currentStep, setCurrentStep] = useState(1);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [hasCompleteProfile, setHasCompleteProfile] = useState(false);
+  const [profileStatus, setProfileStatus] = useState<'complete' | 'partial' | 'none'>('none');
   
   // Use form hook
   const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors, updateMultipleFields } = useApplicationForm();
@@ -63,20 +64,35 @@ export default function Application() {
             
             if (Object.keys(updates).length > 0) {
               updateMultipleFields(updates);
+            }
+
+            // Check if profile is COMPLETE (all 4 required fields)
+            const profileComplete = profile.full_name && profile.email && profile.phone && profile.company;
+
+            if (profileComplete) {
+              // Profile is complete - skip Step 1
+              setProfileStatus('complete');
+              setHasCompleteProfile(true);
+              setCompletedSteps(prev => new Set([...prev, 1]));
               
-              // If all required contact fields are present, mark Step 1 as complete
-              if (profile.full_name && profile.email && profile.phone && profile.company) {
-                setCompletedSteps(prev => new Set([...prev, 1]));
-                setHasCompleteProfile(true);
-                
-                // Auto-navigate to Step 2 immediately if user is on Step 1
-                const stepParam = new URLSearchParams(window.location.search).get('step');
-                const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 1;
-                if (currentStepFromUrl === 1) {
-                  navigate('/application?step=2', { replace: true });
-                  setCurrentStep(2);
-                }
+              // Only auto-navigate to step 2 if user is on step 1
+              const stepParam = new URLSearchParams(window.location.search).get('step');
+              const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 1;
+              
+              if (currentStepFromUrl === 1) {
+                // Auto-advance to step 2 since contact info is complete
+                navigate('/application?step=2', { replace: true });
+                setCurrentStep(2);
               }
+            } else if (profile.full_name && profile.email) {
+              // Profile is PARTIAL - show friendly message and let them complete
+              setProfileStatus('partial');
+              setHasCompleteProfile(false);
+              console.log('Profile is partial - user needs to complete phone and company');
+            } else {
+              // Profile is missing basic info
+              setProfileStatus('none');
+              setHasCompleteProfile(false);
             }
           }
         }
@@ -272,7 +288,7 @@ export default function Application() {
   // Use validation from hook
   const validateStep = validateStepFromHook;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     console.log('[Next Button Clicked] Current Step:', currentStep, 'Form Data:', {
       propertyAddress: formData.propertyAddress,
       ownershipStatus: formData.ownershipStatus
@@ -303,6 +319,34 @@ export default function Application() {
     }
     
     if (validateStep(currentStep)) {
+      // If completing Step 1 AND user is authenticated, update their profile
+      if (currentStep === 1) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          try {
+            const { error } = await supabase
+              .from('profiles')
+              .update({
+                full_name: formData.fullName,
+                company: formData.company,
+                phone: formData.phone,
+                email: formData.email,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', session.user.id);
+            
+            if (error) throw error;
+            
+            console.log('Profile updated successfully');
+            setProfileStatus('complete');
+            setHasCompleteProfile(true);
+          } catch (error) {
+            console.error('Error updating profile:', error);
+            // Non-blocking - continue even if update fails
+          }
+        }
+      }
+      
       // Mark current step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep]));
       
@@ -677,43 +721,52 @@ export default function Application() {
                              />
                            )}
 
-                           {/* Contact Step - gated behind authLoading to prevent flash */}
-                            {authLoading ? (
-                              <div className="space-y-4">
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
-                                <Skeleton className="h-12 w-full" />
-                              </div>
-                            ) : hasCompleteProfile ? (
-                              <Card className="p-6 bg-primary/5 border-primary/20">
-                                <div className="flex items-start gap-4">
-                                  <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-                                  <div className="flex-1">
-                                    <h3 className="font-semibold text-lg mb-2">Welcome Back!</h3>
-                                    <p className="text-sm text-muted-foreground mb-4">
-                                      Your contact information has been loaded: <strong>{formData.fullName}</strong> ({formData.email})
-                                    </p>
-                                    <Button onClick={() => goToStep(2)} className="gap-2">
-                                      Continue to Property Details <ArrowRight className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </Card>
-                            ) : (
-                              <ContactStep
-                                formData={{
+                            {/* Contact Step - gated behind authLoading to prevent flash */}
+                             {authLoading ? (
+                               <div className="space-y-4">
+                                 <Skeleton className="h-12 w-full" />
+                                 <Skeleton className="h-12 w-full" />
+                                 <Skeleton className="h-12 w-full" />
+                                 <Skeleton className="h-12 w-full" />
+                               </div>
+                             ) : hasCompleteProfile ? (
+                               <Card className="p-6 bg-primary/5 border-primary/20">
+                                 <div className="flex items-start gap-4">
+                                   <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                                   <div className="flex-1">
+                                     <h3 className="font-semibold text-lg mb-2">Welcome Back!</h3>
+                                     <p className="text-sm text-muted-foreground mb-4">
+                                       Your contact information has been loaded: <strong>{formData.fullName}</strong> ({formData.email})
+                                     </p>
+                                     <Button onClick={() => goToStep(2)} className="gap-2">
+                                       Continue to Property Details <ArrowRight className="h-4 w-4" />
+                                     </Button>
+                                   </div>
+                                 </div>
+                               </Card>
+                             ) : (
+                               <>
+                                 {profileStatus === 'partial' && (
+                                   <div className="bg-accent/10 border border-accent rounded-lg p-4 mb-6">
+                                     <p className="text-sm text-foreground">
+                                       <strong>You're signed in!</strong> Just complete your phone and company details below to continue.
+                                     </p>
+                                   </div>
+                                 )}
+                                 <ContactStep
+                                   formData={{
                                   fullName: formData.fullName,
                                   company: formData.company,
                                   email: formData.email,
                                   phone: formData.phone,
-                                }}
-                                onChange={handleInputChange}
-                                errors={errors}
-                              />
-                            )}
-                         </div>
-                       )}
+                                 }}
+                                 onChange={handleInputChange}
+                                 errors={errors}
+                               />
+                             </>
+                             )}
+                          </div>
+                        )}
 
                       {/* Step 2: Property Information */}
                       {currentStep === 2 && (
