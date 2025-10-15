@@ -613,14 +613,6 @@ export default function Application() {
             <h2 className="font-body text-lg md:text-xl text-charcoal/80 max-w-3xl mx-auto mb-6 leading-relaxed">
               Answer a few quick questions so we can tailor your feasibility package. Only 5 projects accepted monthly.
             </h2>
-            
-            {/* Scarcity Badge */}
-            <div className="flex justify-center mb-8">
-              <Badge variant="destructive" className="bg-maxx-red text-white px-4 py-2 text-sm font-cta">
-                <Clock className="w-4 h-4 mr-2" />
-                Only 5 Projects Accepted Monthly
-              </Badge>
-            </div>
 
             {/* Progress Bar */}
             <div className="max-w-md mx-auto">
