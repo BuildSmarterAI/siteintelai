@@ -1388,128 +1388,7 @@ async function fallbackRoadFromOSM(lat: number, lng: number) {
   return {};
 }
 
-// Helper function to fetch utility infrastructure data
-async function fetchUtilities(lat: number, lng: number, city: string | null, county: string | null, endpoints: any): Promise<any> {
-  const result: any = {
-    water_lines: null,
-    sewer_lines: null,
-    storm_lines: null,
-    water_capacity_mgd: null,
-    sewer_capacity_mgd: null,
-    power_kv_nearby: null
-  };
-
-  const radius = 1000; // 1km search radius
-  const buffer = 0.01; // ~1.1km buffer in degrees
-
-  try {
-    // Houston-specific utility endpoints
-    if (city?.toLowerCase().includes('houston') || county?.toLowerCase().includes('harris')) {
-      const waterUrl = "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query";
-      const sewerUrl = "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query";
-      const stormUrl = "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query";
-
-      const params = new URLSearchParams({
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: radius.toString(),
-        units: 'esriSRUnit_Meter',
-        outFields: '*',
-        returnGeometry: 'true',
-        f: 'json'
-      });
-
-      // Fetch water lines
-      try {
-        const waterResp = await fetch(`${waterUrl}?${params}`);
-        const waterData = await waterResp.json();
-        if (waterData.features && waterData.features.length > 0) {
-          result.water_lines = waterData.features.length;
-        }
-      } catch (e) {
-        console.error('Water lines fetch error:', e);
-      }
-
-      // Fetch sewer lines
-      try {
-        const sewerResp = await fetch(`${sewerUrl}?${params}`);
-        const sewerData = await sewerResp.json();
-        if (sewerData.features && sewerData.features.length > 0) {
-          result.sewer_lines = sewerData.features.length;
-        }
-      } catch (e) {
-        console.error('Sewer lines fetch error:', e);
-      }
-
-      // Fetch storm lines
-      try {
-        const stormResp = await fetch(`${stormUrl}?${params}`);
-        const stormData = await stormResp.json();
-        if (stormData.features && stormData.features.length > 0) {
-          result.storm_lines = stormData.features.length;
-        }
-      } catch (e) {
-        console.error('Storm lines fetch error:', e);
-      }
-    }
-    // Add endpoints for other cities/counties from the catalog if available
-    else if (endpoints?.water_lines_url) {
-      const params = new URLSearchParams({
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: radius.toString(),
-        units: 'esriSRUnit_Meter',
-        outFields: '*',
-        returnGeometry: 'true',
-        f: 'json'
-      });
-
-      if (endpoints.water_lines_url) {
-        try {
-          const waterResp = await fetch(`${endpoints.water_lines_url}?${params}`);
-          const waterData = await waterResp.json();
-          if (waterData.features && waterData.features.length > 0) {
-            result.water_lines = waterData.features.length;
-          }
-        } catch (e) {
-          console.error('Water lines fetch error:', e);
-        }
-      }
-
-      if (endpoints.sewer_lines_url) {
-        try {
-          const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${params}`);
-          const sewerData = await sewerResp.json();
-          if (sewerData.features && sewerData.features.length > 0) {
-            result.sewer_lines = sewerData.features.length;
-          }
-        } catch (e) {
-          console.error('Sewer lines fetch error:', e);
-        }
-      }
-
-      if (endpoints.storm_lines_url) {
-        try {
-          const stormResp = await fetch(`${endpoints.storm_lines_url}?${params}`);
-          const stormData = await stormResp.json();
-          if (stormData.features && stormData.features.length > 0) {
-            result.storm_lines = stormData.features.length;
-          }
-        } catch (e) {
-          console.error('Storm lines fetch error:', e);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Utilities fetch error:', error);
-  }
-
-  return result;
-}
+// Utility fetching removed - now handled by dedicated enrich-utilities edge function
 
 // Helper function to fetch property tax data from CAD
 async function fetchPropertyTax(lat: number, lng: number, county: string, endpoints: any): Promise<any> {
@@ -2843,17 +2722,24 @@ serve(async (req) => {
     }
 
     // Step 6: Utilities / Infrastructure
-    console.log('Fetching utility infrastructure data...');
-    const utilities = await fetchUtilities(geoLat, geoLng, enrichedData.city, countyName, endpoints);
-    console.log('Utilities fetched:', utilities);
-    Object.assign(enrichedData, utilities);
-    if (!utilities.water_lines && !utilities.sewer_lines && !utilities.storm_lines) {
-      dataFlags.push('utilities_not_found');
-    }
+    // NOTE: Utility data (water_lines, sewer_lines, storm_lines) is now enriched by the dedicated
+    // enrich-utilities edge function, which provides detailed arrays with diameter/material/distance.
+    // We just generate the map URL here if utility data already exists in the database.
+    console.log('Checking for existing utility data...');
+    
+    // Check if utilities were already enriched
+    const { data: existingUtilities } = await supabase
+      .from('applications')
+      .select('water_lines, sewer_lines, storm_lines')
+      .eq('id', applicationId)
+      .single();
     
     // Generate utilities map URL if we have utility data
-    if (utilities.water_lines || utilities.sewer_lines || utilities.storm_lines) {
+    if (existingUtilities?.water_lines || existingUtilities?.sewer_lines || existingUtilities?.storm_lines) {
       enrichedData.utilities_map_url = `https://www.google.com/maps/@${geoLat},${geoLng},17z/data=!5m1!1e1`;
+      console.log('✅ Utilities already enriched by enrich-utilities');
+    } else {
+      console.log('⏳ Utilities will be enriched by enrich-utilities edge function');
     }
 
     console.log('Fetching broadband data...');
