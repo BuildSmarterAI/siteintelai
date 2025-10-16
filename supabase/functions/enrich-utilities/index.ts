@@ -55,12 +55,19 @@ function minDistanceToLine(lat: number, lng: number, paths: any[][], crs?: numbe
   
   // If geometry is in State Plane, convert to WGS84 first
   const convertedPaths = isStatePlane
-    ? paths.map(path => 
-        path.map(([x, y]) => {
+    ? paths.map((path, pathIdx) => 
+        path.map(([x, y], coordIdx) => {
           // Convert State Plane feet → WGS84 degrees
           const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
           const wgs84 = "EPSG:4326";
           const [lng_wgs, lat_wgs] = proj4(epsg2278, wgs84, [x, y]);
+          
+          // 🔍 DIAGNOSTIC: Log first conversion of each path to verify it's working
+          if (pathIdx === 0 && coordIdx === 0) {
+            console.log(`📍 PROJ4 Conversion Result: [${x}, ${y}] → [${lng_wgs}, ${lat_wgs}]`);
+            console.log(`   Expected for Houston: lng ≈ -95.x, lat ≈ 29.x`);
+          }
+          
           return [lng_wgs, lat_wgs];
         })
       )
