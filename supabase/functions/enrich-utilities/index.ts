@@ -443,12 +443,12 @@ serve(async (req) => {
     let failedServices = 0;
     const totalServices = 6; // water mains, water laterals, water fittings, sewer gravity, sewer force, storm
     
-    // CRS values for distance calculations
-    let waterCrs: number | undefined;
-    let sewerCrs: number | undefined;
-    let stormCrs: number | undefined;
-    let waterLateralsCrs: number | undefined;
-    let waterFittingsCrs: number | undefined;
+    // CRS values for distance calculations (default to WGS84)
+    let waterCrs: number | undefined = 4326;
+    let sewerCrs: number | undefined = 4326;
+    let stormCrs: number | undefined = 4326;
+    let waterLateralsCrs: number | undefined = 4326;
+    let waterFittingsCrs: number | undefined = 4326;
 
     // 2. Decide which catalog entry to use
     const cityLower = city?.toLowerCase() || '';
@@ -458,12 +458,12 @@ serve(async (req) => {
         console.log('Using Houston endpoints');
         const eps = endpointCatalog.houston;
         
-        // Set CRS values for Houston
-        waterCrs = eps.water?.crs;
-        sewerCrs = eps.sewer?.crs;
-        stormCrs = eps.storm?.crs;
-        waterLateralsCrs = eps.water_laterals?.crs;
-        waterFittingsCrs = eps.water_fittings?.crs;
+        // Set CRS values for Houston (override defaults)
+        waterCrs = eps.water?.crs || 4326;
+        sewerCrs = eps.sewer?.crs || 4326;
+        stormCrs = eps.storm?.crs || 4326;
+        waterLateralsCrs = eps.water_laterals?.crs || 4326;
+        waterFittingsCrs = eps.water_fittings?.crs || 4326;
         
         const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
           cityLower.includes(c.toLowerCase())
@@ -779,10 +779,10 @@ serve(async (req) => {
         console.log('Using Austin endpoints');
         const eps = endpointCatalog.austin;
         
-        // Set CRS values for Austin
-        waterCrs = eps.water?.crs;
-        sewerCrs = eps.sewer?.crs;
-        stormCrs = eps.storm?.crs;
+        // Set CRS values for Austin (override defaults)
+        waterCrs = eps.water?.crs || 4326;
+        sewerCrs = eps.sewer?.crs || 4326;
+        stormCrs = eps.storm?.crs || 4326;
         
         water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "austin_water", {
           timeout_ms: eps.water.timeout_ms,
