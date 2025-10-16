@@ -16,6 +16,7 @@ import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesDisplay } from "@/components/DataSourcesDisplay";
 import { ReportPreviewGate } from "@/components/ReportPreviewGate";
 import { GeospatialIntelligenceCard } from "@/components/GeospatialIntelligenceCard";
+import { UtilityResults } from "@/components/UtilityResults";
 import DOMPurify from 'dompurify';
 import { useMapLayers } from "@/hooks/useMapLayers";
 import { useSubscription } from "@/contexts/SubscriptionContext";
@@ -152,6 +153,30 @@ interface Report {
       type: string;
       distance_ft: number;
     }>;
+    water_lines?: Array<{
+      diameter: number | null;
+      material: string | null;
+      status?: string | null;
+      install_date?: string | null;
+      distance_ft?: number;
+      source?: string;
+      owner?: string;
+    }>;
+    sewer_lines?: Array<{
+      diameter: number | null;
+      material: string | null;
+      status?: string | null;
+      distance_ft?: number;
+      source?: string;
+    }>;
+    storm_lines?: Array<{
+      diameter: number | null;
+      material: string | null;
+      status?: string | null;
+      distance_ft?: number;
+      source?: string;
+    }>;
+    data_flags?: string[];
   };
 }
 
@@ -356,7 +381,11 @@ export default function ReportViewer() {
             updated_at,
             user_id,
             drivetimes,
-            nearby_places
+            nearby_places,
+            water_lines,
+            sewer_lines,
+            storm_lines,
+            data_flags
           )
         `)
         .eq('id', reportId)
@@ -371,7 +400,11 @@ export default function ReportViewer() {
         applications: {
           ...data.applications,
           drivetimes: data.applications.drivetimes as Report['applications']['drivetimes'],
-          nearby_places: data.applications.nearby_places as Report['applications']['nearby_places']
+          nearby_places: data.applications.nearby_places as Report['applications']['nearby_places'],
+          water_lines: data.applications.water_lines as Report['applications']['water_lines'],
+          sewer_lines: data.applications.sewer_lines as Report['applications']['sewer_lines'],
+          storm_lines: data.applications.storm_lines as Report['applications']['storm_lines'],
+          data_flags: data.applications.data_flags as Report['applications']['data_flags']
         }
       };
       setReport(typedData);
@@ -2148,9 +2181,19 @@ export default function ReportViewer() {
                 )}
 
                 {/* Original Utilities Analysis */}
-                <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(utilities.verdict || '<p>No utilities analysis available.</p>') }} />
-                </div>
+                {utilities.verdict && (
+                  <div className="prose prose-sm max-w-none mb-6">
+                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(utilities.verdict) }} />
+                  </div>
+                )}
+
+                {/* Detailed Utility Line Results */}
+                <UtilityResults 
+                  waterLines={report.applications.water_lines || null}
+                  sewerLines={report.applications.sewer_lines || null}
+                  stormLines={report.applications.storm_lines || null}
+                  dataFlags={report.applications.data_flags || []}
+                />
               </CardContent>
             </Card>
           </TabsContent>
