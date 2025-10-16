@@ -2,6 +2,16 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import proj4 from "https://cdn.skypack.dev/proj4@2.8.0";
 
+// Define EPSG:2278 (Texas South Central, US survey feet) projection
+const EPSG_2278_DEF = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=1968500 +y_0=13123333.33333333 +datum=NAD83 +units=us-ft +no_defs";
+proj4.defs('EPSG:2278', EPSG_2278_DEF);
+
+// Houston bounding box for sanity checks (WGS84)
+const HOUSTON_BBOX = {
+  lng: { min: -96.5, max: -94.5 },  // Longitude range
+  lat: { min: 28.5, max: 30.5 }      // Latitude range
+};
+
 // Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -57,15 +67,22 @@ function minDistanceToLine(lat: number, lng: number, paths: any[][], crs?: numbe
   const convertedPaths = isStatePlane
     ? paths.map((path, pathIdx) => 
         path.map(([x, y], coordIdx) => {
-          // Convert State Plane feet → WGS84 degrees
-          const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
-          const wgs84 = "EPSG:4326";
-          const [lng_wgs, lat_wgs] = proj4(epsg2278, wgs84, [x, y]);
+          // Convert State Plane feet → WGS84 degrees using canonical EPSG:2278
+          const [lng_wgs, lat_wgs] = proj4('EPSG:2278', 'EPSG:4326', [x, y]);
           
           // 🔍 DIAGNOSTIC: Log first conversion of each path to verify it's working
           if (pathIdx === 0 && coordIdx === 0) {
             console.log(`📍 PROJ4 Conversion Result: [${x}, ${y}] → [${lng_wgs}, ${lat_wgs}]`);
             console.log(`   Expected for Houston: lng ≈ -95.x, lat ≈ 29.x`);
+            
+            // ⚠️ SANITY CHECK: Verify coordinates are in Houston area
+            if (lng_wgs < HOUSTON_BBOX.lng.min || lng_wgs > HOUSTON_BBOX.lng.max ||
+                lat_wgs < HOUSTON_BBOX.lat.min || lat_wgs > HOUSTON_BBOX.lat.max) {
+              console.warn(`⚠️ CONVERSION SANITY CHECK FAILED!`);
+              console.warn(`   Converted coords [${lng_wgs}, ${lat_wgs}] outside Houston bounding box`);
+              console.warn(`   Expected: lng ∈ [${HOUSTON_BBOX.lng.min}, ${HOUSTON_BBOX.lng.max}], lat ∈ [${HOUSTON_BBOX.lat.min}, ${HOUSTON_BBOX.lat.max}]`);
+              console.warn(`   Using EPSG:2278 with definition: ${EPSG_2278_DEF}`);
+            }
           }
           
           return [lng_wgs, lat_wgs];
@@ -166,9 +183,8 @@ const queryArcGIS = async (
       spatialReference = 4326;
       console.log(`${utilityType}: Using WGS84 (EPSG:4326): ${JSON.stringify(geometryObj)}`);
     } else if (useCrs && config.crs === 2278) {
-      const wgs84 = "EPSG:4326";
-      const epsg2278 = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=2296583.333 +y_0=9842500 +datum=NAD83 +units=ft +no_defs";
-      const [x2278, y2278] = proj4(wgs84, epsg2278, [geo_lng, geo_lat]);
+      // Convert WGS84 to EPSG:2278 using canonical definition
+      const [x2278, y2278] = proj4('EPSG:4326', 'EPSG:2278', [geo_lng, geo_lat]);
       
       geometryObj = {
         x: x2278,
