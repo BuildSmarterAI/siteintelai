@@ -337,42 +337,46 @@ serve(async (req) => {
       }
     }
 
-    // Trigger enrichment to auto-fill GIS fields for this application
+    // Trigger enrichment to auto-fill GIS fields (fire and forget - don't block response)
     try {
       const addressForEnrichment = formatted_address || String(requestData.propertyAddress || '') || null;
       if (addressForEnrichment) {
-        console.log('Invoking enrich-feasibility for application:', data.id);
-        const { data: enrichResp, error: enrichErr } = await supabase.functions.invoke('enrich-feasibility', {
+        console.log('Triggering enrich-feasibility for application:', data.id);
+        
+        // Fire and forget - don't await
+        supabase.functions.invoke('enrich-feasibility', {
           body: {
             application_id: data.id,
             address: addressForEnrichment
           }
+        }).then(result => {
+          if (result.error) {
+            console.error('Enrichment invocation error:', result.error);
+          } else {
+            console.log('Enrichment triggered successfully');
+          }
         });
-        if (enrichErr) {
-          console.error('Enrichment invocation error:', enrichErr);
-        } else {
-          console.log('Enrichment invoked successfully:', enrichResp?.success ?? enrichResp);
-        }
 
-        // Also call enrich-utilities to populate water/sewer/storm lines
+        // Also trigger enrich-utilities (fire and forget)
         if (geo_lat && geo_lng) {
-          console.log('Invoking enrich-utilities for application:', data.id);
-          const { data: utilResp, error: utilErr } = await supabase.functions.invoke('enrich-utilities', {
+          console.log('Triggering enrich-utilities for application:', data.id);
+          supabase.functions.invoke('enrich-utilities', {
             body: {
               application_id: data.id
             }
+          }).then(result => {
+            if (result.error) {
+              console.error('Utilities enrichment error:', result.error);
+            } else {
+              console.log('Utilities enrichment triggered successfully');
+            }
           });
-          if (utilErr) {
-            console.error('Utilities enrichment error:', utilErr);
-          } else {
-            console.log('Utilities enrichment completed:', utilResp?.status ?? utilResp);
-          }
         }
       } else {
         console.log('Skipping enrichment: no address available');
       }
     } catch (invokeError) {
-      console.error('Failed to invoke enrichment:', invokeError);
+      console.error('Failed to trigger enrichment:', invokeError);
     }
 
     // Trigger AI report generation (fire and forget - won't block response)
