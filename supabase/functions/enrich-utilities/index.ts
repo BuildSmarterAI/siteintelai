@@ -442,6 +442,13 @@ serve(async (req) => {
     let apiUnreachable = false;
     let failedServices = 0;
     const totalServices = 6; // water mains, water laterals, water fittings, sewer gravity, sewer force, storm
+    
+    // CRS values for distance calculations
+    let waterCrs: number | undefined;
+    let sewerCrs: number | undefined;
+    let stormCrs: number | undefined;
+    let waterLateralsCrs: number | undefined;
+    let waterFittingsCrs: number | undefined;
 
     // 2. Decide which catalog entry to use
     const cityLower = city?.toLowerCase() || '';
@@ -450,6 +457,14 @@ serve(async (req) => {
       if (cityLower.includes("houston")) {
         console.log('Using Houston endpoints');
         const eps = endpointCatalog.houston;
+        
+        // Set CRS values for Houston
+        waterCrs = eps.water?.crs;
+        sewerCrs = eps.sewer?.crs;
+        stormCrs = eps.storm?.crs;
+        waterLateralsCrs = eps.water_laterals?.crs;
+        waterFittingsCrs = eps.water_fittings?.crs;
+        
         const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
           cityLower.includes(c.toLowerCase())
         );
@@ -763,6 +778,12 @@ serve(async (req) => {
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');
         const eps = endpointCatalog.austin;
+        
+        // Set CRS values for Austin
+        waterCrs = eps.water?.crs;
+        sewerCrs = eps.sewer?.crs;
+        stormCrs = eps.storm?.crs;
+        
         water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "austin_water", {
           timeout_ms: eps.water.timeout_ms,
           retry_attempts: eps.water.retry_attempts,
@@ -1059,9 +1080,9 @@ serve(async (req) => {
     // Only update database if we have an application_id
     if (application_id) {
       const { error: updateError } = await supabase.from("applications").update({
-        water_lines: formatLines(water, geo_lat, geo_lng, 'water', eps.water?.crs),
-        sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', eps.sewer?.crs),
-        storm_lines: formatLines(storm, geo_lat, geo_lng, 'storm', eps.storm?.crs),
+        water_lines: formatLines(water, geo_lat, geo_lng, 'water', waterCrs),
+        sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', sewerCrs),
+        storm_lines: formatLines(storm, geo_lat, geo_lng, 'storm', stormCrs),
         utilities_summary: utilitiesSummary,
         data_flags: flags,
         api_meta: apiMeta,
@@ -1082,13 +1103,13 @@ serve(async (req) => {
           // Water laterals data (Layer 0)
           ...(water_laterals.length > 0 && {
             water_laterals_count: water_laterals.length,
-            water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng, 'water_laterals', eps.water_laterals?.crs)
+            water_laterals_data: formatLines(water_laterals, geo_lat, geo_lng, 'water_laterals', waterLateralsCrs)
           }),
           
           // Water fittings data (Layer 1 - valves, hydrants, meters)
           ...(water_fittings.length > 0 && {
             water_fittings_count: water_fittings.length,
-            water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng, 'water_fittings', eps.water_fittings?.crs).map((f, idx) => ({
+            water_fittings_data: formatLines(water_fittings, geo_lat, geo_lng, 'water_fittings', waterFittingsCrs).map((f, idx) => ({
               ...f,
               fitting_type: water_fittings[idx].attributes.FITTING_TYPE || null
             })),
