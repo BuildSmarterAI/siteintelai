@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import proj4 from "https://cdn.skypack.dev/proj4@2.8.0";
 
 // Define EPSG:2278 (Texas South Central, US survey feet) projection
-const EPSG_2278_DEF = "+proj=lcc +lat_1=30.28333333333333 +lat_2=28.38333333333333 +lat_0=27.83333333333333 +lon_0=-99 +x_0=1968500 +y_0=13123333.33333333 +datum=NAD83 +units=us-ft +no_defs";
+// Authoritative definition from epsg.io - false easting/northing in meters, converted internally by proj4
+const EPSG_2278_DEF = "+proj=lcc +lat_0=27.8333333333333 +lon_0=-99 +lat_1=30.2833333333333 +lat_2=28.3833333333333 +x_0=600000 +y_0=3999999.9998984 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=us-ft +no_defs";
 proj4.defs('EPSG:2278', EPSG_2278_DEF);
 
 // Houston bounding box for sanity checks (WGS84)
