@@ -44,8 +44,17 @@ function haversineDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 function minDistanceToLine(lat: number, lng: number, paths: any[][], crs?: number) {
   let minDist = Infinity;
   
-  // If geometry is in State Plane (EPSG:2278), convert to WGS84 first
-  const convertedPaths = (crs === 2278) 
+  // Detect if coordinates are actually in State Plane by checking magnitude
+  // State Plane coords in Texas are typically > 1000 (feet), WGS84 coords are < 180 (degrees)
+  const firstCoord = paths[0]?.[0];
+  const isStatePlane = crs === 2278 || (firstCoord && Math.abs(firstCoord[0]) > 360);
+  
+  if (isStatePlane) {
+    console.log(`🔧 Detected State Plane coordinates (first coord: [${firstCoord?.[0]}, ${firstCoord?.[1]}]), converting to WGS84...`);
+  }
+  
+  // If geometry is in State Plane, convert to WGS84 first
+  const convertedPaths = isStatePlane
     ? paths.map(path => 
         path.map(([x, y]) => {
           // Convert State Plane feet → WGS84 degrees
