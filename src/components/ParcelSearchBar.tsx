@@ -10,9 +10,10 @@ import { toast } from 'sonner';
 interface ParcelSearchBarProps {
   onAddressSelect: (lat: number, lng: number, address: string) => void;
   onParcelSelect?: (parcel: any) => void;
+  containerClassName?: string;
 }
 
-export function ParcelSearchBar({ onAddressSelect, onParcelSelect }: ParcelSearchBarProps) {
+export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClassName }: ParcelSearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -137,7 +138,7 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect }: ParcelSearc
   };
 
   return (
-    <div className="absolute top-4 left-4 z-20 w-96">
+    <div className={`absolute left-4 z-20 w-96 ${containerClassName ?? 'top-4'}`}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex gap-2">
           <PopoverTrigger asChild>

@@ -73,6 +73,7 @@ export default function ParcelExplorer() {
           <ParcelSearchBar
             onAddressSelect={handleAddressSelect}
             onParcelSelect={handleParcelSelect}
+            containerClassName="top-24 md:top-24 z-30"
           />
         </div>
       </div>
