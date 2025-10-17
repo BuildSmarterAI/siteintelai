@@ -73,3 +73,18 @@ verify_jwt = true
 
 [functions.fetch-places-context]
 verify_jwt = true
+
+[functions.save-drawn-parcel]
+verify_jwt = true
+
+[functions.update-drawn-parcel]
+verify_jwt = true
+
+[functions.delete-drawn-parcel]
+verify_jwt = true
+
+[functions.get-sanitized-report]
+verify_jwt = false
+
+[functions.chat-with-report]
+verify_jwt = false

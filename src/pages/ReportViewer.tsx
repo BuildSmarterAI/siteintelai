@@ -22,6 +22,7 @@ import { useMapLayers } from "@/hooks/useMapLayers";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
+import { ReportChatAssistant } from "@/components/ReportChatAssistant";
 interface Report {
   id: string;
   application_id: string;
@@ -3021,6 +3022,9 @@ export default function ReportViewer() {
     </div>
         )}
       </main>
+
+      {/* AI Chat Assistant */}
+      {report && report.applications && <ReportChatAssistant reportData={report} applicationData={report.applications} />}
     </div>
   );
 }

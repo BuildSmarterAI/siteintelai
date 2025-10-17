@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -202,6 +202,7 @@ export function MapLibreCanvas({
   const draw = useRef<MapboxDraw | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [is3DMode, setIs3DMode] = useState(false);
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<MeasurementMode>(null);
   const [measurementResult, setMeasurementResult] = useState<any>(null);
   const [measurementPoints, setMeasurementPoints] = useState<[number, number][]>([]);
@@ -1243,6 +1244,23 @@ export function MapLibreCanvas({
       {/* Top-right controls */}
       <div className="absolute top-2 right-2 z-10 flex gap-2">
         <Button
+          onClick={() => {
+            if (!map.current) return;
+            setIs3DMode(!is3DMode);
+            if (!is3DMode) {
+              map.current.easeTo({ pitch: 60, bearing: -17.6, duration: 1000 });
+            } else {
+              map.current.easeTo({ pitch: 0, bearing: 0, duration: 1000 });
+            }
+          }}
+          size="sm"
+          variant={is3DMode ? "default" : "secondary"}
+          className="shadow-lg"
+          title={is3DMode ? "2D View" : "3D View"}
+        >
+          {is3DMode ? <Map className="h-4 w-4" /> : <Box className="h-4 w-4" />}
+        </Button>
+        <Button
           onClick={exportMapAsPNG}
           size="sm"
           variant="secondary"
@@ -1358,6 +1376,45 @@ export function MapLibreCanvas({
               <Ruler className="h-4 w-4 text-primary" />
               Measurement Result
             </h4>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setMeasurementResult(null);
+                setMeasurementPoints([]);
+                handleMeasurementToolChange(null);
+              }}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            {activeMeasurementTool === 'distance' && measurementResult.miles && (
+              <div className="bg-blue-50 p-3 rounded">
+                <div className="text-xs text-blue-600 font-medium mb-1">Distance</div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {measurementResult.miles.toFixed(2)} mi
+                </div>
+                <div className="text-xs text-blue-600">
+                  {measurementResult.feet.toLocaleString()} ft
+                </div>
+              </div>
+            )}
+            
+            {activeMeasurementTool === 'area' && measurementResult.acres && (
+              <div className="bg-green-50 p-3 rounded">
+                <div className="text-xs text-green-600 font-medium mb-1">Area</div>
+                <div className="text-2xl font-bold text-green-900">
+                  {measurementResult.acres.toFixed(2)} ac
+                </div>
+                <div className="text-xs text-green-600">
+                  {measurementResult.sqft.toLocaleString()} sq ft
+                </div>
+              </div>
+            )}
+            
             <Button
               size="sm"
               variant="ghost"

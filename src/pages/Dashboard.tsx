@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp, GripVertical } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
@@ -19,6 +19,9 @@ import { IntentBadge } from "@/components/IntentBadge";
 import { ReportCardSkeleton, StatsCardSkeleton } from "@/components/ui/report-skeleton";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import confetti from 'canvas-confetti';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Report {
   id: string;
@@ -38,6 +41,7 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<Report[]>([]);
+  const [sortedReports, setSortedReports] = useState<Report[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const { isAdmin } = useAdminRole();
   const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
@@ -119,6 +123,166 @@ export default function Dashboard() {
   }, [reports, navigate]);
 
   // Show tour for new users
+  useEffect(() => {
+    const tourCompleted = localStorage.getItem('tour_completed_dashboard');
+    if (!tourCompleted && reports.length === 0) {
+      setTimeout(() => setShowTour(true), 1500);
+    }
+  }, [reports]);
+
+  // Load saved order and apply it
+  useEffect(() => {
+    if (reports.length === 0) return;
+    
+    const savedOrder = localStorage.getItem(`siteintel_report_order_${profile?.id}`);
+    if (savedOrder) {
+      try {
+        const orderMap: Record<string, number> = JSON.parse(savedOrder);
+        const sorted = [...reports].sort((a, b) => {
+          const aIndex = orderMap[a.id] ?? 999;
+          const bIndex = orderMap[b.id] ?? 999;
+          return aIndex - bIndex;
+        });
+        setSortedReports(sorted);
+      } catch {
+        setSortedReports(reports);
+      }
+    } else {
+      setSortedReports(reports);
+    }
+  }, [reports, profile]);
+
+  // Setup drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (!over || active.id === over.id) return;
+
+    setSortedReports((items) => {
+      const oldIndex = items.findIndex((item) => item.id === active.id);
+      const newIndex = items.findIndex((item) => item.id === over.id);
+      
+      const newOrder = arrayMove(items, oldIndex, newIndex);
+      
+      // Save to localStorage
+      const orderMap = newOrder.reduce((acc, report, idx) => {
+        acc[report.id] = idx;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      localStorage.setItem(`siteintel_report_order_${profile?.id}`, JSON.stringify(orderMap));
+      
+      return newOrder;
+    });
+  };
+
+  const SortableReportCard = ({ report }: { report: Report }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: report.id });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="flex items-center gap-3 p-4 border rounded-lg hover:bg-accent/50 transition"
+      >
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-move text-charcoal/40 hover:text-charcoal transition"
+          title="Drag to reorder"
+        >
+          <GripVertical className="h-5 w-5" />
+        </div>
+        <div className="flex-1 flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-1">
+              {report.status === 'completed' ? (
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              ) : report.status === 'generating' ? (
+                <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              ) : (
+                <Clock className="h-5 w-5 text-muted-foreground" />
+              )}
+              <h3 className="font-semibold">
+                {report.applications?.formatted_address || 'Unknown Address'}
+              </h3>
+              {report.applications?.intent_type && (
+                <IntentBadge intentType={report.applications.intent_type} size="sm" />
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground pl-8">
+              {new Date(report.created_at).toLocaleDateString()} • {report.report_type}
+              {report.status === 'generating' && ' • Estimated completion: 30-60 seconds'}
+            </p>
+          </div>
+          <div className="flex items-center gap-4">
+            {report.feasibility_score && (
+              <Badge variant="outline" className="text-base px-3 py-1">
+                Score: {report.feasibility_score}
+              </Badge>
+            )}
+            <div className="flex items-center gap-2">
+              <Badge className={getStatusColor(report.status)}>
+                {report.status}
+              </Badge>
+              {isAdmin && report.status === 'failed' && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const result = await reEnrich(report.id);
+                    if (result.success) {
+                      setTimeout(() => fetchReports(), 3000);
+                    }
+                  }}
+                  disabled={reEnrichLoading}
+                  className="h-8 text-xs"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${reEnrichLoading ? 'animate-spin' : ''}`} />
+                  Re-enrich
+                </Button>
+              )}
+            </div>
+            {report.status === 'completed' && (
+              <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                View Report
+              </Button>
+            )}
+            {report.status === 'failed' && (
+              <div className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                <span>Failed</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Show onboarding tour for new users
   useEffect(() => {
     const tourCompleted = localStorage.getItem('tour_completed_dashboard');
     if (!tourCompleted && reports.length === 0) {
@@ -368,74 +532,22 @@ export default function Dashboard() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {reports.map((report) => (
-                      <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-1">
-                            {report.status === 'completed' ? (
-                              <CheckCircle className="h-5 w-5 text-green-600" />
-                            ) : report.status === 'generating' ? (
-                              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                            ) : (
-                              <Clock className="h-5 w-5 text-muted-foreground" />
-                            )}
-                            <h3 className="font-semibold">
-                              {report.applications?.formatted_address || 'Unknown Address'}
-                            </h3>
-                            {report.applications?.intent_type && (
-                              <IntentBadge intentType={report.applications.intent_type} size="sm" />
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground pl-8">
-                            {new Date(report.created_at).toLocaleDateString()} • {report.report_type}
-                            {report.status === 'generating' && ' • Estimated completion: 30-60 seconds'}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          {report.feasibility_score && (
-                            <Badge variant="outline" className="text-base px-3 py-1">
-                              Score: {report.feasibility_score}
-                            </Badge>
-                          )}
-                          <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(report.status)}>
-                              {report.status}
-                            </Badge>
-                            {isAdmin && report.status === 'failed' && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  const result = await reEnrich(report.id);
-                                  if (result.success) {
-                                    setTimeout(() => fetchReports(), 3000);
-                                  }
-                                }}
-                                disabled={reEnrichLoading}
-                                className="h-8 text-xs"
-                              >
-                                <RefreshCw className={`h-3 w-3 mr-1 ${reEnrichLoading ? 'animate-spin' : ''}`} />
-                                Re-enrich
-                              </Button>
-                            )}
-                          </div>
-                          {report.status === 'completed' && (
-                            <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
-                              View Report
-                            </Button>
-                          )}
-                          {report.status === 'failed' && (
-                            <div className="flex items-center gap-1 text-xs text-destructive">
-                              <AlertCircle className="h-3 w-3" />
-                              <span>Failed</span>
-                            </div>
-                          )}
-                        </div>
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={sortedReports.map(r => r.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-4">
+                        {sortedReports.map((report) => (
+                          <SortableReportCard key={report.id} report={report} />
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </SortableContext>
+                  </DndContext>
                 )}
               </CardContent>
             </Card>

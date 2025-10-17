@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, FileText, PlusCircle, Settings, LayoutDashboard } from "lucide-react";
+import { Home, FileText, PlusCircle, Settings, LayoutDashboard, TrendingUp } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,7 @@ import {
 const navigationItems = [
   { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
   { title: "All Reports", url: "/dashboard?tab=all", icon: FileText },
+  { title: "Portfolio Analytics", url: "/analytics", icon: TrendingUp },
   { title: "New Application", url: "/application?step=1", icon: PlusCircle },
 ];
 
