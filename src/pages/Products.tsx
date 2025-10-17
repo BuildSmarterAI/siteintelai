@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { MapPin, DollarSign, Calendar, ArrowRight, Check } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import { Helmet } from "react-helmet";
 
 const Products = () => {
@@ -86,14 +86,35 @@ const Products = () => {
         {/* Product Cards Grid */}
         <section className="container mx-auto px-6 py-20">
           <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
-            {products.map((product, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: idx * 0.15 }}
-                className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all relative group"
-              >
+            {products.map((product, idx) => {
+              const ProductCard = () => {
+                const x = useMotionValue(0);
+                const y = useMotionValue(0);
+                const rotateX = useTransform(y, [-100, 100], [10, -10]);
+                const rotateY = useTransform(x, [-100, 100], [-10, 10]);
+
+                return (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: idx * 0.15 }}
+                    style={{
+                      rotateX,
+                      rotateY,
+                      transformStyle: "preserve-3d"
+                    }}
+                    onMouseMove={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      x.set(e.clientX - rect.left - rect.width / 2);
+                      y.set(e.clientY - rect.top - rect.height / 2);
+                    }}
+                    onMouseLeave={() => {
+                      x.set(0);
+                      y.set(0);
+                    }}
+                    className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-all relative group"
+                  >
                 {product.comingSoon && (
                   <div className="absolute top-4 right-4 bg-[#8B5CF6] text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Coming Soon
@@ -126,7 +147,10 @@ const Products = () => {
                   </Link>
                 </Button>
               </motion.div>
-            ))}
+                );
+              };
+              return <ProductCard key={idx} />;
+            })}
           </div>
         </section>
 

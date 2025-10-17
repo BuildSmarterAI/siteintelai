@@ -9,6 +9,7 @@ import { QuickCheckResult } from "./QuickCheckResult";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import confetti from "canvas-confetti";
 
 interface QuickCheckData {
   score: number;
@@ -24,6 +25,23 @@ export function QuickCheckWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [quickCheckData, setQuickCheckData] = useState<QuickCheckData | null>(null);
   const [showResults, setShowResults] = useState(false);
+
+  const triggerConfetti = (score: number) => {
+    if (score >= 80) {
+      confetti({
+        particleCount: 150,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#FF7A00', '#06B6D4', '#10B981']
+      });
+    } else if (score >= 60) {
+      confetti({
+        particleCount: 100,
+        spread: 60,
+        origin: { y: 0.6 }
+      });
+    }
+  };
 
   const handleQuickCheck = async () => {
     if (!intentType) {
@@ -60,7 +78,10 @@ export function QuickCheckWidget() {
         address: address
       });
 
-      setTimeout(() => setShowResults(true), 150);
+      setTimeout(() => {
+        setShowResults(true);
+        triggerConfetti(data.score);
+      }, 150);
       toast.success("QuickCheck™ complete!");
     } catch (error) {
       console.error('QuickCheck error:', error);

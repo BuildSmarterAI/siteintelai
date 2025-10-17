@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { Lock, MapPin, Droplets, Building2, ArrowRight, DollarSign, TrendingUp, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 interface QuickCheckResultProps {
   score: number;
@@ -43,8 +44,19 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
     <div className="mt-6 space-y-4 animate-in fade-in-50 duration-500">
       {/* Score Display */}
       <div className="text-center py-6 bg-gradient-to-br from-primary/10 to-transparent rounded-lg border border-primary/20">
-        <ScoreCircle score={score} size="lg" />
-        <div className="mt-4">
+        <motion.div
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        >
+          <ScoreCircle score={score} size="lg" />
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-4"
+        >
           <Badge className={`${getBandColor(band)} text-white text-lg px-4 py-1`}>
             Grade {band}
           </Badge>
@@ -53,14 +65,19 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
             <MapPin className="h-3 w-3" />
             {address}
           </p>
-        </div>
+        </motion.div>
       </div>
 
       {/* Quick Insights - Intent-Aware */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {intentType === 'build' ? (
           <>
-            <Card className="zoning-insight">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="zoning-insight">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-primary" />
@@ -71,8 +88,14 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
                 <p className="text-base font-medium">{zoningVerdict}</p>
               </CardContent>
             </Card>
+            </motion.div>
 
-            <Card className="utility-insight">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="utility-insight">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-blue-500" />
@@ -84,10 +107,16 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
                 <p className="text-xs text-muted-foreground mt-1">Full report shows water/sewer distance</p>
               </CardContent>
             </Card>
+            </motion.div>
           </>
         ) : (
           <>
-            <Card className="market-value-insight">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <Card className="market-value-insight">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-500" />
@@ -99,8 +128,14 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
                 <p className="text-xs text-muted-foreground mt-1">Full analysis in detailed report</p>
               </CardContent>
             </Card>
+            </motion.div>
 
-            <Card className="flood-insurance-insight">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Card className="flood-insurance-insight">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Droplets className="h-4 w-4 text-blue-500" />
@@ -112,6 +147,7 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
                 <p className="text-xs text-muted-foreground mt-1">Critical for ROI calculation</p>
               </CardContent>
             </Card>
+            </motion.div>
           </>
         )}
       </div>

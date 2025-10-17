@@ -7,6 +7,7 @@ import { Header } from "./components/navigation/Header";
 import { Footer } from "./components/navigation/Footer";
 import { SkipLinks } from "./components/SkipLinks";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
+import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import Index from "./pages/Index";
 import Application from "./pages/Application";
 import ThankYou from "./pages/ThankYou";
@@ -39,6 +40,7 @@ const App = () => (
         <BrowserRouter>
           <SkipLinks />
           <Header />
+          <KeyboardShortcuts />
         <main id="main-content" className="pt-24">
           <Routes>
             <Route path="/" element={<Index />} />

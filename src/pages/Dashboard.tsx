@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
 import { IntentBadge } from "@/components/IntentBadge";
+import { ReportCardSkeleton, StatsCardSkeleton } from "@/components/ui/report-skeleton";
 
 interface Report {
   id: string;
@@ -119,9 +120,34 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-charcoal/5 to-navy/5">
-        <Loader2 className="h-8 w-8 animate-spin text-navy" />
-      </div>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-gradient-to-br from-charcoal/5 to-navy/5">
+          <div className="hidden md:flex">
+            <DashboardSidebar />
+          </div>
+          
+          <div className="flex-1 flex flex-col">
+            <header className="bg-white border-b border-charcoal/10 py-4 md:py-6">
+              <div className="container mx-auto px-4 md:px-6">
+                <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+              </div>
+            </header>
+            
+            <main className="flex-1 container mx-auto px-4 md:px-6 py-6 md:py-12">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {[...Array(3)].map((_, i) => (
+                  <StatsCardSkeleton key={i} />
+                ))}
+              </div>
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <ReportCardSkeleton key={i} />
+                ))}
+              </div>
+            </main>
+          </div>
+        </div>
+      </SidebarProvider>
     );
   }
 
