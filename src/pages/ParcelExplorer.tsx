@@ -67,6 +67,7 @@ export default function ParcelExplorer() {
         zoom={zoom}
         showParcels={true}
         onParcelSelect={handleParcelSelect}
+        className="h-full w-full"
       />
 
       {/* Parcel Details Popup */}

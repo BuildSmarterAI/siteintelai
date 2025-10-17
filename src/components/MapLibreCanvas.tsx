@@ -1289,12 +1289,19 @@ export function MapLibreCanvas({
         bounds.getNorth()
       ];
 
-      try {
-        const { data, error } = await supabase.functions.invoke('fetch-hcad-parcels', {
-          body: { bbox, zoom }
-        });
+        try {
+          console.log('🗺️ Fetching HCAD parcels:', { bbox, zoom });
+          
+          const { data, error } = await supabase.functions.invoke('fetch-hcad-parcels', {
+            body: { bbox, zoom }
+          });
 
-        if (error) throw error;
+          if (error) {
+            console.error('❌ HCAD API Error:', error);
+            throw error;
+          }
+          
+          console.log('✅ HCAD parcels loaded:', data?.features?.length || 0);
 
         // Initialize source if doesn't exist
         if (!map.current!.getSource(sourceId)) {
@@ -1397,7 +1404,7 @@ export function MapLibreCanvas({
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
       <div
         ref={mapContainer}
-        className={`${isFullscreen ? 'h-screen w-screen' : className} rounded-lg overflow-hidden ${drawingEnabled ? 'ring-4 ring-primary/50 animate-pulse' : ''}`}
+        className={`${isFullscreen ? 'h-screen w-screen' : (className || 'h-full w-full')} rounded-lg overflow-hidden ${drawingEnabled ? 'ring-4 ring-primary/50 animate-pulse' : ''}`}
         role="img"
         aria-label={getMapDescription()}
         tabIndex={0}
