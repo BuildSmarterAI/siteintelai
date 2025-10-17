@@ -254,102 +254,7 @@ CRITICAL GUIDELINES:
 - Map each dataset to section: zoning, flood, utilities, environmental, traffic, market
 - Use official endpoint URLs: FEMA (hazards.fema.gov), TxDOT (txdot.gov), HCAD (hcad.org), etc.`;
 
-  // Add intent-specific focus
-  if (intentType === 'build') {
-    return baseInstructions + `
-
-**BUILD/DEVELOPMENT FOCUS:**
-Your analysis prioritizes **constructability, entitlement risk, and development timelines**.
-
-Key evaluation criteria:
-- Zoning compliance and overlay restrictions (height limits, setbacks, FAR)
-- Floodplain mitigation requirements (fill costs, BFE+1 construction)
-- Utility proximity and capacity (water/sewer/storm within 500ft ideal)
-- Environmental permits (wetland impacts, soil drainage for foundations)
-- Construction schedule feasibility (permit sequencing, agency timelines)
-- Market demand for proposed use (labor pool, traffic accessibility)
-
-Score Weights (Build):
-- Zoning & Entitlements: 30%
-- Flood & Environmental: 20%
-- Utilities & Infrastructure: 20%
-- Environmental Permits: 10%
-- Schedule Risk: 10%
-- Market Demand: 10%
-
-Narrative Tone: Technical, lender-focused, construction-ready language.` +
-      (reportType === 'quickcheck' ? `\n\nQuickCheck JSON schema:\n{
-  "summary": {
-    "feasibility_score": number (0-100),
-    "score_band": "A"|"B"|"C",
-    "executive_summary": "2-3 sentence verdict"
-  },
-  "zoning": {
-    "zoning_summary": "Current zoning and primary permitted uses",
-    "citations": [{"source": "...", "url": "..."}]
-  },
-  "flood": {
-    "flood_summary": "Zone, BFE, risk level",
-    "citations": [{"source": "...", "url": "..."}]
-  },
-  "data_sources": [
-    {
-      "dataset_name": "Source name",
-      "timestamp": "ISO-8601 datetime",
-      "endpoint_url": "https://...",
-      "section": "zoning|flood|utilities|environmental|traffic|market"
-    }
-  ]
-}` : '');
-  } else if (intentType === 'buy') {
-    return baseInstructions + `
-
-**BUY/INVESTMENT FOCUS:**
-Your analysis prioritizes **risk-adjusted ROI, flood insurance costs, and long-term value stability**.
-
-Key evaluation criteria:
-- Property valuation vs. market comps (appraised value trends)
-- Flood insurance requirements and NFIP loss history
-- Environmental liability exposure (EPA sites, wetlands restrictions)
-- Market stability (median income, population growth, employment)
-- Infrastructure access (highways, transit, utilities) for tenant demand
-- Regulatory constraints (zoning for future use, tax incentives)
-
-Score Weights (Buy):
-- Valuation & Market: 30%
-- Flood & Insurance Risk: 25%
-- Environmental Liability: 20%
-- Market Demographics: 15%
-- Infrastructure Access: 10%
-
-Narrative Tone: Investor-focused, underwriting-ready, ROI-oriented language.` +
-      (reportType === 'quickcheck' ? `\n\nQuickCheck JSON schema:\n{
-  "summary": {
-    "feasibility_score": number (0-100),
-    "score_band": "A"|"B"|"C",
-    "executive_summary": "2-3 sentence verdict"
-  },
-  "zoning": {
-    "zoning_summary": "Current zoning and primary permitted uses",
-    "citations": [{"source": "...", "url": "..."}]
-  },
-  "flood": {
-    "flood_summary": "Zone, BFE, risk level",
-    "citations": [{"source": "...", "url": "..."}]
-  },
-  "data_sources": [
-    {
-      "dataset_name": "Source name",
-      "timestamp": "ISO-8601 datetime",
-      "endpoint_url": "https://...",
-      "section": "zoning|flood|utilities|environmental|traffic|market"
-    }
-  ]
-}` : '');
-  }
-
-  // Default to build if no intent specified (backward compatibility)
-  return baseInstructions;
+  const fullReportSchema = `
 
 Full Report JSON schema:
 {
@@ -474,6 +379,104 @@ PROJECT INTENT ANALYSIS RULES:
 - Provide use-specific recommendations (e.g., "This site is ideal for retail due to 35K AADT, but industrial would struggle due to limited truck access")
 
 Never use placeholders or "TBD" - use actual data or mark as "data unavailable".`;
+
+
+  // Add intent-specific focus
+  if (intentType === 'build') {
+    return baseInstructions + `
+
+**BUILD/DEVELOPMENT FOCUS:**
+Your analysis prioritizes **constructability, entitlement risk, and development timelines**.
+
+Key evaluation criteria:
+- Zoning compliance and overlay restrictions (height limits, setbacks, FAR)
+- Floodplain mitigation requirements (fill costs, BFE+1 construction)
+- Utility proximity and capacity (water/sewer/storm within 500ft ideal)
+- Environmental permits (wetland impacts, soil drainage for foundations)
+- Construction schedule feasibility (permit sequencing, agency timelines)
+- Market demand for proposed use (labor pool, traffic accessibility)
+
+Score Weights (Build):
+- Zoning & Entitlements: 30%
+- Flood & Environmental: 20%
+- Utilities & Infrastructure: 20%
+- Environmental Permits: 10%
+- Schedule Risk: 10%
+- Market Demand: 10%
+
+Narrative Tone: Technical, lender-focused, construction-ready language.` +
+      (reportType === 'quickcheck' ? `\n\nQuickCheck JSON schema:\n{
+  "summary": {
+    "feasibility_score": number (0-100),
+    "score_band": "A"|"B"|"C",
+    "executive_summary": "2-3 sentence verdict"
+  },
+  "zoning": {
+    "zoning_summary": "Current zoning and primary permitted uses",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "flood": {
+    "flood_summary": "Zone, BFE, risk level",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "data_sources": [
+    {
+      "dataset_name": "Source name",
+      "timestamp": "ISO-8601 datetime",
+      "endpoint_url": "https://...",
+      "section": "zoning|flood|utilities|environmental|traffic|market"
+    }
+  ]
+}` : fullReportSchema);
+  } else if (intentType === 'buy') {
+    return baseInstructions + `
+
+**BUY/INVESTMENT FOCUS:**
+Your analysis prioritizes **risk-adjusted ROI, flood insurance costs, and long-term value stability**.
+
+Key evaluation criteria:
+- Property valuation vs. market comps (appraised value trends)
+- Flood insurance requirements and NFIP loss history
+- Environmental liability exposure (EPA sites, wetlands restrictions)
+- Market stability (median income, population growth, employment)
+- Infrastructure access (highways, transit, utilities) for tenant demand
+- Regulatory constraints (zoning for future use, tax incentives)
+
+Score Weights (Buy):
+- Valuation & Market: 30%
+- Flood & Insurance Risk: 25%
+- Environmental Liability: 20%
+- Market Demographics: 15%
+- Infrastructure Access: 10%
+
+Narrative Tone: Investor-focused, underwriting-ready, ROI-oriented language.` +
+      (reportType === 'quickcheck' ? `\n\nQuickCheck JSON schema:\n{
+  "summary": {
+    "feasibility_score": number (0-100),
+    "score_band": "A"|"B"|"C",
+    "executive_summary": "2-3 sentence verdict"
+  },
+  "zoning": {
+    "zoning_summary": "Current zoning and primary permitted uses",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "flood": {
+    "flood_summary": "Zone, BFE, risk level",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "data_sources": [
+    {
+      "dataset_name": "Source name",
+      "timestamp": "ISO-8601 datetime",
+      "endpoint_url": "https://...",
+      "section": "zoning|flood|utilities|environmental|traffic|market"
+    }
+  ]
+}` : fullReportSchema);
+  }
+
+  // Default to build if no intent specified (backward compatibility)
+  return baseInstructions + fullReportSchema;
 }
 
 function buildUserPrompt(application: any, reportType: string, geospatialData?: any, intentType: string = 'build'): string {
