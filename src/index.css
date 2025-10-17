@@ -102,6 +102,15 @@ All colors MUST be HSL.
     --status-error: 0 84% 60%;
     --status-info: 199 89% 48%;
     --status-pending: 217 91% 60%;
+    
+    /* Intent-specific theme extensions */
+    --intent-build-primary: 226 63% 11%;      /* Midnight Blue */
+    --intent-build-bg: 226 63% 11% / 0.08;
+    --intent-build-border: 226 63% 11% / 0.2;
+    
+    --intent-buy-primary: 191 91% 43%;        /* Data Cyan */
+    --intent-buy-bg: 191 91% 43% / 0.08;
+    --intent-buy-border: 191 91% 43% / 0.2;
   }
   
   .dark {
@@ -277,6 +286,19 @@ All colors MUST be HSL.
   /* Design System Transitions */
   .transition-design {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); /* ease-in-out cubic */
+  }
+  
+  /* Intent-specific utility classes */
+  .intent-build {
+    --intent-primary: var(--intent-build-primary);
+    --intent-bg: var(--intent-build-bg);
+    --intent-border: var(--intent-build-border);
+  }
+
+  .intent-buy {
+    --intent-primary: var(--intent-buy-primary);
+    --intent-bg: var(--intent-buy-bg);
+    --intent-border: var(--intent-buy-border);
   }
   
   .hover-scale {

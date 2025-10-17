@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
@@ -15,6 +15,7 @@ import { PaymentButton } from "@/components/PaymentButton";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
+import { IntentBadge } from "@/components/IntentBadge";
 
 interface Report {
   id: string;
@@ -25,6 +26,7 @@ interface Report {
   applications: {
     formatted_address: string;
     property_address: any;
+    intent_type: 'build' | 'buy' | null;
   };
 }
 
@@ -90,14 +92,15 @@ export default function Dashboard() {
           *,
           applications!reports_application_id_fkey (
             formatted_address,
-            property_address
+            property_address,
+            intent_type
           )
         `)
         .eq('user_id', session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReports(data || []);
+      setReports((data || []) as Report[]);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -161,6 +164,53 @@ export default function Dashboard() {
 
           {/* Main Content */}
           <main className="flex-1 container mx-auto px-4 md:px-6 py-6 md:py-12">
+            {/* Intent-Based Quick Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Build Projects</p>
+                      <p className="text-2xl font-bold">
+                        {reports.filter(r => r.applications?.intent_type === 'build').length}
+                      </p>
+                    </div>
+                    <Building2 className="h-8 w-8 text-primary" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Investment Deals</p>
+                      <p className="text-2xl font-bold">
+                        {reports.filter(r => r.applications?.intent_type === 'buy').length}
+                      </p>
+                    </div>
+                    <DollarSign className="h-8 w-8 text-accent" />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Avg Score</p>
+                      <p className="text-2xl font-bold">
+                        {reports.length > 0 
+                          ? Math.round(reports.reduce((acc, r) => acc + (r.feasibility_score || 0), 0) / reports.length)
+                          : 0}
+                      </p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               <div className="lg:col-span-2">
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
@@ -191,6 +241,14 @@ export default function Dashboard() {
         <Tabs defaultValue="all" className="space-y-6">
           <TabsList>
             <TabsTrigger value="all">All Reports</TabsTrigger>
+            <TabsTrigger value="build" className="text-primary">
+              <Building2 className="mr-2 h-4 w-4" />
+              Build Projects
+            </TabsTrigger>
+            <TabsTrigger value="buy" className="text-accent">
+              <DollarSign className="mr-2 h-4 w-4" />
+              Investment Deals
+            </TabsTrigger>
             <TabsTrigger value="completed">Completed</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
           </TabsList>
@@ -228,6 +286,9 @@ export default function Dashboard() {
                             <h3 className="font-semibold">
                               {report.applications?.formatted_address || 'Unknown Address'}
                             </h3>
+                            {report.applications?.intent_type && (
+                              <IntentBadge intentType={report.applications.intent_type} size="sm" />
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground pl-8">
                             {new Date(report.created_at).toLocaleDateString()} • {report.report_type}
@@ -283,6 +344,130 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
+          {/* Build Projects Tab */}
+          <TabsContent value="build" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-primary" />
+                  Build / Development Projects
+                </CardTitle>
+                <CardDescription>Properties focused on new construction and ground-up development</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {reports.filter(r => r.applications?.intent_type === 'build').length === 0 ? (
+                  <div className="text-center py-12">
+                    <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No build projects yet</p>
+                    <p className="text-sm text-muted-foreground mt-2">Start a new development feasibility analysis</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.filter(r => r.applications?.intent_type === 'build').map((report) => (
+                      <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-primary/5 transition border-primary/20">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            {report.status === 'completed' ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : report.status === 'generating' ? (
+                              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            ) : (
+                              <Clock className="h-5 w-5 text-muted-foreground" />
+                            )}
+                            <h3 className="font-semibold">
+                              {report.applications?.formatted_address || 'Unknown Address'}
+                            </h3>
+                            <IntentBadge intentType="build" size="sm" />
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-8">
+                            {new Date(report.created_at).toLocaleDateString()} • Development Feasibility
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {report.feasibility_score && (
+                            <Badge variant="outline" className="text-base px-3 py-1">
+                              Score: {report.feasibility_score}
+                            </Badge>
+                          )}
+                          <Badge className={getStatusColor(report.status)}>
+                            {report.status}
+                          </Badge>
+                          {report.status === 'completed' && (
+                            <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                              View Report
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Buy / Investment Deals Tab */}
+          <TabsContent value="buy" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-accent" />
+                  Buy / Investment Deals
+                </CardTitle>
+                <CardDescription>Properties being evaluated for acquisition and investment</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {reports.filter(r => r.applications?.intent_type === 'buy').length === 0 ? (
+                  <div className="text-center py-12">
+                    <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No investment deals yet</p>
+                    <p className="text-sm text-muted-foreground mt-2">Start a new investment analysis</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {reports.filter(r => r.applications?.intent_type === 'buy').map((report) => (
+                      <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/5 transition border-accent/20">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-1">
+                            {report.status === 'completed' ? (
+                              <CheckCircle className="h-5 w-5 text-green-600" />
+                            ) : report.status === 'generating' ? (
+                              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            ) : (
+                              <Clock className="h-5 w-5 text-muted-foreground" />
+                            )}
+                            <h3 className="font-semibold">
+                              {report.applications?.formatted_address || 'Unknown Address'}
+                            </h3>
+                            <IntentBadge intentType="buy" size="sm" />
+                          </div>
+                          <p className="text-sm text-muted-foreground pl-8">
+                            {new Date(report.created_at).toLocaleDateString()} • Investment Analysis
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {report.feasibility_score && (
+                            <Badge variant="outline" className="text-base px-3 py-1">
+                              Score: {report.feasibility_score}
+                            </Badge>
+                          )}
+                          <Badge className={getStatusColor(report.status)}>
+                            {report.status}
+                          </Badge>
+                          {report.status === 'completed' && (
+                            <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                              View Report
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="completed" className="space-y-4">
             <Card>
               <CardHeader>
@@ -305,6 +490,9 @@ export default function Dashboard() {
                             <h3 className="font-semibold">
                               {report.applications?.formatted_address || 'Unknown Address'}
                             </h3>
+                            {report.applications?.intent_type && (
+                              <IntentBadge intentType={report.applications.intent_type} size="sm" />
+                            )}
                           </div>
                           <p className="text-sm text-muted-foreground pl-8">
                             Completed {new Date(report.created_at).toLocaleDateString()}

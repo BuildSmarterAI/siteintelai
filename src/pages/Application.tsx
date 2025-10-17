@@ -22,6 +22,8 @@ import { Progress } from "@/components/ui/progress";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { IntentSelectionModal } from "@/components/application/IntentSelectionModal";
+import { IntentBadge } from "@/components/IntentBadge";
 
 export default function Application() {
   const { toast } = useToast();
@@ -31,6 +33,7 @@ export default function Application() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [hasCompleteProfile, setHasCompleteProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<'complete' | 'partial' | 'none'>('none');
+  const [showIntentModal, setShowIntentModal] = useState(false);
   
   // Use form hook
   const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors, updateMultipleFields } = useApplicationForm();
@@ -120,6 +123,18 @@ export default function Application() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Mobile intent modal on first visit
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    const hasIntent = formData.intentType !== '';
+    const hasSeenModal = sessionStorage.getItem('intent_modal_shown');
+    
+    if (isMobile && !hasIntent && !hasSeenModal && currentStep === 2) {
+      setShowIntentModal(true);
+      sessionStorage.setItem('intent_modal_shown', 'true');
+    }
+  }, [currentStep, formData.intentType]);
 
   // Load completed steps from localStorage on mount
   useEffect(() => {
