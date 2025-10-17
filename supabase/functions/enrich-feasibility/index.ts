@@ -232,7 +232,9 @@ const CACHE_TTL = {
   ZONING: 90 * 24 * 60 * 60 * 1000,    // 90 days (quarterly changes)
   FEMA: 180 * 24 * 60 * 60 * 1000,     // 180 days (semi-annual NFHL updates)
   UTILITIES: 0,                         // No cache (real-time data)
-  TRAFFIC: 365 * 24 * 60 * 60 * 1000   // 365 days (annual AADT updates)
+  TRAFFIC: 365 * 24 * 60 * 60 * 1000,  // 365 days (annual AADT updates)
+  EPA_ECHO: 90 * 24 * 60 * 60 * 1000,  // 90 days (EPA facility data relatively stable)
+  WETLANDS: 180 * 24 * 60 * 60 * 1000  // 180 days (NWI updates bi-annually)
 };
 
 /**
@@ -3158,6 +3160,105 @@ serve(async (req) => {
       dataFlags.push(ERROR_FLAGS.EPA_SITES_ERROR);
     }
 
+    // Step 5.5: EPA ECHO Facility Proximity (1-Mile Radius)
+    console.log('Step 5.5: Querying EPA ECHO facilities...');
+    try {
+      const epaCacheKey = `epa_echo_${geoLat.toFixed(4)}_${geoLng.toFixed(4)}`;
+      let epaData = await getCachedData(supabase, epaCacheKey, CACHE_TTL.EPA_ECHO);
+      
+      if (!epaData) {
+        console.log('🔄 EPA ECHO cache MISS - calling function');
+        const epaResp = await supabase.functions.invoke('enrich-epa-echo', {
+          body: { lat: geoLat, lng: geoLng, application_id: null } // Don't auto-update DB
+        });
+        
+        if (epaResp.data && epaResp.data.success) {
+          epaData = {
+            epa_facilities_count: epaResp.data.epa_facilities_count,
+            nearest_facility_dist: epaResp.data.nearest_facility_dist,
+            nearest_facility_type: epaResp.data.nearest_facility_type,
+            facilities: epaResp.data.facilities
+          };
+          
+          // Cache the result
+          await setCacheData(supabase, epaCacheKey, epaData, CACHE_TTL.EPA_ECHO, application_id);
+          console.log(`✅ EPA ECHO: ${epaData.epa_facilities_count} facilities found, nearest: ${epaData.nearest_facility_dist} mi`);
+        } else {
+          console.warn('EPA ECHO API returned no data or error');
+          dataFlags.push(ERROR_FLAGS.EPA_SITES_ERROR);
+        }
+      } else {
+        console.log('✅ EPA ECHO cache HIT');
+      }
+      
+      if (epaData) {
+        enrichedData.epa_facilities_count = epaData.epa_facilities_count;
+        enrichedData.nearest_facility_dist = epaData.nearest_facility_dist;
+        enrichedData.nearest_facility_type = epaData.nearest_facility_type;
+      }
+    } catch (epaError) {
+      console.error('EPA ECHO enrichment failed:', epaError);
+      dataFlags.push(ERROR_FLAGS.EPA_SITES_ERROR);
+    }
+
+    // Step 5.6: USFWS Wetlands (National Wetlands Inventory)
+    console.log('Step 5.6: Querying USFWS Wetlands...');
+    try {
+      // Wetlands require parcel polygon, check if we have it
+      if (parcelGeometry && parcelGeometry.coordinates) {
+        const wetlandsCacheKey = `wetlands_${geoLat.toFixed(4)}_${geoLng.toFixed(4)}`;
+        let wetlandsData = await getCachedData(supabase, wetlandsCacheKey, CACHE_TTL.WETLANDS);
+        
+        if (!wetlandsData) {
+          console.log('🔄 Wetlands cache MISS - calling function');
+          
+          // Calculate parcel area in sqft if we have acreage
+          const parcelAreaSqft = enrichedData.acreage_cad ? enrichedData.acreage_cad * 43560 : null;
+          
+          const wetlandsResp = await supabase.functions.invoke('enrich-wetlands', {
+            body: { 
+              parcel_polygon: parcelGeometry,
+              parcel_area_sqft: parcelAreaSqft,
+              application_id: null // Don't auto-update DB
+            }
+          });
+          
+          if (wetlandsResp.data && wetlandsResp.data.success) {
+            wetlandsData = {
+              wetlands_type: wetlandsResp.data.wetlands_type,
+              wetlands_area_pct: wetlandsResp.data.wetlands_area_pct,
+              wetlands_count: wetlandsResp.data.wetlands_count
+            };
+            
+            // Cache the result
+            await setCacheData(supabase, wetlandsCacheKey, wetlandsData, CACHE_TTL.WETLANDS, application_id);
+            
+            if (wetlandsData.wetlands_type) {
+              console.log(`✅ Wetlands: ${wetlandsData.wetlands_type} (${wetlandsData.wetlands_area_pct}% coverage)`);
+            } else {
+              console.log('✅ No wetlands detected on parcel');
+            }
+          } else {
+            console.warn('Wetlands API returned no data or error');
+            dataFlags.push(ERROR_FLAGS.WETLANDS_API_ERROR);
+          }
+        } else {
+          console.log('✅ Wetlands cache HIT');
+        }
+        
+        if (wetlandsData) {
+          enrichedData.wetlands_type = wetlandsData.wetlands_type;
+          enrichedData.wetlands_area_pct = wetlandsData.wetlands_area_pct;
+        }
+      } else {
+        console.warn('⚠️ No parcel geometry available - skipping wetlands analysis');
+        dataFlags.push('wetlands_no_geometry');
+      }
+    } catch (wetlandsError) {
+      console.error('Wetlands enrichment failed:', wetlandsError);
+      dataFlags.push(ERROR_FLAGS.WETLANDS_API_ERROR);
+    }
+
     // Step 6: Utilities / Infrastructure
     console.log('Fetching utility infrastructure data...');
     
@@ -3466,6 +3567,10 @@ serve(async (req) => {
       if (enrichedData.topography_map_url) updateData.topography_map_url = enrichedData.topography_map_url;
       if (enrichedData.aerial_imagery_url) updateData.aerial_imagery_url = enrichedData.aerial_imagery_url;
       if (enrichedData.wetlands_type) updateData.wetlands_type = enrichedData.wetlands_type;
+      if (enrichedData.wetlands_area_pct !== null && enrichedData.wetlands_area_pct !== undefined) updateData.wetlands_area_pct = enrichedData.wetlands_area_pct;
+      if (enrichedData.epa_facilities_count !== null && enrichedData.epa_facilities_count !== undefined) updateData.epa_facilities_count = enrichedData.epa_facilities_count;
+      if (enrichedData.nearest_facility_dist !== null && enrichedData.nearest_facility_dist !== undefined) updateData.nearest_facility_dist = enrichedData.nearest_facility_dist;
+      if (enrichedData.nearest_facility_type) updateData.nearest_facility_type = enrichedData.nearest_facility_type;
       if (enrichedData.soil_series) updateData.soil_series = enrichedData.soil_series;
       if (enrichedData.soil_slope_percent) updateData.soil_slope_percent = enrichedData.soil_slope_percent;
       if (enrichedData.soil_drainage_class) updateData.soil_drainage_class = enrichedData.soil_drainage_class;
@@ -3527,6 +3632,8 @@ serve(async (req) => {
         fema: apiMeta.fema_nfhl?.cached ? null : new Date().toISOString(),
         zoning: apiMeta.zoning_cached ? null : new Date().toISOString(),
         traffic: enrichedData.traffic_aadt && trafficData?.cached ? null : new Date().toISOString(),
+        epa_echo: enrichedData.epa_facilities_count !== null ? new Date().toISOString() : null,
+        wetlands: enrichedData.wetlands_type !== null ? new Date().toISOString() : null,
         refreshed_at: new Date().toISOString()
       };
       
