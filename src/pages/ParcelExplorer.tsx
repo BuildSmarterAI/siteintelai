@@ -41,9 +41,9 @@ export default function ParcelExplorer() {
   };
 
   return (
-    <div className="relative h-screen w-full">
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-10">
       {/* Back Button */}
-      <div className="absolute top-4 right-4 z-20">
+      <div className="absolute top-20 right-4 z-20">
         <Button
           onClick={() => navigate(-1)}
           variant="secondary"
