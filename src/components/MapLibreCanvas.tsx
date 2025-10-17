@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
+import { supabase } from '@/integrations/supabase/client';
 import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
@@ -157,6 +158,8 @@ interface MapLibreCanvasProps {
   stormLines?: any[];
   forceMain?: any[];
   zoningDistricts?: any[];
+  showParcels?: boolean;
+  onParcelSelect?: (parcel: any) => void;
 }
 
 /**
@@ -196,6 +199,8 @@ export function MapLibreCanvas({
   stormLines = [],
   forceMain = [],
   zoningDistricts = [],
+  showParcels = false,
+  onParcelSelect,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -1252,6 +1257,132 @@ export function MapLibreCanvas({
       map.current.setLayoutProperty('drawn-parcels-line', 'visibility', visibility);
     }
   }, [layerVisibility.drawnParcels, mapLoaded]);
+
+  // Dynamic HCAD Parcels Loading (Parcel Explorer mode)
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !showParcels) return;
+
+    const sourceId = 'hcad-parcels-dynamic';
+    const fillLayerId = 'hcad-parcels-fill';
+    const lineLayerId = 'hcad-parcels-outline';
+    const labelLayerId = 'hcad-parcels-labels';
+
+    const updateParcels = async () => {
+      const bounds = map.current!.getBounds();
+      const zoom = map.current!.getZoom();
+
+      // Only load at zoom 14+
+      if (zoom < 14) {
+        if (map.current!.getSource(sourceId)) {
+          (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
+            type: 'FeatureCollection',
+            features: []
+          });
+        }
+        return;
+      }
+
+      const bbox = [
+        bounds.getWest(),
+        bounds.getSouth(),
+        bounds.getEast(),
+        bounds.getNorth()
+      ];
+
+      try {
+        const { data, error } = await supabase.functions.invoke('fetch-hcad-parcels', {
+          body: { bbox, zoom }
+        });
+
+        if (error) throw error;
+
+        // Initialize source if doesn't exist
+        if (!map.current!.getSource(sourceId)) {
+          map.current!.addSource(sourceId, {
+            type: 'geojson',
+            data: data || { type: 'FeatureCollection', features: [] }
+          });
+
+          // Add fill layer
+          map.current!.addLayer({
+            id: fillLayerId,
+            type: 'fill',
+            source: sourceId,
+            paint: {
+              'fill-color': '#F5F3E8',
+              'fill-opacity': 0.6,
+            }
+          });
+
+          // Add outline layer
+          map.current!.addLayer({
+            id: lineLayerId,
+            type: 'line',
+            source: sourceId,
+            paint: {
+              'line-color': '#6B5D9C',
+              'line-width': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                12, 0.5,
+                16, 2,
+                18, 3
+              ]
+            }
+          });
+
+          // Add label layer (zoom 16+)
+          map.current!.addLayer({
+            id: labelLayerId,
+            type: 'symbol',
+            source: sourceId,
+            minzoom: 16,
+            layout: {
+              'text-field': ['get', 'OWNER_NAME'],
+              'text-size': 10,
+              'text-anchor': 'center',
+            },
+            paint: {
+              'text-color': '#5B4D8C',
+              'text-halo-color': '#FFFFFF',
+              'text-halo-width': 2
+            }
+          });
+
+          // Add click handler
+          map.current!.on('click', fillLayerId, (e) => {
+            if (e.features && e.features.length > 0 && onParcelSelect) {
+              onParcelSelect(e.features[0]);
+            }
+          });
+
+          // Change cursor on hover
+          map.current!.on('mouseenter', fillLayerId, () => {
+            if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+          });
+          map.current!.on('mouseleave', fillLayerId, () => {
+            if (map.current) map.current.getCanvas().style.cursor = '';
+          });
+        } else {
+          // Update existing source
+          (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data);
+        }
+      } catch (err) {
+        console.error('Failed to load HCAD parcels:', err);
+      }
+    };
+
+    // Initial load
+    updateParcels();
+
+    // Update on map move
+    map.current.on('moveend', updateParcels);
+
+    return () => {
+      map.current?.off('moveend', updateParcels);
+    };
+  }, [mapLoaded, showParcels, onParcelSelect]);
 
   // Update 3D buildings visibility based on 3D mode
   useEffect(() => {

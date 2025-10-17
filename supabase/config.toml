@@ -88,3 +88,9 @@ verify_jwt = false
 
 [functions.chat-with-report]
 verify_jwt = false
+
+[functions.fetch-hcad-parcels]
+verify_jwt = false
+
+[functions.geocode-intersection]
+verify_jwt = false

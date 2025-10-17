@@ -29,6 +29,7 @@ import Blog from "./pages/resources/Blog";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
 import Analytics from "./pages/Analytics";
+import ParcelExplorer from "./pages/ParcelExplorer";
 
 const queryClient = new QueryClient();
 
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/legal/privacy" element={<Privacy />} />
             <Route path="/legal/terms" element={<Terms />} />
             <Route path="/admin/geospatial" element={<AdminGeospatial />} />
+            <Route path="/parcel-explorer" element={<ParcelExplorer />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

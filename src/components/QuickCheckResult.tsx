@@ -64,10 +64,17 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
             Grade {band}
           </Badge>
           <p className="text-lg font-semibold mt-2">{getBandLabel(band)}</p>
-          <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
+          <div className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1">
             <MapPin className="h-3 w-3" />
-            {address}
-          </p>
+            <div>
+              <p>{address || 'Address not available'}</p>
+              {!address && (
+                <p className="text-xs mt-0.5">
+                  Select a parcel on the map for detailed location info
+                </p>
+              )}
+            </div>
+          </div>
         </motion.div>
       </div>
 
