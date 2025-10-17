@@ -1401,7 +1401,7 @@ export function MapLibreCanvas({
   }, [is3DMode, mapLoaded]);
 
   return (
-    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
+    <div className={`relative h-full w-full ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
       <div
         ref={mapContainer}
         className={`${isFullscreen ? 'h-screen w-screen' : (className || 'h-full w-full')} rounded-lg overflow-hidden ${drawingEnabled ? 'ring-4 ring-primary/50 animate-pulse' : ''}`}
