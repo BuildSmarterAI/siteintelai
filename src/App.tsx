@@ -25,6 +25,8 @@ import Contact from "./pages/Contact";
 import Developers from "./pages/industries/Developers";
 import Lenders from "./pages/industries/Lenders";
 import Blog from "./pages/resources/Blog";
+import Privacy from "./pages/legal/Privacy";
+import Terms from "./pages/legal/Terms";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,8 @@ const App = () => (
             <Route path="/resources/case-studies" element={<Blog />} />
             <Route path="/resources/documentation" element={<Blog />} />
             <Route path="/resources/api" element={<Blog />} />
+            <Route path="/legal/privacy" element={<Privacy />} />
+            <Route path="/legal/terms" element={<Terms />} />
             <Route path="/admin/geospatial" element={<AdminGeospatial />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
