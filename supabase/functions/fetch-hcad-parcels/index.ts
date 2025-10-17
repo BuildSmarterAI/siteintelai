@@ -15,61 +15,42 @@ Deno.serve(async (req) => {
     
     console.log('Fetching HCAD parcels:', { bbox, zoom, parcelId });
 
-    // Layer URLs per BuildSmarter™ research doc (Section 2.1)
-    const LAYER_URLS = [
-      {
-        url: 'https://gis.hcad.org/arcgis/rest/services/RealEstate/MapServer/7/query',
-        name: 'Unified Parcels (Layer 7 - HCAD+FBCAD+MCAD)',
-        fields: 'OBJECTID,LOWPARCELID,owner_name_1,acreage_1,SITUS_ADDRESS,site_county'
-      },
-      {
-        url: 'https://gis.hcad.org/arcgis/rest/services/public/CAMA/MapServer/4/query',
-        name: 'HCAD CAMA (Layer 4 - Fallback)',
-        fields: 'OBJECTID,ACCOUNT,OWNER_NAME,ACREAGE,SITUS_ADDRESS,LAND_VALUE,IMPR_VALUE'
-      }
-    ];
+    // Official Harris County GIS endpoint
+    const HCAD_URL = 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query';
+    const HCAD_FIELDS = 'OBJECTID,ACCOUNT,OWNER_NAME,ACREAGE,SITUS_ADDRESS,LAND_VALUE,IMPR_VALUE,LEGAL_DESCRIPTION';
 
-    // If searching by parcel ID, try Layer 7 first with fallback
+    // If searching by parcel ID
     if (parcelId) {
-      for (const layer of LAYER_URLS) {
-        try {
-          const whereClause = layer.url.includes('Layer/7') 
-            ? `LOWPARCELID='${parcelId}'` 
-            : `ACCOUNT='${parcelId}'`;
-          
-          const parcelQuery = `${layer.url}?` +
-            `where=${whereClause}&` +
-            `outFields=${layer.fields}&` +
-            `returnGeometry=true&` +
-            `outSR=4326&` +
-            `f=geojson`;
-          
-          console.log(`Trying ${layer.name}:`, parcelQuery);
-          const response = await fetch(parcelQuery);
-          
-          if (!response.ok) {
-            console.warn(`${layer.name} failed with ${response.status}`);
-            continue;
-          }
-          
-          const data = await response.json();
-          
-          if (data.features && data.features.length > 0) {
-            console.log(`✅ Found parcel in ${layer.name}`);
-            return new Response(JSON.stringify(data), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-        } catch (err) {
-          console.warn(`${layer.name} error:`, err);
-          continue;
+      try {
+        const parcelQuery = `${HCAD_URL}?` +
+          `where=ACCOUNT='${parcelId}'&` +
+          `outFields=${HCAD_FIELDS}&` +
+          `returnGeometry=true&` +
+          `outSR=4326&` +
+          `f=geojson`;
+        
+        console.log('Querying HCAD by parcel ID:', parcelQuery);
+        const response = await fetch(parcelQuery);
+        
+        if (!response.ok) {
+          console.warn(`HCAD query failed with ${response.status}`);
+          return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
+        
+        const data = await response.json();
+        console.log(`✅ Found ${data.features?.length || 0} parcel(s)`);
+        
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (err) {
+        console.error('HCAD parcel query error:', err);
+        return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-      
-      // No results from any layer
-      return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     // Only fetch at zoom 14+
@@ -86,46 +67,41 @@ Deno.serve(async (req) => {
     const [minLng, minLat, maxLng, maxLat] = bbox;
     const bboxGeometry = `${minLng},${minLat},${maxLng},${maxLat}`;
     
-    // Try Layer 7 (Unified) first, fallback to Layer 4 (CAMA)
-    for (const layer of LAYER_URLS) {
-      try {
-        const arcgisQuery = `${layer.url}?` +
-          `geometry=${bboxGeometry}&` +
-          `geometryType=esriGeometryEnvelope&` +
-          `spatialRel=esriSpatialRelIntersects&` +
-          `outFields=${layer.fields}&` +
-          `returnGeometry=true&` +
-          `outSR=4326&` +
-          `resultRecordCount=500&` +
-          `f=geojson`;
+    try {
+      const arcgisQuery = `${HCAD_URL}?` +
+        `geometry=${bboxGeometry}&` +
+        `geometryType=esriGeometryEnvelope&` +
+        `spatialRel=esriSpatialRelIntersects&` +
+        `outFields=${HCAD_FIELDS}&` +
+        `returnGeometry=true&` +
+        `outSR=4326&` +
+        `resultRecordCount=500&` +
+        `f=geojson`;
 
-        console.log(`Querying ${layer.name}:`, arcgisQuery);
+      console.log('Querying HCAD Parcels:', arcgisQuery);
 
-        const response = await fetch(arcgisQuery);
-        
-        if (!response.ok) {
-          console.warn(`${layer.name} returned ${response.status}`);
-          continue;
-        }
-
-        const geojson = await response.json();
-        
-        console.log(`✅ Fetched ${geojson.features?.length || 0} parcels from ${layer.name}`);
-
-        return new Response(JSON.stringify(geojson), {
+      const response = await fetch(arcgisQuery);
+      
+      if (!response.ok) {
+        console.error(`HCAD returned ${response.status}`);
+        return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-      } catch (err) {
-        console.warn(`${layer.name} error:`, err);
-        continue;
       }
+
+      const geojson = await response.json();
+      
+      console.log(`✅ Fetched ${geojson.features?.length || 0} HCAD parcels`);
+
+      return new Response(JSON.stringify(geojson), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (err) {
+      console.error('HCAD query error:', err);
+      return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
-    // If both layers fail, return empty FeatureCollection
-    console.error('All HCAD layers failed');
-    return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
   } catch (error) {
     console.error('Error fetching HCAD parcels:', error);
     return new Response(
