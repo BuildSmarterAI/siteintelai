@@ -41,42 +41,53 @@ export default function ParcelExplorer() {
   };
 
   return (
-    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0 z-10">
-      {/* Back Button */}
-      <div className="absolute top-20 right-4 z-20">
-        <Button
-          onClick={() => navigate(-1)}
-          variant="secondary"
-          size="sm"
-          className="shadow-lg"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
-        </Button>
+    <div className="fixed inset-0 top-0 left-0 right-0 bottom-0">
+      {/* Map Layer - Background */}
+      <div className="absolute inset-0 z-0">
+        <MapLibreCanvas
+          center={center}
+          zoom={zoom}
+          showParcels={true}
+          onParcelSelect={handleParcelSelect}
+          className="h-full w-full"
+        />
       </div>
 
-      {/* Search Bar */}
-      <ParcelSearchBar
-        onAddressSelect={handleAddressSelect}
-        onParcelSelect={handleParcelSelect}
-      />
+      {/* UI Controls Layer */}
+      <div className="absolute inset-0 z-10 pointer-events-none">
+        <div className="pointer-events-auto">
+          {/* Back Button */}
+          <div className="absolute top-20 right-4">
+            <Button
+              onClick={() => navigate(-1)}
+              variant="secondary"
+              size="sm"
+              className="shadow-lg"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </div>
 
-      {/* Map */}
-      <MapLibreCanvas
-        center={center}
-        zoom={zoom}
-        showParcels={true}
-        onParcelSelect={handleParcelSelect}
-        className="h-full w-full"
-      />
+          {/* Search Bar */}
+          <ParcelSearchBar
+            onAddressSelect={handleAddressSelect}
+            onParcelSelect={handleParcelSelect}
+          />
+        </div>
+      </div>
 
       {/* Parcel Details Popup */}
       {selectedParcel && (
-        <ParcelDetailsPopup
-          parcel={selectedParcel}
-          onClose={() => setSelectedParcel(null)}
-          onUseForAnalysis={handleUseForAnalysis}
-        />
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <div className="pointer-events-auto">
+            <ParcelDetailsPopup
+              parcel={selectedParcel}
+              onClose={() => setSelectedParcel(null)}
+              onUseForAnalysis={handleUseForAnalysis}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
