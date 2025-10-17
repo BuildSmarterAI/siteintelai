@@ -17,23 +17,22 @@ import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
 import { ContactStep } from "@/components/application/ContactStep";
 import { PropertyStep } from "@/components/application/PropertyStep";
+import { IntentStep } from "@/components/application/IntentStep";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
 import { Progress } from "@/components/ui/progress";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { IntentSelectionModal } from "@/components/application/IntentSelectionModal";
 import { IntentBadge } from "@/components/IntentBadge";
 
 export default function Application() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [hasCompleteProfile, setHasCompleteProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<'complete' | 'partial' | 'none'>('none');
-  const [showIntentModal, setShowIntentModal] = useState(false);
   
   // Use form hook
   const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors, updateMultipleFields } = useApplicationForm();
@@ -76,16 +75,26 @@ export default function Application() {
             const profileComplete = profile.full_name && profile.email && profile.phone && profile.company;
 
             if (profileComplete) {
-              // Profile is complete - skip Step 1
+              // Profile is complete - skip Step 1 (Contact)
               setProfileStatus('complete');
               setHasCompleteProfile(true);
               setCompletedSteps(prev => new Set([...prev, 1]));
               
-              // Only auto-navigate to step 2 if user is on step 1
-              const stepParam = new URLSearchParams(window.location.search).get('step');
-              const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 1;
+              // Check if intent has been captured
+              const hasSeenIntentModal = localStorage.getItem('user_intent_captured');
+              const savedIntent = localStorage.getItem('user_intent_type') as 'build' | 'buy' | null;
               
-              if (currentStepFromUrl === 1) {
+              if (hasSeenIntentModal && savedIntent) {
+                // Skip Step 0 for returning users with saved intent
+                setCompletedSteps(prev => new Set([...prev, 0]));
+                updateField('intentType', savedIntent);
+              }
+              
+              // Only auto-navigate to step 2 if user is on step 0 or 1
+              const stepParam = new URLSearchParams(window.location.search).get('step');
+              const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 0;
+              
+              if (currentStepFromUrl <= 1) {
                 // Auto-advance to step 2 since contact info is complete
                 navigate('/application?step=2', { replace: true });
                 setCurrentStep(2);
@@ -124,18 +133,6 @@ export default function Application() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Mobile intent modal on first visit
-  useEffect(() => {
-    const isMobile = window.innerWidth < 768;
-    const hasIntent = formData.intentType !== '';
-    const hasSeenModal = sessionStorage.getItem('intent_modal_shown');
-    
-    if (isMobile && !hasIntent && !hasSeenModal && currentStep === 2) {
-      setShowIntentModal(true);
-      sessionStorage.setItem('intent_modal_shown', 'true');
-    }
-  }, [currentStep, formData.intentType]);
-
   // Load completed steps from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('application_completed_steps');
@@ -161,18 +158,18 @@ export default function Application() {
     if (!stepParam) return;
     
     const requestedStep = parseInt(stepParam, 10);
-    if (requestedStep < 1 || requestedStep > 6) return;
+    if (requestedStep < 0 || requestedStep > 6) return;
     
     // Check if all previous steps are completed
-    const canAccessStep = Array.from({ length: requestedStep - 1 }, (_, i) => i + 1)
+    const canAccessStep = Array.from({ length: requestedStep }, (_, i) => i)
       .every(step => completedSteps.has(step));
     
     if (canAccessStep) {
       setCurrentStep(requestedStep);
     } else if (requestedStep > currentStep) {
       // Only enforce when trying to jump forward via URL
-      const firstIncompleteStep = Array.from({ length: 5 }, (_, i) => i + 1)
-        .find(step => !completedSteps.has(step)) || 1;
+      const firstIncompleteStep = Array.from({ length: 6 }, (_, i) => i)
+        .find(step => !completedSteps.has(step)) || 0;
       navigate(`/application?step=${firstIncompleteStep}`, { replace: true });
       setCurrentStep(firstIncompleteStep);
       toast({
@@ -244,7 +241,7 @@ export default function Application() {
     zoning?: string;
   }>({});
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
     updateField(field, value);
@@ -349,6 +346,12 @@ export default function Application() {
     }
     
     if (validateStep(currentStep)) {
+      // Save intent to localStorage when Step 0 is completed
+      if (currentStep === 0) {
+        localStorage.setItem('user_intent_captured', 'true');
+        localStorage.setItem('user_intent_type', formData.intentType);
+      }
+      
       // If completing Step 1 AND user is authenticated, update their profile
       if (currentStep === 1) {
         const { data: { session } } = await supabase.auth.getSession();
@@ -398,13 +401,14 @@ export default function Application() {
       return;
     }
     
-    const prevStep = Math.max(currentStep - 1, 1);
+    // Allow going back to Step 0 from Step 1
+    const prevStep = Math.max(currentStep - 1, 0);
     goToStep(prevStep);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep(5)) {
+    if (validateStep(6)) {
       setIsLoading(true);
       
       // Detect conflicts between user input and HCAD data
@@ -694,10 +698,27 @@ export default function Application() {
                          Required fields must be completed to proceed to the next step
                        </p>
                      </div>
-                    <form onSubmit={handleSubmit}>
+                     <form onSubmit={handleSubmit}>
                       
-                       {/* Step 1: Contact Information */}
-                       {currentStep === 1 && (
+                       {/* Step 0: Intent Selection */}
+                       {currentStep === 0 && (
+                         <div className="space-y-6 animate-fade-in">
+                           <IntentStep
+                             selectedIntent={formData.intentType}
+                             onSelect={(intent) => {
+                               updateField('intentType', intent);
+                               // Brief delay for visual feedback, then auto-advance
+                               setTimeout(() => {
+                                 setCompletedSteps(prev => new Set([...prev, 0]));
+                                 goToStep(1);
+                               }, 500);
+                             }}
+                           />
+                         </div>
+                       )}
+                       
+                        {/* Step 1: Contact Information */}
+                        {currentStep === 1 && (
                          <div className="space-y-6 animate-fade-in">
                            {/* Loading State */}
                            {authLoading ? (
@@ -791,27 +812,32 @@ export default function Application() {
                           </div>
                         )}
 
-                      {/* Step 2: Property Information */}
-                      {currentStep === 2 && (
-                        <div className="space-y-6 animate-fade-in">
-                          {/* Validation Summary Banner */}
-                          {Object.keys(errors).length > 0 && (
-                            <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
-                              <div className="flex items-start gap-3">
-                                <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
-                                <div>
-                                  <h3 className="font-semibold text-maxx-red mb-1">Please Complete Required Fields</h3>
-                                  <ul className="list-disc list-inside text-sm text-charcoal space-y-1">
-                                    {errors.propertyAddress && <li>Property Address is required</li>}
-                                    {errors.ownershipStatus && <li>Ownership / Acquisition Status is required</li>}
-                                  </ul>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                           <AddressAutocomplete
-                             value={formData.propertyAddress}
-                             onChange={(value, coordinates, addressDetails) => {
+                       {/* Step 2: Property Information */}
+                       {currentStep === 2 && (
+                         <div className="space-y-6 animate-fade-in">
+                           {/* Validation Summary Banner */}
+                           {Object.keys(errors).length > 0 && (
+                             <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
+                               <div className="flex items-start gap-3">
+                                 <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
+                                 <div>
+                                   <h3 className="font-semibold text-maxx-red mb-1">Please Complete Required Fields</h3>
+                                   <ul className="list-disc list-inside text-sm text-charcoal space-y-1">
+                                     {errors.propertyAddress && <li>Property Address is required</li>}
+                                     {errors.ownershipStatus && <li>Ownership / Acquisition Status is required</li>}
+                                   </ul>
+                                 </div>
+                               </div>
+                             </div>
+                           )}
+                           
+                            <PropertyStep
+                              formData={{
+                                propertyAddress: formData.propertyAddress,
+                                ownershipStatus: formData.ownershipStatus,
+                              }}
+                              onChange={handleInputChange}
+                              onAddressSelect={(value, coordinates, addressDetails) => {
                                handleInputChange('propertyAddress', value);
                                
                                // Set loading state when address is being populated
@@ -928,11 +954,13 @@ export default function Application() {
                                   });
                                 }
                               }}
-                             placeholder="123 Main Street, City, State, ZIP"
-                             label="Property Address"
-                             error={errors.propertyAddress}
-                             required={true}
-                           />
+                              placeholder="123 Main Street, City, State, ZIP"
+                              label="Property Address"
+                              error={errors.propertyAddress}
+                              errors={errors}
+                              isAddressLoading={isAddressLoading}
+                              required={true}
+                            />
                            
                            {/* Hidden GIS Enriched Fields (auto-populated from enrich-feasibility API)
                                These fields are stored in formData state and submitted automatically:

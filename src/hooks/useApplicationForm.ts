@@ -148,6 +148,10 @@ export function useApplicationForm() {
   const validateStep = useCallback((step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
+    if (step === 0) {
+      if (!formData.intentType) newErrors.intentType = "Please select your primary goal";
+    }
+
     if (step === 1) {
       if (!formData.fullName) newErrors.fullName = "Full name is required";
       if (!formData.company) newErrors.company = "Company is required";
@@ -159,7 +163,6 @@ export function useApplicationForm() {
     }
 
     if (step === 2) {
-      if (!formData.intentType) newErrors.intentType = "Please select your primary goal";
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
       if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }
@@ -173,6 +176,10 @@ export function useApplicationForm() {
     }
 
     if (step === 5) {
+      // All fields optional
+    }
+
+    if (step === 6) {
       if (!formData.ndaConsent) newErrors.ndaConsent = "NDA consent is required";
       if (!formData.contactConsent) newErrors.contactConsent = "Contact consent is required";
       if (!formData.privacyConsent) newErrors.privacyConsent = "Privacy & Terms consent is required";
