@@ -12,6 +12,97 @@ import { MapSearchBar } from './MapSearchBar';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
 
+// Layer metadata with data sources and intent relevance
+export const LAYER_CONFIG = {
+  hcadParcels: {
+    id: 'hcad-parcels',
+    title: 'HCAD Parcels',
+    source: 'Harris County Appraisal District',
+    color: '#6366F1',
+    opacity: 0.3,
+    intentRelevance: { build: true, buy: true },
+  },
+  waterLines: {
+    id: 'water-lines',
+    title: 'Water Lines',
+    source: 'City of Houston Public Works',
+    color: '#3B82F6',
+    opacity: 0.8,
+    intentRelevance: { build: true, buy: true },
+  },
+  sewerLines: {
+    id: 'sewer-lines',
+    title: 'Sewer Lines',
+    source: 'City of Houston Public Works',
+    color: '#10B981',
+    opacity: 0.8,
+    intentRelevance: { build: true, buy: true },
+  },
+  stormLines: {
+    id: 'storm-lines',
+    title: 'Storm Lines',
+    source: 'City of Houston Public Works',
+    color: '#8B5CF6',
+    opacity: 0.8,
+    intentRelevance: { build: true, buy: true },
+  },
+  forceMain: {
+    id: 'force-main',
+    title: 'Force Main',
+    source: 'City of Houston Wastewater',
+    color: '#F59E0B',
+    opacity: 0.8,
+    intentRelevance: { build: true, buy: true },
+  },
+  floodZones: {
+    id: 'flood-zones',
+    title: 'Flood Zones',
+    source: 'FEMA NFHL',
+    color: '#EF4444',
+    opacity: 0.7,
+    intentRelevance: { build: true, buy: true },
+  },
+  zoningDistricts: {
+    id: 'zoning-districts',
+    title: 'Zoning Districts',
+    source: 'City Planning Department',
+    color: '#EC4899',
+    opacity: 0.4,
+    intentRelevance: { build: true, buy: true },
+  },
+};
+
+/**
+ * Calculate default layer visibility based on user intent
+ */
+function getInitialLayerVisibility(
+  intentType: 'build' | 'buy' | null,
+  savedPreferences: any | null
+): LayerVisibility {
+  // If user has saved preferences, respect them (merge with defaults for new layers)
+  const defaults: LayerVisibility = {
+    parcel: true,
+    drawnParcels: true,
+    traffic: true,
+    employment: true,
+    flood: true,
+    utilities: true,
+    hcadParcels: true,
+    waterLines: true,
+    sewerLines: true,
+    stormLines: true,
+    forceMain: true,
+    floodZones: true,
+    zoningDistricts: true,
+  };
+  
+  if (savedPreferences && Object.keys(savedPreferences).length > 0) {
+    return { ...defaults, ...savedPreferences };
+  }
+  
+  return defaults;
+}
+
 interface EmploymentCenter {
   name: string;
   jobs: number;
@@ -24,6 +115,22 @@ interface DrawParcel {
   name: string;
   geometry: any;
   acreage_calc: number;
+}
+
+interface LayerVisibility {
+  parcel: boolean;
+  flood: boolean;
+  utilities: boolean;
+  traffic: boolean;
+  employment: boolean;
+  drawnParcels: boolean;
+  hcadParcels: boolean;
+  waterLines: boolean;
+  sewerLines: boolean;
+  stormLines: boolean;
+  forceMain: boolean;
+  floodZones: boolean;
+  zoningDistricts: boolean;
 }
 
 interface MapLibreCanvasProps {
@@ -43,6 +150,13 @@ interface MapLibreCanvasProps {
   className?: string;
   propertyAddress?: string;
   femaFloodZone?: string;
+  intentType?: 'build' | 'buy' | null;
+  hcadParcels?: any[];
+  waterLines?: any[];
+  sewerLines?: any[];
+  stormLines?: any[];
+  forceMain?: any[];
+  zoningDistricts?: any[];
 }
 
 /**
@@ -75,6 +189,13 @@ export function MapLibreCanvas({
   className = '',
   propertyAddress = 'Property location',
   femaFloodZone,
+  intentType = null,
+  hcadParcels = [],
+  waterLines = [],
+  sewerLines = [],
+  stormLines = [],
+  forceMain = [],
+  zoningDistricts = [],
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -86,17 +207,11 @@ export function MapLibreCanvas({
   const [measurementPoints, setMeasurementPoints] = useState<[number, number][]>([]);
   const measurementSourceId = 'measurement-source';
   
-  // Layer visibility state (persisted in localStorage)
-  const [layerVisibility, setLayerVisibility] = useState(() => {
+  // Layer visibility state (persisted in localStorage with intent-aware defaults)
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(() => {
     const saved = localStorage.getItem('mapLayerVisibility');
-    return saved ? JSON.parse(saved) : {
-      parcel: true,
-      flood: true,
-      utilities: true,
-      traffic: true,
-      employment: true,
-      drawnParcels: true,
-    };
+    const savedPrefs = saved ? JSON.parse(saved) : null;
+    return getInitialLayerVisibility(intentType, savedPrefs);
   });
 
   // Layer opacity state (persisted in localStorage)
@@ -123,7 +238,7 @@ export function MapLibreCanvas({
   }, [layerOpacity]);
 
   // Toggle layer visibility
-  const toggleLayer = (layerName: keyof typeof layerVisibility) => {
+  const toggleLayer = (layerName: keyof LayerVisibility) => {
     setLayerVisibility(prev => ({ ...prev, [layerName]: !prev[layerName] }));
   };
 
@@ -1117,6 +1232,12 @@ export function MapLibreCanvas({
         hasFloodZones={floodZones.length > 0}
         hasTraffic={traffic.length > 0}
         hasEmployment={employmentCenters.length > 0}
+        hasHcadParcels={hcadParcels.length > 0}
+        hasWaterLines={waterLines.length > 0}
+        hasSewerLines={sewerLines.length > 0}
+        hasStormLines={stormLines.length > 0}
+        hasForceMain={forceMain.length > 0}
+        hasZoningDistricts={zoningDistricts.length > 0}
       />
 
       {/* Top-right controls */}
@@ -1220,6 +1341,13 @@ export function MapLibreCanvas({
         hasTraffic={traffic.length > 0}
         hasEmployment={employmentCenters.length > 0}
         hasDrawnParcels={drawnParcels.length > 0}
+        hasHcadParcels={hcadParcels.length > 0}
+        hasWaterLines={waterLines.length > 0}
+        hasSewerLines={sewerLines.length > 0}
+        hasStormLines={stormLines.length > 0}
+        hasForceMain={forceMain.length > 0}
+        hasFloodZones={floodZones.length > 0}
+        hasZoningDistricts={zoningDistricts.length > 0}
       />
       
       {/* Text alternative for screen readers */}

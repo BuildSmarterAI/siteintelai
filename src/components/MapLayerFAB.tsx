@@ -10,6 +10,13 @@ interface LayerVisibility {
   traffic: boolean;
   employment: boolean;
   drawnParcels: boolean;
+  hcadParcels: boolean;
+  waterLines: boolean;
+  sewerLines: boolean;
+  stormLines: boolean;
+  forceMain: boolean;
+  floodZones: boolean;
+  zoningDistricts: boolean;
 }
 
 interface MapLayerFABProps {
@@ -20,6 +27,13 @@ interface MapLayerFABProps {
   hasTraffic: boolean;
   hasEmployment: boolean;
   hasDrawnParcels: boolean;
+  hasHcadParcels: boolean;
+  hasWaterLines: boolean;
+  hasSewerLines: boolean;
+  hasStormLines: boolean;
+  hasForceMain: boolean;
+  hasFloodZones: boolean;
+  hasZoningDistricts: boolean;
 }
 
 /**
@@ -38,12 +52,26 @@ export function MapLayerFAB({
   hasTraffic,
   hasEmployment,
   hasDrawnParcels,
+  hasHcadParcels,
+  hasWaterLines,
+  hasSewerLines,
+  hasStormLines,
+  hasForceMain,
+  hasFloodZones,
+  hasZoningDistricts,
 }: MapLayerFABProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const layers = [
-    { key: 'parcel' as const, label: 'Parcel', show: true },
-    { key: 'flood' as const, label: 'Flood Zones', show: hasFlood },
+    { key: 'parcel' as const, label: 'Property', show: true },
+    { key: 'hcadParcels' as const, label: 'HCAD Parcels', show: hasHcadParcels },
+    { key: 'waterLines' as const, label: 'Water Lines', show: hasWaterLines },
+    { key: 'sewerLines' as const, label: 'Sewer Lines', show: hasSewerLines },
+    { key: 'stormLines' as const, label: 'Storm Lines', show: hasStormLines },
+    { key: 'forceMain' as const, label: 'Force Main', show: hasForceMain },
+    { key: 'floodZones' as const, label: 'Flood Zones', show: hasFloodZones },
+    { key: 'zoningDistricts' as const, label: 'Zoning', show: hasZoningDistricts },
+    { key: 'flood' as const, label: 'Flood (Legacy)', show: hasFlood },
     { key: 'utilities' as const, label: 'Utilities', show: hasUtilities },
     { key: 'traffic' as const, label: 'Traffic', show: hasTraffic },
     { key: 'employment' as const, label: 'Employment', show: hasEmployment },

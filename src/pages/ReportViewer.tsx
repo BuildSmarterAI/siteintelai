@@ -1038,8 +1038,15 @@ export default function ReportViewer() {
                     className="h-[500px] md:h-[600px] lg:h-[700px] w-full rounded-lg"
                     propertyAddress={report.applications.formatted_address}
                     femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
+                    intentType={report.applications.intent_type as 'build' | 'buy' | null}
                     parcel={mapLayers?.parcel}
                     drawnParcels={mapLayers?.drawnParcels}
+                    hcadParcels={mapLayers?.hcadParcels || []}
+                    waterLines={mapLayers?.waterLines || []}
+                    sewerLines={mapLayers?.sewerLines || []}
+                    stormLines={mapLayers?.stormLines || []}
+                    forceMain={mapLayers?.forceMain || []}
+                    zoningDistricts={mapLayers?.zoningDistricts || []}
                     drawingEnabled={drawingMode}
                     onParcelDrawn={handleParcelDrawn}
                     onParcelSelected={handleParcelSelected}

@@ -9,6 +9,12 @@ interface MapLegendProps {
   hasFloodZones?: boolean;
   hasTraffic?: boolean;
   hasEmployment?: boolean;
+  hasHcadParcels?: boolean;
+  hasWaterLines?: boolean;
+  hasSewerLines?: boolean;
+  hasStormLines?: boolean;
+  hasForceMain?: boolean;
+  hasZoningDistricts?: boolean;
 }
 
 /**
@@ -26,6 +32,12 @@ export function MapLegend({
   hasFloodZones = false,
   hasTraffic = false,
   hasEmployment = false,
+  hasHcadParcels = false,
+  hasWaterLines = false,
+  hasSewerLines = false,
+  hasStormLines = false,
+  hasForceMain = false,
+  hasZoningDistricts = false,
 }: MapLegendProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -100,8 +112,74 @@ export function MapLegend({
         </div>
       )}
 
+      {/* HCAD Parcels */}
+      {hasHcadParcels && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <p className="font-medium text-foreground">HCAD Parcels</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#6366F1' }} />
+            <span className="text-muted-foreground">County parcel boundaries</span>
+          </div>
+        </div>
+      )}
+
+      {/* Water Lines */}
+      {hasWaterLines && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <p className="font-medium text-foreground">Water Infrastructure</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#3B82F6' }} />
+            <span className="text-muted-foreground">Water mains</span>
+          </div>
+        </div>
+      )}
+
+      {/* Sewer Lines */}
+      {hasSewerLines && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <p className="font-medium text-foreground">Sewer Infrastructure</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#10B981' }} />
+            <span className="text-muted-foreground">Sewer lines</span>
+          </div>
+        </div>
+      )}
+
+      {/* Storm Lines */}
+      {hasStormLines && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <p className="font-medium text-foreground">Storm Infrastructure</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#8B5CF6' }} />
+            <span className="text-muted-foreground">Storm drains</span>
+          </div>
+        </div>
+      )}
+
+      {/* Force Main */}
+      {hasForceMain && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <p className="font-medium text-foreground">Force Main</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#F59E0B' }} />
+            <span className="text-muted-foreground">Pressurized sewer</span>
+          </div>
+        </div>
+      )}
+
+      {/* Zoning Districts */}
+      {hasZoningDistricts && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <p className="font-medium text-foreground">Zoning</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: 'rgba(236, 72, 153, 0.3)', border: '1px solid #EC4899' }} />
+            <span className="text-muted-foreground">Zoning districts</span>
+          </div>
+        </div>
+      )}
+
       <p className="text-[10px] text-muted-foreground pt-2 border-t">
-        Data: FEMA NFHL, TxDOT, County GIS
+        Data: FEMA NFHL, TxDOT, County GIS, City of Houston
       </p>
     </div>
   );

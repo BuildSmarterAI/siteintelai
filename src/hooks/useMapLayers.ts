@@ -14,6 +14,12 @@ interface MapLayersData {
     geometry: any;
     acreage_calc: number;
   }>;
+  hcadParcels: any[];
+  waterLines: any[];
+  sewerLines: any[];
+  stormLines: any[];
+  forceMain: any[];
+  zoningDistricts: any[];
 }
 
 /**
@@ -162,6 +168,14 @@ export function useMapLayers(applicationId: string) {
         drawnParcels = parcelsData || [];
       }
 
+      // New infrastructure layers (empty arrays for now - future: fetch from ArcGIS)
+      const hcadParcels: any[] = [];
+      const waterLines: any[] = [];
+      const sewerLines: any[] = [];
+      const stormLines: any[] = [];
+      const forceMain: any[] = [];
+      const zoningDistricts: any[] = [];
+
       return {
         parcel,
         floodZones,
@@ -169,6 +183,12 @@ export function useMapLayers(applicationId: string) {
         traffic,
         employmentCenters,
         drawnParcels,
+        hcadParcels,
+        waterLines,
+        sewerLines,
+        stormLines,
+        forceMain,
+        zoningDistricts,
       };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
