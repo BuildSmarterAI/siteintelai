@@ -46,6 +46,16 @@ export default function Application() {
 
   // Load user profile and auto-fill contact information
   useEffect(() => {
+    // Check if this is a new application session
+    const applicationInProgress = sessionStorage.getItem('application_in_progress');
+    if (!applicationInProgress) {
+      // New application - clear previous intent from localStorage
+      localStorage.removeItem('user_intent_captured');
+      localStorage.removeItem('user_intent_type');
+      sessionStorage.setItem('application_in_progress', 'true');
+      console.log('[New Application] Cleared previous intent data');
+    }
+
     async function loadUserData() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -82,14 +92,18 @@ export default function Application() {
               setHasCompleteProfile(true);
               setCompletedSteps(prev => new Set([...prev, 1]));
               
-              // Check if intent has been captured
-              const hasSeenIntentModal = localStorage.getItem('user_intent_captured');
+              // Check if intent has been captured FOR THIS SESSION
+              const intentCapturedThisSession = sessionStorage.getItem('intent_captured_this_session');
               const savedIntent = localStorage.getItem('user_intent_type') as 'build' | 'buy' | null;
               
-              if (hasSeenIntentModal && savedIntent) {
-                // Skip Step 0 for returning users with saved intent
+              if (intentCapturedThisSession && savedIntent) {
+                // Intent already captured this session - auto-advance
                 setCompletedSteps(prev => new Set([...prev, 0]));
                 updateField('intentType', savedIntent);
+                console.log('[Intent] Using saved intent from this session:', savedIntent);
+              } else {
+                // Always start at Step 0 for new applications
+                console.log('[Intent] New application - user must select intent');
               }
               
               // Only auto-navigate to step 2 if user is on step 0 or 1
@@ -348,10 +362,11 @@ export default function Application() {
     }
     
     if (validateStep(currentStep)) {
-      // Save intent to localStorage when Step 0 is completed
+      // Save intent to sessionStorage and localStorage when Step 0 is completed
       if (currentStep === 0) {
-        localStorage.setItem('user_intent_captured', 'true');
+        sessionStorage.setItem('intent_captured_this_session', 'true');
         localStorage.setItem('user_intent_type', formData.intentType);
+        console.log('[Intent] Saved to session and localStorage:', formData.intentType);
       }
       
       // If completing Step 1 AND user is authenticated, update their profile
@@ -571,8 +586,11 @@ export default function Application() {
           description: "Redirecting to next steps...",
         });
 
-        // Clear completed steps from localStorage on successful submission
+        // Clear completed steps and session markers on successful submission
         localStorage.removeItem('application_completed_steps');
+        sessionStorage.removeItem('application_in_progress');
+        sessionStorage.removeItem('intent_captured_this_session');
+        console.log('[Submission] Cleared session markers for next application');
         
         // Redirect to thank you page with application ID
         setTimeout(() => {
