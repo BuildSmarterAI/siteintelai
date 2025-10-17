@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
-import { Zap, Loader2, Building2, DollarSign } from "lucide-react";
+import { Zap, Building2, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { QuickCheckResult } from "./QuickCheckResult";
 import { FadeIn } from "@/components/ui/fade-in";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import confetti from "canvas-confetti";
+import { AIProcessingIndicator } from "@/components/ui/ai-processing-indicator";
+import { triggerDataPulse } from "@/lib/data-pulse-effect";
 
 interface QuickCheckData {
   score: number;
@@ -26,22 +27,7 @@ export function QuickCheckWidget() {
   const [quickCheckData, setQuickCheckData] = useState<QuickCheckData | null>(null);
   const [showResults, setShowResults] = useState(false);
 
-  const triggerConfetti = (score: number) => {
-    if (score >= 80) {
-      confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#FF7A00', '#06B6D4', '#10B981']
-      });
-    } else if (score >= 60) {
-      confetti({
-        particleCount: 100,
-        spread: 60,
-        origin: { y: 0.6 }
-      });
-    }
-  };
+  // Removed confetti - replaced with corporate data pulse effect
 
   const handleQuickCheck = async () => {
     if (!intentType) {
@@ -80,9 +66,9 @@ export function QuickCheckWidget() {
 
       setTimeout(() => {
         setShowResults(true);
-        triggerConfetti(data.score);
+        triggerDataPulse();
       }, 150);
-      toast.success("QuickCheck™ complete!");
+      toast.success("QuickCheck™ complete");
     } catch (error) {
       console.error('QuickCheck error:', error);
       toast.error("Unable to generate QuickCheck. Please try again.");
@@ -158,10 +144,10 @@ export function QuickCheckWidget() {
           disabled={isLoading || !address || !intentType}
         >
           {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 md:h-5 w-4 md:w-5 animate-spin" />
+            <span className="flex items-center gap-2">
+              <AIProcessingIndicator size="sm" />
               Analyzing Property...
-            </>
+            </span>
           ) : intentType === 'build' ? (
             <>
               <Zap className="mr-2 h-4 md:h-5 w-4 md:w-5" />

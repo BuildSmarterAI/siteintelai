@@ -164,12 +164,35 @@ export default {
             transform: "translateY(0)" 
           }
         },
+        "dataPulseExpand": {
+          "0%": { 
+            transform: "scale(0.5)", 
+            opacity: "1",
+            borderWidth: "4px"
+          },
+          "100%": { 
+            transform: "scale(3)", 
+            opacity: "0",
+            borderWidth: "1px"
+          }
+        },
+        "aiScanLine": {
+          "0%, 100%": { transform: "translateY(-100%)" },
+          "50%": { transform: "translateY(100%)" }
+        },
+        "shimmer": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         "slide-up": "slide-up 0.8s ease-out",
+        "data-pulse": "dataPulseExpand 800ms ease-out",
+        "ai-scan": "aiScanLine 2s ease-in-out infinite",
+        "shimmer": "shimmer 2.5s ease-in-out infinite",
       },
       fontFamily: {
         headline: ['Satoshi', 'Inter', 'sans-serif'],      /* Satoshi Semibold for headlines */

@@ -37,13 +37,13 @@ export const Hero = () => {
     checkPerformance();
   });
 
-  // Magnetic button handler with motion preference check
+  // Reduced magnetic button intensity for corporate feel
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!buttonRef.current || prefersReducedMotion) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
-    setMousePosition({ x: x * 0.3, y: y * 0.3 });
+    setMousePosition({ x: x * 0.1, y: y * 0.1 }); // Reduced from 0.3 to 0.1
   };
 
   const handleMouseLeave = () => {
@@ -102,10 +102,9 @@ export const Hero = () => {
       y: 0,
       opacity: 1,
       transition: {
-        duration: 0.2,
+        duration: 0.3,
         delay: 0.7,
-        type: "spring" as const,
-        stiffness: 90,
+        ease: "easeOut" as const,
       },
     },
   };

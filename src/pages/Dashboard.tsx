@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp, GripVertical } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp, GripVertical, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
@@ -18,7 +18,7 @@ import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
 import { IntentBadge } from "@/components/IntentBadge";
 import { ReportCardSkeleton, StatsCardSkeleton } from "@/components/ui/report-skeleton";
 import { OnboardingTour } from "@/components/OnboardingTour";
-import confetti from 'canvas-confetti';
+import { triggerDataPulse } from "@/lib/data-pulse-effect";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -93,24 +93,37 @@ export default function Dashboard() {
       const prevStatus = reportStatuses[report.id];
       
       if (prevStatus === 'generating' && report.status === 'completed') {
-        // Report just completed
-        toast.success(`✅ Report ready: ${report.applications.formatted_address}`, {
-          action: {
-            label: 'View Report',
-            onClick: () => navigate(`/report/${report.id}`)
-          },
-          duration: 10000,
-        });
+        // Report just completed - Corporate toast with icon
+        toast.success(
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Report Complete</p>
+              <p className="text-xs text-muted-foreground">{report.applications.formatted_address}</p>
+            </div>
+          </div>,
+          {
+            action: {
+              label: 'View Report',
+              onClick: () => navigate(`/report/${report.id}`)
+            },
+            duration: 8000,
+          }
+        );
         
-        // Confetti celebration
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#FF7A00', '#06B6D4', '#10B981']
-        });
+        // Data pulse instead of confetti
+        triggerDataPulse();
       } else if (prevStatus === 'generating' && report.status === 'failed') {
-        toast.error(`❌ Report failed: ${report.applications.formatted_address}`);
+        toast.error(
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Generation Failed</p>
+              <p className="text-xs text-muted-foreground">{report.applications.formatted_address}</p>
+            </div>
+          </div>,
+          { duration: 10000 }
+        );
       }
     });
     

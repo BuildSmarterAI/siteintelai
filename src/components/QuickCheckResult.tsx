@@ -45,16 +45,19 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
       {/* Score Display */}
       <div className="text-center py-6 bg-gradient-to-br from-primary/10 to-transparent rounded-lg border border-primary/20">
         <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ 
+            duration: 0.4, 
+            ease: [0.25, 0.1, 0.25, 1]
+          }}
         >
           <ScoreCircle score={score} size="lg" />
         </motion.div>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.2, duration: 0.3, ease: "easeOut" }}
           className="mt-4"
         >
           <Badge className={`${getBandColor(band)} text-white text-lg px-4 py-1`}>
@@ -73,9 +76,9 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
         {intentType === 'build' ? (
           <>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
             >
               <Card className="zoning-insight">
               <CardHeader className="pb-3">
@@ -91,9 +94,9 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.35, duration: 0.3, ease: "easeOut" }}
             >
               <Card className="utility-insight">
               <CardHeader className="pb-3">
@@ -112,9 +115,9 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
         ) : (
           <>
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
+              transition={{ delay: 0.3, duration: 0.3, ease: "easeOut" }}
             >
               <Card className="market-value-insight">
               <CardHeader className="pb-3">
@@ -131,9 +134,9 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.35, duration: 0.3, ease: "easeOut" }}
             >
               <Card className="flood-insurance-insight">
               <CardHeader className="pb-3">
