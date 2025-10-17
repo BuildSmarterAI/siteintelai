@@ -1121,8 +1121,17 @@ function distanceFeet(lat1: number, lng1: number, lat2: number, lng2: number): n
 /**
  * Query traffic data from TxDOT AADT using Turf.js for accurate distance calculations
  */
-async function queryTrafficData(lat: number, lng: number, city?: string): Promise<any> {
+async function queryTrafficData(lat: number, lng: number, city?: string, supabase?: any, appId?: string): Promise<any> {
   console.log(`🚗 Starting TxDOT AADT query at ${lat}, ${lng}`);
+  
+  // 💾 Check cache first (365-day TTL - annual AADT updates)
+  const trafficCacheKey = `traffic_${lat.toFixed(5)}_${lng.toFixed(5)}`;
+  const cachedTraffic = supabase ? await getCachedData(supabase, trafficCacheKey, CACHE_TTL.TRAFFIC) : null;
+  
+  if (cachedTraffic) {
+    console.log('✅ Using cached traffic data');
+    return { ...cachedTraffic, cached: true };
+  }
   
   // Import only the Turf.js functions we need (avoids esm.sh parsing issues with full package)
   const { point } = await import('https://esm.sh/@turf/helpers@7.1.0');
@@ -1215,13 +1224,20 @@ async function queryTrafficData(lat: number, lng: number, city?: string): Promis
     
     console.log(`✅ Matched nearest segment: ${aadt} AADT (${year}) at ${Math.round(distFeet)}ft on ${attrs.RTE_NM || 'unknown'}`);
 
-    return {
+    const result = {
       aadt,
       year,
       stationId: attrs.OBJECTID ?? null,
       distance: distFeet,
       roadName: attrs.RTE_NM ?? null
     };
+    
+    // 💾 Cache successful traffic data
+    if (supabase && result.aadt) {
+      await setCacheData(supabase, trafficCacheKey, result, CACHE_TTL.TRAFFIC, appId);
+    }
+    
+    return result;
     
   } catch (error) {
     console.error(`💥 TxDOT error:`, error.message || String(error));
@@ -2201,11 +2217,21 @@ serve(async (req) => {
       // Query parcel data from primary endpoint with 3-tier fallback and retry logic
       if (endpoints.parcel_url) {
         console.log('Querying parcel data from:', endpoints.parcel_url);
-        console.log('Parcel query params:', new URLSearchParams(parcelParams).toString());
         
-        // 🔄 Tier 1: Primary envelope/point query with retry logic
-        try {
-          parcelData = await retryWithBackoff(
+        // 💾 Check cache first (30-day TTL)
+        const parcelCacheKey = `parcel_${countyName}_${geoLat.toFixed(6)}_${geoLng.toFixed(6)}`;
+        let cachedParcel = await getCachedData(supabase, parcelCacheKey, CACHE_TTL.PARCEL);
+        
+        if (cachedParcel) {
+          console.log('✅ Using cached parcel data');
+          parcelData = cachedParcel;
+          apiMeta.parcel_cached = true;
+        } else {
+          console.log('Parcel query params:', new URLSearchParams(parcelParams).toString());
+          
+          // 🔄 Tier 1: Primary envelope/point query with retry logic
+          try {
+            parcelData = await retryWithBackoff(
             async () => {
               const controller = new AbortController();
               const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -2486,11 +2512,17 @@ serve(async (req) => {
         if (parcelData?.features?.[0]) {
           const successfulTier = parcelAttempts.find(a => a.success);
           console.log(`✅ Parcel data found via Tier ${successfulTier?.tier || 1} (${successfulTier?.method || 'unknown'})`);
+          
+          // 💾 Cache successful parcel data (only if not from cache)
+          if (!cachedParcel && !apiMeta.parcel_cached) {
+            await setCacheData(supabase, parcelCacheKey, parcelData, CACHE_TTL.PARCEL, application_id);
+          }
         } else {
           console.error('❌ All parcel query tiers failed:', {
             totalAttempts: parcelAttempts.length,
             attempts: parcelAttempts
           });
+        }
         }
       }
 
@@ -3159,8 +3191,9 @@ serve(async (req) => {
 
     // Step 7: Traffic & Mobility
     console.log('Fetching traffic data...');
+    let trafficData = null;
     try {
-      const trafficData = await queryTrafficData(geoLat, geoLng, enrichedData.city);
+      trafficData = await queryTrafficData(geoLat, geoLng, enrichedData.city, supabase, application_id);
       
       if (trafficData) {
         enrichedData.traffic_aadt = trafficData.aadt || null;
@@ -3487,6 +3520,28 @@ serve(async (req) => {
       // NEW: Google Maps integration data
       if (enrichedData.drivetimes) updateData.drivetimes = enrichedData.drivetimes;
       if (enrichedData.nearby_places) updateData.nearby_places = enrichedData.nearby_places;
+      
+      // 📊 Track API refresh metadata (which APIs were called vs cached)
+      const refreshMetadata = {
+        parcel: apiMeta.parcel_cached ? null : new Date().toISOString(),
+        fema: apiMeta.fema_nfhl?.cached ? null : new Date().toISOString(),
+        zoning: apiMeta.zoning_cached ? null : new Date().toISOString(),
+        traffic: enrichedData.traffic_aadt && trafficData?.cached ? null : new Date().toISOString(),
+        refreshed_at: new Date().toISOString()
+      };
+      
+      // Calculate next cache expiration (use minimum TTL of all cached data)
+      const activeCacheTTLs = [];
+      if (apiMeta.parcel_cached) activeCacheTTLs.push(CACHE_TTL.PARCEL);
+      if (apiMeta.fema_nfhl?.cached) activeCacheTTLs.push(CACHE_TTL.FEMA);
+      if (apiMeta.zoning_cached) activeCacheTTLs.push(CACHE_TTL.ZONING);
+      
+      if (activeCacheTTLs.length > 0) {
+        const minTTL = Math.min(...activeCacheTTLs);
+        updateData.cache_expires_at = new Date(Date.now() + minTTL).toISOString();
+      }
+      
+      updateData.last_api_refresh = refreshMetadata;
 
       console.log('Updating database with enriched data:', updateData);
 
