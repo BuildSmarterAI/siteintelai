@@ -8,12 +8,12 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function ParcelExplorer() {
   const navigate = useNavigate();
-  const [center, setCenter] = useState<[number, number]>([-95.3698, 29.7604]); // Houston
+  const [center, setCenter] = useState<[number, number]>([29.7604, -95.3698]); // Houston [lat, lng]
   const [zoom, setZoom] = useState(15);
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
 
   const handleAddressSelect = (lat: number, lng: number, address: string) => {
-    setCenter([lng, lat]);
+    setCenter([lat, lng]);
     setZoom(17);
   };
 
@@ -34,8 +34,8 @@ export default function ParcelExplorer() {
     const params = new URLSearchParams({
       address: parcel.address || '',
       parcelId: parcel.id,
-      lat: center[1].toString(),
-      lng: center[0].toString(),
+      lat: center[0].toString(),
+      lng: center[1].toString(),
     });
     navigate(`/application?${params.toString()}`);
   };
