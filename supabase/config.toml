@@ -94,3 +94,9 @@ verify_jwt = false
 
 [functions.geocode-intersection]
 verify_jwt = false
+
+[functions.enrich-epa-echo]
+verify_jwt = true
+
+[functions.enrich-wetlands]
+verify_jwt = true

@@ -70,6 +70,8 @@ export type Database = {
       }
       applications: {
         Row: {
+          aadt_near: number | null
+          aadt_road_name: string | null
           access_priorities: string[] | null
           acct_num: string | null
           acreage_cad: number | null
@@ -90,6 +92,7 @@ export type Database = {
           broadband_providers: Json | null
           building_size_unit: string | null
           building_size_value: number | null
+          cache_expires_at: string | null
           city: string | null
           company: string
           conclusion_output: string | null
@@ -101,6 +104,7 @@ export type Database = {
           created_at: string
           data_flags: Json | null
           desired_budget: number | null
+          disaster_declarations: string | null
           distance_highway_ft: number | null
           distance_transit_ft: number | null
           draft_saved_at: string | null
@@ -117,6 +121,7 @@ export type Database = {
           entitlement_notes: string | null
           environmental_constraints: string[] | null
           environmental_sites: Json | null
+          epa_facilities_count: number | null
           etj_provider: string | null
           executive_summary_output: string | null
           exemption_code: string | null
@@ -145,6 +150,7 @@ export type Database = {
           land_use_code: string | null
           land_use_description: string | null
           land_val: number | null
+          last_api_refresh: Json | null
           legal_dscr_1: string | null
           legal_dscr_2: string | null
           legal_dscr_3: string | null
@@ -159,9 +165,13 @@ export type Database = {
           mud_district: string | null
           nda_confidentiality: boolean
           nearby_places: Json | null
+          nearest_facility_dist: number | null
+          nearest_facility_type: string | null
           nearest_highway: string | null
           nearest_transit_stop: string | null
           neighborhood: string | null
+          nfip_claims_count: number | null
+          nfip_claims_total_paid: number | null
           num_stories: number | null
           opportunity_zone: boolean | null
           overlay_district: string | null
@@ -229,12 +239,15 @@ export type Database = {
           water_capacity_mgd: number | null
           water_lines: Json | null
           wcid_district: string | null
+          wetlands_area_pct: number | null
           wetlands_type: string | null
           year_built: number | null
           zoning_code: string | null
           zoning_output: string | null
         }
         Insert: {
+          aadt_near?: number | null
+          aadt_road_name?: string | null
           access_priorities?: string[] | null
           acct_num?: string | null
           acreage_cad?: number | null
@@ -255,6 +268,7 @@ export type Database = {
           broadband_providers?: Json | null
           building_size_unit?: string | null
           building_size_value?: number | null
+          cache_expires_at?: string | null
           city?: string | null
           company: string
           conclusion_output?: string | null
@@ -266,6 +280,7 @@ export type Database = {
           created_at?: string
           data_flags?: Json | null
           desired_budget?: number | null
+          disaster_declarations?: string | null
           distance_highway_ft?: number | null
           distance_transit_ft?: number | null
           draft_saved_at?: string | null
@@ -282,6 +297,7 @@ export type Database = {
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
+          epa_facilities_count?: number | null
           etj_provider?: string | null
           executive_summary_output?: string | null
           exemption_code?: string | null
@@ -310,6 +326,7 @@ export type Database = {
           land_use_code?: string | null
           land_use_description?: string | null
           land_val?: number | null
+          last_api_refresh?: Json | null
           legal_dscr_1?: string | null
           legal_dscr_2?: string | null
           legal_dscr_3?: string | null
@@ -324,9 +341,13 @@ export type Database = {
           mud_district?: string | null
           nda_confidentiality?: boolean
           nearby_places?: Json | null
+          nearest_facility_dist?: number | null
+          nearest_facility_type?: string | null
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          nfip_claims_count?: number | null
+          nfip_claims_total_paid?: number | null
           num_stories?: number | null
           opportunity_zone?: boolean | null
           overlay_district?: string | null
@@ -394,12 +415,15 @@ export type Database = {
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wcid_district?: string | null
+          wetlands_area_pct?: number | null
           wetlands_type?: string | null
           year_built?: number | null
           zoning_code?: string | null
           zoning_output?: string | null
         }
         Update: {
+          aadt_near?: number | null
+          aadt_road_name?: string | null
           access_priorities?: string[] | null
           acct_num?: string | null
           acreage_cad?: number | null
@@ -420,6 +444,7 @@ export type Database = {
           broadband_providers?: Json | null
           building_size_unit?: string | null
           building_size_value?: number | null
+          cache_expires_at?: string | null
           city?: string | null
           company?: string
           conclusion_output?: string | null
@@ -431,6 +456,7 @@ export type Database = {
           created_at?: string
           data_flags?: Json | null
           desired_budget?: number | null
+          disaster_declarations?: string | null
           distance_highway_ft?: number | null
           distance_transit_ft?: number | null
           draft_saved_at?: string | null
@@ -447,6 +473,7 @@ export type Database = {
           entitlement_notes?: string | null
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
+          epa_facilities_count?: number | null
           etj_provider?: string | null
           executive_summary_output?: string | null
           exemption_code?: string | null
@@ -475,6 +502,7 @@ export type Database = {
           land_use_code?: string | null
           land_use_description?: string | null
           land_val?: number | null
+          last_api_refresh?: Json | null
           legal_dscr_1?: string | null
           legal_dscr_2?: string | null
           legal_dscr_3?: string | null
@@ -489,9 +517,13 @@ export type Database = {
           mud_district?: string | null
           nda_confidentiality?: boolean
           nearby_places?: Json | null
+          nearest_facility_dist?: number | null
+          nearest_facility_type?: string | null
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          nfip_claims_count?: number | null
+          nfip_claims_total_paid?: number | null
           num_stories?: number | null
           opportunity_zone?: boolean | null
           overlay_district?: string | null
@@ -559,6 +591,7 @@ export type Database = {
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wcid_district?: string | null
+          wetlands_area_pct?: number | null
           wetlands_type?: string | null
           year_built?: number | null
           zoning_code?: string | null
