@@ -37,6 +37,7 @@ export default function Application() {
   
   // Authentication and profile loading
   const [authLoading, setAuthLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
 
   // Load user profile and auto-fill contact information
@@ -44,6 +45,8 @@ export default function Application() {
     async function loadUserData() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        
+        setIsAuthenticated(!!session?.user);
         
         if (session?.user) {
           const { data: profile } = await supabase
@@ -104,6 +107,18 @@ export default function Application() {
     }
     
     loadUserData();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session?.user);
+      if (session?.user) {
+        loadUserData();
+      } else {
+        setUserProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // Load completed steps from localStorage on mount
@@ -677,21 +692,21 @@ export default function Application() {
                                    <p className="text-muted-foreground">Loading your information...</p>
                                  </div>
                                </CardContent>
-                             </Card>
-                           ) : userProfile ? (
-                             <Card className="border-green-200 bg-green-50">
-                               <CardContent className="pt-6">
-                                 <div className="flex items-center gap-3">
-                                   <CheckCircle className="h-6 w-6 text-green-600" />
-                                   <div>
-                                     <p className="font-semibold text-green-900">Welcome back, {userProfile.full_name}!</p>
-                                     <p className="text-sm text-green-700">Your contact information has been loaded. You can edit it below if needed.</p>
-                                   </div>
-                                 </div>
-                               </CardContent>
-                             </Card>
-                           ) : (
-                             <AuthPrompt 
+                            </Card>
+                          ) : userProfile ? (
+                            <Card className="border-green-200 bg-green-50">
+                              <CardContent className="pt-6">
+                                <div className="flex items-center gap-3">
+                                  <CheckCircle className="h-6 w-6 text-green-600" />
+                                  <div>
+                                    <p className="font-semibold text-green-900">Welcome back, {userProfile.full_name}!</p>
+                                    <p className="text-sm text-green-700">Your contact information has been loaded. You can edit it below if needed.</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ) : !isAuthenticated ? (
+                            <AuthPrompt
                                onAuthSuccess={(user, profile) => {
                                  setUserProfile(profile);
                                  // Auto-fill form with profile data
@@ -709,11 +724,11 @@ export default function Application() {
                                      setCompletedSteps(prev => new Set([...prev, 1]));
                                    }
                                  }
-                               }}
-                             />
-                           )}
+                                }}
+                              />
+                            ) : null}
 
-                            {/* Contact Step - gated behind authLoading to prevent flash */}
+                             {/* Contact Step - gated behind authLoading to prevent flash */}
                              {authLoading ? (
                                <div className="space-y-4">
                                  <Skeleton className="h-12 w-full" />
