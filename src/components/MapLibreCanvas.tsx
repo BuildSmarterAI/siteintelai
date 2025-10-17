@@ -380,6 +380,42 @@ export function MapLibreCanvas({
       // Set loaded flag
       map.current.on('load', () => {
         setMapLoaded(true);
+        
+        // Add 3D building layer (initially hidden)
+        if (map.current) {
+          map.current.addLayer({
+            id: '3d-buildings',
+            source: {
+              type: 'vector',
+              url: 'https://tiles.openfreemap.org/planet'
+            },
+            'source-layer': 'building',
+            filter: ['==', 'extrude', 'true'],
+            type: 'fill-extrusion',
+            minzoom: 15,
+            paint: {
+              'fill-extrusion-color': '#aaa',
+              'fill-extrusion-height': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                15, 0,
+                15.05, ['get', 'height']
+              ],
+              'fill-extrusion-base': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                15, 0,
+                15.05, ['get', 'min_height']
+              ],
+              'fill-extrusion-opacity': 0.6
+            },
+            layout: {
+              visibility: 'none'
+            }
+          });
+        }
       });
 
       // Handle errors gracefully
@@ -1216,6 +1252,15 @@ export function MapLibreCanvas({
       map.current.setLayoutProperty('drawn-parcels-line', 'visibility', visibility);
     }
   }, [layerVisibility.drawnParcels, mapLoaded]);
+
+  // Update 3D buildings visibility based on 3D mode
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = is3DMode ? 'visible' : 'none';
+    if (map.current.getLayer('3d-buildings')) {
+      map.current.setLayoutProperty('3d-buildings', 'visibility', visibility);
+    }
+  }, [is3DMode, mapLoaded]);
 
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`}>
