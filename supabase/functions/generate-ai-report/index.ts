@@ -54,8 +54,9 @@ serve(async (req) => {
     }
 
     // Build structured prompt based on enriched data
-    const systemPrompt = buildSystemPrompt(report_type);
-    const userPrompt = buildUserPrompt(application, report_type, geospatialData);
+    const intentType = application.intent_type || 'build';
+    const systemPrompt = buildSystemPrompt(report_type, intentType);
+    const userPrompt = buildUserPrompt(application, report_type, geospatialData, intentType);
 
     console.log('[generate-ai-report] Calling Lovable AI...');
 
@@ -97,6 +98,11 @@ serve(async (req) => {
       // Strip markdown code fences if present
       const cleanedOutput = stripMarkdownCodeFences(aiOutput);
       reportData = JSON.parse(cleanedOutput);
+      // Add intent metadata to report
+      reportData.intent_type = intentType;
+      reportData.intent_summary = intentType === 'build'
+        ? 'This report evaluates constructability, entitlements, and estimated development timelines.'
+        : 'This report assesses investment suitability, flood risk, and long-term market stability.';
       console.log('[generate-ai-report] Successfully parsed AI JSON output');
     } catch (e) {
       console.error('[generate-ai-report] Failed to parse AI output as JSON');
@@ -223,9 +229,9 @@ serve(async (req) => {
   }
 });
 
-function buildSystemPrompt(reportType: string): string {
-  if (reportType === 'quickcheck') {
-    return `You are BuildSmarter™ AI, a feasibility analyst specializing in Texas commercial real estate.
+function buildSystemPrompt(reportType: string, intentType: string = 'build'): string {
+  const baseInstructions = reportType === 'quickcheck' ? 
+    `You are BuildSmarter™ AI, a feasibility analyst specializing in Texas commercial real estate.
 
 CRITICAL GUIDELINES:
 - Output ONLY valid JSON
@@ -234,10 +240,45 @@ CRITICAL GUIDELINES:
 - Never invent data
 - Round to 2 decimals max
 - Include data_sources array with timestamp in ISO-8601 format (use current date ${new Date().toISOString()})
-- Map each dataset to its corresponding section (zoning, flood, utilities, environmental, traffic, market)
+- Map each dataset to its corresponding section (zoning, flood, utilities, environmental, traffic, market)` :
+    `You are BuildSmarter™ AI, a feasibility analyst for commercial real estate development in Texas.
 
-QuickCheck JSON schema:
-{
+CRITICAL GUIDELINES:
+- Output ONLY valid JSON (no markdown, no preamble)
+- Use US customary units exclusively (feet, acres, miles, sq ft)
+- Cite authoritative sources for every statement (FEMA NFHL, TxDOT, HCAD, etc.)
+- Never hallucinate data - use only provided sources
+- Round to 2 decimals maximum
+- Do not fabricate URLs or dates
+- REQUIRED: Include data_sources array with exact timestamp ${new Date().toISOString()}
+- Map each dataset to section: zoning, flood, utilities, environmental, traffic, market
+- Use official endpoint URLs: FEMA (hazards.fema.gov), TxDOT (txdot.gov), HCAD (hcad.org), etc.`;
+
+  // Add intent-specific focus
+  if (intentType === 'build') {
+    return baseInstructions + `
+
+**BUILD/DEVELOPMENT FOCUS:**
+Your analysis prioritizes **constructability, entitlement risk, and development timelines**.
+
+Key evaluation criteria:
+- Zoning compliance and overlay restrictions (height limits, setbacks, FAR)
+- Floodplain mitigation requirements (fill costs, BFE+1 construction)
+- Utility proximity and capacity (water/sewer/storm within 500ft ideal)
+- Environmental permits (wetland impacts, soil drainage for foundations)
+- Construction schedule feasibility (permit sequencing, agency timelines)
+- Market demand for proposed use (labor pool, traffic accessibility)
+
+Score Weights (Build):
+- Zoning & Entitlements: 30%
+- Flood & Environmental: 20%
+- Utilities & Infrastructure: 20%
+- Environmental Permits: 10%
+- Schedule Risk: 10%
+- Market Demand: 10%
+
+Narrative Tone: Technical, lender-focused, construction-ready language.` +
+      (reportType === 'quickcheck' ? `\n\nQuickCheck JSON schema:\n{
   "summary": {
     "feasibility_score": number (0-100),
     "score_band": "A"|"B"|"C",
@@ -259,21 +300,56 @@ QuickCheck JSON schema:
       "section": "zoning|flood|utilities|environmental|traffic|market"
     }
   ]
-}`;
+}` : '');
+  } else if (intentType === 'buy') {
+    return baseInstructions + `
+
+**BUY/INVESTMENT FOCUS:**
+Your analysis prioritizes **risk-adjusted ROI, flood insurance costs, and long-term value stability**.
+
+Key evaluation criteria:
+- Property valuation vs. market comps (appraised value trends)
+- Flood insurance requirements and NFIP loss history
+- Environmental liability exposure (EPA sites, wetlands restrictions)
+- Market stability (median income, population growth, employment)
+- Infrastructure access (highways, transit, utilities) for tenant demand
+- Regulatory constraints (zoning for future use, tax incentives)
+
+Score Weights (Buy):
+- Valuation & Market: 30%
+- Flood & Insurance Risk: 25%
+- Environmental Liability: 20%
+- Market Demographics: 15%
+- Infrastructure Access: 10%
+
+Narrative Tone: Investor-focused, underwriting-ready, ROI-oriented language.` +
+      (reportType === 'quickcheck' ? `\n\nQuickCheck JSON schema:\n{
+  "summary": {
+    "feasibility_score": number (0-100),
+    "score_band": "A"|"B"|"C",
+    "executive_summary": "2-3 sentence verdict"
+  },
+  "zoning": {
+    "zoning_summary": "Current zoning and primary permitted uses",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "flood": {
+    "flood_summary": "Zone, BFE, risk level",
+    "citations": [{"source": "...", "url": "..."}]
+  },
+  "data_sources": [
+    {
+      "dataset_name": "Source name",
+      "timestamp": "ISO-8601 datetime",
+      "endpoint_url": "https://...",
+      "section": "zoning|flood|utilities|environmental|traffic|market"
+    }
+  ]
+}` : '');
   }
 
-  return `You are BuildSmarter™ AI, a feasibility analyst for commercial real estate development in Texas.
-
-CRITICAL GUIDELINES:
-- Output ONLY valid JSON (no markdown, no preamble)
-- Use US customary units exclusively (feet, acres, miles, sq ft)
-- Cite authoritative sources for every statement (FEMA NFHL, TxDOT, HCAD, etc.)
-- Never hallucinate data - use only provided sources
-- Round to 2 decimals maximum
-- Do not fabricate URLs or dates
-- REQUIRED: Include data_sources array with exact timestamp ${new Date().toISOString()}
-- Map each dataset to section: zoning, flood, utilities, environmental, traffic, market
-- Use official endpoint URLs: FEMA (hazards.fema.gov), TxDOT (txdot.gov), HCAD (hcad.org), etc.
+  // Default to build if no intent specified (backward compatibility)
+  return baseInstructions;
 
 Full Report JSON schema:
 {
@@ -400,10 +476,15 @@ PROJECT INTENT ANALYSIS RULES:
 Never use placeholders or "TBD" - use actual data or mark as "data unavailable".`;
 }
 
-function buildUserPrompt(application: any, reportType: string, geospatialData?: any): string {
+function buildUserPrompt(application: any, reportType: string, geospatialData?: any, intentType: string = 'build'): string {
   const address = application.formatted_address || application.property_address || 'Unknown';
   
   const dataPoints = [
+    `### ANALYSIS INTENT: ${intentType.toUpperCase()}`,
+    intentType === 'build' 
+      ? `🏗️ Development Feasibility: Evaluate site for new construction and entitlement risk.`
+      : `💰 Investment Analysis: Assess acquisition suitability and risk-adjusted returns.`,
+    ``,
     `Address: ${address}`,
     `Parcel ID: ${application.parcel_id || 'N/A'}`,
     `Owner: ${application.parcel_owner || 'N/A'}`,

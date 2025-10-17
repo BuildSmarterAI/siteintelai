@@ -124,6 +124,7 @@ export type Database = {
           fema_firm_panel: string | null
           fema_panel_id: string | null
           fiber_available: boolean | null
+          financial_indicators: Json | null
           floodplain_zone: string | null
           foreign_trade_zone: boolean | null
           formatted_address: string | null
@@ -138,6 +139,8 @@ export type Database = {
           households_5mi: number | null
           id: string
           imprv_val: number | null
+          intent_type: string | null
+          intent_weights: Json | null
           known_risks: string[] | null
           land_use_code: string | null
           land_use_description: string | null
@@ -149,6 +152,7 @@ export type Database = {
           lot: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
+          market_context: Json | null
           market_output: string | null
           marketing_opt_in: boolean
           median_income: number | null
@@ -285,6 +289,7 @@ export type Database = {
           fema_firm_panel?: string | null
           fema_panel_id?: string | null
           fiber_available?: boolean | null
+          financial_indicators?: Json | null
           floodplain_zone?: string | null
           foreign_trade_zone?: boolean | null
           formatted_address?: string | null
@@ -299,6 +304,8 @@ export type Database = {
           households_5mi?: number | null
           id?: string
           imprv_val?: number | null
+          intent_type?: string | null
+          intent_weights?: Json | null
           known_risks?: string[] | null
           land_use_code?: string | null
           land_use_description?: string | null
@@ -310,6 +317,7 @@ export type Database = {
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
+          market_context?: Json | null
           market_output?: string | null
           marketing_opt_in?: boolean
           median_income?: number | null
@@ -446,6 +454,7 @@ export type Database = {
           fema_firm_panel?: string | null
           fema_panel_id?: string | null
           fiber_available?: boolean | null
+          financial_indicators?: Json | null
           floodplain_zone?: string | null
           foreign_trade_zone?: boolean | null
           formatted_address?: string | null
@@ -460,6 +469,8 @@ export type Database = {
           households_5mi?: number | null
           id?: string
           imprv_val?: number | null
+          intent_type?: string | null
+          intent_weights?: Json | null
           known_risks?: string[] | null
           land_use_code?: string | null
           land_use_description?: string | null
@@ -471,6 +482,7 @@ export type Database = {
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
+          market_context?: Json | null
           market_output?: string | null
           marketing_opt_in?: boolean
           median_income?: number | null
@@ -1379,6 +1391,7 @@ export type Database = {
           feasibility_score: number | null
           formatted_address: string | null
           id: string | null
+          intent_type: string | null
           json_data: Json | null
           lot_size_unit: string | null
           lot_size_value: number | null

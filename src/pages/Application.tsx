@@ -441,6 +441,7 @@ export default function Application() {
         company: formData.company,
         email: formData.email,
         phone: formData.phone,
+        intentType: formData.intentType,
         propertyAddress: formData.propertyAddress,
         parcelIdApn: formData.parcelId,
         lotSizeValue: formData.lotSize,

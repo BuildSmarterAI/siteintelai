@@ -45,6 +45,7 @@ interface Report {
     parcel_id: string;
     zoning_code: string;
     floodplain_zone: string;
+    intent_type?: string | null;
     traffic_aadt: number | null;
     traffic_year: number | null;
     traffic_road_name: string | null;
@@ -2950,6 +2951,52 @@ export default function ReportViewer() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Intent-Specific Next Steps */}
+        {report.applications.intent_type && (
+          <Card className="mt-6 border-primary">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                {report.applications.intent_type === 'build' ? (
+                  <>
+                    <Zap className="text-primary" />
+                    Next Steps for Development
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="text-primary" />
+                    Next Steps for Investment
+                  </>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {report.applications.intent_type === 'build' ? (
+                <>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => window.open('https://schedulr.siteintel.ai', '_blank')}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    📅 Explore Schedule & Cost with Schedulr™
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start">
+                    <Building2 className="mr-2 h-4 w-4" />
+                    🏛️ Connect with Entitlement Consultant
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" className="w-full justify-start" onClick={() => window.open('https://www.floodsmart.gov/', '_blank')}>
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    🌊 Get Flood Insurance Quote
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start" disabled>
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    📊 Compare Similar Parcels (Coming Soon)
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Data Sources Sidebar */}

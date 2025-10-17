@@ -8,6 +8,7 @@ export interface ApplicationFormData {
   phone: string;
   
   // Step 2: Property Information
+  intentType: 'build' | 'buy' | '';
   propertyAddress: string;
   parcelId: string;
   lotSize: string;
@@ -82,6 +83,7 @@ const initialFormData: ApplicationFormData = {
   company: "",
   email: "",
   phone: "",
+  intentType: "",
   propertyAddress: "",
   parcelId: "",
   lotSize: "",
@@ -157,6 +159,7 @@ export function useApplicationForm() {
     }
 
     if (step === 2) {
+      if (!formData.intentType) newErrors.intentType = "Please select your primary goal";
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
       if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }

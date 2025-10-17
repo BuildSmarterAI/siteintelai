@@ -1748,6 +1748,76 @@ async function fetchPermittingData(city: string, county: string): Promise<any> {
   }
 }
 
+/**
+ * Fetch NFIP Multiple Loss Properties for investment risk analysis (BUY path)
+ * OpenFEMA API: Properties with 2+ flood insurance claims
+ */
+async function fetchNFIPMultipleLossProperties(lat: number, lng: number): Promise<{
+  total_events: number;
+  flood_events: any[];
+  nfip_multiple_loss: boolean;
+  insurance_risk_level: 'high' | 'moderate' | 'low';
+}> {
+  try {
+    // Search within 0.01 degree radius (~0.7 miles at 29°N latitude)
+    const latMin = lat - 0.01;
+    const latMax = lat + 0.01;
+    const lngMin = lng - 0.01;
+    const lngMax = lng + 0.01;
+    
+    const nfipUrl = `https://www.fema.gov/api/open/v2/FimaNfipMultipleLossProperties?$filter=latitude ge ${latMin} and latitude le ${latMax} and longitude ge ${lngMin} and longitude le ${lngMax}&$top=100`;
+    
+    console.log('[BUY PATH] Querying NFIP Multiple Loss Properties API...');
+    const response = await fetch(nfipUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`NFIP API returned ${response.status}`);
+    }
+    
+    const data = await response.json();
+    const properties = data.FimaNfipMultipleLossProperties || [];
+    
+    // Also fetch standard flood history
+    const historicalEvents = await fetchHistoricalFloodEvents(lat, lng);
+    
+    // Determine insurance risk level
+    let insuranceRiskLevel: 'high' | 'moderate' | 'low' = 'low';
+    if (properties.length > 5) {
+      insuranceRiskLevel = 'high';
+    } else if (properties.length > 2) {
+      insuranceRiskLevel = 'moderate';
+    }
+    
+    console.log(`[BUY PATH] Found ${properties.length} NFIP multiple loss properties nearby`);
+    console.log(`[BUY PATH] Insurance risk level: ${insuranceRiskLevel}`);
+    
+    return {
+      total_events: historicalEvents.total_events,
+      flood_events: [
+        ...historicalEvents.flood_events,
+        ...properties.map((p: any) => ({
+          type: 'NFIP Multiple Loss Property',
+          date: p.reportedDate || 'Unknown',
+          claims_count: p.numberOfLosses || 0,
+          total_payments: p.totalPaymentAmount || 0,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          occupancy_type: p.occupancyType,
+          construction_type: p.constructionType
+        }))
+      ],
+      nfip_multiple_loss: properties.length > 0,
+      insurance_risk_level: insuranceRiskLevel
+    };
+  } catch (error) {
+    console.error('[BUY PATH] NFIP Multiple Loss Properties API error:', error);
+    // Fallback to standard flood history
+    return await fetchHistoricalFloodEvents(lat, lng);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -1763,6 +1833,25 @@ serve(async (req) => {
     const { application_id, address } = await req.json();
 
     console.log('Enriching application:', { application_id, address });
+
+    // Fetch application record to check intent_type
+    let intentType = 'build'; // Default to build
+    if (application_id) {
+      try {
+        const { data: app, error: appError } = await supabase
+          .from('applications')
+          .select('intent_type')
+          .eq('id', application_id)
+          .single();
+        
+        if (!appError && app?.intent_type) {
+          intentType = app.intent_type;
+          console.log(`[enrich-feasibility] Intent type: ${intentType}`);
+        }
+      } catch (err) {
+        console.log('[enrich-feasibility] Could not fetch intent_type, defaulting to build');
+      }
+    }
 
     // application_id is optional - if not provided, we'll just return the data without saving
 
@@ -2841,7 +2930,16 @@ serve(async (req) => {
     try {
       console.log('Fetching historical flood events from OpenFEMA...');
       const startTime = Date.now();
-      const floodHistory = await fetchHistoricalFloodEvents(geoLat, geoLng);
+      
+      // 🚀 INTENT-SPECIFIC: Buy path includes NFIP multiple loss properties
+      let floodHistory;
+      if (intentType === 'buy') {
+        console.log('[BUY PATH] Fetching NFIP multiple loss properties for investment risk analysis...');
+        floodHistory = await fetchNFIPMultipleLossProperties(geoLat, geoLng);
+      } else {
+        floodHistory = await fetchHistoricalFloodEvents(geoLat, geoLng);
+      }
+      
       apiMeta.openfema_disasters = { 
         latency_ms: Date.now() - startTime,
         total_events: floodHistory.total_events,
