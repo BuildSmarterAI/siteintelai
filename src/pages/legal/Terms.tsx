@@ -1,302 +1,370 @@
 import { Helmet } from "react-helmet";
+import { Link } from "react-router-dom";
 
 export default function Terms() {
+  const sections = [
+    { id: "introduction", title: "1. Introduction & Acceptance of Terms" },
+    { id: "description", title: "2. Description of Service" },
+    { id: "registration", title: "3. Account Registration & Eligibility" },
+    { id: "data-sources", title: "4. Use of Data & API Sources" },
+    { id: "acceptable-use", title: "5. User Responsibilities & Acceptable Use" },
+    { id: "intellectual-property", title: "6. Intellectual Property" },
+    { id: "ai-content", title: "7. AI-Generated Content & Accuracy Disclaimer" },
+    { id: "attribution", title: "8. Third-Party Data Attribution & Licensing" },
+    { id: "payment", title: "9. Payment, Subscriptions & Refunds" },
+    { id: "liability", title: "10. Limitation of Liability" },
+    { id: "indemnification", title: "11. Indemnification" },
+    { id: "termination", title: "12. Termination & Suspension" },
+    { id: "privacy", title: "13. Privacy & Data Security" },
+    { id: "modifications", title: "14. Modifications to Terms" },
+    { id: "governing-law", title: "15. Governing Law & Dispute Resolution" },
+    { id: "contact", title: "16. Contact Information" },
+  ];
+
   return (
     <>
       <Helmet>
         <title>Terms of Service | SiteIntel™ Feasibility</title>
-        <meta name="description" content="SiteIntel Feasibility terms of service - legal agreement for using our platform." />
+        <meta name="description" content="Comprehensive terms of service for SiteIntel™ Feasibility by BuildSmarter Holdings LLC. AI-powered feasibility reports for commercial real estate." />
       </Helmet>
-
+      
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-6 lg:px-8 py-16 max-w-4xl">
+        <div className="container mx-auto px-4 py-16 max-w-7xl">
           {/* Header */}
-          <div className="mb-12">
-            <h1 className="text-4xl lg:text-5xl font-bold text-foreground mb-4">
-              Terms of Service
-            </h1>
-            <p className="text-muted-foreground">
-              Last Updated: January 22, 2025
-            </p>
+          <div className="mb-12 text-center">
+            <h1 className="text-4xl font-bold mb-2">Terms of Service</h1>
+            <p className="text-xl text-muted-foreground mb-1">SiteIntel™ Feasibility</p>
+            <p className="text-sm text-muted-foreground">Last Updated: October 2025</p>
           </div>
 
-          {/* Content */}
-          <div className="prose prose-lg max-w-none space-y-8">
-            {/* Introduction */}
-            <section>
-              <p className="text-foreground leading-relaxed">
-                These Terms of Service ("Terms") govern your access to and use of SiteIntel™ Feasibility ("SiteIntel," "we," "our," or "us"), including our website, platform, and services. By accessing or using SiteIntel, you agree to be bound by these Terms.
-              </p>
-              <p className="text-foreground leading-relaxed mt-4">
-                <strong>IF YOU DO NOT AGREE TO THESE TERMS, DO NOT USE OUR SERVICES.</strong>
-              </p>
-            </section>
-
-            {/* Acceptance of Terms */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                1. Acceptance of Terms
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                By creating an account, accessing our platform, or using our services, you acknowledge that you have read, understood, and agree to be bound by these Terms and our Privacy Policy. If you are using SiteIntel on behalf of an organization, you represent that you have authority to bind that organization to these Terms.
-              </p>
-            </section>
-
-            {/* Services Description */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                2. Services Description
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                SiteIntel provides AI-powered feasibility analysis and due diligence reports for commercial real estate development projects. Our services include:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground mt-4">
-                <li><strong>QuickCheck™:</strong> Free preliminary feasibility scoring</li>
-                <li><strong>Full Feasibility Reports:</strong> Comprehensive analysis including zoning, flood risk, utilities, environmental factors, and market context</li>
-                <li><strong>Pro Subscription:</strong> Unlimited reports and priority support</li>
-                <li><strong>API Access:</strong> Programmatic access to feasibility data</li>
-              </ul>
-            </section>
-
-            {/* User Accounts */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                3. User Accounts and Registration
-              </h2>
-              <p className="text-foreground leading-relaxed mb-4">
-                To access certain features, you must create an account. You agree to:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground">
-                <li>Provide accurate, current, and complete information during registration</li>
-                <li>Maintain and update your account information</li>
-                <li>Maintain the security and confidentiality of your login credentials</li>
-                <li>Notify us immediately of any unauthorized access or security breaches</li>
-                <li>Accept responsibility for all activities under your account</li>
-              </ul>
-              <p className="text-foreground leading-relaxed mt-4">
-                You must be at least 18 years old to use SiteIntel. We reserve the right to suspend or terminate accounts that violate these Terms.
-              </p>
-            </section>
-
-            {/* Use License and Restrictions */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                4. Use License and Restrictions
-              </h2>
+          {/* Two-column layout: Content + Sidebar */}
+          <div className="lg:grid lg:grid-cols-[1fr_320px] lg:gap-12">
+            
+            {/* Main Content */}
+            <div className="prose prose-lg max-w-none">
               
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                4.1 Permitted Use
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                We grant you a limited, non-exclusive, non-transferable license to access and use SiteIntel for lawful business purposes in accordance with these Terms.
-              </p>
-
-              <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">
-                4.2 Prohibited Activities
-              </h3>
-              <p className="text-foreground leading-relaxed mb-4">You agree NOT to:</p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground">
-                <li>Reverse engineer, decompile, or attempt to extract source code from our platform</li>
-                <li>Use automated systems (bots, scrapers) to access the service without authorization</li>
-                <li>Resell, redistribute, or sublicense reports or data without written permission</li>
-                <li>Submit false, misleading, or fraudulent information</li>
-                <li>Interfere with or disrupt the integrity or performance of our services</li>
-                <li>Attempt to gain unauthorized access to our systems or networks</li>
-                <li>Use the service for illegal purposes or in violation of any applicable laws</li>
-              </ul>
-            </section>
-
-            {/* Report Accuracy and Limitations */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                5. Report Accuracy and Limitations
-              </h2>
-              
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                5.1 Data Sources
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                Our reports are generated using data from authoritative sources including FEMA, ArcGIS, EPA, TxDOT, OpenStreetMap, and other federal, state, and local databases. While we strive for accuracy, we do not independently verify all third-party data.
-              </p>
-
-              <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">
-                5.2 No Guarantees
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                <strong>IMPORTANT:</strong> SiteIntel reports are for informational purposes and preliminary due diligence only. They do NOT constitute:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground mt-4">
-                <li>Legal, financial, or professional advice</li>
-                <li>Official government determinations or certifications</li>
-                <li>A substitute for professional site surveys, engineering studies, or environmental assessments</li>
-                <li>A guarantee of development approval or project success</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">
-                5.3 User Responsibility
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                You are solely responsible for verifying all information, conducting appropriate due diligence, and consulting qualified professionals (engineers, attorneys, surveyors, environmental consultants) before making investment or development decisions.
-              </p>
-            </section>
-
-            {/* Payment Terms */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                6. Payment Terms
-              </h2>
-              
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                6.1 Pricing
-              </h3>
-              <ul className="list-disc pl-6 space-y-2 text-foreground">
-                <li><strong>QuickCheck™:</strong> Free</li>
-                <li><strong>Full Feasibility Report:</strong> $795 per report</li>
-                <li><strong>Pro Subscription:</strong> $1,950/month (unlimited reports)</li>
-                <li><strong>API Partner Program:</strong> $9,990/month (custom terms apply)</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">
-                6.2 Payment Processing
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                Payments are processed securely through Stripe. By providing payment information, you authorize us to charge your payment method for applicable fees. All fees are non-refundable except as required by law or as specified in our refund policy.
-              </p>
-
-              <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">
-                6.3 Subscriptions
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                Pro subscriptions automatically renew monthly unless canceled. You may cancel at any time through your account dashboard. Cancellations take effect at the end of the current billing period.
-              </p>
-
-              <h3 className="text-xl font-semibold text-foreground mb-3 mt-6">
-                6.4 Refund Policy
-              </h3>
-              <p className="text-foreground leading-relaxed">
-                We offer a satisfaction guarantee: if a report is not accepted by a qualified lender due to data quality issues (not project viability), contact us within 7 days for review. Refunds are issued at our sole discretion after investigation.
-              </p>
-            </section>
-
-            {/* Intellectual Property */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                7. Intellectual Property
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                SiteIntel, our logo, trademarks, and all content, features, and functionality are owned by us or our licensors and protected by copyright, trademark, and other intellectual property laws. Reports generated for you may be used for your internal business purposes but may not be resold or publicly distributed without permission.
-              </p>
-            </section>
-
-            {/* Disclaimer of Warranties */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                8. Disclaimer of Warranties
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                <strong>THE SERVICES ARE PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED.</strong> We disclaim all warranties, including but not limited to:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground mt-4">
-                <li>Merchantability, fitness for a particular purpose, and non-infringement</li>
-                <li>Accuracy, completeness, or reliability of data or reports</li>
-                <li>Uninterrupted, secure, or error-free operation</li>
-                <li>Results obtained from using the services</li>
-              </ul>
-            </section>
-
-            {/* Limitation of Liability */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                9. Limitation of Liability
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                <strong>TO THE MAXIMUM EXTENT PERMITTED BY LAW, SITEINTEL AND ITS AFFILIATES SHALL NOT BE LIABLE FOR:</strong>
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground mt-4">
-                <li>Indirect, incidental, consequential, special, or punitive damages</li>
-                <li>Loss of profits, revenue, data, or business opportunities</li>
-                <li>Development decisions or investment losses based on reports</li>
-                <li>Errors or inaccuracies in third-party data sources</li>
-              </ul>
-              <p className="text-foreground leading-relaxed mt-4">
-                <strong>Our total liability for any claim shall not exceed the amount you paid to us in the 12 months preceding the claim, or $1,000, whichever is greater.</strong>
-              </p>
-            </section>
-
-            {/* Indemnification */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                10. Indemnification
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                You agree to indemnify, defend, and hold harmless SiteIntel, its officers, directors, employees, and agents from any claims, liabilities, damages, losses, and expenses (including attorney fees) arising from:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-foreground mt-4">
-                <li>Your use or misuse of the services</li>
-                <li>Violation of these Terms</li>
-                <li>Infringement of any third-party rights</li>
-                <li>Development or investment decisions made based on reports</li>
-              </ul>
-            </section>
-
-            {/* Termination */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                11. Termination
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                We reserve the right to suspend or terminate your account and access to services at our sole discretion, without notice, for conduct that violates these Terms or is harmful to other users, us, or third parties. Upon termination, your right to use the services ceases immediately.
-              </p>
-            </section>
-
-            {/* Governing Law */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                12. Governing Law and Dispute Resolution
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                These Terms are governed by the laws of the State of Texas, without regard to conflict of law principles. Any disputes shall be resolved through binding arbitration in accordance with the American Arbitration Association rules, with proceedings held in Texas. You waive any right to participate in class actions.
-              </p>
-            </section>
-
-            {/* Changes to Terms */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                13. Changes to Terms
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                We may modify these Terms at any time. Material changes will be communicated via email or platform notification. Continued use of services after changes constitutes acceptance of the modified Terms.
-              </p>
-            </section>
-
-            {/* Miscellaneous */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                14. Miscellaneous
-              </h2>
-              <ul className="list-disc pl-6 space-y-2 text-foreground">
-                <li><strong>Severability:</strong> If any provision is unenforceable, the remaining provisions remain in effect</li>
-                <li><strong>Entire Agreement:</strong> These Terms constitute the entire agreement between you and SiteIntel</li>
-                <li><strong>No Waiver:</strong> Failure to enforce any provision does not waive our right to enforce it later</li>
-                <li><strong>Assignment:</strong> You may not assign these Terms; we may assign them without restriction</li>
-              </ul>
-            </section>
-
-            {/* Contact */}
-            <section>
-              <h2 className="text-2xl font-semibold text-foreground mb-4">
-                15. Contact Us
-              </h2>
-              <p className="text-foreground leading-relaxed">
-                For questions about these Terms, please contact us:
-              </p>
-              <div className="mt-4 p-6 bg-muted rounded-lg">
-                <p className="text-foreground"><strong>SiteIntel™ Feasibility</strong></p>
-                <p className="text-foreground mt-2">Email: legal@siteintel.ai</p>
-                <p className="text-foreground">Email: support@siteintel.ai</p>
-                <p className="text-foreground mt-4">Powered by Maxx Builders + Maxx Designers</p>
+              {/* Table of Contents */}
+              <div className="bg-muted rounded-lg p-6 mb-8 not-prose">
+                <h2 className="text-xl font-semibold mb-4">Table of Contents</h2>
+                <nav className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {sections.map((section) => (
+                    <a
+                      key={section.id}
+                      href={`#${section.id}`}
+                      className="text-sm text-foreground hover:text-primary transition-colors scroll-smooth"
+                    >
+                      {section.title}
+                    </a>
+                  ))}
+                </nav>
               </div>
-            </section>
+
+              {/* Section 1: Introduction */}
+              <section id="introduction" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">1. Introduction & Acceptance of Terms</h2>
+                <p className="mb-4">
+                  By accessing or using the SiteIntel™ Feasibility platform ("SiteIntel," "we," "our," or "us"), you agree to these Terms of Service ("Terms") and our <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                </p>
+                <p className="mb-4">
+                  SiteIntel is a software-as-a-service (SaaS) platform owned and operated by <strong>BuildSmarter Holdings LLC</strong>, headquartered in Texas.
+                </p>
+                <p className="mb-4">
+                  If you do not agree to these Terms, you may not use the platform or any reports generated by it.
+                </p>
+                <p>
+                  Use of SiteIntel signifies that you have read, understood, and accepted all applicable terms, including any third-party data provider terms referenced herein (e.g., FEMA/OpenFEMA, ArcGIS, Google Maps).
+                </p>
+              </section>
+
+              {/* Section 2: Description of Service */}
+              <section id="description" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">2. Description of Service</h2>
+                <p className="mb-4">
+                  SiteIntel™ Feasibility is an AI + GIS platform that automates commercial real-estate feasibility and due-diligence analysis. The service combines authoritative datasets from sources including FEMA, ArcGIS, TxDOT, EPA, USFWS, USDA, and Census to produce lender-ready feasibility reports in PDF and JSON formats.
+                </p>
+                <p className="mb-4">The platform:</p>
+                <ul className="mb-4 space-y-2">
+                  <li>Automates parcel, zoning, floodplain, environmental, and utility data collection.</li>
+                  <li>Uses AI to interpret and summarize feasibility data.</li>
+                  <li>Exports lender-readable reports with citations to public data sources.</li>
+                </ul>
+                <div className="border-l-2 border-primary pl-4 bg-muted p-4 rounded">
+                  <p className="font-semibold mb-2">Important:</p>
+                  <p>While SiteIntel uses official data feeds (OpenFEMA, ArcGIS Feature Services, Google Maps APIs), it is not an agency or affiliate of FEMA, any U.S. government entity, or ESRI.</p>
+                </div>
+              </section>
+
+              {/* Section 3: Account Registration */}
+              <section id="registration" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">3. Account Registration & Eligibility</h2>
+                <p className="mb-4">To use SiteIntel, you must:</p>
+                <ul className="mb-4 space-y-2">
+                  <li>Be at least 18 years old and legally able to enter into binding contracts.</li>
+                  <li>Provide accurate registration information, including business and payment details.</li>
+                  <li>Maintain confidentiality of your login credentials.</li>
+                </ul>
+                <p className="mb-4">
+                  You are responsible for all activity conducted under your account. We reserve the right to suspend or terminate accounts that violate these Terms or applicable laws.
+                </p>
+              </section>
+
+              {/* Section 4: Use of Data & API Sources */}
+              <section id="data-sources" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">4. Use of Data & API Sources</h2>
+                <p className="mb-4">
+                  SiteIntel relies on licensed and open datasets from multiple third-party APIs. By using the platform, you agree to comply with the data-provider terms, including but not limited to:
+                </p>
+                
+                <div className="bg-muted rounded-lg p-6 mb-4">
+                  <h3 className="text-xl font-semibold mb-3">FEMA / OpenFEMA</h3>
+                  <p className="mb-2">
+                    Data made available through <a href="https://www.fema.gov/openfema" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.fema.gov/openfema</a> under FEMA's Open Data Terms and Conditions.
+                  </p>
+                  <p className="text-sm">
+                    OpenFEMA data are provided "as is," without warranty, and may be modified or removed at any time.
+                  </p>
+                </div>
+
+                <div className="bg-muted rounded-lg p-6 mb-4">
+                  <h3 className="text-xl font-semibold mb-3">ArcGIS / ESRI Feature Services</h3>
+                  <p className="mb-2">
+                    Data sourced from public ArcGIS endpoints operated by state or local agencies. Attribution must be maintained in derived works.
+                  </p>
+                </div>
+
+                <div className="bg-muted rounded-lg p-6 mb-4">
+                  <h3 className="text-xl font-semibold mb-3">Google Maps Platform</h3>
+                  <p>
+                    Static Maps & Geocoding APIs subject to Google Maps Platform Terms of Service and API key usage limits.
+                  </p>
+                </div>
+
+                <p>
+                  SiteIntel displays data citations and timestamps within each report. You acknowledge that the accuracy of external data is dependent on the originating agency, not SiteIntel.
+                </p>
+              </section>
+
+              {/* Section 5: User Responsibilities */}
+              <section id="acceptable-use" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">5. User Responsibilities & Acceptable Use</h2>
+                <p className="mb-4">You agree not to:</p>
+                <ul className="mb-4 space-y-2">
+                  <li>Misrepresent property information or submit false data.</li>
+                  <li>Reproduce, resell, sublicense, or redistribute reports or datasets derived from SiteIntel.</li>
+                  <li>Circumvent usage limits, API quotas, or authentication mechanisms.</li>
+                  <li>Use the service for illegal, discriminatory, or fraudulent purposes.</li>
+                  <li>Attempt to copy, decompile, or reverse engineer SiteIntel's source code or algorithms.</li>
+                </ul>
+                <p>
+                  You are responsible for ensuring that any reports or data exported from SiteIntel are used in compliance with all applicable laws and lender requirements.
+                </p>
+              </section>
+
+              {/* Section 6: Intellectual Property */}
+              <section id="intellectual-property" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">6. Intellectual Property</h2>
+                <p className="mb-4">
+                  All intellectual property rights in the SiteIntel™ platform—including software, data schema, algorithms, report templates, and documentation—belong exclusively to BuildSmarter Holdings LLC.
+                </p>
+                <p className="mb-4">
+                  You retain ownership of the property data and inputs you provide. By submitting inputs or using the service, you grant SiteIntel a non-exclusive, royalty-free license to process and analyze such data for report generation, product improvement, and anonymized statistical use.
+                </p>
+                <p>
+                  Trademarks and service marks, including SiteIntel™, Feasibility-as-a-Service™, and related brand assets, are proprietary and may not be used without written consent.
+                </p>
+              </section>
+
+              {/* Section 7: AI-Generated Content */}
+              <section id="ai-content" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">7. AI-Generated Content & Accuracy Disclaimer</h2>
+                <div className="border-l-2 border-primary pl-4 bg-muted p-4 rounded mb-4">
+                  <p className="mb-2">
+                    SiteIntel uses machine-learning models to generate structured feasibility insights. These outputs are automated interpretations of public data and should not be construed as certified engineering, legal, or financial advice.
+                  </p>
+                  <p className="font-semibold">
+                    While we strive for accuracy, SiteIntel does not guarantee the completeness or reliability of any AI-generated result.
+                  </p>
+                </div>
+                <p>
+                  You are solely responsible for verifying outputs before relying on them in investment, design, or construction decisions.
+                </p>
+              </section>
+
+              {/* Section 8: Third-Party Attribution */}
+              <section id="attribution" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">8. Third-Party Data Attribution & Licensing</h2>
+                <p className="mb-4">Reports generated by SiteIntel may include references, excerpts, or citations from:</p>
+                <ul className="mb-4 space-y-2">
+                  <li>FEMA OpenFEMA Datasets (DisasterDeclarationsSummaries, NFIP Multiple Loss Properties, etc.)</li>
+                  <li>City and County ArcGIS Feature Servers (e.g., Harris County CAD Parcels, StormwaterUtilities MapServer)</li>
+                  <li>TxDOT AADT Traffic Counts</li>
+                  <li>USFWS Wetlands and EPA FRS environmental datasets</li>
+                  <li>Google Maps Static Map imagery for parcel visualization</li>
+                </ul>
+                <p>
+                  Each dataset retains its original license and attribution requirements. All citations are listed in the "Data Sources & Timestamps" appendix of each report.
+                </p>
+              </section>
+
+              {/* Section 9: Payment */}
+              <section id="payment" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">9. Payment, Subscriptions & Refunds</h2>
+                <p className="mb-4">
+                  All paid features—including feasibility reports, subscriptions, and API access—are billed through secure payment processors (e.g., Stripe). Current pricing tiers are as follows:
+                </p>
+                
+                <div className="bg-muted rounded-lg p-6 mb-4">
+                  <ul className="space-y-2">
+                    <li><strong>Pay-Per-Use:</strong> $795 per report</li>
+                    <li><strong>Pro Subscription:</strong> $1,950/month (includes 10 reports)</li>
+                    <li><strong>Enterprise:</strong> Custom plans for lenders or API partners</li>
+                  </ul>
+                </div>
+
+                <p className="mb-4">
+                  All fees are non-refundable once a report or API call has been initiated, except where required by law. Taxes may apply based on jurisdiction.
+                </p>
+                <p>
+                  SiteIntel reserves the right to adjust pricing and introduce new tiers upon notice.
+                </p>
+              </section>
+
+              {/* Section 10: Limitation of Liability */}
+              <section id="liability" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">10. Limitation of Liability</h2>
+                <div className="border-l-2 border-primary pl-4 bg-muted p-4 rounded mb-4">
+                  <p className="mb-4 font-semibold">To the maximum extent permitted by law:</p>
+                  <ul className="mb-4 space-y-2">
+                    <li>
+                      SiteIntel and its affiliates shall not be liable for any indirect, incidental, consequential, or punitive damages, including loss of profits, data, or goodwill.
+                    </li>
+                    <li>
+                      The total aggregate liability under these Terms shall not exceed the amount you paid for the service during the preceding six (6) months.
+                    </li>
+                  </ul>
+                  <p className="font-semibold">
+                    No Warranty: All services and outputs are provided "as is" and "as available." We disclaim all warranties, whether express, implied, or statutory, including merchantability and fitness for a particular purpose.
+                  </p>
+                </div>
+              </section>
+
+              {/* Section 11: Indemnification */}
+              <section id="indemnification" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">11. Indemnification</h2>
+                <p className="mb-4">
+                  You agree to indemnify and hold harmless BuildSmarter Holdings LLC, its officers, employees, and partners from any claims, damages, or liabilities arising from:
+                </p>
+                <ul className="space-y-2">
+                  <li>Your use of SiteIntel outputs or data;</li>
+                  <li>Violation of these Terms or applicable law;</li>
+                  <li>Infringement of third-party rights resulting from your actions.</li>
+                </ul>
+              </section>
+
+              {/* Section 12: Termination */}
+              <section id="termination" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">12. Termination & Suspension</h2>
+                <p className="mb-4">We may suspend or terminate your access to SiteIntel if:</p>
+                <ul className="mb-4 space-y-2">
+                  <li>You breach these Terms or misuse the service;</li>
+                  <li>Payment fails or subscription expires;</li>
+                  <li>Required by law or third-party data providers.</li>
+                </ul>
+                <p>
+                  Upon termination, your right to access reports and APIs ceases immediately. Certain sections (e.g., Intellectual Property, Limitation of Liability, Governing Law) survive termination.
+                </p>
+              </section>
+
+              {/* Section 13: Privacy */}
+              <section id="privacy" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">13. Privacy & Data Security</h2>
+                <p className="mb-4">
+                  Your privacy is important to us. Please review our <Link to="/legal/privacy" className="text-primary hover:underline">Privacy Policy</Link> for details on how we handle your personal and project data.
+                </p>
+                <p>
+                  SiteIntel employs encryption, secure storage, and limited access controls consistent with industry standards but cannot guarantee absolute security.
+                </p>
+              </section>
+
+              {/* Section 14: Modifications */}
+              <section id="modifications" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">14. Modifications to Terms</h2>
+                <p className="mb-4">
+                  We may update these Terms periodically. Material changes will be announced via the website or email.
+                </p>
+                <p>
+                  Continued use of the platform after updates constitutes acceptance of the revised Terms.
+                </p>
+              </section>
+
+              {/* Section 15: Governing Law */}
+              <section id="governing-law" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">15. Governing Law & Dispute Resolution</h2>
+                <p className="mb-4">
+                  These Terms shall be governed by and construed under the laws of the State of Texas, without regard to conflict-of-law principles.
+                </p>
+                <p>
+                  Any disputes shall be resolved through binding arbitration in Houston, Texas, under the rules of the American Arbitration Association. Judgment on the award may be entered in any court of competent jurisdiction.
+                </p>
+              </section>
+
+              {/* Section 16: Contact Information */}
+              <section id="contact" className="mb-12 scroll-mt-24">
+                <h2 className="text-2xl font-semibold mb-4">16. Contact Information</h2>
+                <p className="mb-4">
+                  For questions regarding these Terms or data use policies, contact:
+                </p>
+                <div className="bg-muted p-6 rounded-lg">
+                  <p className="font-semibold mb-1">BuildSmarter Holdings LLC (SiteIntel™)</p>
+                  <p className="mb-1">Attn: Legal Department</p>
+                  <p className="mb-1">Houston, TX, USA</p>
+                  <p>Email: <a href="mailto:legal@siteintel.ai" className="text-primary hover:underline">legal@siteintel.ai</a></p>
+                </div>
+              </section>
+
+              {/* Copyright Footer */}
+              <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
+                <p>© 2025 BuildSmarter Holdings LLC — All Rights Reserved.</p>
+              </div>
+            </div>
+
+            {/* Sticky Sidebar (Desktop Only) */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-24 space-y-6">
+                
+                {/* Last Updated Badge */}
+                <div className="bg-muted rounded-lg p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Last Updated</p>
+                  <p className="font-semibold">October 2025</p>
+                </div>
+
+                {/* Quick Contact Card */}
+                <div className="bg-muted rounded-lg p-4">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Legal Contact</p>
+                  <p className="text-sm mb-1">BuildSmarter Holdings LLC</p>
+                  <a href="mailto:legal@siteintel.ai" className="text-sm text-primary hover:underline">
+                    legal@siteintel.ai
+                  </a>
+                </div>
+
+                {/* Download PDF Placeholder */}
+                <button 
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-3 font-semibold transition-colors"
+                  onClick={() => window.print()}
+                >
+                  Print Terms
+                </button>
+
+                {/* Jump to Top */}
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="w-full border border-border hover:bg-muted rounded-lg px-4 py-3 font-semibold transition-colors"
+                >
+                  ↑ Back to Top
+                </button>
+              </div>
+            </aside>
+
           </div>
         </div>
       </div>
