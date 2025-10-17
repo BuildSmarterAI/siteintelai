@@ -21,13 +21,14 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const { application_id, center, zoom = 17, size = '800x600', parcel_geometry } = await req.json();
+    const { application_id, center, zoom = 17, size = '800x600', parcel_geometry, flood_geometry } = await req.json();
     console.log('[render-static-map] Request received:', {
       application_id,
       center,
       zoom,
       size,
       has_parcel_geometry: !!parcel_geometry,
+      has_flood_geometry: !!flood_geometry,
       timestamp: new Date().toISOString()
     });
 
@@ -49,7 +50,26 @@ serve(async (req) => {
     baseUrl.searchParams.append('style', 'feature:poi|visibility:off');
     baseUrl.searchParams.append('style', 'feature:transit|visibility:off');
 
-    // Add parcel boundary path if geometry is available
+    // Add flood zone overlay first (so it renders under parcel boundary)
+    if (flood_geometry && flood_geometry.coordinates && flood_geometry.coordinates.length > 0) {
+      try {
+        const floodCoords = flood_geometry.type === 'Polygon' 
+          ? flood_geometry.coordinates[0] 
+          : flood_geometry.coordinates;
+        
+        const floodPath = floodCoords
+          .map((coord: number[]) => `${coord[1]},${coord[0]}`)
+          .join('|');
+        
+        // Blue fill with 20% opacity (0x33 = ~20%), cyan border
+        baseUrl.searchParams.append('path', `fillcolor:0x330000FF|color:0x00FFFFFF|weight:2|${floodPath}`);
+        console.log('[render-static-map] Added flood zone overlay with', floodCoords.length, 'points');
+      } catch (error) {
+        console.warn('[render-static-map] Failed to add flood zone overlay:', error);
+      }
+    }
+
+    // Add parcel boundary path if geometry is available (renders on top of flood zone)
     if (parcel_geometry && parcel_geometry.coordinates && parcel_geometry.coordinates.length > 0) {
       try {
         // Handle Polygon geometry type (coordinates[0] is the outer ring)
@@ -63,7 +83,7 @@ serve(async (req) => {
           .join('|');
         
         // Add the path overlay with high visibility (red color, 3px weight, full opacity)
-        baseUrl.searchParams.set('path', `color:0xff0000ff|weight:3|${pathCoords}`);
+        baseUrl.searchParams.append('path', `color:0xff0000ff|weight:3|${pathCoords}`);
         console.log('[render-static-map] Added parcel boundary path with', coords.length, 'points');
       } catch (error) {
         console.warn('[render-static-map] Failed to add parcel boundary:', error);
@@ -117,7 +137,9 @@ serve(async (req) => {
     const mapArrayBuffer = await mapBlob.arrayBuffer();
     const mapBuffer = new Uint8Array(mapArrayBuffer);
 
-    const fileName = `reports/${application_id}/static_map.png`;
+    // Generate different file names based on overlays present
+    const hasFlood = !!flood_geometry;
+    const fileName = `reports/${application_id}/static_map${hasFlood ? '_flood' : ''}.png`;
     console.log(`[render-static-map] Uploading to Supabase Storage: ${fileName}`);
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -148,12 +170,15 @@ serve(async (req) => {
       .eq('application_id', application_id)
       .single();
 
+    const hasFlood = !!flood_geometry;
     const updatedAssets = {
       ...(report?.report_assets || {}),
       static_map_url: signedUrlData.signedUrl,
       static_map_generated_at: new Date().toISOString(),
       static_map_center: center,
       static_map_zoom: zoom,
+      has_flood_overlay: hasFlood,
+      flood_geometry_included: hasFlood
     };
 
     await supabase

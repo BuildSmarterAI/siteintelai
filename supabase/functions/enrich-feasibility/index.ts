@@ -223,8 +223,83 @@ const ENDPOINT_CATALOG: Record<string, any> = {
 };
 
 // API Endpoints - Official Sources
-const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/28/query"; // Flood Hazard Zones (Layer 28 - correct endpoint per FEMA documentation)
+const FEMA_NFHL_ZONES_URL = "https://hazards.fema.gov/arcgis/rest/services/public/NFHL/MapServer/0/query"; // Flood Hazard Zones (Layer 0 - official NFHL flood zones per research document)
 const OPENFEMA_DISASTERS_URL = "https://www.fema.gov/api/open/v2/DisasterDeclarationsSummaries"; // Historical flood events
+
+// Cache Time-To-Live (TTL) in milliseconds - per research document recommendations
+const CACHE_TTL = {
+  PARCEL: 30 * 24 * 60 * 60 * 1000,    // 30 days (bi-weekly HCAD updates)
+  ZONING: 90 * 24 * 60 * 60 * 1000,    // 90 days (quarterly changes)
+  FEMA: 180 * 24 * 60 * 60 * 1000,     // 180 days (semi-annual NFHL updates)
+  UTILITIES: 0,                         // No cache (real-time data)
+  TRAFFIC: 365 * 24 * 60 * 60 * 1000   // 365 days (annual AADT updates)
+};
+
+/**
+ * Check if cached data exists and is still valid
+ * Returns cached data if valid, null if expired/missing
+ */
+async function getCachedData(
+  supabase: any,
+  cacheKey: string,
+  ttlMs: number
+): Promise<any | null> {
+  if (ttlMs === 0) return null; // Skip cache for zero TTL
+  
+  try {
+    const { data: cached } = await supabase
+      .from('api_logs')
+      .select('*')
+      .eq('cache_key', cacheKey)
+      .gte('expires_at', new Date().toISOString())
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (cached && cached.success && cached.response_data) {
+      console.log(`✅ Cache HIT for ${cacheKey} (expires ${cached.expires_at})`);
+      return JSON.parse(cached.response_data);
+    }
+    
+    console.log(`❌ Cache MISS for ${cacheKey}`);
+    return null;
+  } catch (error) {
+    console.warn('Cache lookup failed:', error.message);
+    return null;
+  }
+}
+
+/**
+ * Store API response in cache with TTL
+ */
+async function setCacheData(
+  supabase: any,
+  cacheKey: string,
+  data: any,
+  ttlMs: number,
+  applicationId?: string
+): Promise<void> {
+  if (ttlMs === 0) return; // Skip cache for zero TTL
+  
+  try {
+    const expiresAt = new Date(Date.now() + ttlMs);
+    
+    await supabase.from('api_logs').insert({
+      cache_key: cacheKey,
+      endpoint: cacheKey.split('_')[0], // e.g., "parcel" from "parcel_12345"
+      success: true,
+      duration_ms: 0, // Cached data, no API call made
+      response_data: JSON.stringify(data),
+      expires_at: expiresAt.toISOString(),
+      application_id: applicationId,
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log(`💾 Cached ${cacheKey} until ${expiresAt.toISOString()}`);
+  } catch (error) {
+    console.warn('Cache write failed:', error.message);
+  }
+}
 
 /**
  * Retry helper with exponential backoff for flaky APIs
@@ -2847,30 +2922,43 @@ serve(async (req) => {
     try {
       // Use retry logic for FEMA API (known to be flaky with 404s and timeouts)
       await retryWithBackoff(async () => {
-        // Query FEMA NFHL Layer 28 (correct endpoint per FEMA documentation - contains FLD_ZONE, BFE, FIRM_PAN)
-        const femaParams = new URLSearchParams({
-          f: 'json',
-          geometry: `${geoLng},${geoLat}`,
-          geometryType: 'esriGeometryPoint',
-          inSR: '4326',
-          spatialRel: 'esriSpatialRelIntersects',
-          outFields: 'FLD_ZONE,BFE,STATIC_BFE,FIRM_PAN,SFHA_TF',
-          returnGeometry: 'false'
-        });
+        // Query FEMA NFHL Layer 0 (official flood zones layer per research document)
+        const femaCacheKey = `fema_${geoLat}_${geoLng}`;
+        let femaData = await getCachedData(supabase, femaCacheKey, CACHE_TTL.FEMA);
+        
+        if (!femaData) {
+          // Cache miss - fetch from FEMA API
+          const femaParams = new URLSearchParams({
+            f: 'json',
+            geometry: `${geoLng},${geoLat}`,
+            geometryType: 'esriGeometryPoint',
+            inSR: '4326',
+            spatialRel: 'esriSpatialRelIntersects',
+            outFields: 'FLD_ZONE,ZONE_SUBTY,STATIC_BFE,DFIRM_ID,V_DATUM',
+            returnGeometry: 'false'
+          });
 
-        const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
-          headers: { 'Accept': 'application/json' }
-        });
+          const femaResp = await fetch(`${FEMA_NFHL_ZONES_URL}?${femaParams}`, {
+            headers: { 'Accept': 'application/json' }
+          });
+          
+          apiMeta.fema_nfhl = { status: femaResp.status, layer: 0, coords: `${geoLng},${geoLat}`, cached: false }; // Track response
         
-        apiMeta.fema_nfhl = { status: femaResp.status, layer: 28, coords: `${geoLng},${geoLat}` }; // Track response
-        
-        if (!femaResp.ok) {
-          const errorText = await femaResp.text();
-          console.error(`FEMA API error ${femaResp.status}:`, errorText.substring(0, 200));
-          throw new Error(`FEMA API returned ${femaResp.status}`);
+          if (!femaResp.ok) {
+            const errorText = await femaResp.text();
+            console.error(`FEMA API error ${femaResp.status}:`, errorText.substring(0, 200));
+            throw new Error(`FEMA API returned ${femaResp.status}`);
+          }
+          
+          femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
+          
+          // Store in cache
+          if (femaData) {
+            await setCacheData(supabase, femaCacheKey, femaData, CACHE_TTL.FEMA, appId);
+          }
+        } else {
+          apiMeta.fema_nfhl = { status: 200, layer: 0, coords: `${geoLng},${geoLat}`, cached: true };
         }
-        
-        const femaData = await safeJsonParse(femaResp, 'FEMA flood zones query');
 
         if (femaData?.features && femaData.features.length > 0) {
           apiMeta.fema_nfhl.record_count = femaData.features.length;
