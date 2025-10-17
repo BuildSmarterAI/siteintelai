@@ -17,6 +17,8 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
 import { IntentBadge } from "@/components/IntentBadge";
 import { ReportCardSkeleton, StatsCardSkeleton } from "@/components/ui/report-skeleton";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import confetti from 'canvas-confetti';
 
 interface Report {
   id: string;
@@ -39,6 +41,8 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const { isAdmin } = useAdminRole();
   const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
+  const [showTour, setShowTour] = useState(false);
+  const [reportStatuses, setReportStatuses] = useState<Record<string, string>>({});
 
   useEffect(() => {
     checkAuth();
@@ -60,6 +64,67 @@ export default function Dashboard() {
       toast.error('Subscription was canceled.');
     }
   }, [searchParams]);
+
+  // Poll for generating reports every 3 seconds
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+    
+    const generatingReports = reports.filter(r => r.status === 'generating');
+    
+    if (generatingReports.length > 0) {
+      pollInterval = setInterval(() => {
+        console.log('🔄 Polling for report updates...');
+        fetchReports();
+      }, 3000);
+    }
+    
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [reports]);
+
+  // Status change detection with toast notifications
+  useEffect(() => {
+    reports.forEach(report => {
+      const prevStatus = reportStatuses[report.id];
+      
+      if (prevStatus === 'generating' && report.status === 'completed') {
+        // Report just completed
+        toast.success(`✅ Report ready: ${report.applications.formatted_address}`, {
+          action: {
+            label: 'View Report',
+            onClick: () => navigate(`/report/${report.id}`)
+          },
+          duration: 10000,
+        });
+        
+        // Confetti celebration
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#FF7A00', '#06B6D4', '#10B981']
+        });
+      } else if (prevStatus === 'generating' && report.status === 'failed') {
+        toast.error(`❌ Report failed: ${report.applications.formatted_address}`);
+      }
+    });
+    
+    // Update status map
+    const newStatuses = reports.reduce((acc, r) => ({
+      ...acc,
+      [r.id]: r.status
+    }), {});
+    setReportStatuses(newStatuses);
+  }, [reports, navigate]);
+
+  // Show tour for new users
+  useEffect(() => {
+    const tourCompleted = localStorage.getItem('tour_completed_dashboard');
+    if (!tourCompleted && reports.length === 0) {
+      setTimeout(() => setShowTour(true), 1500);
+    }
+  }, [reports]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -153,6 +218,11 @@ export default function Dashboard() {
 
   return (
     <SidebarProvider>
+      <OnboardingTour 
+        tourName="dashboard" 
+        run={showTour} 
+        onComplete={() => setShowTour(false)} 
+      />
       <div className="min-h-screen flex w-full bg-gradient-to-br from-charcoal/5 to-navy/5">
         <div className="hidden md:flex">
           <DashboardSidebar />
@@ -249,6 +319,7 @@ export default function Dashboard() {
                       Buy Report ($795)
                     </PaymentButton>
                     <Button 
+                      data-tour="new-application"
                       onClick={() => navigate("/application?step=1")} 
                       size="lg"
                       className="bg-navy hover:bg-navy/90 text-white w-full sm:w-auto"
@@ -279,7 +350,7 @@ export default function Dashboard() {
             <TabsTrigger value="pending">Pending</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
+          <TabsContent value="all" data-tour="reports-list" className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle>Your Reports</CardTitle>

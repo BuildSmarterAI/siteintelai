@@ -24,6 +24,7 @@ import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IntentBadge } from "@/components/IntentBadge";
+import { OnboardingTour } from "@/components/OnboardingTour";
 
 export default function Application() {
   const { toast } = useToast();
@@ -41,6 +42,7 @@ export default function Application() {
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [showTour, setShowTour] = useState(false);
 
   // Load user profile and auto-fill contact information
   useEffect(() => {

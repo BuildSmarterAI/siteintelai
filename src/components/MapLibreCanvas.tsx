@@ -3,7 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
-import { Eye, EyeOff, Maximize2, Minimize2, Download } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -1349,6 +1349,73 @@ export function MapLibreCanvas({
         hasFloodZones={floodZones.length > 0}
         hasZoningDistricts={zoningDistricts.length > 0}
       />
+      
+      {/* Measurement Results Panel */}
+      {measurementResult && (
+        <div className="absolute bottom-20 left-4 z-20 bg-white/95 backdrop-blur-sm rounded-lg shadow-2xl p-4 min-w-[250px] border border-primary/20 animate-fade-in">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-sm flex items-center gap-2">
+              <Ruler className="h-4 w-4 text-primary" />
+              Measurement Result
+            </h4>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setMeasurementResult(null);
+                setMeasurementPoints([]);
+                handleMeasurementToolChange(null);
+              }}
+              className="h-6 w-6 p-0"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+          
+          <div className="space-y-2">
+            {activeMeasurementTool === 'distance' && measurementResult.miles && (
+              <div className="bg-blue-50 p-3 rounded">
+                <div className="text-xs text-blue-600 font-medium mb-1">Distance</div>
+                <div className="text-2xl font-bold text-blue-900">
+                  {measurementResult.miles.toFixed(2)} mi
+                </div>
+                <div className="text-xs text-blue-600">
+                  {measurementResult.feet.toLocaleString()} ft
+                </div>
+              </div>
+            )}
+            
+            {activeMeasurementTool === 'area' && measurementResult.acres && (
+              <div className="bg-green-50 p-3 rounded">
+                <div className="text-xs text-green-600 font-medium mb-1">Area</div>
+                <div className="text-2xl font-bold text-green-900">
+                  {measurementResult.acres.toFixed(2)} ac
+                </div>
+                <div className="text-xs text-green-600">
+                  {measurementResult.sqft.toLocaleString()} sq ft
+                </div>
+              </div>
+            )}
+            
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                const text = activeMeasurementTool === 'distance'
+                  ? `Distance: ${measurementResult.miles.toFixed(2)} mi (${measurementResult.feet.toLocaleString()} ft)`
+                  : `Area: ${measurementResult.acres.toFixed(2)} ac (${measurementResult.sqft.toLocaleString()} sq ft)`;
+                
+                navigator.clipboard.writeText(text);
+                toast.success('Copied to clipboard!');
+              }}
+            >
+              <Copy className="h-3 w-3 mr-2" />
+              Copy to Clipboard
+            </Button>
+          </div>
+        </div>
+      )}
       
       {/* Text alternative for screen readers */}
       <details className="sr-only">
