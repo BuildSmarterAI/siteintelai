@@ -28,15 +28,17 @@ import Lenders from "./pages/industries/Lenders";
 import Blog from "./pages/resources/Blog";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
+import BetaNDA from "./pages/legal/BetaNDA";
 import Analytics from "./pages/Analytics";
 import ParcelExplorer from "./pages/ParcelExplorer";
 import Beta from "./pages/Beta";
+import BetaSignup from "./pages/BetaSignup";
 
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const isBetaPage = location.pathname === '/beta';
+  const isBetaPage = location.pathname === '/beta' || location.pathname === '/beta-signup';
 
   return (
     <>
@@ -84,9 +86,11 @@ const App = () => (
               <Route path="/resources/api" element={<Blog />} />
               <Route path="/legal/privacy" element={<Privacy />} />
               <Route path="/legal/terms" element={<Terms />} />
+              <Route path="/legal/beta-nda" element={<BetaNDA />} />
               <Route path="/admin/geospatial" element={<AdminGeospatial />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
+              <Route path="/beta-signup" element={<BetaSignup />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
