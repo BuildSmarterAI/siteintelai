@@ -573,7 +573,7 @@ const Beta = () => {
         </section>
 
         {/* Authority Band Section */}
-        <section id="authority" className="py-[120px] bg-secondary text-white relative overflow-hidden">
+        <section id="authority" className="py-[120px] bg-primary text-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-20">
             <motion.div 
               className="w-full h-full"
