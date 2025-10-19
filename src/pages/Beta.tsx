@@ -10,6 +10,7 @@ import { ParcelMapPreview } from "@/components/beta/ParcelMapPreview";
 import { AuditTrailTable } from "@/components/beta/AuditTrailTable";
 import { ExportButtonGrid } from "@/components/beta/ExportButtonGrid";
 import { DataVerificationNodes } from "@/components/beta/DataVerificationNodes";
+import ParcelFeasibility3D from "@/components/ParcelFeasibility3D";
 import ShaderBackground from "@/components/ui/shader-background";
 import GlobeFeatureSection from "@/components/ui/globe-feature-section";
 import { Button } from "@/components/ui/button";
@@ -272,11 +273,35 @@ const Beta = () => {
               }} transition={{
                 duration: 0.6,
                 delay: 0.2
-              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">Know What's Buildable. What It Costs. And What It's Worth
+              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">
+                  Know What's Buildable. What It Costs. And What It's Worth.
+                </motion.p>
 
-Verified feasibility data powered by 20+ authoritative sources across federal, state, and municipal systems. From FEMA flood zones to TxDOT traffic counts—instant, lender-ready intelligence.
+                <motion.p initial={{
+                  opacity: 0,
+                  y: 20
+                }} animate={{
+                  opacity: 1,
+                  y: 0
+                }} transition={{
+                  duration: 0.6,
+                  delay: 0.3
+                }} className="font-body text-lg md:text-xl text-white/80 font-normal leading-relaxed max-w-3xl mb-12">
+                  Verified feasibility data powered by 20+ authoritative sources across federal, state, and municipal systems. From FEMA flood zones to TxDOT traffic counts—instant, lender-ready intelligence.
+                </motion.p>
 
-Start Feasibility Report</motion.p>
+                <motion.div initial={{
+                  opacity: 0,
+                  y: 20
+                }} animate={{
+                  opacity: 1,
+                  y: 0
+                }} transition={{
+                  duration: 0.6,
+                  delay: 0.4
+                }} className="w-full max-w-4xl">
+                  <ParcelFeasibility3D canvasHeight={500} autoRotate={true} />
+                </motion.div>
               </div>
             </div>
           </motion.div>
