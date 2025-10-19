@@ -186,8 +186,8 @@ const Beta = () => {
               variant="expandIcon"
               Icon={ArrowRight}
               iconPlacement="right"
-              size={isMobile ? "default" : "lg"}
-              className="font-body text-sm md:text-base font-semibold uppercase tracking-wide shadow-2xl"
+              size="lg"
+              className="font-body text-base md:text-lg font-semibold uppercase tracking-widest shadow-2xl px-8 py-6 md:px-10 md:py-7"
               onClick={scrollToForm}
             >
               Join Beta
