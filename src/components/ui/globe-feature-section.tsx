@@ -141,8 +141,8 @@ export default function GlobeFeatureSection() {
             Know What's Buildable. What It Costs. And What It's Worth
           </h2>
           <p className="text-body-l mb-6 text-slate-950">Commercial development moves fast — but traditional due diligence doesn't. You're waiting weeks and spending thousands for consultants to confirm what your instincts already know. By the time the report lands on your desk, the opportunity's gone.</p>
-          <Button variant="maxx-red" size="lg" className="inline-flex items-center gap-2" onClick={() => navigate("/application?step=2")}>
-            Start Feasibility Report <ArrowRight className="h-4 w-4" />
+          <Button variant="maxx-red" size="lg" className="inline-flex items-center gap-2" onClick={() => navigate("/beta-signup")}>
+            Join Beta <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
         <div className="relative h-[180px] w-full max-w-xl">
