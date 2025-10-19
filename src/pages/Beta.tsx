@@ -240,13 +240,15 @@ const Beta = () => {
               Join Beta
             </Button>
           </motion.div>
-          {/* Layer 1: WebGL Shader Background (Desktop) / Simple Gradient (Mobile) 
+          {/* Layer 1: WebGL Shader Background (All Devices) / Simple Gradient (Reduced Motion) 
               - Animated blueprint grid with diagonal scroll
               - Deep navy mesh gradient base
               - ASCII art overlay on major grid lines
+              - Mobile: Lower pixelRatio (1.0) for performance
+              - Desktop: Higher pixelRatio (1.5) for quality
            */}
           {!shouldDisableAnimations ? <div className="absolute inset-0 z-0 pointer-events-none" role="presentation" aria-hidden="true">
-              <ShaderBackground pixelRatio={1.5} className="w-full h-full" />
+              <ShaderBackground pixelRatio={isMobile ? 1.0 : 1.5} className="w-full h-full" />
             </div> : <div className="absolute inset-0 z-[1]" style={{
           background: `
                   radial-gradient(ellipse at 30% 20%, hsla(var(--accent), 0.08) 0%, transparent 50%),
