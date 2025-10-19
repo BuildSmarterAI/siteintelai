@@ -1,5 +1,8 @@
 project_id = "mcmfwlgovubpdcfiqfvk"
 
+[functions.orchestrate-application]
+verify_jwt = true
+
 [functions.validate-gis-endpoints]
 verify_jwt = false
 

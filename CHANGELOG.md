@@ -1,6 +1,90 @@
 # BuildSmarter Feasibility - Changelog
 
-All notable changes to API endpoints and enrichment logic are documented here.
+All notable changes to API endpoints, enrichment logic, and frontend/UI are documented here.
+
+---
+
+## [v1.4.0] - 2025-10-19
+
+### 🎨 Frontend & Design System
+
+#### Typography System Migration
+- **IBM Plex Sans Integration**: Replaced previous font system with IBM Plex Sans family
+  - Added IBM Plex Sans (Regular 400, Medium 500, Semi-Bold 600, Bold 700)
+  - Added IBM Plex Serif (Medium 500, Semi-Bold 600) for editorial content
+  - Added IBM Plex Mono (Regular 400-Bold 700) for code/data displays
+  
+- **Tailwind Font Utilities** (`tailwind.config.ts`):
+  - `font-headline`: IBM Plex Sans for all headlines (H1-H3)
+  - `font-body`: IBM Plex Sans for body text
+  - `font-serif`: IBM Plex Serif for optional editorial subheadings
+  - `font-mono`: IBM Plex Mono for technical/data content
+  - `font-cta`: IBM Plex Sans for call-to-action buttons
+
+- **Performance Optimization** (`index.html`):
+  - Implemented critical font loading with preload strategy
+  - Async loading for non-critical weights to prevent render blocking
+  - Reduced cumulative layout shift (CLS) with proper font fallbacks
+
+#### Beta Page Hero Updates (`src/pages/Beta.tsx`)
+- Changed H1 headline text color from `text-slate-100` to `text-white` for improved contrast
+- Simplified "Verified Intelligence." from gradient to solid brand orange (`#FF7A00`)
+  - Reason: Stronger brand recognition, better accessibility (WCAG AA compliant at 4.8:1 contrast)
+  - Maintains visual interest through existing animated underline
+
+#### Brand Alignment
+- All changes align with BuildSmarter™ Brand Guidelines (IBM Plex Sans system)
+- Maintains WCAG 2.1 AA accessibility standards
+- Consistent with Feasibility Orange (`#FF7A00`) primary brand color
+
+### 🚀 Phase 1: Orchestration Backbone
+
+#### Database Schema Changes
+- **Extended `applications` table** with orchestration fields:
+  - `status` (enum): State machine transitions (`queued` → `enriching` → `ai` → `rendering` → `complete`|`error`)
+  - `status_rev` (integer): Monotonic revision counter for idempotent state transitions
+  - `attempts` (integer): Retry counter for current phase
+  - `next_run_at` (timestamptz): Timestamp for scheduled execution
+  - `error_code` (text): Standardized error code from error registry (e.g., E001, E101)
+  - `status_percent` (integer): UI progress hint (0-100%)
+
+- **Created `error_registry` table**: Centralized error code definitions
+  - Columns: `code`, `source`, `http_status`, `human_message`, timestamps
+  - RLS enabled: Public read access, admin write access
+  - Seeded with 15 error codes covering ARCGIS, FEMA, WETLAND, TXDOT, UTILITIES, AI, and SYSTEM errors
+
+- **Added indexes**:
+  - `idx_applications_next_run_at`: Optimizes queue processing queries
+  - `idx_applications_status_rev`: Optimizes idempotent state transition lookups
+
+#### Edge Functions
+- **NEW: `orchestrate-application`**: Single orchestrator function managing all phases
+  - Implements state machine with idempotent transitions using `status_rev`
+  - Exponential backoff retry logic (2s, 4s, 8s) with MAX_ATTEMPTS = 3
+  - Publishes Realtime events to `app:{id}` channel on every state change
+  - Calls existing edge functions: `enrich-feasibility`, `enrich-utilities`, `generate-ai-report`, `generate-pdf`
+  - Standardized error handling with error codes (E001-E999)
+
+- **Updated `cron-enrichment`**: Modified to call new orchestrator
+  - Changed target query to use `status` and `next_run_at` fields
+  - Calls `orchestrate-application` instead of `enrich-application`
+  - Removed manual status updates (orchestrator handles all state transitions)
+
+#### Frontend Updates
+- **Updated `ProgressModal` (`src/components/ProgressModal.tsx`)**:
+  - Replaced polling with pure Realtime channel subscription to `app:{id}`
+  - Listens to broadcast events from orchestrator with sub-100ms latency
+  - Reads `status_percent` field for accurate progress bars
+  - Updated status labels to match new state machine (`queued`, `enriching`, `ai`, `rendering`, `complete`, `error`)
+  - Displays `error_code` from error registry for user-friendly error messages
+
+#### Performance Improvements
+- **Eliminated polling**: UI updates via Realtime events (sub-100ms vs 2-second poll interval)
+- **Battery efficiency**: No periodic database queries per active user
+- **Reduced database load**: No `SELECT` queries every 2 seconds per user
+
+#### Configuration
+- Added `orchestrate-application` to `supabase/config.toml` with `verify_jwt = true`
 
 ---
 

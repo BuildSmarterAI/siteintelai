@@ -17,12 +17,14 @@ const MAX_BATCH_SIZE = 20;         // max apps per run
 const ENRICH_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/enrich-application`;
 
 async function getTargets() {
-  const staleDate = new Date(Date.now() - STALE_DAYS * 864e5).toISOString();
+  const now = new Date().toISOString();
+
   const { data, error } = await sbAdmin
     .from("applications")
-    .select("id, enrichment_status, updated_at")
-    .or(`enrichment_status.eq.pending,updated_at.lt.${staleDate}`)
-    .order("updated_at", { ascending: true })
+    .select("id, status, status_rev, next_run_at")
+    .or(`status.in.(queued,enriching,ai,rendering),and(status.eq.error,next_run_at.lte.${now})`)
+    .lte("next_run_at", now)
+    .order("next_run_at", { ascending: true })
     .limit(MAX_BATCH_SIZE);
 
   if (error) throw new Error(`Fetch apps: ${error.message}`);
@@ -30,8 +32,8 @@ async function getTargets() {
 }
 
 async function callEnrich(app_id: string) {
-  const url = `${ENRICH_FUNCTION_URL}?application_id=${app_id}`;
-  console.log(`[cron-enrichment] Calling ${url}`);
+  const url = `${SUPABASE_URL}/functions/v1/orchestrate-application?application_id=${app_id}`;
+  console.log(`[cron-enrichment] Calling orchestrator: ${url}`);
   
   const res = await fetch(url, {
     method: "POST",
@@ -95,28 +97,18 @@ async function run() {
         const { ok, json } = await callEnrich(app.id);
         if (ok) {
           await recordJob(app.id, "success", json);
-          await sbAdmin.from("applications").update({ 
-            enrichment_status: "completed", 
-            updated_at: new Date().toISOString() 
-          }).eq("id", app.id);
           results.push({ id: app.id, ok: true });
-          console.log(`[cron-enrichment] Successfully enriched ${app.id}`);
+          console.log(`[cron-enrichment] Successfully orchestrated ${app.id}`);
         } else {
           await recordJob(app.id, "error", json);
-          await sbAdmin.from("applications").update({ 
-            enrichment_status: "error" 
-          }).eq("id", app.id);
           results.push({ id: app.id, ok: false, error: json });
-          console.error(`[cron-enrichment] Failed to enrich ${app.id}: ${JSON.stringify(json)}`);
+          console.error(`[cron-enrichment] Failed to orchestrate ${app.id}: ${JSON.stringify(json)}`);
         }
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         await recordJob(app.id, "error", { error: errorMsg });
-        await sbAdmin.from("applications").update({ 
-          enrichment_status: "error" 
-        }).eq("id", app.id);
         results.push({ id: app.id, error: errorMsg });
-        console.error(`[cron-enrichment] Exception enriching ${app.id}: ${errorMsg}`);
+        console.error(`[cron-enrichment] Exception orchestrating ${app.id}: ${errorMsg}`);
       }
     }
   }

@@ -35,42 +35,61 @@ export function ProgressModal({ applicationId, isOpen, onComplete }: ProgressMod
   useEffect(() => {
     if (!applicationId || !isOpen) return;
 
-    // Subscribe to real-time updates
+    // Subscribe to realtime broadcast channel
     const channel = supabase
-      .channel(`application_${applicationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'applications',
-          filter: `id=eq.${applicationId}`
-        },
-        (payload) => {
-          const app = payload.new;
-          updateStatusFromApplication(app);
+      .channel(`app:${applicationId}`)
+      .on('broadcast', { event: 'status_update' }, (payload: any) => {
+        console.log('[ProgressModal] Realtime update:', payload);
+        setJobStatus({
+          status: payload.payload.status,
+          stage: getStageLabel(payload.payload.status),
+          progress: payload.payload.status_percent || 0,
+          message: payload.payload.error_code 
+            ? `Error: ${payload.payload.error_code}` 
+            : getStageMessage(payload.payload.status)
+        });
+
+        // Trigger completion callback
+        if (payload.payload.status === 'complete') {
+          const metadata = payload.payload.enrichment_metadata as any;
+          if (metadata?.report_id) {
+            setTimeout(() => onComplete(metadata.report_id), 1500);
+          }
         }
-      )
+      })
       .subscribe();
 
-    // Also poll for status updates
-    const pollInterval = setInterval(async () => {
-      const { data } = await supabase
-        .from('applications')
-        .select('enrichment_status, enrichment_metadata')
-        .eq('id', applicationId)
-        .single();
+    // Initial status fetch (in case we missed events)
+    supabase
+      .from('applications')
+      .select('status, status_percent, error_code, enrichment_metadata')
+      .eq('id', applicationId)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setJobStatus({
+            status: data.status || 'queued',
+            stage: getStageLabel(data.status || 'queued'),
+            progress: data.status_percent || 0,
+            message: data.error_code 
+              ? `Error: ${data.error_code}` 
+              : getStageMessage(data.status || 'queued')
+          });
 
-      if (data) {
-        updateStatusFromApplication(data);
-      }
-    }, 2000);
+          // Check if already complete
+          if (data.status === 'complete') {
+            const metadata = data.enrichment_metadata as any;
+            if (metadata?.report_id) {
+              setTimeout(() => onComplete(metadata.report_id), 500);
+            }
+          }
+        }
+      });
 
     return () => {
-      channel.unsubscribe();
-      clearInterval(pollInterval);
+      supabase.removeChannel(channel);
     };
-  }, [applicationId, isOpen]);
+  }, [applicationId, isOpen, onComplete]);
 
   // Calculate estimated time remaining based on progress
   useEffect(() => {
@@ -84,53 +103,42 @@ export function ProgressModal({ applicationId, isOpen, onComplete }: ProgressMod
     }
   }, [jobStatus.progress, startTime]);
 
-  const updateStatusFromApplication = (app: any) => {
-    const status = app.enrichment_status;
-    const metadata = app.enrichment_metadata || {};
-
-    let stage = 'Processing';
-    let progress = 10;
-    let message = 'Working on your report...';
-
+  const getStageLabel = (status: string) => {
     switch (status) {
       case 'queued':
-        stage = 'Queued';
-        progress = 5;
-        message = 'Your request is in the queue...';
-        break;
+        return 'Queued';
       case 'enriching':
-        stage = 'Gathering Data';
-        progress = 30;
-        message = 'Fetching parcel, utilities, and traffic data...';
-        break;
+        return 'Gathering Data';
       case 'ai':
-        stage = 'AI Analysis';
-        progress = 60;
-        message = 'Generating feasibility analysis...';
-        break;
+        return 'AI Analysis';
       case 'rendering':
-        stage = 'Finalizing Report';
-        progress = 85;
-        message = 'Creating PDF and final deliverables...';
-        break;
+        return 'Generating Report';
       case 'complete':
-        stage = 'Complete';
-        progress = 100;
-        message = 'Your report is ready!';
-        
-        // Check for report ID and trigger completion
-        if (metadata.report_id) {
-          setTimeout(() => onComplete(metadata.report_id), 1500);
-        }
-        break;
+        return 'Complete';
       case 'error':
-        stage = 'Error';
-        progress = 0;
-        message = metadata.error_message || 'An error occurred. Please try again.';
-        break;
+        return 'Error';
+      default:
+        return 'Processing';
     }
+  };
 
-    setJobStatus({ status, stage, progress, message });
+  const getStageMessage = (status: string) => {
+    switch (status) {
+      case 'queued':
+        return 'Your request is queued for processing...';
+      case 'enriching':
+        return 'Pulling data from FEMA, TxDOT, utilities, and wetlands services...';
+      case 'ai':
+        return 'Running AI analysis on your property data...';
+      case 'rendering':
+        return 'Generating your PDF report...';
+      case 'complete':
+        return 'Your report is ready!';
+      case 'error':
+        return 'Something went wrong. Please check error details.';
+      default:
+        return 'Processing your request...';
+    }
   };
 
   const handleRetry = async () => {

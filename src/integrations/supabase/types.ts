@@ -82,6 +82,7 @@ export type Database = {
           ai_context: Json | null
           api_meta: Json | null
           attachments: Json | null
+          attempts: number
           average_permit_time_months: number | null
           base_flood_elevation: number | null
           base_flood_elevation_source: string | null
@@ -122,6 +123,7 @@ export type Database = {
           environmental_constraints: string[] | null
           environmental_sites: Json | null
           epa_facilities_count: number | null
+          error_code: string | null
           etj_provider: string | null
           executive_summary_output: string | null
           exemption_code: string | null
@@ -170,6 +172,7 @@ export type Database = {
           nearest_highway: string | null
           nearest_transit_stop: string | null
           neighborhood: string | null
+          next_run_at: string | null
           nfip_claims_count: number | null
           nfip_claims_total_paid: number | null
           num_stories: number | null
@@ -204,6 +207,9 @@ export type Database = {
           soil_series: string | null
           soil_slope_percent: number | null
           state_class: string | null
+          status: string
+          status_percent: number | null
+          status_rev: number
           stories_height: string
           storm_lines: Json | null
           subdivision: string | null
@@ -258,6 +264,7 @@ export type Database = {
           ai_context?: Json | null
           api_meta?: Json | null
           attachments?: Json | null
+          attempts?: number
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
           base_flood_elevation_source?: string | null
@@ -298,6 +305,7 @@ export type Database = {
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
           epa_facilities_count?: number | null
+          error_code?: string | null
           etj_provider?: string | null
           executive_summary_output?: string | null
           exemption_code?: string | null
@@ -346,6 +354,7 @@ export type Database = {
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          next_run_at?: string | null
           nfip_claims_count?: number | null
           nfip_claims_total_paid?: number | null
           num_stories?: number | null
@@ -380,6 +389,9 @@ export type Database = {
           soil_series?: string | null
           soil_slope_percent?: number | null
           state_class?: string | null
+          status?: string
+          status_percent?: number | null
+          status_rev?: number
           stories_height: string
           storm_lines?: Json | null
           subdivision?: string | null
@@ -434,6 +446,7 @@ export type Database = {
           ai_context?: Json | null
           api_meta?: Json | null
           attachments?: Json | null
+          attempts?: number
           average_permit_time_months?: number | null
           base_flood_elevation?: number | null
           base_flood_elevation_source?: string | null
@@ -474,6 +487,7 @@ export type Database = {
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
           epa_facilities_count?: number | null
+          error_code?: string | null
           etj_provider?: string | null
           executive_summary_output?: string | null
           exemption_code?: string | null
@@ -522,6 +536,7 @@ export type Database = {
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          next_run_at?: string | null
           nfip_claims_count?: number | null
           nfip_claims_total_paid?: number | null
           num_stories?: number | null
@@ -556,6 +571,9 @@ export type Database = {
           soil_series?: string | null
           soil_slope_percent?: number | null
           state_class?: string | null
+          status?: string
+          status_percent?: number | null
+          status_rev?: number
           stories_height?: string
           storm_lines?: Json | null
           subdivision?: string | null
@@ -793,6 +811,33 @@ export type Database = {
             referencedColumns: ["application_id"]
           },
         ]
+      }
+      error_registry: {
+        Row: {
+          code: string
+          created_at: string
+          http_status: number | null
+          human_message: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          http_status?: number | null
+          human_message: string
+          source: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          http_status?: number | null
+          human_message?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       feasibility_geospatial: {
         Row: {

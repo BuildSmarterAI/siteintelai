@@ -1,0 +1,271 @@
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// State transition map with progress percentages
+const STATE_PROGRESS: Record<string, number> = {
+  queued: 5,
+  enriching: 40,
+  ai: 70,
+  rendering: 90,
+  complete: 100,
+  error: 0
+};
+
+// Exponential backoff config
+const MAX_ATTEMPTS = 3;
+const BASE_DELAY_MS = 2000; // 2s, 4s, 8s
+
+async function bump(
+  appId: string, 
+  newStatus: string, 
+  currentRev: number,
+  errorCode?: string
+) {
+  const updates = {
+    status: newStatus,
+    status_rev: currentRev + 1,
+    status_percent: STATE_PROGRESS[newStatus] || 0,
+    updated_at: new Date().toISOString(),
+    error_code: errorCode || null,
+    attempts: 0 // Reset on successful transition or error
+  };
+
+  const { error } = await sbAdmin
+    .from('applications')
+    .update(updates)
+    .eq('id', appId)
+    .eq('status_rev', currentRev); // Idempotent: only update if rev matches
+
+  if (error) {
+    console.error(`[bump] Failed to update status for ${appId}:`, error);
+    throw new Error(`Failed to bump status: ${error.message}`);
+  }
+
+  console.log(`[bump] ${appId}: ${newStatus} (${STATE_PROGRESS[newStatus]}%)`);
+
+  // Publish realtime event to app channel
+  await publishEvent(appId, updates);
+}
+
+async function publishEvent(appId: string, payload: any) {
+  try {
+    const channel = sbAdmin.channel(`app:${appId}`);
+    await channel.subscribe();
+    await channel.send({
+      type: 'broadcast',
+      event: 'status_update',
+      payload
+    });
+    await channel.unsubscribe();
+  } catch (err) {
+    console.error(`[publishEvent] Failed to broadcast for ${appId}:`, err);
+    // Don't throw - realtime failure shouldn't break orchestration
+  }
+}
+
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  attempts: number,
+  errorCode: string
+): Promise<T> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      console.error(`[retry] Attempt ${i + 1}/${attempts} failed:`, err);
+      if (i === attempts - 1) {
+        // Final attempt failed
+        throw { code: errorCode, message: String(err) };
+      }
+      // Exponential backoff: 2s, 4s, 8s
+      await new Promise(resolve => setTimeout(resolve, BASE_DELAY_MS * Math.pow(2, i)));
+    }
+  }
+  throw new Error('Retry exhausted');
+}
+
+// Phase implementations (call existing edge functions)
+async function doGeocodeAndParcel(app: any) {
+  console.log(`[doGeocodeAndParcel] Starting for app ${app.id}`);
+  return retryWithBackoff(
+    async () => {
+      const response = await sbAdmin.functions.invoke('enrich-feasibility', {
+        body: { application_id: app.id }
+      });
+      
+      if (response.error) throw new Error(response.error.message || 'Geocode/parcel failed');
+      return response.data;
+    },
+    MAX_ATTEMPTS,
+    'E003'
+  );
+}
+
+async function enrichOverlays(app: any) {
+  console.log(`[enrichOverlays] Starting for app ${app.id}`);
+  return retryWithBackoff(
+    async () => {
+      const response = await sbAdmin.functions.invoke('enrich-utilities', {
+        body: { application_id: app.id }
+      });
+      
+      if (response.error) throw new Error(response.error.message || 'Utilities enrich failed');
+      return response.data;
+    },
+    MAX_ATTEMPTS,
+    'E402'
+  );
+}
+
+async function runFeasibilityAI(app: any) {
+  console.log(`[runFeasibilityAI] Starting for app ${app.id}`);
+  return retryWithBackoff(
+    async () => {
+      const response = await sbAdmin.functions.invoke('generate-ai-report', {
+        body: { application_id: app.id }
+      });
+      
+      if (response.error) throw new Error(response.error.message || 'AI generation failed');
+      
+      const json = response.data;
+      
+      // Validate JSON schema
+      const { data: isValid, error } = await sbAdmin.rpc('validate_report_json_schema', { 
+        data: json 
+      });
+      
+      if (error || !isValid) {
+        throw new Error('JSON schema validation failed');
+      }
+      
+      return json;
+    },
+    MAX_ATTEMPTS,
+    'E901'
+  );
+}
+
+async function renderAndStorePDF(app: any) {
+  console.log(`[renderAndStorePDF] Starting for app ${app.id}`);
+  return retryWithBackoff(
+    async () => {
+      const response = await sbAdmin.functions.invoke('generate-pdf', {
+        body: { application_id: app.id }
+      });
+      
+      if (response.error) throw new Error(response.error.message || 'PDF render failed');
+      return response.data;
+    },
+    MAX_ATTEMPTS,
+    'E999'
+  );
+}
+
+// Main orchestration switch
+async function orchestrate(appId: string): Promise<any> {
+  const { data: app, error } = await sbAdmin
+    .from('applications')
+    .select('*')
+    .eq('id', appId)
+    .single();
+
+  if (error || !app) {
+    throw new Error(`Application not found: ${appId}`);
+  }
+
+  const currentRev = app.status_rev || 0;
+  console.log(`[orchestrate] ${appId} - Current status: ${app.status}, rev: ${currentRev}`);
+
+  try {
+    switch (app.status) {
+      case 'queued':
+        console.log(`[orchestrate] ${appId} - Phase: Geocode & Parcel`);
+        await doGeocodeAndParcel(app);
+        await bump(appId, 'enriching', currentRev);
+        // Continue immediately to next phase
+        return orchestrate(appId);
+
+      case 'enriching':
+        console.log(`[orchestrate] ${appId} - Phase: Enrich Overlays`);
+        await enrichOverlays(app);
+        await bump(appId, 'ai', currentRev);
+        return orchestrate(appId);
+
+      case 'ai':
+        console.log(`[orchestrate] ${appId} - Phase: AI Analysis`);
+        await runFeasibilityAI(app);
+        await bump(appId, 'rendering', currentRev);
+        return orchestrate(appId);
+
+      case 'rendering':
+        console.log(`[orchestrate] ${appId} - Phase: PDF Render`);
+        await renderAndStorePDF(app);
+        await bump(appId, 'complete', currentRev);
+        return { ok: true, status: 'complete', application_id: appId };
+
+      case 'complete':
+        console.log(`[orchestrate] ${appId} - Already complete`);
+        return { ok: true, status: 'complete', application_id: appId };
+
+      case 'error':
+        console.log(`[orchestrate] ${appId} - In error state, skipping`);
+        return { 
+          ok: false, 
+          status: 'error', 
+          error_code: app.error_code,
+          application_id: appId 
+        };
+
+      default:
+        throw new Error(`Unknown status: ${app.status}`);
+    }
+  } catch (err: any) {
+    const errorCode = err.code || 'E999';
+    console.error(`[orchestrate] ${appId} - Error in phase ${app.status}:`, err);
+    await bump(appId, 'error', currentRev, errorCode);
+    throw err;
+  }
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(req.url);
+    const appId = url.searchParams.get('application_id');
+    
+    if (!appId) {
+      return new Response(JSON.stringify({ error: 'Missing application_id' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'content-type': 'application/json' }
+      });
+    }
+
+    console.log(`[orchestrate-application] Starting orchestration for ${appId}`);
+    const result = await orchestrate(appId);
+    
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, 'content-type': 'application/json' }
+    });
+  } catch (err) {
+    console.error('[orchestrate-application] Error:', err);
+    return new Response(JSON.stringify({ 
+      error: String(err),
+      message: err instanceof Error ? err.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'content-type': 'application/json' }
+    });
+  }
+});
