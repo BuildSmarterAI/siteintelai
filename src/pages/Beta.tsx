@@ -157,7 +157,7 @@ const Beta = () => {
               <img 
                 src={siteintelBetaLogo}
                 alt="SiteIntel AI™" 
-                className="h-29 md:h-38 lg:h-50 w-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.4)] hover:drop-shadow-[0_0_20px_rgba(255,122,0,0.6)] transition-all duration-300"
+                className="h-14 md:h-18 lg:h-24 w-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.4)] hover:drop-shadow-[0_0_20px_rgba(255,122,0,0.6)] transition-all duration-300"
               />
             </Link>
           </motion.div>
