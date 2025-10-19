@@ -26,6 +26,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCounter } from "@/hooks/useCounter";
+import ShaderBackground from "@/components/ui/shader-background";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const betaSignupSchema = z.object({
   email: z
@@ -60,6 +62,7 @@ export default function BetaSignup() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { toast } = useToast();
   const seatsClaimed = useCounter(421, 2000);
+  const isMobile = useIsMobile();
 
   const {
     register,
@@ -113,11 +116,23 @@ export default function BetaSignup() {
       </Helmet>
 
       {/* Hero Section */}
-      <section className="relative min-h-[90vh] w-full overflow-hidden bg-gradient-to-br from-secondary via-[#111827] to-secondary">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,122,0,0.05)_0%,transparent_50%)]" />
+      <section className="relative min-h-[90vh] w-full overflow-hidden">
+        {/* Animated Shader Background - Desktop only */}
+        {!isMobile && (
+          <div className="absolute inset-0 z-0 pointer-events-none" role="presentation" aria-hidden="true">
+            <ShaderBackground pixelRatio={1.5} className="w-full h-full" />
+          </div>
+        )}
+        
+        {/* Fallback gradient for mobile */}
+        {isMobile && (
+          <div className="absolute inset-0 z-0 bg-gradient-to-br from-secondary via-[#111827] to-secondary" />
+        )}
+        
+        {/* Orange accent overlay */}
+        <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_50%,rgba(255,122,0,0.05)_0%,transparent_50%)]" />
 
-        <div className="container relative mx-auto px-6 py-24">
+        <div className="container relative z-10 mx-auto px-6 py-24">
           <div className="grid gap-12 lg:grid-cols-[60%_40%] lg:gap-16">
             {/* Left: Copy Block */}
             <motion.div
@@ -204,7 +219,20 @@ export default function BetaSignup() {
 
       {/* Form Section */}
       <section id="beta-form" className="relative py-24 bg-secondary">
-        <div className="container mx-auto px-6">
+        {/* Subtle static grid pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          role="presentation"
+          aria-hidden="true"
+          style={{
+            backgroundImage: `
+              linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
+              linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)
+            `,
+            backgroundSize: '80px 80px'
+          }}
+        />
+        <div className="container relative mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
