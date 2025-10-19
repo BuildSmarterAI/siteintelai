@@ -33,12 +33,13 @@ import Analytics from "./pages/Analytics";
 import ParcelExplorer from "./pages/ParcelExplorer";
 import Beta from "./pages/Beta";
 import BetaSignup from "./pages/BetaSignup";
+import BetaThankYou from "./pages/BetaThankYou";
 
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const isBetaPage = location.pathname === '/beta' || location.pathname === '/beta-signup';
+  const isBetaPage = location.pathname === '/beta' || location.pathname === '/beta-signup' || location.pathname === '/beta-thank-you';
 
   return (
     <>
@@ -91,6 +92,7 @@ const App = () => (
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
+              <Route path="/beta-thank-you" element={<BetaThankYou />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

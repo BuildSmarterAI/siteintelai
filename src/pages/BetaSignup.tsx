@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Shield, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,10 +39,10 @@ const betaSignupSchema = z.object({
 type BetaSignupForm = z.infer<typeof betaSignupSchema>;
 export default function BetaSignup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const {
     toast
   } = useToast();
+  const navigate = useNavigate();
   const seatsClaimed = useCounter(421, 2000);
   const isMobile = useIsMobile();
   const {
@@ -72,7 +73,14 @@ export default function BetaSignup() {
         }
       });
       if (error) throw error;
-      setShowSuccessModal(true);
+      
+      toast({
+        title: "Success!",
+        description: "You've been added to the beta waitlist.",
+      });
+      
+      // Navigate to thank you page with user info
+      navigate(`/beta-thank-you?email=${encodeURIComponent(data.email)}&name=${encodeURIComponent(data.fullName)}&role=${encodeURIComponent(data.role)}&company=${encodeURIComponent(data.company || '')}`);
     } catch (error) {
       console.error("Beta signup error:", error);
       toast({
@@ -353,36 +361,5 @@ export default function BetaSignup() {
           </motion.div>
         </div>
       </section>
-
-      {/* Success Modal */}
-      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="sm:max-w-md bg-white">
-          <DialogHeader>
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-              <CheckCircle2 className="h-6 w-6 text-primary" />
-            </div>
-            <DialogTitle className="text-center text-h3 font-headline">
-              Welcome to the Founding Cohort.
-            </DialogTitle>
-            <DialogDescription className="text-center text-body space-y-4 pt-4">
-              <p>
-                You're officially part of the SiteIntel™ Private Beta. Your
-                access credentials and QuickStart link are on their way.
-              </p>
-              <div className="rounded-lg bg-slate-50 p-4 text-left text-sm space-y-2">
-                <p className="font-medium text-secondary">You now have:</p>
-                <ul className="space-y-1 text-slate-600">
-                  <li>• 3 free feasibility report credits</li>
-                  <li>• Early access to Cost & Schedule modules</li>
-                  <li>• Founding Member status (Pro pricing locked)</li>
-                </ul>
-              </div>
-              <Button className="w-full bg-primary hover:bg-primary/90" onClick={() => setShowSuccessModal(false)}>
-                Get Started
-              </Button>
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
     </>;
 }
