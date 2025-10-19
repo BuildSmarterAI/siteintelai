@@ -140,7 +140,7 @@ export default function GlobeFeatureSection() {
           <h2 className="text-h2 font-headline text-primary mb-4">
             Know What's Buildable. What It Costs. And What It's Worth
           </h2>
-          <p className="text-body-l mb-6 text-slate-950">Verified feasibility data powered by authoritative sources across federal, state, and municipal systems. From FEMA flood zones to TxDOT traffic counts—instant, lender-ready intelligence.</p>
+          <p className="text-body-l mb-6 text-slate-950">Commercial development moves fast — but traditional due diligence doesn't. You're waiting weeks and spending thousands for consultants to confirm what your instincts already know. By the time the report lands on your desk, the opportunity's gone.</p>
           <Button variant="maxx-red" size="lg" className="inline-flex items-center gap-2" onClick={() => navigate("/application?step=2")}>
             Start Feasibility Report <ArrowRight className="h-4 w-4" />
           </Button>
