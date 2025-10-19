@@ -503,7 +503,7 @@ const Beta = () => {
               className="text-center"
             >
               <Button variant="outline" size="lg" asChild>
-                <Link to="/how-it-works">See How It Works <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/beta-signup">Join Beta <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </motion.div>
           </div>
@@ -542,7 +542,7 @@ const Beta = () => {
                 </ul>
                 
                 <Button size="lg" asChild>
-                  <Link to="/application">Generate My First Report <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Link to="/beta-signup">Join Beta <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </motion.div>
               
@@ -587,7 +587,7 @@ const Beta = () => {
                 Every SiteIntel™ report is powered by verified geospatial and regulatory infrastructure—engineered for lenders, investors, and developers who need more than estimates. Your insights aren't just fast—they're auditable, defensible, and trusted.
               </p>
               <Button variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:text-white" asChild>
-                <Link to="/about">Learn About Our Technology <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/beta-signup">Join Beta <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </motion.div>
           </div>
@@ -636,7 +636,7 @@ const Beta = () => {
               className="text-center"
             >
               <Button variant="outline" size="lg" asChild>
-                <Link to="/products">See All Capabilities <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/beta-signup">Join Beta <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </motion.div>
           </div>
