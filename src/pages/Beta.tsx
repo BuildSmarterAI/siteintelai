@@ -259,7 +259,7 @@ const Beta = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="font-headline text-5xl md:text-6xl lg:text-7xl font-semibold text-slate-100 leading-[1.1] tracking-tight mb-6 max-w-4xl"
+                  className="font-headline text-5xl md:text-6xl lg:text-7xl font-semibold text-white leading-[1.1] tracking-tight mb-6 max-w-4xl"
                 >
                   Instant Feasibility for Commercial Real Estate Development.{" "}
                   <span className="relative inline-block">
