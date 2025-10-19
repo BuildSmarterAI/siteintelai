@@ -383,7 +383,7 @@ const Beta = () => {
                     popup: 'Primary Service Radius - Harris County'
                   }
                 ]}
-                enableClustering={true}
+                enableClustering={false}
                 enableSearch={true}
                 enableControls={true}
                 style={{ height: '600px', width: '100%' }}
