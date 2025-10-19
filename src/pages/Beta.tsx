@@ -196,7 +196,7 @@ const Beta = () => {
               - Deep navy mesh gradient base
               - ASCII art overlay on major grid lines
           */}
-          {!isMobile && !shouldDisableAnimations ? (
+          {!shouldDisableAnimations ? (
             <div 
               className="absolute inset-0 z-0 pointer-events-none"
               role="presentation"
