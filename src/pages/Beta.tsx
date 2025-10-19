@@ -18,8 +18,11 @@ import { ParcelMapPreview } from "@/components/beta/ParcelMapPreview";
 import { AuditTrailTable } from "@/components/beta/AuditTrailTable";
 import { ExportButtonGrid } from "@/components/beta/ExportButtonGrid";
 import { DataVerificationNodes } from "@/components/beta/DataVerificationNodes";
-import ShaderBackground from "@/components/ui/shader-background";
 import GlobeFeatureSection from "@/components/ui/globe-feature-section";
+import aerialPropertySite1920webp from "@/assets/aerial-property-site-1920w.webp";
+import aerialPropertySite1024webp from "@/assets/aerial-property-site-1024w.webp";
+import aerialPropertySite768webp from "@/assets/aerial-property-site-768w.webp";
+import aerialPropertySite1920jpg from "@/assets/aerial-property-site.jpg";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -172,7 +175,7 @@ const Beta = () => {
 
       <div className="min-h-screen bg-gradient-to-b from-secondary via-secondary/95 to-background">
         {/* Hero Section */}
-        <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
+        <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
           {/* Floating Join Beta Button - Top Right */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -191,32 +194,35 @@ const Beta = () => {
               Join Beta
             </Button>
           </motion.div>
-          {/* Layer 1: WebGL Shader Background (Desktop) / Simple Gradient (Mobile) 
-              - Animated blueprint grid with diagonal scroll
-              - Deep navy mesh gradient base
-              - ASCII art overlay on major grid lines
-          */}
-          {!isMobile && !shouldDisableAnimations ? (
-            <div 
-              className="absolute inset-0 z-0 pointer-events-none"
-              role="presentation"
-              aria-hidden="true"
+          {/* Background Layer - Aerial Image with Parallax (Desktop) / Brand Gradient (Mobile) */}
+          {!isMobile ? (
+            <motion.div
+              className="absolute inset-0 z-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.18 }}
+              transition={{ duration: 1.5, delay: 0.2 }}
+              style={{ y: bgY, scale: 1.05 }}
             >
-              <ShaderBackground pixelRatio={1.5} className="w-full h-full" />
-            </div>
+              <picture className="absolute right-0 top-0 w-full h-full">
+                <source 
+                  srcSet={`${aerialPropertySite768webp} 768w, ${aerialPropertySite1024webp} 1024w, ${aerialPropertySite1920webp} 1920w`}
+                  sizes="100vw"
+                  type="image/webp"
+                />
+                <img
+                  src={aerialPropertySite1920jpg}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  className="w-full h-full object-cover blur-[2px] scale-105"
+                />
+              </picture>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#0A0F2C] via-transparent to-[#0A0F2C]/60" />
+            </motion.div>
           ) : (
-            <div 
-              className="absolute inset-0 z-[1]"
-              style={{
-                background: `
-                  radial-gradient(ellipse at 30% 20%, hsla(var(--accent), 0.08) 0%, transparent 50%),
-                  radial-gradient(ellipse at 70% 80%, hsla(var(--primary), 0.06) 0%, transparent 50%),
-                  radial-gradient(ellipse at center, hsl(222 84% 8%) 0%, hsl(222 84% 5%) 100%)
-                `
-              }}
-              role="presentation"
-              aria-hidden="true"
-            />
+            <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,15,44,0.6)_70%,rgba(10,15,44,0.9)_100%)]" />
+            </div>
           )}
 
           {/* Layer 5: Data Verification Nodes with Connections - Desktop only */}
