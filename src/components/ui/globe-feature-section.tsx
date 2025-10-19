@@ -4,7 +4,6 @@ import createGlobe, { COBEOptions } from "cobe";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
-
 const GLOBE_CONFIG: COBEOptions = {
   width: 800,
   height: 800,
@@ -20,24 +19,62 @@ const GLOBE_CONFIG: COBEOptions = {
   markerColor: [255 / 255, 122 / 255, 0 / 255],
   glowColor: [6 / 255, 182 / 255, 212 / 255],
   markers: [
-    // Texas (Primary Focus)
-    { location: [29.7604, -95.3698], size: 0.12 }, // Houston
-    { location: [32.7767, -96.797], size: 0.1 }, // Dallas
-    { location: [30.2672, -97.7431], size: 0.09 }, // Austin
-    { location: [29.4241, -98.4936], size: 0.08 }, // San Antonio
-    { location: [32.7555, -97.3308], size: 0.07 }, // Fort Worth
-    // Other Major US Markets
-    { location: [40.7128, -74.006], size: 0.11 }, // New York
-    { location: [34.0522, -118.2437], size: 0.1 }, // Los Angeles
-    { location: [41.8781, -87.6298], size: 0.09 }, // Chicago
-    { location: [33.4484, -112.074], size: 0.07 }, // Phoenix
-    { location: [37.7749, -122.4194], size: 0.08 }, // San Francisco
-  ],
+  // Texas (Primary Focus)
+  {
+    location: [29.7604, -95.3698],
+    size: 0.12
+  },
+  // Houston
+  {
+    location: [32.7767, -96.797],
+    size: 0.1
+  },
+  // Dallas
+  {
+    location: [30.2672, -97.7431],
+    size: 0.09
+  },
+  // Austin
+  {
+    location: [29.4241, -98.4936],
+    size: 0.08
+  },
+  // San Antonio
+  {
+    location: [32.7555, -97.3308],
+    size: 0.07
+  },
+  // Fort Worth
+  // Other Major US Markets
+  {
+    location: [40.7128, -74.006],
+    size: 0.11
+  },
+  // New York
+  {
+    location: [34.0522, -118.2437],
+    size: 0.1
+  },
+  // Los Angeles
+  {
+    location: [41.8781, -87.6298],
+    size: 0.09
+  },
+  // Chicago
+  {
+    location: [33.4484, -112.074],
+    size: 0.07
+  },
+  // Phoenix
+  {
+    location: [37.7749, -122.4194],
+    size: 0.08
+  } // San Francisco
+  ]
 };
-
 export function Globe({
   className,
-  config = GLOBE_CONFIG,
+  config = GLOBE_CONFIG
 }: {
   className?: string;
   config?: COBEOptions;
@@ -48,14 +85,12 @@ export function Globe({
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
   const [r, setR] = useState(0);
-
   const updatePointerInteraction = (value: number | null) => {
     pointerInteracting.current = value;
     if (canvasRef.current) {
       canvasRef.current.style.cursor = value !== null ? "grabbing" : "grab";
     }
   };
-
   const updateMovement = (clientX: number) => {
     if (pointerInteracting.current !== null) {
       const delta = clientX - pointerInteracting.current;
@@ -63,34 +98,26 @@ export function Globe({
       setR(delta / 200);
     }
   };
-
-  const onRender = useCallback(
-    (state: Record<string, any>) => {
-      if (!pointerInteracting.current) phi += 0.005;
-      state.phi = phi + r;
-      state.width = width * 2;
-      state.height = width * 2;
-    },
-    [r]
-  );
-
+  const onRender = useCallback((state: Record<string, any>) => {
+    if (!pointerInteracting.current) phi += 0.005;
+    state.phi = phi + r;
+    state.width = width * 2;
+    state.height = width * 2;
+  }, [r]);
   const onResize = () => {
     if (canvasRef.current) {
       width = canvasRef.current.offsetWidth;
     }
   };
-
   useEffect(() => {
     window.addEventListener("resize", onResize);
     onResize();
-
     const globe = createGlobe(canvasRef.current!, {
       ...config,
       width: width * 2,
       height: width * 2,
-      onRender,
+      onRender
     });
-
     setTimeout(() => {
       if (canvasRef.current) {
         canvasRef.current.style.opacity = "1";
@@ -101,54 +128,24 @@ export function Globe({
       window.removeEventListener("resize", onResize);
     };
   }, [config, onRender]);
-
-  return (
-    <div
-      className={cn(
-        "absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[600px]",
-        className
-      )}
-    >
-      <canvas
-        className="size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]"
-        ref={canvasRef}
-        onPointerDown={(e) =>
-          updatePointerInteraction(
-            e.clientX - pointerInteractionMovement.current
-          )
-        }
-        onPointerUp={() => updatePointerInteraction(null)}
-        onPointerOut={() => updatePointerInteraction(null)}
-        onMouseMove={(e) => updateMovement(e.clientX)}
-        onTouchMove={(e) =>
-          e.touches[0] && updateMovement(e.touches[0].clientX)
-        }
-        aria-label="Interactive globe showing BuildSmarter coverage areas"
-      />
-    </div>
-  );
+  return <div className={cn("absolute inset-0 mx-auto aspect-[1/1] w-full max-w-[600px]", className)}>
+      <canvas className="size-full opacity-0 transition-opacity duration-500 [contain:layout_paint_size]" ref={canvasRef} onPointerDown={e => updatePointerInteraction(e.clientX - pointerInteractionMovement.current)} onPointerUp={() => updatePointerInteraction(null)} onPointerOut={() => updatePointerInteraction(null)} onMouseMove={e => updateMovement(e.clientX)} onTouchMove={e => e.touches[0] && updateMovement(e.touches[0].clientX)} aria-label="Interactive globe showing BuildSmarter coverage areas" />
+    </div>;
 }
-
 export default function GlobeFeatureSection() {
   const navigate = useNavigate();
-
-  return (
-    <section className="relative w-full mx-auto overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--navy))] via-[hsl(var(--navy-light))] to-[hsl(var(--navy))] border border-border/20 shadow-2xl px-6 py-16 md:px-16 md:py-24 mt-16">
+  return <section className="relative w-full mx-auto overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--navy))] via-[hsl(var(--navy-light))] to-[hsl(var(--navy))] border border-border/20 shadow-2xl px-6 py-16 md:px-16 md:py-24 mt-16">
       <div className="flex flex-col-reverse items-center justify-between gap-10 md:flex-row">
         <div className="z-10 max-w-xl text-left">
           <h2 className="text-h2 font-headline text-primary mb-4">
             Know What's Buildable. What It Costs. And What It's Worth
           </h2>
-          <p className="text-body-l text-slate-300 mb-6">
-            See every site's potential before you commit.
-            SiteIntel™ Feasibility analyzes buildability, cost, and market value in minutes — helping investors and lenders identify profitable projects with confidence.
+          <p className="text-body-l mb-6 text-slate-950">
+            Verified feasibility data powered by 20+ authoritative sources
+            across federal, state, and municipal systems. From FEMA flood zones
+            to TxDOT traffic counts—instant, lender-ready intelligence.
           </p>
-          <Button
-            variant="maxx-red"
-            size="lg"
-            className="inline-flex items-center gap-2"
-            onClick={() => navigate("/application?step=2")}
-          >
+          <Button variant="maxx-red" size="lg" className="inline-flex items-center gap-2" onClick={() => navigate("/application?step=2")}>
             Start Feasibility Report <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -156,6 +153,5 @@ export default function GlobeFeatureSection() {
           <Globe className="absolute -bottom-20 -right-40 scale-150" />
         </div>
       </div>
-    </section>
-  );
+    </section>;
 }
