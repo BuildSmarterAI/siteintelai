@@ -133,7 +133,7 @@ export default function GlobeFeatureSection() {
   const navigate = useNavigate();
 
   return (
-    <section className="relative w-full mx-auto overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--navy))] via-[hsl(var(--navy-light))] to-[hsl(var(--navy))] border border-border/20 shadow-2xl px-6 py-16 md:px-16 md:py-24 mt-48">
+    <section className="relative w-full mx-auto overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--navy))] via-[hsl(var(--navy-light))] to-[hsl(var(--navy))] border border-border/20 shadow-2xl px-6 py-16 md:px-16 md:py-24 mt-16">
       <div className="flex flex-col-reverse items-center justify-between gap-10 md:flex-row">
         <div className="z-10 max-w-xl text-left">
           <h2 className="text-h2 font-headline text-primary mb-4">
