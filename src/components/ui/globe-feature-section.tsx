@@ -136,11 +136,8 @@ export default function GlobeFeatureSection() {
     <section className="relative w-full mx-auto overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--navy))] via-[hsl(var(--navy-light))] to-[hsl(var(--navy))] border border-border/20 shadow-2xl px-6 py-16 md:px-16 md:py-24 mt-48">
       <div className="flex flex-col-reverse items-center justify-between gap-10 md:flex-row">
         <div className="z-10 max-w-xl text-left">
-          <h2 className="text-h2 font-headline text-white mb-4">
-            Nationwide Coverage.{" "}
-            <span className="text-[hsl(var(--feasibility-orange))]">
-              Texas-Focused Intelligence.
-            </span>
+          <h2 className="text-h2 font-headline text-primary mb-4">
+            Know What's Buildable. What It Costs. And What It's Worth
           </h2>
           <p className="text-body-l text-slate-300 mb-6">
             Verified feasibility data powered by 20+ authoritative sources
