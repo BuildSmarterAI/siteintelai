@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Header } from "./components/navigation/Header";
 import { Footer } from "./components/navigation/Footer";
 import { SkipLinks } from "./components/SkipLinks";
@@ -34,6 +34,23 @@ import Beta from "./pages/Beta";
 
 const queryClient = new QueryClient();
 
+const Layout = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const isBetaPage = location.pathname === '/beta';
+
+  return (
+    <>
+      <SkipLinks />
+      {!isBetaPage && <Header />}
+      <KeyboardShortcuts />
+      <main id="main-content" className={isBetaPage ? "" : "pt-24"}>
+        {children}
+      </main>
+      <Footer />
+    </>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -41,44 +58,40 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SkipLinks />
-          <Header />
-          <KeyboardShortcuts />
-        <main id="main-content" className="pt-24">
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/application" element={<Application />} />
-            <Route path="/thank-you" element={<ThankYou />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/report/:reportId" element={<ReportViewer />} />
-            <Route path="/products" element={<Products />} />
-            <Route path="/products/feasibility" element={<Feasibility />} />
-            <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
-            <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
-            <Route path="/how-it-works" element={<HowItWorks />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/industries/developers" element={<Developers />} />
-            <Route path="/industries/lenders" element={<Lenders />} />
-            <Route path="/industries/design-build" element={<Developers />} />
-            <Route path="/industries/municipalities" element={<Developers />} />
-            <Route path="/resources/blog" element={<Blog />} />
-            <Route path="/resources/case-studies" element={<Blog />} />
-            <Route path="/resources/documentation" element={<Blog />} />
-            <Route path="/resources/api" element={<Blog />} />
-            <Route path="/legal/privacy" element={<Privacy />} />
-            <Route path="/legal/terms" element={<Terms />} />
-            <Route path="/admin/geospatial" element={<AdminGeospatial />} />
-            <Route path="/parcel-explorer" element={<ParcelExplorer />} />
-            <Route path="/beta" element={<Beta />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-        <Footer />
-      </BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/application" element={<Application />} />
+              <Route path="/thank-you" element={<ThankYou />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/report/:reportId" element={<ReportViewer />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/feasibility" element={<Feasibility />} />
+              <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
+              <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/industries/developers" element={<Developers />} />
+              <Route path="/industries/lenders" element={<Lenders />} />
+              <Route path="/industries/design-build" element={<Developers />} />
+              <Route path="/industries/municipalities" element={<Developers />} />
+              <Route path="/resources/blog" element={<Blog />} />
+              <Route path="/resources/case-studies" element={<Blog />} />
+              <Route path="/resources/documentation" element={<Blog />} />
+              <Route path="/resources/api" element={<Blog />} />
+              <Route path="/legal/privacy" element={<Privacy />} />
+              <Route path="/legal/terms" element={<Terms />} />
+              <Route path="/admin/geospatial" element={<AdminGeospatial />} />
+              <Route path="/parcel-explorer" element={<ParcelExplorer />} />
+              <Route path="/beta" element={<Beta />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
       </SubscriptionProvider>
     </TooltipProvider>
   </QueryClientProvider>
