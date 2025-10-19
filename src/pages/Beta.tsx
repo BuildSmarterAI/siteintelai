@@ -206,9 +206,13 @@ const Beta = () => {
             </div>
           ) : (
             <div 
-              className="absolute inset-0 z-0"
+              className="absolute inset-0 z-[1]"
               style={{
-                background: 'radial-gradient(ellipse at center, hsl(var(--secondary)) 0%, hsl(var(--secondary-dark)) 70%, hsl(222 84% 5%) 100%)'
+                background: `
+                  radial-gradient(ellipse at 30% 20%, hsla(var(--accent), 0.08) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 80%, hsla(var(--primary), 0.06) 0%, transparent 50%),
+                  radial-gradient(ellipse at center, hsl(222 84% 8%) 0%, hsl(222 84% 5%) 100%)
+                `
               }}
               role="presentation"
               aria-hidden="true"
