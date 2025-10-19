@@ -30,10 +30,10 @@ export const StickyCTA = () => {
           <div className="container mx-auto flex items-center justify-between">
             <div className="flex-1">
               <h4 className="font-headline font-bold text-lg mb-2">
-                $10K Feasibility in Seconds—Verified by FEMA
+                Join the Private Beta — Limited Seats Available
               </h4>
               <p className="font-body text-sm text-white/90">
-                Run a Free QuickCheck or get a lender-ready Professional Report for $795.
+                Get early access and founding member pricing for instant feasibility intelligence.
               </p>
             </div>
             <div className="flex items-center gap-4 ml-6">
@@ -41,9 +41,9 @@ export const StickyCTA = () => {
                 variant="secondary"
                 size="lg"
                 className="px-6 py-3 font-cta bg-white text-charcoal hover:bg-white/90"
-                onClick={() => window.location.href = '/application?step=2'}
+                onClick={() => window.location.href = '/beta-signup'}
               >
-                Run Free QuickCheck →
+                Join Beta →
               </Button>
               <button
                 onClick={() => setIsExpanded(false)}
@@ -65,10 +65,10 @@ export const StickyCTA = () => {
               className="flex-1 text-left group"
             >
               <div className="font-headline font-bold text-base group-hover:text-white/90 transition-colors">
-                60-Second Feasibility Reports
+                Join Private Beta
               </div>
               <div className="font-body text-sm text-white/80">
-                Free QuickCheck available →
+                Limited seats available →
               </div>
             </button>
             
@@ -76,9 +76,9 @@ export const StickyCTA = () => {
               <Button 
                 variant="secondary"
                 className="px-4 py-2 font-cta bg-white text-charcoal hover:bg-white/90 text-sm"
-                onClick={() => window.location.href = '/application?step=2'}
+                onClick={() => window.location.href = '/beta-signup'}
               >
-                Free QuickCheck
+                Join Beta
               </Button>
               <button
                 onClick={scrollToTop}

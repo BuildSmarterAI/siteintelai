@@ -115,7 +115,7 @@ export const Hero = () => {
     setIsCtaLoading(true);
     
     setTimeout(() => {
-      window.location.href = "/application?step=2";
+      window.location.href = "/beta-signup";
     }, 300);
   };
 

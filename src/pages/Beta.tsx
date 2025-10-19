@@ -67,19 +67,8 @@ const Beta = () => {
       y: 0
     });
   };
-  const handleCtaClick = () => {
-    setCtaRipple(true);
-    setTimeout(() => setCtaRipple(false), 600);
-    setTimeout(() => {
-      document.getElementById("beta-signup-form")?.scrollIntoView({
-        behavior: "smooth"
-      });
-    }, 200);
-  };
-  const scrollToForm = () => {
-    document.getElementById("beta-signup-form")?.scrollIntoView({
-      behavior: "smooth"
-    });
+  const navigateToBetaSignup = () => {
+    window.location.href = '/beta-signup';
   };
   const steps = [{
     number: "01",
@@ -247,7 +236,7 @@ const Beta = () => {
           duration: 0.6,
           delay: 0.3
         }} className="absolute top-4 right-4 md:top-8 md:right-8 z-20">
-            <Button variant="expandIcon" Icon={ArrowRight} iconPlacement="right" size="lg" className="font-body text-base md:text-lg font-semibold uppercase tracking-widest shadow-2xl px-8 py-6 md:px-10 md:py-7" onClick={scrollToForm}>
+            <Button variant="expandIcon" Icon={ArrowRight} iconPlacement="right" size="lg" className="font-body text-base md:text-lg font-semibold uppercase tracking-widest shadow-2xl px-8 py-6 md:px-10 md:py-7" onClick={() => window.location.href = '/beta-signup'}>
               Join Beta
             </Button>
           </motion.div>
@@ -685,9 +674,9 @@ const Beta = () => {
               <Button 
                 size="lg" 
                 className="bg-white text-primary hover:bg-white/90"
-                onClick={scrollToForm}
+                onClick={() => window.location.href = '/beta-signup'}
               >
-                Request Beta Access <ArrowRight className="ml-2 h-4 w-4" />
+                Join Beta <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               
               <p className="mt-6 text-sm text-white/70 italic">

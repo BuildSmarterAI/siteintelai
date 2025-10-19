@@ -9,11 +9,11 @@ export const FinalCTA = () => {
         </h2>
         
         <p className="font-body text-xl text-maxx-red-foreground/90 mb-2 max-w-3xl mx-auto leading-relaxed">
-          $10K feasibility in seconds. Verified by FEMA, cited for lenders.
+          Join the private beta and get early access to instant feasibility intelligence.
         </p>
         
         <p className="font-body text-sm text-maxx-red-foreground/80 mb-8 font-semibold">
-          Free QuickCheck available. Professional Reports start at $795.
+          Limited to 500 verified professionals. Secure your spot today.
         </p>
         
         <div className="mb-6">
@@ -21,14 +21,14 @@ export const FinalCTA = () => {
             variant="outline"
             size="lg"
             className="bg-maxx-red-foreground text-maxx-red border-maxx-red-foreground hover:bg-maxx-red-foreground/90 text-lg px-8 py-4 h-auto font-cta font-semibold"
-            onClick={() => window.location.href = '/application?step=2'}
+            onClick={() => window.location.href = '/beta-signup'}
           >
-            Run Free QuickCheck →
+            Join Beta →
           </Button>
         </div>
         
         <p className="font-body text-sm text-maxx-red-foreground/80">
-          60-second delivery. AI-powered. Data-cited.
+          Free beta access · 3 report credits included · Founding member pricing locked.
         </p>
       </div>
     </section>

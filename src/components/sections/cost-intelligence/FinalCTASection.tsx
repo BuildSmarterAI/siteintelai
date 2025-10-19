@@ -64,10 +64,10 @@ export const FinalCTASection = () => {
               size="lg"
               variant="outline"
               className="bg-white text-primary hover:bg-white/90 border-white text-lg px-8 py-6 h-auto font-cta font-semibold group shadow-[0_4px_20px_rgba(255,255,255,0.3)]"
-              onClick={() => window.location.href = '/application?step=2'}
+              onClick={() => window.location.href = '/beta-signup'}
             >
               <span className="flex items-center gap-2">
-                Request Cost Estimate
+                Join Beta
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </span>
             </Button>

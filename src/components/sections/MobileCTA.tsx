@@ -21,18 +21,18 @@ export const MobileCTA = () => {
       <div className="flex items-center justify-between space-x-4">
         <div>
           <p className="font-cta font-semibold text-maxx-red-foreground text-sm">
-            60-Second Feasibility
+            Join Private Beta
           </p>
           <p className="font-body text-xs text-maxx-red-foreground/80">
-            Free QuickCheck available
+            Limited seats available
           </p>
         </div>
         <Button 
           variant="outline"
           className="bg-maxx-red-foreground text-maxx-red border-maxx-red-foreground hover:bg-maxx-red-foreground/90 font-cta font-semibold px-6 min-h-[2.75rem]"
-          onClick={() => window.location.href = '/application?step=2'}
+          onClick={() => window.location.href = '/beta-signup'}
         >
-          Run QuickCheck
+          Join Beta
         </Button>
       </div>
     </div>

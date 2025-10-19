@@ -207,18 +207,18 @@ export const InteractiveProcess = () => {
             <div className="text-center mt-12 animate-fade-in">
               <div className="bg-gradient-to-r from-maxx-red to-navy text-white p-8 rounded-lg">
                 <h4 className="font-headline text-2xl font-bold mb-4">
-                  Ready to Get Your Report?
+                  Ready to Join the Beta?
                 </h4>
                 <p className="font-body text-lg mb-6 text-white/90">
-                  Run a Free QuickCheck or purchase a Professional Report in under 60 seconds.
+                  Get early access to instant feasibility intelligence and founding member benefits.
                 </p>
                 <Button 
                   variant="secondary"
                   size="lg"
                   className="px-8 py-4 text-lg font-cta bg-white text-charcoal hover:bg-white/90"
-                  onClick={() => window.location.href = '/application?step=2'}
+                  onClick={() => window.location.href = '/beta-signup'}
                 >
-                  Run Free QuickCheck →
+                  Join Beta →
                 </Button>
               </div>
             </div>

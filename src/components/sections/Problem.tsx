@@ -90,12 +90,12 @@ export const Problem = () => {
               variant="maxx-red" 
               size="lg"
               className="text-base px-8 py-4 h-auto font-cta"
-              onClick={() => window.location.href = '/application?step=2'}
+              onClick={() => window.location.href = '/beta-signup'}
             >
-              Run Free QuickCheck™ (No Login Required)
+              Join Beta — Limited Access
             </Button>
             <p className="text-sm text-charcoal/60 mt-2">
-              Instant feasibility score in 60 seconds
+              Secure your spot among 500 founding members
             </p>
           </div>
           

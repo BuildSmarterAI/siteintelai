@@ -41,20 +41,20 @@ export const UnifiedMobileCTA = () => {
       <div className="flex items-center justify-between gap-3 px-4 py-3">
         <div className="flex-1 min-w-0">
           <p className="font-cta font-semibold text-white text-sm leading-tight truncate">
-            60-Second Feasibility
+            Join Private Beta
           </p>
           <p className="font-body text-xs text-white/80 truncate">
-            Free QuickCheck • $795 Full Report
+            Limited seats available
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button 
             size="sm"
             className="bg-white text-maxx-red hover:bg-white/90 font-cta font-semibold px-4 h-10 whitespace-nowrap shadow-lg"
-            onClick={() => window.location.href = '/application?step=2'}
+            onClick={() => window.location.href = '/beta-signup'}
           >
             <Zap className="h-3.5 w-3.5 mr-1" />
-            Get Started
+            Join Beta
           </Button>
           <button
             onClick={handleDismiss}
