@@ -692,36 +692,6 @@ export const Hero = () => {
                     )}
                   </Button>
                 </motion.div>
-                
-                {/* Enhanced Trust Signals */}
-                <p className="mt-4 md:mt-6 text-sm text-white/70 text-center md:text-left">
-                  <span className="hidden md:inline flex items-center justify-center md:justify-start gap-2">
-                    <span className="inline-flex items-center gap-1">
-                      <span className="inline-block w-2 h-2 bg-[#06B6D4] rounded-full animate-pulse" aria-hidden="true" />
-                      Data updated 2 hours ago
-                    </span>
-                    <span className="text-white/50">·</span>
-                    <span className="inline-flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
-                      FEMA
-                    </span>
-                    <span className="text-white/50">·</span>
-                    <span className="inline-flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
-                      ArcGIS
-                    </span>
-                    <span className="text-white/50">·</span>
-                    <span className="inline-flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
-                      TxDOT
-                    </span>
-                  </span>
-                  <span className="md:hidden inline-flex items-center justify-center gap-2">
-                    <span className="inline-block w-2 h-2 bg-[#06B6D4] rounded-full animate-pulse" aria-hidden="true" />
-                    <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
-                    FEMA, ArcGIS, TxDOT verified
-                  </span>
-                </p>
               </motion.div>
             </div>
           </motion.div>
