@@ -281,6 +281,12 @@ export const AdvancedMap = ({
   const handleSearch = useCallback((result: any) => {
     setSearchResult(result);
   }, []);
+  const renderChildren = useCallback(() => (
+    <TileLayer
+      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    />
+  ), []);
 
   return (
     <div className={`advanced-map ${className}`} style={style}>
@@ -290,18 +296,7 @@ export const AdvancedMap = ({
         style={{ height: '100%', width: '100%' }}
         scrollWheelZoom={true}
       >
-          {currentLayers.openstreetmap && (
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          )}
-          {currentLayers.satellite && (
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            />
-          )}
+        {renderChildren as unknown as React.ReactNode}
       </MapContainer>
     </div>
   );
