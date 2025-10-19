@@ -261,10 +261,10 @@ const Beta = () => {
                   transition={{ duration: 0.6, delay: 0.1 }}
                   className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
                 >
-                  Instant Feasibility.{" "}
+                  Instant Feasibility for Commercial Real Estate Development.{" "}
                   <span className="relative inline-block">
                     <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                      Verified by Public-Record Intelligence.
+                      Verified Intelligence.
                     </span>
                     <motion.span
                       className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-primary to-accent"
