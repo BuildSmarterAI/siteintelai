@@ -140,9 +140,8 @@ export default function GlobeFeatureSection() {
             Know What's Buildable. What It Costs. And What It's Worth
           </h2>
           <p className="text-body-l text-slate-300 mb-6">
-            Verified feasibility data powered by 20+ authoritative sources
-            across federal, state, and municipal systems. From FEMA flood zones
-            to TxDOT traffic counts—instant, lender-ready intelligence.
+            See every site's potential before you commit.
+            SiteIntel™ Feasibility analyzes buildability, cost, and market value in minutes — helping investors and lenders identify profitable projects with confidence.
           </p>
           <Button
             variant="maxx-red"
