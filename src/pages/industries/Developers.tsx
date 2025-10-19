@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useCounter } from "@/hooks/useCounter";
+import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
 import { 
   Building2, 
   TrendingUp, 
@@ -182,8 +183,8 @@ const Developers = () => {
                     transition={{ delay: 0.4, duration: 0.3 }}
                   >
                     <img 
-                      src="/src/assets/buildsmarter-logo-small.png" 
-                      alt="BuildSmarter Logo" 
+                      src={siteintelAILogo} 
+                      alt="SiteIntel AI Logo" 
                       className="h-12 w-auto"
                     />
                   </motion.div>

@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
 
 const Beta = () => {
   const heroRef = useRef(null);
@@ -188,24 +189,24 @@ const Beta = () => {
                 </linearGradient>
               </defs>
               
-              {[{\
-            x1: '15%',\
-            y1: '25%',\
-            x2: '85%',\
-            y2: '20%',\
-            delay: 0\
-          }, {\
-            x1: '20%',\
-            y1: '75%',\
-            x2: '80%',\
-            y2: '70%',\
-            delay: 2\
-          }, {\
-            x1: '10%',\
-            y1: '50%',\
-            x2: '90%',\
-            y2: '45%',\
-            delay: 4\
+              {[{
+            x1: '15%',
+            y1: '25%',
+            x2: '85%',
+            y2: '20%',
+            delay: 0
+          }, {
+            x1: '20%',
+            y1: '75%',
+            x2: '80%',
+            y2: '70%',
+            delay: 2
+          }, {
+            x1: '10%',
+            y1: '50%',
+            x2: '90%',
+            y2: '45%',
+            delay: 4
           }].map((stream, i) => <motion.line key={`stream-${i}`} x1={stream.x1} y1={stream.y1} x2={stream.x2} y2={stream.y2} stroke="url(#streamGradient)" strokeWidth="2" strokeDasharray="8 4" initial={{
             strokeDashoffset: 0
           }} animate={{
@@ -601,7 +602,7 @@ const Beta = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
               {/* Column 1: Brand */}
               <div>
-                <img src="/src/assets/siteintel-logo.png" alt="SiteIntel" className="h-8 mb-4" />
+                <img src={siteintelAILogo} alt="SiteIntel AI" className="h-8 mb-4" />
                 <p className="text-sm text-muted-foreground">
                   Regulatory-grade feasibility intelligence for commercial development.
                 </p>

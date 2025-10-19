@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { useCounter } from "@/hooks/useCounter";
+import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
 import { 
   Building2, 
   TrendingUp, 
@@ -165,8 +166,8 @@ const Lenders = () => {
             {/* Logo */}
             <motion.div variants={itemVariants} className="mb-8">
               <img 
-                src="/src/assets/buildsmarter-logo-new.png" 
-                alt="BuildSmarter Logo" 
+                src={siteintelAILogo} 
+                alt="SiteIntel AI Logo" 
                 className="h-12 mx-auto"
               />
             </motion.div>

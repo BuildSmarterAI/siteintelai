@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
+import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
 
 export const Footer = () => {
   const footerSections = [
@@ -109,7 +109,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <img src={buildSmarterLogo} alt="SiteIntel" className="h-6" />
+            <img src={siteintelAILogo} alt="SiteIntel AI" className="h-6" />
             <span className="text-white/50 text-xs">
               © {new Date().getFullYear()} SiteIntel AI. All rights reserved.
             </span>

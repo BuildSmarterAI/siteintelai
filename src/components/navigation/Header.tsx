@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useSearchParams } from "react-router-dom";
 import { motion, useScroll } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Menu } from "lucide-react";
-
+import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
 import { AuthButton } from "@/components/AuthButton";
 import {
   DropdownMenu,
@@ -86,8 +86,8 @@ export const Header = () => {
         {/* Logo as Home Link */}
         <Link to="/" className="flex items-center transition-transform hover:scale-105 duration-200">
           <img 
-            src="/src/assets/siteintel-logo.png" 
-            alt="SiteIntel" 
+            src={siteintelAILogo} 
+            alt="SiteIntel AI" 
             className="h-8 md:h-10 w-auto"
           />
         </Link>
