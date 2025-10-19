@@ -363,7 +363,7 @@ const Beta = () => {
                   duration: 0.2
                 }
               }} className="relative group">
-                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 h-full hover:border-primary/30 transition-all duration-200 hover:shadow-xl">
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 h-full hover:border-primary transition-all duration-200 hover:shadow-xl">
                       <div className="relative mb-6">
                         <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg mb-4">
                           {step.number}
