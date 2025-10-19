@@ -290,11 +290,7 @@ const Beta = () => {
               }} transition={{
                 duration: 0.6,
                 delay: 0.2
-              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">Know What's Buildable. What It Costs. And What It's Worth
-
-Verified feasibility data powered by 20+ authoritative sources across federal, state, and municipal systems. From FEMA flood zones to TxDOT traffic counts—instant, lender-ready intelligence.
-
-Start Feasibility Report</motion.p>
+              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">SiteIntel™ Feasibility transforms how commercial developers, brokers, and lenders evaluate property sites. Join the private beta to access proprietary AI-generated feasibility reports built on verified geospatial and infrastructure intelligence.</motion.p>
               </div>
             </div>
           </motion.div>
