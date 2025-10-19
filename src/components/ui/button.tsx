@@ -19,6 +19,7 @@ const buttonVariants = cva(
         "maxx-red-outline": "border-2 border-maxx-red text-maxx-red bg-background hover:bg-maxx-red hover:text-maxx-red-foreground",
         navy: "bg-navy text-navy-foreground hover:bg-navy/90",
         charcoal: "bg-charcoal text-charcoal-foreground hover:bg-charcoal/90",
+        expandIcon: "group relative bg-[#FF7A00] text-white hover:bg-[#06B6D4] transition-all duration-300 gap-0 overflow-hidden shadow-lg hover:shadow-xl",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -38,12 +39,43 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  Icon?: React.ComponentType<{ className?: string }>;
+  iconPlacement?: 'left' | 'right';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, Icon, iconPlacement = 'right', children, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";
-    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props} />;
+    
+    if (variant === 'expandIcon' && Icon) {
+      return (
+        <Comp 
+          className={cn(buttonVariants({ variant, size, className }))} 
+          ref={ref} 
+          {...props}
+        >
+          {iconPlacement === 'left' && (
+            <div className="w-0 group-hover:w-5 opacity-0 group-hover:opacity-100 transition-all duration-300 overflow-hidden">
+              <Icon className="w-4 h-4" />
+            </div>
+          )}
+          <span className={cn(
+            "transition-all duration-300",
+            iconPlacement === 'right' && "group-hover:translate-x-1",
+            iconPlacement === 'left' && "group-hover:-translate-x-1"
+          )}>
+            {children}
+          </span>
+          {iconPlacement === 'right' && (
+            <div className="w-0 group-hover:w-5 opacity-0 group-hover:opacity-100 transition-all duration-300 overflow-hidden">
+              <Icon className="w-4 h-4" />
+            </div>
+          )}
+        </Comp>
+      );
+    }
+    
+    return <Comp className={cn(buttonVariants({ variant, size, className }))} ref={ref} {...props}>{children}</Comp>;
   },
 );
 Button.displayName = "Button";

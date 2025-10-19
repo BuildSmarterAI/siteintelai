@@ -12,7 +12,8 @@ import {
   ChevronDown,
   Zap,
   Database,
-  CheckCircle2
+  CheckCircle2,
+  ArrowRight
 } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
@@ -340,14 +341,14 @@ const Beta = () => {
                 className="lg:col-span-2 space-y-4"
               >
                 <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="w-full font-body text-lg md:text-xl font-medium h-14 md:h-16 border-white/20 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm transition-all duration-180"
-                  asChild
+                  variant="expandIcon"
+                  Icon={ArrowRight}
+                  iconPlacement="right"
+                  size="lg"
+                  className="w-full font-body text-lg md:text-xl font-semibold h-14 md:h-16 uppercase tracking-wide"
+                  onClick={scrollToForm}
                 >
-                  <a href="/sample-report.pdf" target="_blank" rel="noopener noreferrer">
-                    View Sample Report
-                  </a>
+                  Join Beta
                 </Button>
                 <SeatsCounter total={250} claimed={127} />
               </motion.div>
