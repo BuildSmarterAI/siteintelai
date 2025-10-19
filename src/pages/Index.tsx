@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Hero } from "@/components/sections/Hero";
 import { AssociationLogos } from "@/components/sections/AssociationLogos";
 import { PlatformOverview } from "@/components/sections/PlatformOverview";
+import GlobeFeatureSection from "@/components/ui/globe-feature-section";
 import { Solution } from "@/components/sections/Solution";
 import { Comparison } from "@/components/sections/Comparison";
 import { IndustriesWeServe } from "@/components/sections/IndustriesWeServe";
@@ -56,6 +57,7 @@ const Index = () => {
   return (
     <div className="min-h-screen">
       <Hero />
+      <GlobeFeatureSection />
       <AssociationLogos />
       
       {/* Parcel Explorer CTA */}
