@@ -8,9 +8,7 @@ import {
   Building2, 
   ShieldCheck, 
   Lock,
-  ChevronDown,
-  Database,
-  CheckCircle2
+  ChevronDown
 } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
@@ -302,27 +300,6 @@ const Beta = () => {
                 >
                   AI transforms complex site and regulatory data into lender-ready feasibility — in minutes, not months.
                 </motion.p>
-
-                {/* Trust Signals */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.4 }}
-                  className="flex flex-wrap items-center gap-4 font-body text-sm md:text-base font-medium text-white/80"
-                >
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-accent" aria-hidden="true" />
-                    <span>FEMA-Verified</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4 text-accent" aria-hidden="true" />
-                    <span>20+ Data Sources</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-accent" aria-hidden="true" />
-                    <span>Lender-Ready</span>
-                  </div>
-                </motion.div>
               </div>
 
               <motion.div 
