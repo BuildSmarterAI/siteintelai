@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { MapPin, Cpu, FileText, Building2, ShieldCheck, Lock, ChevronDown } from "lucide-react";
+import { MapPin, Cpu, FileText, Building2, ShieldCheck, Lock, ChevronDown, LineChart, CheckCircle } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
 import { BetaSignupForm } from "@/components/beta/BetaSignupForm";
@@ -132,6 +132,80 @@ const Beta = () => {
     question: "Can I integrate this with my existing workflow?",
     answer: "Yes — reports are available as PDFs (for manual review), JSON (for custom integrations), and OData queries (for enterprise systems). API access is available for Pro tier participants."
   }];
+
+  const features = [
+    {
+      icon: Cpu,
+      title: "AI Feasibility Engine",
+      description: "Automates complex analysis so your team can focus on deals, not data."
+    },
+    {
+      icon: LineChart,
+      title: "Proprietary Scoring Model",
+      description: "Gives every parcel a consistent, comparable benchmark — no bias, no guesswork."
+    },
+    {
+      icon: FileText,
+      title: "Lender-Ready Formatting",
+      description: "Professional reports formatted to pass underwriting reviews with zero edits."
+    },
+    {
+      icon: MapPin,
+      title: "Interactive Map Viewer",
+      description: "Visually explore zoning, risk, and opportunity in one intuitive dashboard."
+    },
+    {
+      icon: Lock,
+      title: "Enterprise-Level Security",
+      description: "Protecting proprietary models, algorithms, and IP with bank-grade encryption."
+    }
+  ];
+
+  const solutionBullets = [
+    "Zoning & Permitting Intelligence",
+    "Infrastructure & Access Analysis",
+    "Flood & Environmental Screening",
+    "Feasibility Score (0–100)",
+    "Lender-Ready Report"
+  ];
+
+  const TimelineCard = ({ title, steps, color, animated = false }: {
+    title: string;
+    steps: string[];
+    color: string;
+    animated?: boolean;
+  }) => {
+    return (
+      <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6">
+        <h3 className="text-lg font-semibold mb-6 text-center">{title}</h3>
+        <div className="flex items-center justify-between gap-4">
+          {steps.map((step, i) => (
+            <div key={i} className="flex flex-col items-center flex-1 relative">
+              <motion.div 
+                className="w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold relative z-10"
+                style={{ backgroundColor: color }}
+                animate={animated ? { scale: [1, 1.1, 1] } : {}}
+                transition={animated ? { duration: 2, repeat: Infinity, delay: i * 0.3 } : {}}
+              >
+                {i + 1}
+              </motion.div>
+              <p className="text-sm mt-2 text-center">{step}</p>
+              {i < steps.length - 1 && (
+                <div 
+                  className="absolute top-6 h-0.5 bg-border" 
+                  style={{ 
+                    left: 'calc(50% + 24px)',
+                    right: 'calc(-50% + 24px)',
+                    width: 'calc(100% - 48px)'
+                  }} 
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
   return <>
       <Helmet>
         <title>Join the SiteIntel™ Feasibility Beta | Private Access</title>
@@ -383,6 +457,243 @@ const Beta = () => {
                   </motion.div>;
             })}
             </div>
+          </div>
+        </section>
+
+        {/* Problem Section */}
+        <section id="problem" className="py-[120px] bg-muted/30">
+          <div className="container mx-auto px-6 lg:px-8 max-w-[1120px]">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+                When Feasibility Takes Weeks, Opportunity Disappears in Days.
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Manual feasibility reports drain time, money, and momentum. Developers wait weeks, juggling consultants and disconnected data—while competitors act first. SiteIntel™ Feasibility eliminates that lag with verified insights delivered in minutes.
+              </p>
+            </motion.div>
+            
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+              >
+                <TimelineCard 
+                  title="Traditional Process – 3 Weeks"
+                  steps={["Consultant", "Analysis", "Review"]}
+                  color="#9CA3AF"
+                />
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+              >
+                <TimelineCard 
+                  title="AI Report – 10 Minutes"
+                  steps={["Input", "AI Engine", "Report"]}
+                  color="#FF7A00"
+                  animated={true}
+                />
+              </motion.div>
+            </div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="text-center"
+            >
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/how-it-works">See How It Works <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Solution Section */}
+        <section id="solution" className="py-[120px] bg-background">
+          <div className="container mx-auto px-6 lg:px-8 max-w-[1120px]">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+              >
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+                  From Parcel to Proof — in Under 10 Minutes.
+                </h2>
+                <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
+                  SiteIntel™ Feasibility automates the entire due-diligence workflow. In a single click, the platform analyzes zoning, infrastructure, risk, and valuation to deliver a defensible, lender-ready report—faster than a meeting recap.
+                </p>
+                
+                <ul className="space-y-3 mb-8">
+                  {solutionBullets.map((item, index) => (
+                    <motion.li 
+                      key={index}
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-start gap-3"
+                    >
+                      <CheckCircle className="text-primary mt-0.5 flex-shrink-0" size={20} />
+                      <span className="text-foreground">{item}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+                
+                <Button size="lg" asChild>
+                  <Link to="/application">Generate My First Report <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                </Button>
+              </motion.div>
+              
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="relative"
+              >
+                <div className="rounded-xl border border-border overflow-hidden shadow-2xl bg-card">
+                  <ScorePreviewCard score={87} grade="B+" />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Authority Band Section */}
+        <section id="authority" className="py-[120px] bg-secondary text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-20">
+            <motion.div 
+              className="w-full h-full"
+              animate={{ opacity: [0.15, 0.25, 0.15] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,122,0,0.1)_0%,transparent_50%)]" />
+            </motion.div>
+          </div>
+          
+          <div className="container mx-auto px-6 lg:px-8 max-w-[900px] relative z-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                Verified Intelligence. Built for Verified Professionals.
+              </h2>
+              <p className="text-lg text-white/80 mb-8 leading-relaxed">
+                Every SiteIntel™ report is powered by verified geospatial and regulatory infrastructure—engineered for lenders, investors, and developers who need more than estimates. Your insights aren't just fast—they're auditable, defensible, and trusted.
+              </p>
+              <Button variant="outline" className="text-white border-white/30 hover:bg-white/10 hover:text-white" asChild>
+                <Link to="/about">Learn About Our Technology <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Feature Matrix Section */}
+        <section id="feature-matrix" className="py-[120px] bg-background">
+          <div className="container mx-auto px-6 lg:px-8 max-w-[1120px]">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-16"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">
+                Your Feasibility Advantage
+              </h2>
+            </motion.div>
+            
+            <div className="grid md:grid-cols-2 gap-8 mb-12">
+              {features.map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <motion.div 
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: index * 0.1 }}
+                    whileHover={{ y: -4 }}
+                    className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 hover:border-primary transition-all"
+                  >
+                    <Icon className="w-10 h-10 text-primary mb-4" />
+                    <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                    <p className="text-muted-foreground">{feature.description}</p>
+                  </motion.div>
+                );
+              })}
+            </div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.5 }}
+              className="text-center"
+            >
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/products">See All Capabilities <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Beta Access CTA Section */}
+        <section id="beta-access-cta" className="py-[120px] bg-primary text-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10">
+            <motion.div 
+              className="absolute top-1/2 left-1/2 w-96 h-96 bg-white rounded-full blur-3xl"
+              animate={{ 
+                scale: [1, 1.2, 1], 
+                opacity: [0.1, 0.15, 0.1],
+                x: [-50, -50, -50],
+                y: [-50, -50, -50]
+              }}
+              transition={{ duration: 4, repeat: Infinity }}
+            />
+          </div>
+          
+          <div className="container mx-auto px-6 lg:px-8 max-w-[900px] relative z-10">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                Private Beta Open for Verified Developers, Lenders, and Brokers
+              </h2>
+              <p className="text-lg text-white/90 mb-8 leading-relaxed">
+                Join an exclusive group shaping the future of commercial feasibility. Early members receive direct product access, feature input privileges, and lifetime preferred pricing before public launch.
+              </p>
+              
+              <Button 
+                size="lg" 
+                className="bg-white text-primary hover:bg-white/90"
+                onClick={scrollToForm}
+              >
+                Request Beta Access <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+              
+              <p className="mt-6 text-sm text-white/70 italic">
+                Only 500 verified professionals will be accepted.
+              </p>
+            </motion.div>
           </div>
         </section>
 
