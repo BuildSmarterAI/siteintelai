@@ -457,4 +457,28 @@ All colors MUST be HSL.
     background-size: 200% 100%;
     animation: shimmer 2.5s ease-in-out infinite;
   }
+
+  /* Performance-Optimized CSS Animations for Hero */
+  @keyframes connectionFlow {
+    0% { 
+      stroke-dashoffset: 1000;
+      opacity: 0;
+    }
+    50% { 
+      opacity: 0.9;
+    }
+    100% { 
+      stroke-dashoffset: 0;
+      opacity: 0;
+    }
+  }
+
+  @keyframes verificationSweep {
+    0% { 
+      transform: translateX(-100%);
+    }
+    100% { 
+      transform: translateX(100%);
+    }
+  }
 }
