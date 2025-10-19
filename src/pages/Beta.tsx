@@ -301,15 +301,6 @@ const Beta = () => {
                   AI transforms complex site and regulatory data into lender-ready feasibility — in minutes, not months.
                 </motion.p>
               </div>
-
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.5 }}
-                className="lg:col-span-2"
-              >
-                <SeatsCounter total={250} claimed={127} />
-              </motion.div>
             </div>
           </motion.div>
 
