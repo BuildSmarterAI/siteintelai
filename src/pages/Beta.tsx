@@ -31,7 +31,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
-import { BetaHeader } from "@/components/navigation/BetaHeader";
+import { ArrowRight } from "lucide-react";
 
 const Beta = () => {
   const heroRef = useRef(null);
@@ -173,9 +173,26 @@ const Beta = () => {
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-b from-secondary via-secondary/95 to-background">
-        <BetaHeader />
         {/* Hero Section */}
-        <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden pt-24">
+        <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
+          {/* Floating Join Beta Button - Top Right */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="absolute top-4 right-4 md:top-8 md:right-8 z-20"
+          >
+            <Button 
+              variant="expandIcon"
+              Icon={ArrowRight}
+              iconPlacement="right"
+              size={isMobile ? "default" : "lg"}
+              className="font-body text-sm md:text-base font-semibold uppercase tracking-wide shadow-2xl"
+              onClick={scrollToForm}
+            >
+              Join Beta
+            </Button>
+          </motion.div>
           {/* Layer 1: WebGL Shader Background (Desktop) / Simple Gradient (Mobile) 
               - Animated blueprint grid with diagonal scroll
               - Deep navy mesh gradient base
