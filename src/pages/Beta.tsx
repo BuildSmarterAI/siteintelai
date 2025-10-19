@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
+import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
 
 const Beta = () => {
   const heroRef = useRef(null);
@@ -602,7 +602,7 @@ const Beta = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
               {/* Column 1: Brand */}
               <div>
-                <img src={siteintelAILogo} alt="SiteIntel AI" className="h-8 mb-4" />
+                <img src={siteintelIconLogo} alt="SiteIntel AI" className="h-10 mb-4 drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
                 <p className="text-sm text-muted-foreground">
                   Regulatory-grade feasibility intelligence for commercial development.
                 </p>

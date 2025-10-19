@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
+import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
 
 export const Footer = () => {
   const footerSections = [
@@ -109,7 +109,7 @@ export const Footer = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-white/10">
           <div className="flex items-center gap-3">
-            <img src={siteintelAILogo} alt="SiteIntel AI" className="h-6" />
+            <img src={siteintelIconLogo} alt="SiteIntel AI" className="h-8 drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
             <span className="text-white/50 text-xs">
               © {new Date().getFullYear()} SiteIntel AI. All rights reserved.
             </span>

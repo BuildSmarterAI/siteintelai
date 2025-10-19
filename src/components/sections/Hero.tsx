@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Database, Calculator, ShieldAlert, FileCheck, Building2, DollarSign, ShieldCheck, TrendingUp } from "lucide-react";
-import siteintelAILogo from "@/assets/siteintel-ai-logo.png";
+import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
 import aerialPropertySite1920webp from "@/assets/aerial-property-site-1920w.webp";
 import aerialPropertySite1024webp from "@/assets/aerial-property-site-1024w.webp";
 import aerialPropertySite768webp from "@/assets/aerial-property-site-768w.webp";
