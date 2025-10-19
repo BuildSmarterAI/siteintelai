@@ -6,14 +6,11 @@ import {
   Cpu, 
   FileCheck, 
   Building2, 
-  TrendingUp, 
   ShieldCheck, 
   Lock,
   ChevronDown,
-  Zap,
   Database,
-  CheckCircle2,
-  ArrowRight
+  CheckCircle2
 } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
@@ -34,6 +31,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
+import { BetaHeader } from "@/components/navigation/BetaHeader";
 
 const Beta = () => {
   const heroRef = useRef(null);
@@ -124,7 +122,7 @@ const Beta = () => {
     },
     {
       title: "Lenders & Underwriters",
-      icon: TrendingUp,
+      icon: FileCheck,
       benefit: "Decision-ready feasibility formatted for institutional workflows.",
       metrics: ["Lender-grade PDFs", "Timestamped validation", "Audit-trail compliance"],
     },
@@ -175,8 +173,9 @@ const Beta = () => {
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-b from-secondary via-secondary/95 to-background">
+        <BetaHeader />
         {/* Hero Section */}
-        <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
+        <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden pt-24">
           {/* Layer 1: WebGL Shader Background (Desktop) / Simple Gradient (Mobile) 
               - Animated blueprint grid with diagonal scroll
               - Deep navy mesh gradient base
@@ -287,31 +286,6 @@ const Beta = () => {
                   AI transforms complex site and regulatory data into lender-ready feasibility — in minutes, not months.
                 </motion.p>
 
-                {/* Metrics Badge */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                  className="flex flex-wrap items-center gap-4"
-                >
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                    <Zap className="w-4 h-4 text-primary" aria-hidden="true" />
-                    <span className="font-body text-sm md:text-base font-bold text-white uppercase tracking-wider">10× Faster</span>
-                  </div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                    <TrendingUp className="w-4 h-4 text-primary" aria-hidden="true" />
-                    <span className="font-body text-sm md:text-base font-bold text-white uppercase tracking-wider">13× Cheaper</span>
-                  </div>
-                  <motion.div
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20"
-                    animate={{ opacity: [0.7, 1, 0.7] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                  >
-                    <span className="w-2 h-2 bg-green-500 rounded-full" aria-hidden="true" />
-                    <span className="font-body text-sm md:text-base font-bold text-green-400 uppercase tracking-wider">Live Data</span>
-                  </motion.div>
-                </motion.div>
-
                 {/* Trust Signals */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -338,18 +312,8 @@ const Beta = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.6, delay: 0.5 }}
-                className="lg:col-span-2 space-y-4"
+                className="lg:col-span-2"
               >
-                <Button 
-                  variant="expandIcon"
-                  Icon={ArrowRight}
-                  iconPlacement="right"
-                  size="lg"
-                  className="w-full font-body text-lg md:text-xl font-semibold h-14 md:h-16 uppercase tracking-wide"
-                  onClick={scrollToForm}
-                >
-                  Join Beta
-                </Button>
                 <SeatsCounter total={250} claimed={127} />
               </motion.div>
             </div>
