@@ -1,7 +1,8 @@
 import { Helmet } from "react-helmet";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { MapPin, Cpu, FileCheck, Building2, ShieldCheck, Lock, ChevronDown } from "lucide-react";
+import { AdvancedMap } from "@/components/ui/interactive-map";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
 import { BetaSignupForm } from "@/components/beta/BetaSignupForm";
@@ -313,6 +314,114 @@ const Beta = () => {
 
         {/* Globe Feature Section */}
         <GlobeFeatureSection />
+
+        {/* Interactive Map Section */}
+        <section className="py-24 relative">
+          <div className="container mx-auto px-6 lg:px-8 max-w-[1120px]">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Interactive Property Intelligence
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                Explore properties with our advanced mapping technology featuring real-time data layers and geospatial analysis.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+              className="bg-card/50 backdrop-blur-sm border border-border rounded-xl overflow-hidden p-4"
+            >
+              <AdvancedMap
+                center={[29.7604, -95.3698]}
+                zoom={11}
+                markers={[
+                  {
+                    id: 1,
+                    position: [29.7604, -95.3698],
+                    color: 'blue',
+                    size: 'large',
+                    popup: {
+                      title: 'Houston, TX',
+                      content: 'Primary Coverage Area - Harris County'
+                    }
+                  },
+                  {
+                    id: 2,
+                    position: [29.5757, -95.6544],
+                    color: 'green',
+                    size: 'medium',
+                    popup: {
+                      title: 'Fort Bend County',
+                      content: 'Extended Coverage Area'
+                    }
+                  },
+                  {
+                    id: 3,
+                    position: [30.1588, -95.4613],
+                    color: 'orange',
+                    size: 'medium',
+                    popup: {
+                      title: 'Montgomery County',
+                      content: 'Extended Coverage Area'
+                    }
+                  }
+                ]}
+                circles={[
+                  {
+                    id: 1,
+                    center: [29.7604, -95.3698],
+                    radius: 15000,
+                    style: { color: '#FF7A00', fillOpacity: 0.1, weight: 2 },
+                    popup: 'Primary Service Radius - Harris County'
+                  }
+                ]}
+                enableClustering={true}
+                enableSearch={true}
+                enableControls={true}
+                style={{ height: '600px', width: '100%' }}
+                className="rounded-lg"
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+              className="mt-8 grid md:grid-cols-3 gap-6"
+            >
+              <div className="bg-card/30 backdrop-blur-sm border border-border rounded-lg p-6">
+                <div className="text-accent text-2xl font-bold mb-2">📍</div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Real-Time Search</h3>
+                <p className="text-sm text-muted-foreground">
+                  Search any address or location to instantly view property boundaries and feasibility data.
+                </p>
+              </div>
+              <div className="bg-card/30 backdrop-blur-sm border border-border rounded-lg p-6">
+                <div className="text-accent text-2xl font-bold mb-2">🛰️</div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Satellite Imagery</h3>
+                <p className="text-sm text-muted-foreground">
+                  Toggle between street maps and high-resolution satellite views for comprehensive site analysis.
+                </p>
+              </div>
+              <div className="bg-card/30 backdrop-blur-sm border border-border rounded-lg p-6">
+                <div className="text-accent text-2xl font-bold mb-2">📊</div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Data Layers</h3>
+                <p className="text-sm text-muted-foreground">
+                  Overlay flood zones, utilities, zoning, and environmental data for complete intelligence.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </section>
 
         {/* How It Works Section */}
         <section className="py-24 relative">
