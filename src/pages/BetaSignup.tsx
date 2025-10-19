@@ -9,110 +9,85 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCounter } from "@/hooks/useCounter";
 import ShaderBackground from "@/components/ui/shader-background";
 import { useIsMobile } from "@/hooks/use-mobile";
-
 const betaSignupSchema = z.object({
-  email: z
-    .string()
-    .email("Please enter a valid email address")
-    .refine(
-      (email) => {
-        const publicDomains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"];
-        const domain = email.split("@")[1];
-        return !publicDomains.includes(domain);
-      },
-      { message: "Please enter a valid business email address" }
-    ),
+  email: z.string().email("Please enter a valid email address").refine(email => {
+    const publicDomains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com"];
+    const domain = email.split("@")[1];
+    return !publicDomains.includes(domain);
+  }, {
+    message: "Please enter a valid business email address"
+  }),
   fullName: z.string().min(2, "Full name is required").max(100),
   role: z.enum(["developer", "lender", "investor", "advisor"], {
-    required_error: "Please select your role",
+    required_error: "Please select your role"
   }),
   company: z.string().max(100).optional(),
-  primaryFocus: z
-    .enum(["building", "buying", "lending", "advising"])
-    .optional(),
+  primaryFocus: z.enum(["building", "buying", "lending", "advising"]).optional(),
   referralCode: z.string().max(50).optional(),
-  acceptTerms: z.boolean().refine((val) => val === true, {
-    message: "Please accept Beta Terms before joining",
-  }),
+  acceptTerms: z.boolean().refine(val => val === true, {
+    message: "Please accept Beta Terms before joining"
+  })
 });
-
 type BetaSignupForm = z.infer<typeof betaSignupSchema>;
-
 export default function BetaSignup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const seatsClaimed = useCounter(421, 2000);
   const isMobile = useIsMobile();
-
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: {
+      errors
+    }
   } = useForm<BetaSignupForm>({
-    resolver: zodResolver(betaSignupSchema),
+    resolver: zodResolver(betaSignupSchema)
   });
-
   const acceptTerms = watch("acceptTerms");
-
   const onSubmit = async (data: BetaSignupForm) => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke("submit-beta-signup", {
+      const {
+        error
+      } = await supabase.functions.invoke("submit-beta-signup", {
         body: {
           email: data.email,
           full_name: data.fullName,
           role: data.role,
           company: data.company || null,
           primary_focus: data.primaryFocus || null,
-          referral_code: data.referralCode || null,
-        },
+          referral_code: data.referralCode || null
+        }
       });
-
       if (error) throw error;
-
       setShowSuccessModal(true);
     } catch (error) {
       console.error("Beta signup error:", error);
       toast({
         title: "Something went wrong",
         description: "Please try again or contact support.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  return (
-    <>
+  return <>
       <Helmet>
         <title>Join Private Beta | SiteIntel™ Feasibility</title>
-        <meta
-          name="description"
-          content="Join the founding cohort of SiteIntel™ Feasibility. Free access for verified developers, lenders, and investors."
-        />
+        <meta name="description" content="Join the founding cohort of SiteIntel™ Feasibility. Free access for verified developers, lenders, and investors." />
       </Helmet>
 
       {/* Hero Section */}
@@ -128,19 +103,26 @@ export default function BetaSignup() {
         <div className="container relative z-10 mx-auto px-6 py-24">
           <div className="grid gap-12 lg:grid-cols-[60%_40%] lg:gap-16">
             {/* Left: Copy Block */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="flex flex-col justify-center"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            y: 20
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            duration: 0.6,
+            delay: 0.2
+          }} className="flex flex-col justify-center">
               {/* Top Badge */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="mb-6 inline-flex items-center gap-2 self-start rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20"
-              >
+              <motion.div initial={{
+              opacity: 0,
+              scale: 0.9
+            }} animate={{
+              opacity: 1,
+              scale: 1
+            }} transition={{
+              duration: 0.4
+            }} className="mb-6 inline-flex items-center gap-2 self-start rounded-full bg-primary/10 px-4 py-2 text-sm font-medium text-primary border border-primary/20">
                 Private Beta · {seatsClaimed} / 500 Seats Claimed
               </motion.div>
 
@@ -158,41 +140,33 @@ export default function BetaSignup() {
 
               {/* CTAs */}
               <div className="flex flex-col gap-4 sm:flex-row">
-                <Button
-                  size="lg"
-                  variant="default"
-                  className="bg-primary hover:bg-primary/90"
-                  onClick={() =>
-                    document
-                      .getElementById("beta-form")
-                      ?.scrollIntoView({ behavior: "smooth" })
-                  }
-                >
+                <Button size="lg" variant="default" className="bg-primary hover:bg-primary/90" onClick={() => document.getElementById("beta-form")?.scrollIntoView({
+                behavior: "smooth"
+              })}>
                   Join the Private Beta <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-accent text-accent hover:bg-accent/10"
-                  onClick={() => (window.location.href = "/application?step=2")}
-                >
+                <Button size="lg" variant="outline" className="border-accent text-accent hover:bg-accent/10" onClick={() => window.location.href = "/application?step=2"}>
                   Run a Free QuickCheck™
                 </Button>
               </div>
 
               {/* Microcopy */}
-              <p className="mt-6 text-sm text-slate-400">
+              <p className="mt-6 text-sm text-slate-50">
                 Free access for verified developers, lenders, and investors.
               </p>
             </motion.div>
 
             {/* Right: Parcel Grid Animation */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="relative hidden lg:flex items-center justify-center"
-            >
+            <motion.div initial={{
+            opacity: 0,
+            x: 20
+          }} animate={{
+            opacity: 1,
+            x: 0
+          }} transition={{
+            duration: 0.6,
+            delay: 0.4
+          }} className="relative hidden lg:flex items-center justify-center">
               <div className="relative h-[500px] w-full max-w-md">
                 {/* Animated parcel visualization placeholder */}
                 <div className="absolute inset-0 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm">
@@ -213,26 +187,25 @@ export default function BetaSignup() {
       {/* Form Section */}
       <section id="beta-form" className="relative py-24 bg-secondary">
         {/* Subtle static grid pattern */}
-        <div 
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          role="presentation"
-          aria-hidden="true"
-          style={{
-            backgroundImage: `
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none" role="presentation" aria-hidden="true" style={{
+        backgroundImage: `
               linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
               linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)
             `,
-            backgroundSize: '80px 80px'
-          }}
-        />
+        backgroundSize: '80px 80px'
+      }} />
         <div className="container relative mx-auto px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="mx-auto max-w-xl"
-          >
+          <motion.div initial={{
+          opacity: 0,
+          y: 30
+        }} whileInView={{
+          opacity: 1,
+          y: 0
+        }} viewport={{
+          once: true
+        }} transition={{
+          duration: 0.6
+        }} className="mx-auto max-w-xl">
             {/* Form Card */}
             <div className="rounded-2xl bg-white p-8 shadow-[0_4px_20px_rgba(0,0,0,0.2)] md:p-10">
               {/* Badge */}
@@ -255,18 +228,10 @@ export default function BetaSignup() {
                   <Label htmlFor="email">
                     Work Email <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="name@company.com"
-                    {...register("email")}
-                    className={errors.email ? "border-destructive" : ""}
-                  />
-                  {errors.email && (
-                    <p className="text-sm text-destructive">
+                  <Input id="email" type="email" placeholder="name@company.com" {...register("email")} className={errors.email ? "border-destructive" : ""} />
+                  {errors.email && <p className="text-sm text-destructive">
                       {errors.email.message}
-                    </p>
-                  )}
+                    </p>}
                 </div>
 
                 {/* Full Name */}
@@ -274,17 +239,10 @@ export default function BetaSignup() {
                   <Label htmlFor="fullName">
                     Full Name <span className="text-destructive">*</span>
                   </Label>
-                  <Input
-                    id="fullName"
-                    placeholder="e.g., Sarah Patel"
-                    {...register("fullName")}
-                    className={errors.fullName ? "border-destructive" : ""}
-                  />
-                  {errors.fullName && (
-                    <p className="text-sm text-destructive">
+                  <Input id="fullName" placeholder="e.g., Sarah Patel" {...register("fullName")} className={errors.fullName ? "border-destructive" : ""} />
+                  {errors.fullName && <p className="text-sm text-destructive">
                       {errors.fullName.message}
-                    </p>
-                  )}
+                    </p>}
                 </div>
 
                 {/* Role */}
@@ -292,14 +250,10 @@ export default function BetaSignup() {
                   <Label htmlFor="role">
                     I work as a… <span className="text-destructive">*</span>
                   </Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setValue("role", value as any, { shouldValidate: true })
-                    }
-                  >
-                    <SelectTrigger
-                      className={errors.role ? "border-destructive" : ""}
-                    >
+                  <Select onValueChange={value => setValue("role", value as any, {
+                  shouldValidate: true
+                })}>
+                    <SelectTrigger className={errors.role ? "border-destructive" : ""}>
                       <SelectValue placeholder="Select your role" />
                     </SelectTrigger>
                     <SelectContent className="bg-white z-50">
@@ -309,31 +263,21 @@ export default function BetaSignup() {
                       <SelectItem value="advisor">Advisor</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.role && (
-                    <p className="text-sm text-destructive">
+                  {errors.role && <p className="text-sm text-destructive">
                       {errors.role.message}
-                    </p>
-                  )}
+                    </p>}
                 </div>
 
                 {/* Company */}
                 <div className="space-y-2">
                   <Label htmlFor="company">Company / Firm</Label>
-                  <Input
-                    id="company"
-                    placeholder="e.g., Maxx Builders"
-                    {...register("company")}
-                  />
+                  <Input id="company" placeholder="e.g., Maxx Builders" {...register("company")} />
                 </div>
 
                 {/* Primary Focus */}
                 <div className="space-y-2">
                   <Label htmlFor="primaryFocus">Primary Interest</Label>
-                  <Select
-                    onValueChange={(value) =>
-                      setValue("primaryFocus", value as any)
-                    }
-                  >
+                  <Select onValueChange={value => setValue("primaryFocus", value as any)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select primary focus" />
                     </SelectTrigger>
@@ -351,64 +295,34 @@ export default function BetaSignup() {
                   <Label htmlFor="referralCode">
                     Invite Code (Optional)
                   </Label>
-                  <Input
-                    id="referralCode"
-                    placeholder="e.g., TXBETA2025"
-                    {...register("referralCode")}
-                  />
+                  <Input id="referralCode" placeholder="e.g., TXBETA2025" {...register("referralCode")} />
                 </div>
 
                 {/* Terms Checkbox */}
                 <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="acceptTerms"
-                    checked={acceptTerms}
-                    onCheckedChange={(checked) =>
-                      setValue("acceptTerms", checked as boolean, {
-                        shouldValidate: true,
-                      })
-                    }
-                    className={errors.acceptTerms ? "border-destructive" : ""}
-                  />
+                  <Checkbox id="acceptTerms" checked={acceptTerms} onCheckedChange={checked => setValue("acceptTerms", checked as boolean, {
+                  shouldValidate: true
+                })} className={errors.acceptTerms ? "border-destructive" : ""} />
                   <div className="space-y-1">
-                    <Label
-                      htmlFor="acceptTerms"
-                      className="text-sm font-normal cursor-pointer"
-                    >
+                    <Label htmlFor="acceptTerms" className="text-sm font-normal cursor-pointer">
                       I agree to the{" "}
-                      <a
-                        href="/legal/beta-nda"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
+                      <a href="/legal/beta-nda" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
                         Beta NDA and Terms
                       </a>
                     </Label>
-                    {errors.acceptTerms && (
-                      <p className="text-sm text-destructive">
+                    {errors.acceptTerms && <p className="text-sm text-destructive">
                         {errors.acceptTerms.message}
-                      </p>
-                    )}
+                      </p>}
                   </div>
                 </div>
 
                 {/* Submit Button */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  className="w-full bg-primary hover:bg-primary/90"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
+                <Button type="submit" size="lg" className="w-full bg-primary hover:bg-primary/90" disabled={isSubmitting}>
+                  {isSubmitting ? <>
                       <span className="animate-pulse">Verifying Access…</span>
-                    </>
-                  ) : (
-                    <>
+                    </> : <>
                       Join Beta Now <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
+                    </>}
                 </Button>
               </form>
 
@@ -463,16 +377,12 @@ export default function BetaSignup() {
                   <li>• Founding Member status (Pro pricing locked)</li>
                 </ul>
               </div>
-              <Button
-                className="w-full bg-primary hover:bg-primary/90"
-                onClick={() => setShowSuccessModal(false)}
-              >
+              <Button className="w-full bg-primary hover:bg-primary/90" onClick={() => setShowSuccessModal(false)}>
                 Get Started
               </Button>
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
-    </>
-  );
+    </>;
 }
