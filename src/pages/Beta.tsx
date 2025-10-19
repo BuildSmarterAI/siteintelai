@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { MapPin, Cpu, FileCheck, Building2, ShieldCheck, Lock, ChevronDown } from "lucide-react";
+import { MapPin, Cpu, FileText, Building2, ShieldCheck, Lock, ChevronDown } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
 import { BetaSignupForm } from "@/components/beta/BetaSignupForm";
@@ -83,19 +83,19 @@ const Beta = () => {
   };
   const steps = [{
     number: "01",
-    title: "Input the property",
-    description: "Enter an address, parcel number, or coordinates. The system automatically validates and identifies the site boundary.",
+    title: "Enter an Address or Parcel ID",
+    description: "Type an address or drop a pin. SiteIntel™ instantly locates the parcel boundary and verifies it against public records.",
     icon: MapPin
   }, {
     number: "02",
-    title: "AI enrichment & validation",
-    description: "Our proprietary engine cross-references authoritative public records across zoning, infrastructure, and environmental categories to generate verified feasibility data.",
+    title: "AI & GIS Engine Runs Analysis",
+    description: "The platform cross-references zoning, infrastructure, environmental, and market data — applying proprietary feasibility scoring within seconds.",
     icon: Cpu
   }, {
     number: "03",
-    title: "Lender-grade deliverable",
-    description: "Receive a fully audit-ready report (PDF + JSON) with every section timestamped, categorized, and formatted for financial review.",
-    icon: FileCheck
+    title: "Receive a Lender-Ready Report",
+    description: "Download a professionally formatted PDF or view online. Every insight is auditable, consistent, and ready for underwriting or investor review.",
+    icon: FileText
   }];
   const audiences = [{
     title: "Developers & Investors",
@@ -104,7 +104,7 @@ const Beta = () => {
     metrics: ["60s report time", "13× cost savings", "Zero wait for consultants"]
   }, {
     title: "Lenders & Underwriters",
-    icon: FileCheck,
+    icon: FileText,
     benefit: "Decision-ready feasibility formatted for institutional workflows.",
     metrics: ["Lender-grade PDFs", "Timestamped validation", "Audit-trail compliance"]
   }, {
@@ -315,7 +315,7 @@ const Beta = () => {
         <GlobeFeatureSection />
 
         {/* How It Works Section */}
-        <section className="py-24 relative">
+        <section id="how-it-works" className="py-[120px] relative bg-gradient-to-b from-white to-[#F9FAFB] dark:from-background dark:to-muted/20">
           <div className="container mx-auto px-6 lg:px-8 max-w-[1120px]">
             <motion.div initial={{
             opacity: 0,
@@ -326,11 +326,21 @@ const Beta = () => {
           }} viewport={{
             once: true
           }} className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
                 How It Works
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Three transparent steps from property input to lender-ready deliverable.
+              
+              {/* Animated progress line */}
+              <motion.div 
+                initial={{ width: 0 }}
+                whileInView={{ width: "100%" }}
+                viewport={{ once: true }}
+                transition={{ duration: 1, ease: "easeOut" }}
+                className="h-0.5 bg-primary mx-auto mb-6 max-w-[200px]"
+              />
+              
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                From site input to lender-ready intelligence — every report follows a transparent, automated process powered by verified AI and geospatial logic.
               </p>
             </motion.div>
 
@@ -348,15 +358,17 @@ const Beta = () => {
               }} transition={{
                 delay: index * 0.1
               }} whileHover={{
-                y: -8,
+                y: -4,
                 transition: {
                   duration: 0.2
                 }
               }} className="relative group">
-                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 h-full hover:border-primary/30 transition-all duration-200 hover:shadow-lg">
+                    <div className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-6 h-full hover:border-primary/30 transition-all duration-200 hover:shadow-xl">
                       <div className="relative mb-6">
-                        <div className="text-6xl font-bold text-accent/20">{step.number}</div>
-                        <Icon className="w-8 h-8 text-primary absolute top-2 right-0" />
+                        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-lg mb-4">
+                          {step.number}
+                        </div>
+                        <Icon className="w-8 h-8 text-primary" />
                       </div>
                       <h3 className="text-xl font-semibold text-foreground mb-3">
                         {step.title}
@@ -367,7 +379,7 @@ const Beta = () => {
                     </div>
                     
                     {/* Connector Line */}
-                    {index < steps.length - 1 && <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-accent to-transparent" />}
+                    {index < steps.length - 1 && <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-muted-foreground/30 to-transparent" />}
                   </motion.div>;
             })}
             </div>
