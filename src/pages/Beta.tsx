@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { 
   MapPin, 
   Cpu, 
@@ -9,7 +9,10 @@ import {
   TrendingUp, 
   ShieldCheck, 
   Lock,
-  ChevronDown
+  ChevronDown,
+  Zap,
+  Database,
+  CheckCircle2
 } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
@@ -18,6 +21,7 @@ import { ScorePreviewCard } from "@/components/beta/ScorePreviewCard";
 import { ParcelMapPreview } from "@/components/beta/ParcelMapPreview";
 import { AuditTrailTable } from "@/components/beta/AuditTrailTable";
 import { ExportButtonGrid } from "@/components/beta/ExportButtonGrid";
+import { DataVerificationNodes } from "@/components/beta/DataVerificationNodes";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -30,6 +34,12 @@ import { Link } from "react-router-dom";
 
 const Beta = () => {
   const heroRef = useRef(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isCtaHovered, setIsCtaHovered] = useState(false);
+  const [ctaRipple, setCtaRipple] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [shouldDisableAnimations, setShouldDisableAnimations] = useState(false);
+
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ["start start", "end start"],
@@ -37,6 +47,45 @@ const Beta = () => {
 
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0, 0.5], [0, -50]);
+  const bgY = useTransform(scrollYProgress, [0, 0.5], [0, 100]);
+
+  useEffect(() => {
+    // Detect mobile and reduced motion
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setShouldDisableAnimations(mediaQuery.matches);
+    
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    
+    const handler = (e: MediaQueryListEvent) => setShouldDisableAnimations(e.matches);
+    mediaQuery.addEventListener("change", handler);
+    
+    return () => {
+      window.removeEventListener("resize", checkMobile);
+      mediaQuery.removeEventListener("change", handler);
+    };
+  }, []);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (isMobile || shouldDisableAnimations) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    setMousePosition({ x: x * 0.3, y: y * 0.3 });
+  };
+
+  const handleMouseLeave = () => {
+    setMousePosition({ x: 0, y: 0 });
+  };
+
+  const handleCtaClick = () => {
+    setCtaRipple(true);
+    setTimeout(() => setCtaRipple(false), 600);
+    setTimeout(() => {
+      document.getElementById("beta-signup-form")?.scrollIntoView({ behavior: "smooth" });
+    }, 200);
+  };
 
   const scrollToForm = () => {
     document.getElementById("beta-signup-form")?.scrollIntoView({ behavior: "smooth" });
@@ -125,14 +174,28 @@ const Beta = () => {
       <div className="min-h-screen bg-gradient-to-b from-secondary via-secondary/95 to-background">
         {/* Hero Section */}
         <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
-          {/* Background Grid */}
-          <div className="absolute inset-0 opacity-10">
+          {/* Enhanced Background with Parallax */}
+          <motion.div 
+            className="absolute inset-0 opacity-10"
+            style={{ y: bgY }}
+          >
             <div className="absolute inset-0" style={{
-              backgroundImage: `linear-gradient(hsl(var(--primary) / 0.2) 1px, transparent 1px),
-                               linear-gradient(90deg, hsl(var(--primary) / 0.2) 1px, transparent 1px)`,
-              backgroundSize: '50px 50px'
+              backgroundImage: `linear-gradient(hsl(var(--accent) / 0.15) 1px, transparent 1px),
+                               linear-gradient(90deg, hsl(var(--accent) / 0.15) 1px, transparent 1px)`,
+              backgroundSize: '60px 60px'
             }} />
-          </div>
+          </motion.div>
+
+          {/* Data Verification Nodes - only on desktop */}
+          {!isMobile && !shouldDisableAnimations && <DataVerificationNodes />}
+
+          {/* Blueprint corner brackets */}
+          {!isMobile && (
+            <>
+              <div className="absolute top-8 left-8 w-16 h-16 border-l-2 border-t-2 border-accent/30" aria-hidden="true" />
+              <div className="absolute top-8 right-8 w-16 h-16 border-r-2 border-t-2 border-accent/30" aria-hidden="true" />
+            </>
+          )}
 
           <motion.div 
             style={{ opacity: heroOpacity, y: heroY }}
@@ -155,8 +218,17 @@ const Beta = () => {
                   className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
                 >
                   Instant Feasibility.{" "}
-                  <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                    Verified by Public-Record Intelligence.
+                  <span className="relative inline-block">
+                    <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                      Verified by Public-Record Intelligence.
+                    </span>
+                    <motion.span
+                      className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-primary to-accent"
+                      initial={{ width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 1, delay: 0.8, ease: "easeOut" }}
+                      aria-hidden="true"
+                    />
                   </span>
                 </motion.h1>
 
@@ -169,30 +241,103 @@ const Beta = () => {
                   AI transforms complex site and regulatory data into lender-ready feasibility — in minutes, not months.
                 </motion.p>
 
-                <motion.p 
+                {/* Metrics Badge */}
+                <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
-                  className="text-sm text-white/60 flex items-center gap-2"
+                  className="flex flex-wrap items-center gap-4"
                 >
-                  <ShieldCheck className="w-4 h-4 text-accent" />
-                  Built on verified federal, state, and municipal data infrastructure.
-                </motion.p>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <Zap className="w-4 h-4 text-primary" aria-hidden="true" />
+                    <span className="text-sm font-semibold text-white">10× Faster</span>
+                  </div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <TrendingUp className="w-4 h-4 text-primary" aria-hidden="true" />
+                    <span className="text-sm font-semibold text-white">13× Cheaper</span>
+                  </div>
+                  <motion.div
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20"
+                    animate={{ opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  >
+                    <span className="w-2 h-2 bg-green-500 rounded-full" aria-hidden="true" />
+                    <span className="text-sm font-semibold text-green-400">Live Data</span>
+                  </motion.div>
+                </motion.div>
+
+                {/* Trust Signals */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="flex flex-wrap items-center gap-4 text-sm text-white/60"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-accent" aria-hidden="true" />
+                    <span>FEMA-Verified</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-accent" aria-hidden="true" />
+                    <span>20+ Data Sources</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-accent" aria-hidden="true" />
+                    <span>Lender-Ready</span>
+                  </div>
+                </motion.div>
               </div>
 
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
                 className="lg:col-span-2 space-y-4"
               >
-                <Button 
-                  size="lg" 
-                  className="w-full text-lg h-14"
-                  onClick={scrollToForm}
+                {/* Enhanced CTA with Magnetic Effect */}
+                <motion.div
+                  className="relative"
+                  onHoverStart={() => setIsCtaHovered(true)}
+                  onHoverEnd={() => setIsCtaHovered(false)}
                 >
-                  Join the Private Beta →
-                </Button>
+                  <Button 
+                    size="lg" 
+                    className="w-full text-lg h-14 relative overflow-hidden"
+                    onClick={handleCtaClick}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
+                    style={{
+                      transform: !isMobile && !shouldDisableAnimations 
+                        ? `translate(${mousePosition.x}px, ${mousePosition.y}px)` 
+                        : undefined,
+                      transition: "transform 0.2s ease-out"
+                    }}
+                  >
+                    {/* Shimmer effect */}
+                    {isCtaHovered && !shouldDisableAnimations && (
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "100%" }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    
+                    {/* Ripple effect */}
+                    {ctaRipple && (
+                      <motion.span
+                        className="absolute inset-0 bg-white/20 rounded-lg"
+                        initial={{ scale: 0, opacity: 1 }}
+                        animate={{ scale: 2, opacity: 0 }}
+                        transition={{ duration: 0.6 }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    
+                    <span className="relative z-10">Join the Private Beta →</span>
+                  </Button>
+                </motion.div>
                 <Button 
                   size="lg" 
                   variant="outline" 
@@ -208,14 +353,16 @@ const Beta = () => {
             </div>
           </motion.div>
 
-          {/* Scroll Indicator */}
+          {/* Enhanced Scroll Indicator */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 0.6 }}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2"
+            transition={{ delay: 1.2, duration: 0.6 }}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2"
+            style={{ opacity: useTransform(scrollYProgress, [0, 0.3], [1, 0]) }}
           >
-            <ChevronDown className="w-6 h-6 text-white/40 animate-bounce" />
+            <span className="text-xs text-white/40 uppercase tracking-wider">Scroll to explore</span>
+            <ChevronDown className="w-6 h-6 text-white/40 animate-bounce" aria-hidden="true" />
           </motion.div>
         </section>
 
