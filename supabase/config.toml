@@ -100,3 +100,6 @@ verify_jwt = true
 
 [functions.enrich-wetlands]
 verify_jwt = true
+
+[functions.submit-beta-signup]
+verify_jwt = false

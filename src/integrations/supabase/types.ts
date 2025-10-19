@@ -599,6 +599,42 @@ export type Database = {
         }
         Relationships: []
       }
+      beta_signups: {
+        Row: {
+          company: string | null
+          email: string
+          id: string
+          interests: string[]
+          invite_sent: boolean | null
+          invite_sent_at: string | null
+          role: string
+          source: string | null
+          submitted_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          email: string
+          id?: string
+          interests?: string[]
+          invite_sent?: boolean | null
+          invite_sent_at?: string | null
+          role: string
+          source?: string | null
+          submitted_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          email?: string
+          id?: string
+          interests?: string[]
+          invite_sent?: boolean | null
+          invite_sent_at?: string | null
+          role?: string
+          source?: string | null
+          submitted_at?: string | null
+        }
+        Relationships: []
+      }
       cost_schedule_data: {
         Row: {
           complexity_factor: number | null
