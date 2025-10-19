@@ -339,50 +339,6 @@ const Beta = () => {
                 transition={{ duration: 0.6, delay: 0.5 }}
                 className="lg:col-span-2 space-y-4"
               >
-                {/* Enhanced CTA with Magnetic Effect */}
-                <motion.div
-                  className="relative"
-                  onHoverStart={() => setIsCtaHovered(true)}
-                  onHoverEnd={() => setIsCtaHovered(false)}
-                >
-                  <Button 
-                    size="lg" 
-                    className="w-full font-cta text-xl md:text-2xl font-semibold h-16 md:h-[4.5rem] tracking-wide uppercase relative overflow-hidden"
-                    onClick={handleCtaClick}
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                    style={{
-                      transform: !isMobile && !shouldDisableAnimations 
-                        ? `translate(${mousePosition.x}px, ${mousePosition.y}px)` 
-                        : undefined,
-                      transition: "transform 0.2s ease-out"
-                    }}
-                  >
-                    {/* Shimmer effect */}
-                    {isCtaHovered && !shouldDisableAnimations && (
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                        initial={{ x: "-100%" }}
-                        animate={{ x: "100%" }}
-                        transition={{ duration: 0.6, ease: "easeInOut" }}
-                        aria-hidden="true"
-                      />
-                    )}
-                    
-                    {/* Ripple effect */}
-                    {ctaRipple && (
-                      <motion.span
-                        className="absolute inset-0 bg-white/20 rounded-lg"
-                        initial={{ scale: 0, opacity: 1 }}
-                        animate={{ scale: 2, opacity: 0 }}
-                        transition={{ duration: 0.6 }}
-                        aria-hidden="true"
-                      />
-                    )}
-                    
-                    <span className="relative z-10">Join Private Beta →</span>
-                  </Button>
-                </motion.div>
                 <Button 
                   size="lg" 
                   variant="outline" 
