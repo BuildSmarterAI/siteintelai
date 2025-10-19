@@ -259,11 +259,11 @@ const Beta = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight"
+                  className="font-headline text-5xl md:text-6xl lg:text-7xl font-semibold text-slate-100 leading-[1.1] tracking-tight mb-6 max-w-4xl"
                 >
                   Instant Feasibility for Commercial Real Estate Development.{" "}
                   <span className="relative inline-block">
-                    <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
+                    <span className="font-headline bg-gradient-to-r from-[#FF7A00] via-[#FF9240] to-[#06B6D4] bg-clip-text text-transparent font-semibold">
                       Verified Intelligence.
                     </span>
                     <motion.span
@@ -280,7 +280,7 @@ const Beta = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="text-lg md:text-xl text-white/80 leading-relaxed max-w-2xl"
+                  className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8"
                 >
                   AI transforms complex site and regulatory data into lender-ready feasibility — in minutes, not months.
                 </motion.p>
@@ -294,11 +294,11 @@ const Beta = () => {
                 >
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
                     <Zap className="w-4 h-4 text-primary" aria-hidden="true" />
-                    <span className="text-sm font-semibold text-white">10× Faster</span>
+                    <span className="font-body text-sm md:text-base font-bold text-white uppercase tracking-wider">10× Faster</span>
                   </div>
                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
                     <TrendingUp className="w-4 h-4 text-primary" aria-hidden="true" />
-                    <span className="text-sm font-semibold text-white">13× Cheaper</span>
+                    <span className="font-body text-sm md:text-base font-bold text-white uppercase tracking-wider">13× Cheaper</span>
                   </div>
                   <motion.div
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20"
@@ -306,7 +306,7 @@ const Beta = () => {
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                   >
                     <span className="w-2 h-2 bg-green-500 rounded-full" aria-hidden="true" />
-                    <span className="text-sm font-semibold text-green-400">Live Data</span>
+                    <span className="font-body text-sm md:text-base font-bold text-green-400 uppercase tracking-wider">Live Data</span>
                   </motion.div>
                 </motion.div>
 
@@ -315,7 +315,7 @@ const Beta = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
-                  className="flex flex-wrap items-center gap-4 text-sm text-white/60"
+                  className="flex flex-wrap items-center gap-4 font-body text-sm md:text-base font-medium text-white/80"
                 >
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-accent" aria-hidden="true" />
@@ -346,7 +346,7 @@ const Beta = () => {
                 >
                   <Button 
                     size="lg" 
-                    className="w-full text-lg h-14 relative overflow-hidden"
+                    className="w-full font-cta text-xl md:text-2xl font-semibold h-16 md:h-[4.5rem] tracking-wide uppercase relative overflow-hidden"
                     onClick={handleCtaClick}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
@@ -379,13 +379,13 @@ const Beta = () => {
                       />
                     )}
                     
-                    <span className="relative z-10">Join the Private Beta →</span>
+                    <span className="relative z-10">Join Private Beta →</span>
                   </Button>
                 </motion.div>
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="w-full text-lg h-14 bg-white/5 backdrop-blur-sm"
+                  className="w-full font-body text-lg md:text-xl font-medium h-14 md:h-16 border-white/20 text-white hover:bg-white/10 bg-white/5 backdrop-blur-sm transition-all duration-180"
                   asChild
                 >
                   <a href="/sample-report.pdf" target="_blank" rel="noopener noreferrer">

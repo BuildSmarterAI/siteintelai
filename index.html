@@ -23,21 +23,15 @@
       *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid;border-color:hsl(var(--border))}::before,::after{--tw-content:''}html,:host{line-height:1.5;-webkit-text-size-adjust:100%;-moz-tab-size:4;tab-size:4;font-family:var(--font-sans),ui-sans-serif,system-ui,sans-serif;font-feature-settings:normal;font-variation-settings:normal;-webkit-tap-highlight-color:transparent}body{margin:0;line-height:inherit}#root{min-height:100vh;background:hsl(var(--background));color:hsl(var(--foreground))}
     </style>
     
-    <!-- SiteIntel™ Brand Fonts -->
+    <!-- IBM Plex Sans: Primary System Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
-    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
-    
-    <!-- Satoshi alternative: Inter with weights 600-900 for headlines -->
-    <!-- Inter Regular for body text -->
-    <!-- IBM Plex Mono for code/data -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet"></noscript>
-    
-    <!-- Satoshi font from CDN (premium font) -->
-    <link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link href="https://api.fontshare.com/v2/css?f[]=satoshi@700,500,400&display=swap" rel="stylesheet"></noscript>
+    <!-- Critical weights first: 600 & 700 for Hero -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@600;700&display=swap" rel="stylesheet"></noscript>
+    <!-- Secondary weights: 400 & 500 for body -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
     
     <!-- Preload LCP image for faster rendering -->
     <link rel="preload" as="image" href="/assets/aerial-property-site-GR5VAPPj.jpg" fetchpriority="high">
