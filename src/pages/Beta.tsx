@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+
 const Beta = () => {
   const heroRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({
@@ -187,24 +188,24 @@ const Beta = () => {
                 </linearGradient>
               </defs>
               
-              {[{
-            x1: '15%',
-            y1: '25%',
-            x2: '85%',
-            y2: '20%',
-            delay: 0
-          }, {
-            x1: '20%',
-            y1: '75%',
-            x2: '80%',
-            y2: '70%',
-            delay: 2
-          }, {
-            x1: '10%',
-            y1: '50%',
-            x2: '90%',
-            y2: '45%',
-            delay: 4
+              {[{\
+            x1: '15%',\
+            y1: '25%',\
+            x2: '85%',\
+            y2: '20%',\
+            delay: 0\
+          }, {\
+            x1: '20%',\
+            y1: '75%',\
+            x2: '80%',\
+            y2: '70%',\
+            delay: 2\
+          }, {\
+            x1: '10%',\
+            y1: '50%',\
+            x2: '90%',\
+            y2: '45%',\
+            delay: 4\
           }].map((stream, i) => <motion.line key={`stream-${i}`} x1={stream.x1} y1={stream.y1} x2={stream.x2} y2={stream.y2} stroke="url(#streamGradient)" strokeWidth="2" strokeDasharray="8 4" initial={{
             strokeDashoffset: 0
           }} animate={{
@@ -272,8 +273,7 @@ const Beta = () => {
               }} transition={{
                 duration: 0.6,
                 delay: 0.2
-              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">SiteIntel™ Feasibility transforms how commercial developers, brokers, and lenders evaluate property sites.
-Join the private beta and access proprietaryAI-generated feasibility reports powered by authoritative data</motion.p>
+              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">SiteIntel™ Feasibility is an AI/GIS SaaS platform that automatically generates lender-ready feasibility reports in minutes using verified geospatial and regulatory intelligence. The beta is invite-only for verified developers, brokers, and lenders.</motion.p>
               </div>
             </div>
           </motion.div>
