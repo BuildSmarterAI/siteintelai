@@ -1,11 +1,11 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Database, Calculator, ShieldAlert, FileCheck, Building2, DollarSign, ShieldCheck } from "lucide-react";
+import { Database, Calculator, ShieldAlert, FileCheck, Building2, DollarSign, ShieldCheck, TrendingUp } from "lucide-react";
 import buildSmarterLogo from "@/assets/buildsmarter-logo-small.png";
 import aerialPropertySite1920webp from "@/assets/aerial-property-site-1920w.webp";
 import aerialPropertySite1024webp from "@/assets/aerial-property-site-1024w.webp";
 import aerialPropertySite768webp from "@/assets/aerial-property-site-768w.webp";
-import aerialPropertySite from "@/assets/aerial-property-site.jpg";
+import aerialPropertySite1920jpg from "@/assets/aerial-property-site.jpg";
 
 import { useCounter } from "@/hooks/useCounter";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -14,10 +14,14 @@ import { QuickCheckWidget } from "@/components/QuickCheckWidget";
 export const Hero = () => {
   // Phase 1: Magnetic CTA - Mouse tracking
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+  const [shouldDisableAnimations, setShouldDisableAnimations] = useState(false);
+  const [ripples, setRipples] = useState<Array<{x: number, y: number, id: number}>>([]);
+  const [isCtaLoading, setIsCtaLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const lastUpdateTime = useRef(0);
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
 
   // Phase 4: Number Counter
   const dataSourceCount = useCounter(20, 2000, 1300);
@@ -25,6 +29,9 @@ export const Hero = () => {
   // Phase 5: Parallax Scroll
   const { scrollY } = useScroll();
   const backgroundY = useTransform(scrollY, [0, 500], [0, 150]);
+  const backgroundScale = useTransform(scrollY, [0, 500], [1.05, 1.15]);
+  const backgroundOpacity = useTransform(scrollY, [0, 400], [0.18, 0]);
+  const nodeX = useTransform(scrollY, [0, 500], [0, 50]);
   const gridY = useTransform(scrollY, [0, 500], [0, 100]);
 
   // Motion preference detection
@@ -45,6 +52,22 @@ export const Hero = () => {
 
   // IntersectionObserver for lazy loading animations
   useEffect(() => {
+    const checkDevice = () => {
+      const mobileCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      const smallScreen = window.innerWidth < 768;
+      setIsMobile(mobileCheck || smallScreen);
+      
+      const connection = (navigator as any).connection;
+      const isSaveData = connection?.saveData;
+      const isSlowNetwork = connection?.effectiveType === '2g' || connection?.effectiveType === 'slow-2g';
+      const shouldDisable = mobileCheck || prefersReducedMotion || isSaveData || isSlowNetwork;
+      
+      setShouldDisableAnimations(shouldDisable);
+    };
+    
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
@@ -59,12 +82,15 @@ export const Hero = () => {
       observer.observe(sectionRef.current);
     }
 
-    return () => observer.disconnect();
-  }, []);
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      observer.disconnect();
+    };
+  }, [prefersReducedMotion]);
 
   // Throttled mouse tracking (60fps)
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
-    if (!buttonRef.current || prefersReducedMotion) return;
+    if (!buttonRef.current || shouldDisableAnimations) return;
     
     const now = performance.now();
     if (now - lastUpdateTime.current < 16) return;
@@ -74,11 +100,24 @@ export const Hero = () => {
     const x = e.clientX - rect.left - rect.width / 2;
     const y = e.clientY - rect.top - rect.height / 2;
     setMousePosition({ x: x * 0.1, y: y * 0.1 });
-  }, [prefersReducedMotion]);
+  }, [shouldDisableAnimations]);
 
   const handleMouseLeave = useCallback(() => {
     setMousePosition({ x: 0, y: 0 });
   }, []);
+
+  const handleCtaClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setRipples([...ripples, { x, y, id: Date.now() }]);
+    
+    setIsCtaLoading(true);
+    
+    setTimeout(() => {
+      window.location.href = "/application?step=2";
+    }, 300);
+  };
 
   // Animation variants - Optimized timing (1.6s → 1.0s)
   const containerVariants = {
@@ -170,29 +209,48 @@ export const Hero = () => {
       initial="hidden"
       animate="visible"
     >
-      {/* Step 1: Aerial Photo Background Layer - Optimized WebP */}
-      <motion.div
-        className="absolute inset-0 z-0"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.18 }}
-        transition={{ duration: 1.5, delay: 0.2 }}
+      {/* Skip Link - visible only on keyboard focus */}
+      <a 
+        href="#quickcheck-form"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:bg-[#FF7A00] focus:text-white focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#06B6D4] focus:ring-offset-2"
+        tabIndex={0}
       >
-        <picture className="absolute right-0 top-0 w-full h-full">
-          <source 
-            srcSet={`${aerialPropertySite768webp} 768w, ${aerialPropertySite1024webp} 1024w, ${aerialPropertySite1920webp} 1920w`}
-            sizes="100vw"
-            type="image/webp"
-          />
-          <img
-            src={aerialPropertySite}
-            alt=""
-            loading="eager"
-            decoding="async"
-            className="w-full h-full object-cover blur-[2px] scale-105"
-          />
-        </picture>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0A0F2C] via-transparent to-[#0A0F2C]/60" />
-      </motion.div>
+        Skip to QuickCheck form
+      </a>
+      {/* Step 1: Background Layer - Mobile conditional & parallax */}
+      {!isMobile ? (
+        <motion.div
+          className="absolute inset-0 z-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.18 }}
+          transition={{ duration: 1.5, delay: 0.2 }}
+          style={{ 
+            y: backgroundY,
+            scale: backgroundScale,
+            opacity: backgroundOpacity
+          }}
+        >
+          <picture className="absolute right-0 top-0 w-full h-full">
+            <source 
+              srcSet={`${aerialPropertySite768webp} 768w, ${aerialPropertySite1024webp} 1024w, ${aerialPropertySite1920webp} 1920w`}
+              sizes="100vw"
+              type="image/webp"
+            />
+            <img
+              src={aerialPropertySite1920jpg}
+              alt=""
+              loading="eager"
+              decoding="async"
+              className="w-full h-full object-cover blur-[2px] scale-105"
+            />
+          </picture>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0A0F2C] via-transparent to-[#0A0F2C]/60" />
+        </motion.div>
+      ) : (
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,15,44,0.6)_70%,rgba(10,15,44,0.9)_100%)]" />
+        </div>
+      )}
 
       {/* Step 2: Enhanced Blueprint-Style Grid */}
       <motion.div
@@ -210,19 +268,25 @@ export const Hero = () => {
         }}
       >
         {/* Global Verification Sweep - CSS Optimized */}
-        {!isLowPower && isVisible && (
+        {!shouldDisableAnimations && isVisible && (
           <div
             className="absolute inset-0 h-full w-[200%] bg-gradient-to-r from-transparent via-[#FF7A00]/15 to-transparent"
             style={{
               animation: 'verificationSweep 20s cubic-bezier(0.45, 0, 0.2, 1) infinite',
               willChange: 'transform'
             }}
+            aria-hidden="true"
+            role="presentation"
           />
         )}
 
         {/* Parcel Verification Nodes with Connections - CSS Optimized */}
-        {isVisible && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        {!shouldDisableAnimations && isVisible && (
+          <svg 
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            aria-hidden="true"
+            role="presentation"
+          >
             <defs>
               <linearGradient id="verificationGlow" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
@@ -286,9 +350,9 @@ export const Hero = () => {
       </motion.div>
 
       {/* Step 3: Data Verification Nodes & Building Footprints - Reduced count */}
-      {isVisible && (
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(window.innerWidth < 768 ? 3 : 4)].map((_, i) => {
+      {!shouldDisableAnimations && isVisible && (
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true" role="presentation">
+          {[...Array(isMobile ? 3 : 4)].map((_, i) => {
           const x = 10 + (i % 5) * 20;
           const y = 15 + Math.floor(i / 5) * 22;
           const delay = i * 0.5;
@@ -300,6 +364,7 @@ export const Hero = () => {
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
+                x: nodeX,
               }}
             >
                 {/* Orange verification glow */}
@@ -355,8 +420,12 @@ export const Hero = () => {
       >
         <div className="relative h-full w-full">
           {/* Step 4: Data Stream Visualization - Reduced count */}
-          {isVisible && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-[4]">
+          {!shouldDisableAnimations && isVisible && (
+            <svg 
+              className="absolute inset-0 w-full h-full pointer-events-none z-[4]"
+              aria-hidden="true"
+              role="presentation"
+            >
               <defs>
                 <linearGradient id="streamGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
@@ -365,7 +434,7 @@ export const Hero = () => {
                 </linearGradient>
               </defs>
               
-              {[...Array(window.innerWidth < 768 ? 2 : 3)].map((_, i) => {
+              {[...Array(isMobile ? 2 : 3)].map((_, i) => {
               const startX = Math.random() * 80 + 10;
               const startY = Math.random() * 80 + 10;
               const endX = Math.random() * 80 + 10;
@@ -435,7 +504,7 @@ export const Hero = () => {
           )}
 
           {/* Simulated data nodes with pulse animation - Reduced count */}
-          {isVisible && [...Array(3)].map((_, i) => (
+          {!shouldDisableAnimations && isVisible && [...Array(3)].map((_, i) => (
             <motion.div
               key={i}
               className="absolute h-2 w-2 rounded-full bg-[#06B6D4] shadow-[0_0_10px_rgba(6,182,212,0.5)]"
@@ -460,19 +529,60 @@ export const Hero = () => {
         </div>
       </motion.div>
 
-      {/* Content wrapper with glass card effect - Enhanced z-index */}
+      {/* Content wrapper with glass card effect - Enhanced z-index & breathing */}
       <div className="relative z-20 flex w-full items-center">
-        <div className="container mx-auto px-6 lg:px-20">
-          <div className="max-w-3xl">
-          {/* Frosted glass card with stronger shadow */}
-            <motion.div
-              className="rounded-3xl bg-[#0A0F2C]/80 backdrop-blur-2xl border border-[#06B6D4]/40 p-6 md:p-8 lg:p-12 shadow-elev relative overflow-hidden"
-              style={{
-                boxShadow: '0 16px 48px rgba(10, 15, 44, 0.8), inset 0 0 60px rgba(6, 182, 212, 0.08)',
+        <div className="container relative mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24">
+          <motion.div
+            className="rounded-3xl bg-[#0A0F2C]/80 backdrop-blur-2xl border border-[#06B6D4]/40 p-4 md:p-6 lg:p-8 xl:p-12 relative overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              boxShadow: '0 16px 48px rgba(10, 15, 44, 0.8), inset 0 0 60px rgba(6, 182, 212, 0.08)',
+            }}
+          >
+            <motion.div 
+              className="absolute inset-0 bg-gradient-to-br from-[#06B6D4]/8 via-transparent to-[#FF7A00]/5 pointer-events-none"
+              animate={{
+                opacity: [0.3, 0.5, 0.3],
               }}
-            >
-              {/* Inner glow effect with cyan gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#06B6D4]/8 via-transparent to-[#FF7A00]/5 pointer-events-none" />
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 2,
+              }}
+            />
+            
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              animate={{
+                boxShadow: [
+                  '0 16px 48px rgba(10, 15, 44, 0.8)',
+                  '0 20px 56px rgba(6, 182, 212, 0.15)',
+                  '0 16px 48px rgba(10, 15, 44, 0.8)',
+                ],
+              }}
+              transition={{
+                duration: 4,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: 2,
+              }}
+            />
+
+            <div className="mx-auto max-w-3xl text-center md:text-left relative z-10">
+              <motion.div
+                className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 backdrop-blur-sm"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.25 }}
+              >
+                <TrendingUp className="w-4 h-4 text-[#FF7A00]" aria-hidden="true" />
+                <span className="text-[#FF7A00] text-xs md:text-sm font-semibold">
+                  10× Faster • 13× Cheaper
+                </span>
+              </motion.div>
 
               {/* Headline */}
               <motion.h1
@@ -493,16 +603,18 @@ export const Hero = () => {
 
               {/* QuickCheck Widget - Prominent Above CTA */}
               <motion.div
+                id="quickcheck-form"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
                 className="mb-8 md:mb-10"
               >
+                <h2 className="sr-only">Get Instant Feasibility Reports</h2>
                 <QuickCheckWidget />
               </motion.div>
 
               {/* Divider with upgrade prompt */}
-              <div className="relative mb-6 md:mb-8">
+              <div className="relative mb-6 md:mb-8" aria-hidden="true" role="presentation">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-[#06B6D4]/20"></div>
                 </div>
@@ -514,26 +626,61 @@ export const Hero = () => {
               </div>
 
               {/* CTA Group */}
-              <motion.div variants={ctaVariants}>
-                {/* Phase 1: Magnetic CTA */}
+              <motion.div 
+                variants={ctaVariants}
+                className="mb-6 md:mb-8 px-4"
+              >
                 <motion.div
                   animate={{
-                    x: prefersReducedMotion ? 0 : mousePosition.x,
-                    y: prefersReducedMotion ? 0 : mousePosition.y,
+                    x: shouldDisableAnimations ? 0 : mousePosition.x,
+                    y: shouldDisableAnimations ? 0 : mousePosition.y,
                   }}
                   transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                  whileTap={{ scale: 0.97 }}
                 >
                   <Button
                     ref={buttonRef}
                     size="lg"
-                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 md:py-7 text-lg min-h-[48px] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none"
-                    onClick={() => (window.location.href = "/application?step=2")}
+                    aria-label="Start your free feasibility QuickCheck in 60 seconds - Opens application form"
+                    className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 md:py-7 text-lg min-h-[48px] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none w-full md:w-auto"
+                    onClick={handleCtaClick}
                     onMouseMove={handleMouseMove}
                     onMouseLeave={handleMouseLeave}
+                    disabled={isCtaLoading}
                   >
-                    <span className="relative z-10">Get Report in 60 Seconds</span>
-                    {/* Shimmer effect */}
-                    {!prefersReducedMotion && (
+                    {ripples.map(ripple => (
+                      <motion.span
+                        key={ripple.id}
+                        className="absolute bg-white/30 rounded-full pointer-events-none"
+                        initial={{ width: 0, height: 0, x: ripple.x, y: ripple.y }}
+                        animate={{ 
+                          width: 200, 
+                          height: 200, 
+                          x: ripple.x - 100, 
+                          y: ripple.y - 100, 
+                          opacity: 0 
+                        }}
+                        transition={{ duration: 0.6 }}
+                        onAnimationComplete={() => setRipples(r => r.filter(rr => rr.id !== ripple.id))}
+                      />
+                    ))}
+                    
+                    <span className="relative z-10 flex items-center justify-center gap-2">
+                      {isCtaLoading ? (
+                        <>
+                          <motion.div
+                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          />
+                          Launching...
+                        </>
+                      ) : (
+                        "Get Report in 60 Seconds"
+                      )}
+                    </span>
+                    
+                    {!shouldDisableAnimations && !isCtaLoading && (
                       <motion.div
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                         initial={{ x: '-100%' }}
@@ -546,18 +693,38 @@ export const Hero = () => {
                   </Button>
                 </motion.div>
                 
-                {/* Microcopy with Phase 4: Number Counter */}
+                {/* Enhanced Trust Signals */}
                 <p className="mt-4 md:mt-6 text-sm text-white/70 text-center md:text-left">
-                  <span className="hidden md:inline">
-                    Powered by proprietary data fusion from official sources · Cost-calibrated from real projects · 60-second turnaround
+                  <span className="hidden md:inline flex items-center justify-center md:justify-start gap-2">
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-2 h-2 bg-[#06B6D4] rounded-full animate-pulse" aria-hidden="true" />
+                      Data updated 2 hours ago
+                    </span>
+                    <span className="text-white/50">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
+                      FEMA
+                    </span>
+                    <span className="text-white/50">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
+                      ArcGIS
+                    </span>
+                    <span className="text-white/50">·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
+                      TxDOT
+                    </span>
                   </span>
-                  <span className="md:hidden">
-                    FEMA, ArcGIS, TxDOT verified · 60-second delivery
+                  <span className="md:hidden inline-flex items-center justify-center gap-2">
+                    <span className="inline-block w-2 h-2 bg-[#06B6D4] rounded-full animate-pulse" aria-hidden="true" />
+                    <ShieldCheck className="w-3 h-3 text-[#06B6D4]" aria-hidden="true" />
+                    FEMA, ArcGIS, TxDOT verified
                   </span>
                 </p>
               </motion.div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </motion.section>
