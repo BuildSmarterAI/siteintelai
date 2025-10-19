@@ -263,9 +263,9 @@ const Beta = () => {
                 >
                   Instant Feasibility for Commercial Real Estate Development.{" "}
                   <span className="relative inline-block">
-                    <span className="font-headline bg-gradient-to-r from-[#FF7A00] via-[#FF9240] to-[#06B6D4] bg-clip-text text-transparent font-semibold">
-                      Verified Intelligence.
-                    </span>
+                <span className="font-headline text-[#FF7A00] font-semibold">
+                  Verified Intelligence.
+                </span>
                     <motion.span
                       className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-primary to-accent"
                       initial={{ width: 0 }}
