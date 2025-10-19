@@ -118,16 +118,9 @@ export default function BetaSignup() {
       {/* Hero Section */}
       <section className="relative min-h-[90vh] w-full overflow-hidden">
         {/* Animated Shader Background - Desktop only */}
-        {!isMobile && (
           <div className="absolute inset-0 z-0 pointer-events-none" role="presentation" aria-hidden="true">
-            <ShaderBackground pixelRatio={1.5} className="w-full h-full" />
+            <ShaderBackground pixelRatio={isMobile ? 1.0 : 1.5} className="w-full h-full" />
           </div>
-        )}
-        
-        {/* Fallback gradient for mobile */}
-        {isMobile && (
-          <div className="absolute inset-0 z-0 bg-gradient-to-br from-secondary via-[#111827] to-secondary" />
-        )}
         
         {/* Orange accent overlay */}
         <div className="absolute inset-0 z-[1] bg-[radial-gradient(circle_at_50%_50%,rgba(255,122,0,0.05)_0%,transparent_50%)]" />
