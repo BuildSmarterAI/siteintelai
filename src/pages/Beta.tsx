@@ -23,6 +23,7 @@ import { AuditTrailTable } from "@/components/beta/AuditTrailTable";
 import { ExportButtonGrid } from "@/components/beta/ExportButtonGrid";
 import { DataVerificationNodes } from "@/components/beta/DataVerificationNodes";
 import ShaderBackground from "@/components/ui/shader-background";
+import GlobeFeatureSection from "@/components/ui/globe-feature-section";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -409,6 +410,9 @@ const Beta = () => {
             <ChevronDown className="w-6 h-6 text-white/40 animate-bounce" aria-hidden="true" />
           </motion.div>
         </section>
+
+        {/* Globe Feature Section */}
+        <GlobeFeatureSection />
 
         {/* How It Works Section */}
         <section className="py-24 relative">
