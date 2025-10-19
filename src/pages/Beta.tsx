@@ -22,6 +22,7 @@ import { ParcelMapPreview } from "@/components/beta/ParcelMapPreview";
 import { AuditTrailTable } from "@/components/beta/AuditTrailTable";
 import { ExportButtonGrid } from "@/components/beta/ExportButtonGrid";
 import { DataVerificationNodes } from "@/components/beta/DataVerificationNodes";
+import ShaderBackground from "@/components/ui/shader-background";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -174,70 +175,26 @@ const Beta = () => {
       <div className="min-h-screen bg-gradient-to-b from-secondary via-secondary/95 to-background">
         {/* Hero Section */}
         <section ref={heroRef} className="relative min-h-screen flex items-center overflow-hidden">
-          {/* Layer 1: Aerial Image Background (Desktop only) */}
-          {!isMobile && (
-            <motion.div 
-              className="absolute inset-0 z-0"
-              style={{ y: bgY, scale: useTransform(scrollYProgress, [0, 0.5], [1.05, 1.15]) }}
+          {/* Layer 1: WebGL Shader Background (Desktop) / Simple Gradient (Mobile) 
+              - Animated blueprint grid with diagonal scroll
+              - Deep navy mesh gradient base
+              - ASCII art overlay on major grid lines
+          */}
+          {!isMobile && !shouldDisableAnimations ? (
+            <div 
+              className="absolute inset-0 z-0 pointer-events-none"
+              role="presentation"
+              aria-hidden="true"
             >
-              <picture>
-                <source
-                  srcSet="/src/assets/aerial-property-site-1920w.webp 1920w, /src/assets/aerial-property-site-1024w.webp 1024w"
-                  type="image/webp"
-                />
-                <img
-                  src="/src/assets/aerial-property-site.jpg"
-                  alt=""
-                  className="w-full h-full object-cover blur-[2px]"
-                  loading="eager"
-                  aria-hidden="true"
-                />
-              </picture>
-              <div className="absolute inset-0 bg-gradient-to-b from-[#0A0F2C] via-transparent to-[#0A0F2C]/60 opacity-[0.88]" />
-            </motion.div>
-          )}
-
-          {/* Layer 2: Mobile Radial Gradient Fallback */}
-          {isMobile && (
+              <ShaderBackground pixelRatio={1.5} className="w-full h-full" />
+            </div>
+          ) : (
             <div 
               className="absolute inset-0 z-0"
               style={{
-                background: 'radial-gradient(ellipse at center, hsl(var(--secondary)) 0%, hsl(var(--secondary)) 50%, #11224F 100%)'
+                background: 'radial-gradient(ellipse at center, hsl(var(--secondary)) 0%, hsl(var(--secondary-dark)) 70%, hsl(222 84% 5%) 100%)'
               }}
-              aria-hidden="true"
-            />
-          )}
-
-          {/* Layer 3: Enhanced Multi-Layer Grid System */}
-          <motion.div 
-            className="absolute inset-0 z-[1]"
-            style={{ y: useTransform(scrollYProgress, [0, 0.5], [0, 80]) }}
-          >
-            {/* Major Grid - Cyan */}
-            <div className="absolute inset-0" style={{
-              backgroundImage: `linear-gradient(hsl(var(--accent) / 0.12) 3px, transparent 3px),
-                               linear-gradient(90deg, hsl(var(--accent) / 0.12) 3px, transparent 3px)`,
-              backgroundSize: '80px 80px'
-            }} aria-hidden="true" />
-            
-            {/* Minor Grid - White */}
-            <div className="absolute inset-0" style={{
-              backgroundImage: `linear-gradient(hsl(var(--foreground) / 0.08) 1px, transparent 1px),
-                               linear-gradient(90deg, hsl(var(--foreground) / 0.08) 1px, transparent 1px)`,
-              backgroundSize: '80px 80px'
-            }} aria-hidden="true" />
-          </motion.div>
-
-          {/* Layer 4: Verification Sweep Animation */}
-          {!shouldDisableAnimations && (
-            <motion.div
-              className="absolute inset-0 z-[1] pointer-events-none"
-              style={{
-                background: 'linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.15) 50%, transparent 100%)',
-                width: '200%'
-              }}
-              animate={{ x: ['-100%', '100%'] }}
-              transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+              role="presentation"
               aria-hidden="true"
             />
           )}
@@ -283,46 +240,6 @@ const Beta = () => {
             </svg>
           )}
 
-          {/* Layer 7: Blueprint Corner Brackets (12 positions) */}
-          {!isMobile && (
-            <>
-              {[
-                { top: '10%', left: '15%', delay: 0 },
-                { top: '15%', left: '30%', delay: 0.1 },
-                { top: '15%', left: '50%', delay: 0.2 },
-                { top: '40%', left: '10%', delay: 0.3 },
-                { top: '40%', left: '30%', delay: 0.4 },
-                { top: '20%', right: '30%', delay: 0.5 },
-                { top: '65%', left: '15%', delay: 0.6 },
-                { top: '70%', left: '45%', delay: 0.7 },
-                { top: '30%', right: '15%', delay: 0.8 },
-                { top: '55%', right: '35%', delay: 0.9 },
-                { top: '75%', right: '10%', delay: 1.0 },
-                { top: '85%', left: '25%', delay: 1.1 }
-              ].map((pos, i) => (
-                <motion.div
-                  key={`bracket-${i}`}
-                  className="absolute w-8 h-8 border-l-2 border-t-2 border-white/60 z-[5]"
-                  style={pos}
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 0.6, scale: 1 }}
-                  transition={{ duration: 0.4, delay: pos.delay }}
-                  aria-hidden="true"
-                />
-              ))}
-            </>
-          )}
-
-          {/* Layer 8: Radial Vignette Overlay (Mobile) */}
-          {isMobile && (
-            <div 
-              className="absolute inset-0 z-[6]"
-              style={{
-                background: 'radial-gradient(ellipse at center, transparent 0%, rgba(10,15,44,0.6) 70%, rgba(10,15,44,0.9) 100%)'
-              }}
-              aria-hidden="true"
-            />
-          )}
 
           <motion.div 
             style={{ opacity: heroOpacity, y: heroY }}
