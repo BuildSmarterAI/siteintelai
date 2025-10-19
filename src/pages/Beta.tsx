@@ -281,7 +281,7 @@ const Beta = () => {
                   </span>
                 </motion.h1>
 
-                <motion.p initial={{
+              <motion.p initial={{
                 opacity: 0,
                 y: 20
               }} animate={{
@@ -290,7 +290,7 @@ const Beta = () => {
               }} transition={{
                 duration: 0.6,
                 delay: 0.2
-              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">SiteIntel™ Feasibility transforms how commercial developers, brokers, and lenders evaluate property sites. Join the private beta to access proprietary AI-generated feasibility reports built on verified geospatial and infrastructure intelligence.</motion.p>
+              }} className="font-body text-xl md:text-2xl lg:text-3xl text-white/90 font-normal leading-relaxed max-w-3xl mb-8">SiteIntel™ Feasibility redefines site due-diligence for developers, brokers, and lenders through automated, data-verified analysis. Join the private beta to experience instant, AI-driven feasibility reports powered by authoritative intelligence.</motion.p>
               </div>
             </div>
           </motion.div>
