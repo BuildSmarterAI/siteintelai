@@ -170,10 +170,6 @@ export default function BetaSignup() {
             delay: 0.4
           }} className="relative hidden lg:flex items-center justify-center">
               <div className="relative h-[500px] w-full max-w-md">
-                {/* Animated parcel visualization placeholder */}
-                <div className="absolute inset-0 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm">
-                  
-                </div>
               </div>
             </motion.div>
           </div>
