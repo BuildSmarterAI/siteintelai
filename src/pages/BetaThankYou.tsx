@@ -224,22 +224,7 @@ const BetaThankYou = () => {
               Get Started Right Away
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                <CardContent className="p-6 text-center">
-                  <FileText className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2 text-foreground">Start Your First Report</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Run a feasibility analysis right now
-                  </p>
-                  <Button asChild className="w-full">
-                    <Link to="/application">
-                      Run Analysis <ArrowRight className="w-4 h-4 ml-2" />
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
                 <CardContent className="p-6 text-center">
                   <Users className="w-12 h-12 text-primary mx-auto mb-4" />

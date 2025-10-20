@@ -533,7 +533,7 @@ export const Hero = () => {
       <div className="relative z-20 flex w-full items-center">
         <div className="container relative mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24">
           <motion.div
-            className="rounded-3xl bg-[#0A0F2C]/80 backdrop-blur-2xl border border-[#06B6D4]/40 p-4 md:p-6 lg:p-8 xl:p-12 relative overflow-hidden"
+            className="rounded-3xl bg-[#0A0F2C]/90 backdrop-blur-2xl border border-[#06B6D4]/40 p-4 md:p-6 lg:p-8 xl:p-12 relative overflow-hidden"
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -571,7 +571,7 @@ export const Hero = () => {
               }}
             />
 
-            <div className="mx-auto max-w-3xl text-center md:text-left relative z-10">
+            <div className="mx-auto max-w-3xl text-center md:text-left relative z-20">
               <motion.div
                 className="inline-flex items-center gap-2 mb-4 px-4 py-2 rounded-full bg-[#FF7A00]/10 border border-[#FF7A00]/30 backdrop-blur-sm"
                 initial={{ opacity: 0, scale: 0.95 }}

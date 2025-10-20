@@ -151,9 +151,6 @@ export default function BetaSignup() {
               })}>
                   Join the Private Beta <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button size="lg" variant="outline" className="border-accent text-accent hover:bg-accent/10" onClick={() => window.location.href = "/application?step=2"}>
-                  Run a Free QuickCheck™
-                </Button>
               </div>
 
               {/* Microcopy */}
