@@ -116,7 +116,7 @@ const Beta = () => {
     answer: "Limited seats are available for verified professionals in development, finance, and planning. We prioritize active practitioners who can provide meaningful feedback on real-world use cases."
   }, {
     question: "What's the timeline for full launch?",
-    answer: "Beta participants will receive priority access to the production platform in Q2 2025. Early testers also receive lifetime discounts and input on feature roadmap."
+    answer: "Beta participants will receive priority access to the production platform in Q2 2026. Early testers also receive lifetime discounts and input on feature roadmap."
   }, {
     question: "Can I integrate this with my existing workflow?",
     answer: "Yes — reports are available as PDFs (for manual review), JSON (for custom integrations), and OData queries (for enterprise systems). API access is available for Pro tier participants."
