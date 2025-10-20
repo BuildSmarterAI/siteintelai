@@ -145,7 +145,7 @@ export default function BetaSignup() {
 
               {/* CTAs */}
               <div className="flex flex-col gap-4 sm:flex-row">
-                <Button size="lg" variant="default" className="bg-primary hover:bg-primary/90" onClick={() => document.getElementById("beta-form")?.scrollIntoView({
+                <Button size="lg" variant="default" className="bg-primary hover:bg-primary/90 text-white" onClick={() => document.getElementById("beta-form")?.scrollIntoView({
                 behavior: "smooth"
               })}>
                   Join the Private Beta <ArrowRight className="ml-2 h-4 w-4" />
