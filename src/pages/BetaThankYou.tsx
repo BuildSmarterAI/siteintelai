@@ -32,7 +32,7 @@ const BetaThankYou = () => {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <div className="relative min-h-screen overflow-hidden">
+      <div className="relative min-h-screen overflow-hidden ai-grid-overlay">
         {/* Animated Background */}
         {!shouldDisableAnimations && (
           <div className="absolute inset-0 z-0">
@@ -41,16 +41,16 @@ const BetaThankYou = () => {
         )}
 
         {/* Orange Accent Overlay */}
-        <div className="absolute inset-0 z-[1] bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 z-[1] bg-gradient-to-br from-accent/5 via-transparent to-transparent pointer-events-none" />
 
         {/* Content */}
-        <div className="relative z-10 container mx-auto px-4 py-16 md:py-24">
+        <div className="relative z-10 container mx-auto px-4 py-space-lg md:py-24">
           {/* Success Hero */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-12"
+            className="text-center mb-space-lg"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -61,19 +61,19 @@ const BetaThankYou = () => {
               <CheckCircle2 className="w-12 h-12 text-green-500" />
             </motion.div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-foreground">
-              Welcome to the Founding Cohort
+            <h1 className="text-h1 font-headline mb-4 text-secondary">
+              Welcome to the <span className="text-primary">Founding Cohort</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-body-l font-body text-muted-foreground max-w-2xl mx-auto">
               You're officially part of the SiteIntel™ Private Beta
             </p>
 
             <div className="flex items-center justify-center gap-2 mt-6">
-              <Badge variant="secondary" className="text-sm px-4 py-1">
+              <Badge className="text-sm px-4 py-1 bg-primary text-primary-foreground">
                 Beta Founding Member
               </Badge>
-              <Badge variant="outline" className="text-sm px-4 py-1">
+              <Badge className="text-sm px-4 py-1 bg-accent text-accent-foreground">
                 Pro Pricing Locked
               </Badge>
             </div>
@@ -85,42 +85,42 @@ const BetaThankYou = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="max-w-2xl mx-auto mb-12"
+              className="max-w-2xl mx-auto mb-space-lg"
             >
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50">
+              <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-primary" />
+                  <CardTitle className="flex items-center gap-2 font-headline">
+                    <Mail className="w-5 h-5 text-accent" />
                     Your Beta Access Details
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <CardContent className="space-y-space-md">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md text-sm font-body">
                     <div>
                       <p className="text-muted-foreground mb-1">Name</p>
-                      <p className="font-medium text-foreground">{userName}</p>
+                      <p className="font-medium text-secondary">{userName}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground mb-1">Email</p>
-                      <p className="font-medium text-foreground break-all">{userEmail}</p>
+                      <p className="font-medium text-secondary break-all">{userEmail}</p>
                     </div>
                     {userRole && (
                       <div>
                         <p className="text-muted-foreground mb-1">Role</p>
-                        <p className="font-medium text-foreground capitalize">{userRole}</p>
+                        <p className="font-medium text-secondary capitalize">{userRole}</p>
                       </div>
                     )}
                     {userCompany && (
                       <div>
                         <p className="text-muted-foreground mb-1">Company</p>
-                        <p className="font-medium text-foreground">{userCompany}</p>
+                        <p className="font-medium text-secondary">{userCompany}</p>
                       </div>
                     )}
                   </div>
 
-                  <div className="border-t border-border/50 pt-4 mt-4">
-                    <p className="font-semibold mb-3 text-foreground">What You'll Receive:</p>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
+                  <div className="border-t border-border/50 pt-space-md mt-space-md">
+                    <p className="font-semibold mb-3 text-secondary font-headline">What You'll Receive:</p>
+                    <ul className="space-y-2 text-sm text-muted-foreground font-body">
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
                         <span>3 free feasibility report credits ($2,385 value)</span>
@@ -149,9 +149,9 @@ const BetaThankYou = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="max-w-3xl mx-auto mb-12"
+            className="max-w-3xl mx-auto mb-space-lg"
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-foreground">
+            <h2 className="text-h2 font-headline text-center mb-8 text-secondary">
               What Happens Next
             </h2>
 
@@ -192,19 +192,19 @@ const BetaThankYou = () => {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.5 + index * 0.1 }}
                 >
-                  <Card className="bg-card/80 backdrop-blur-sm border-border/50">
-                    <CardContent className="flex items-start gap-4 p-6">
-                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <item.icon className="w-5 h-5 text-primary" />
+                  <Card className="glass-card">
+                    <CardContent className="flex items-start gap-space-md p-space-md">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+                        <item.icon className="w-5 h-5 text-accent" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-foreground">{item.title}</h3>
+                          <h3 className="font-semibold text-secondary font-headline">{item.title}</h3>
                           <Badge variant="outline" className="text-xs">
                             {item.time}
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                        <p className="text-sm text-muted-foreground font-body">{item.description}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -218,18 +218,18 @@ const BetaThankYou = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8, duration: 0.6 }}
-            className="max-w-4xl mx-auto mb-12"
+            className="max-w-4xl mx-auto mb-space-lg"
           >
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-8 text-foreground">
+            <h2 className="text-h2 font-headline text-center mb-8 text-secondary">
               Get Started Right Away
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                <CardContent className="p-6 text-center">
-                  <Users className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2 text-foreground">Explore Beta Program</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+              <Card className="glass-card hover:border-accent/50 transition-colors">
+                <CardContent className="p-space-md text-center">
+                  <Users className="w-12 h-12 text-accent mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2 text-secondary font-headline">Explore Beta Program</h3>
+                  <p className="text-sm text-muted-foreground mb-4 font-body">
                     Learn about exclusive benefits
                   </p>
                   <Button asChild variant="outline" className="w-full">
@@ -240,11 +240,11 @@ const BetaThankYou = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-card/80 backdrop-blur-sm border-border/50 hover:border-primary/50 transition-colors">
-                <CardContent className="p-6 text-center">
-                  <Calendar className="w-12 h-12 text-primary mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2 text-foreground">Schedule Demo Call</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+              <Card className="glass-card hover:border-accent/50 transition-colors">
+                <CardContent className="p-space-md text-center">
+                  <Calendar className="w-12 h-12 text-accent mx-auto mb-4" />
+                  <h3 className="font-semibold mb-2 text-secondary font-headline">Schedule Demo Call</h3>
+                  <p className="text-sm text-muted-foreground mb-4 font-body">
                     Book a personalized walkthrough
                   </p>
                   <Button asChild variant="outline" className="w-full">
@@ -264,17 +264,17 @@ const BetaThankYou = () => {
             transition={{ delay: 1, duration: 0.6 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <p className="text-sm text-muted-foreground mb-4">
+            <p className="text-sm text-muted-foreground mb-4 font-body">
               Powered by authoritative data sources
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6">
               {["FEMA", "TxDOT", "EPA ECHO", "ArcGIS", "USFWS"].map((source) => (
-                <Badge key={source} variant="secondary" className="text-xs">
+                <Badge key={source} className="text-xs bg-secondary text-secondary-foreground">
                   {source}
                 </Badge>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-6">
+            <p className="text-xs text-muted-foreground mt-6 font-body">
               🔒 Your data is encrypted and NDA-protected
             </p>
           </motion.div>
