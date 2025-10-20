@@ -62,7 +62,7 @@ const BetaThankYou = () => {
             </motion.div>
             
             <h1 className="text-h1 font-headline mb-4 text-secondary">
-              Welcome to the <span className="text-primary">Founding Cohort</span>
+              Welcome to the <span className="text-white">Founding Cohort</span>
             </h1>
             
             <p className="text-body-l font-body text-muted-foreground max-w-2xl mx-auto">
