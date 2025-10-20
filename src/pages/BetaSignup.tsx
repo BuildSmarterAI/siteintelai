@@ -65,11 +65,9 @@ export default function BetaSignup() {
       } = await supabase.functions.invoke("submit-beta-signup", {
         body: {
           email: data.email,
-          full_name: data.fullName,
           role: data.role,
           company: data.company || null,
-          primary_focus: data.primaryFocus || null,
-          referral_code: data.referralCode || null
+          interests: data.primaryFocus ? [data.primaryFocus] : ["general"]
         }
       });
       if (error) throw error;
