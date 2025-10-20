@@ -49,7 +49,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <main id="main-content" className={isBetaPage ? "" : "pt-24"}>
         {children}
       </main>
-      <Footer />
+      {!isBetaPage && <Footer />}
     </>
   );
 };
