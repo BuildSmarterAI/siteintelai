@@ -71,12 +71,11 @@ export default function BetaSignup() {
         }
       });
       if (error) throw error;
-      
       toast({
         title: "Success!",
-        description: "You've been added to the beta waitlist.",
+        description: "You've been added to the beta waitlist."
       });
-      
+
       // Navigate to thank you page with user info
       navigate(`/beta-thank-you?email=${encodeURIComponent(data.email)}&name=${encodeURIComponent(data.fullName)}&role=${encodeURIComponent(data.role)}&company=${encodeURIComponent(data.company || '')}`);
     } catch (error) {
@@ -173,13 +172,7 @@ export default function BetaSignup() {
               <div className="relative h-[500px] w-full max-w-md">
                 {/* Animated parcel visualization placeholder */}
                 <div className="absolute inset-0 rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5 backdrop-blur-sm">
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-center text-slate-400">
-                      Parcel Grid Animation
-                      <br />
-                      <span className="text-xs">Zoning → Flood → Cost</span>
-                    </p>
-                  </div>
+                  
                 </div>
               </div>
             </motion.div>
