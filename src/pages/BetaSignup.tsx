@@ -206,9 +206,9 @@ export default function BetaSignup() {
               </div>
 
               {/* Header */}
-              <h2 className="text-h2 font-headline text-secondary mb-3">
-                Join the Private Beta — Feasibility, Verified.
-              </h2>
+                <h2 className="text-h2 font-headline text-primary mb-3">
+                  Join the Private Beta — Feasibility, Verified.
+                </h2>
               <p className="text-body text-slate-600 mb-8">
                 Free for verified professionals. Limited access for 500 seats.
               </p>
