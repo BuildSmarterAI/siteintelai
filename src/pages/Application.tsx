@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,9 @@ import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IntentBadge } from "@/components/IntentBadge";
 import { OnboardingTour } from "@/components/OnboardingTour";
+
+// Module-scoped timeout id to avoid adding hooks (keeps hook order stable during HMR)
+let enrichmentTimeoutId: number | null = null;
 
 export default function Application() {
   const { toast } = useToast();
@@ -206,7 +209,7 @@ export default function Application() {
   const [isSavingParcel, setIsSavingParcel] = useState(false);
   
   // Track enrichment timeout to cancel if user makes changes
-  const enrichmentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
 
   // Track which fields were auto-enriched (to show lock UI)
   const [enrichedFields, setEnrichedFields] = useState<{
@@ -264,9 +267,9 @@ export default function Application() {
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
     // Clear any pending enrichment timeout when user manually changes fields
-    if (enrichmentTimeoutRef.current) {
-      clearTimeout(enrichmentTimeoutRef.current);
-      enrichmentTimeoutRef.current = null;
+    if (enrichmentTimeoutId) {
+      clearTimeout(enrichmentTimeoutId);
+      enrichmentTimeoutId = null;
     }
     updateField(field, value);
   };
@@ -906,11 +909,11 @@ export default function Application() {
                                   }));
                                   
                                   // Auto-unlock Google fields after 2 seconds (they're basic info)
-                                  // Store timeout ref so it can be cleared if user makes changes
-                                  if (enrichmentTimeoutRef.current) {
-                                    clearTimeout(enrichmentTimeoutRef.current);
+                                  // Store timeout id so it can be cleared if user makes changes
+                                  if (enrichmentTimeoutId) {
+                                    clearTimeout(enrichmentTimeoutId);
                                   }
-                                  enrichmentTimeoutRef.current = setTimeout(() => {
+                                  enrichmentTimeoutId = window.setTimeout(() => {
                                     setIsAddressLoading(false);
                                     setUnlockedFields(prev => ({
                                       ...prev,
@@ -920,7 +923,7 @@ export default function Application() {
                                       zipCode: true,
                                       neighborhood: true
                                     }));
-                                    enrichmentTimeoutRef.current = null;
+                                    enrichmentTimeoutId = null;
                                   }, 2000);
                                 }
                               }}
