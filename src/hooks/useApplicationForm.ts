@@ -192,7 +192,7 @@ export function useApplicationForm() {
   const updateField = useCallback((field: string, value: any) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      console.log('[Form Update]', field, '=', value);
+      console.log('[Form Update]', field, '=', value, '| Previous:', prev[field as keyof ApplicationFormData]);
       return updated;
     });
     

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -204,6 +204,9 @@ export default function Application() {
   const [drawingMode, setDrawingMode] = useState(false);
   const [drawnGeometry, setDrawnGeometry] = useState<any>(null);
   const [isSavingParcel, setIsSavingParcel] = useState(false);
+  
+  // Track enrichment timeout to cancel if user makes changes
+  const enrichmentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Track which fields were auto-enriched (to show lock UI)
   const [enrichedFields, setEnrichedFields] = useState<{
@@ -260,6 +263,11 @@ export default function Application() {
   const totalSteps = 6;
 
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
+    // Clear any pending enrichment timeout when user manually changes fields
+    if (enrichmentTimeoutRef.current) {
+      clearTimeout(enrichmentTimeoutRef.current);
+      enrichmentTimeoutRef.current = null;
+    }
     updateField(field, value);
   };
 
@@ -849,61 +857,73 @@ export default function Application() {
                                  </div>
                                </div>
                              </div>
-                           )}
-                           
-                            <PropertyStep
-                              formData={{
-                                propertyAddress: formData.propertyAddress,
-                                ownershipStatus: formData.ownershipStatus,
-                              }}
-                              onChange={handleInputChange}
-                              onAddressSelect={(value, coordinates, addressDetails) => {
-                               handleInputChange('propertyAddress', value);
-                               
-                               // Set loading state when address is being populated
-                               setIsAddressLoading(true);
-                               
-                                if (coordinates || addressDetails) {
-                                  setFormData(prev => ({
+                            )}
+                            
+                             <PropertyStep
+                               formData={useMemo(() => ({
+                                 propertyAddress: formData.propertyAddress,
+                                 ownershipStatus: formData.ownershipStatus,
+                               }), [formData.propertyAddress, formData.ownershipStatus])}
+                               onChange={handleInputChange}
+                               onAddressSelect={(value, coordinates, addressDetails) => {
+                                handleInputChange('propertyAddress', value);
+                                
+                                // Set loading state when address is being populated
+                                setIsAddressLoading(true);
+                                
+                                 if (coordinates || addressDetails) {
+                                   // Consolidate all address-related updates into a single setFormData call
+                                   setFormData(prev => {
+                                     console.log('[Address Select] Preserving ownershipStatus:', prev.ownershipStatus);
+                                     return {
+                                       ...prev,
+                                       propertyAddress: value,
+                                       geoLat: coordinates?.lat ?? prev.geoLat,
+                                       geoLng: coordinates?.lng ?? prev.geoLng,
+                                       county: addressDetails?.county ?? prev.county,
+                                       city: addressDetails?.city ?? prev.city,
+                                       state: addressDetails?.state ?? prev.state,
+                                       zipCode: addressDetails?.zipCode ?? prev.zipCode,
+                                       neighborhood: addressDetails?.neighborhood ?? prev.neighborhood,
+                                       sublocality: addressDetails?.sublocality ?? prev.sublocality,
+                                       placeId: addressDetails?.placeId ?? prev.placeId,
+                                       submarket: addressDetails?.submarket ?? prev.submarket,
+                                       currentUse: addressDetails?.currentUse ?? prev.currentUse,
+                                       utilityAccess: addressDetails?.utilityAccess ?? prev.utilityAccess,
+                                       // Explicitly preserve ownershipStatus
+                                       ownershipStatus: prev.ownershipStatus
+                                     };
+                                   });
+                                  
+                                  // Mark Google-populated fields as enriched
+                                  setEnrichedFields(prev => ({
                                     ...prev,
-                                    geoLat: coordinates?.lat || prev.geoLat,
-                                    geoLng: coordinates?.lng || prev.geoLng,
-                                    county: addressDetails?.county || prev.county,
-                                    city: addressDetails?.city || prev.city,
-                                    state: addressDetails?.state || prev.state,
-                                    zipCode: addressDetails?.zipCode || prev.zipCode,
-                                    neighborhood: addressDetails?.neighborhood || prev.neighborhood,
-                                    sublocality: addressDetails?.sublocality || prev.sublocality,
-                                    placeId: addressDetails?.placeId || prev.placeId,
-                                    submarket: addressDetails?.submarket || prev.submarket,
-                                    currentUse: addressDetails?.currentUse || prev.currentUse,
-                                    utilityAccess: addressDetails?.utilityAccess || prev.utilityAccess
+                                    county: !!addressDetails?.county,
+                                    city: !!addressDetails?.city,
+                                    state: !!addressDetails?.state,
+                                    zipCode: !!addressDetails?.zipCode,
+                                    neighborhood: !!addressDetails?.neighborhood
                                   }));
-                                 
-                                 // Mark Google-populated fields as enriched
-                                 setEnrichedFields(prev => ({
-                                   ...prev,
-                                   county: !!addressDetails?.county,
-                                   city: !!addressDetails?.city,
-                                   state: !!addressDetails?.state,
-                                   zipCode: !!addressDetails?.zipCode,
-                                   neighborhood: !!addressDetails?.neighborhood
-                                 }));
-                                 
-                                 // Auto-unlock Google fields after 2 seconds (they're basic info)
-                                 setTimeout(() => {
-                                   setIsAddressLoading(false);
-                                   setUnlockedFields(prev => ({
-                                     ...prev,
-                                     county: true,
-                                     city: true,
-                                     state: true,
-                                     zipCode: true,
-                                     neighborhood: true
-                                   }));
-                                 }, 2000);
-                               }
-                             }}
+                                  
+                                  // Auto-unlock Google fields after 2 seconds (they're basic info)
+                                  // Store timeout ref so it can be cleared if user makes changes
+                                  if (enrichmentTimeoutRef.current) {
+                                    clearTimeout(enrichmentTimeoutRef.current);
+                                  }
+                                  enrichmentTimeoutRef.current = setTimeout(() => {
+                                    setIsAddressLoading(false);
+                                    setUnlockedFields(prev => ({
+                                      ...prev,
+                                      county: true,
+                                      city: true,
+                                      state: true,
+                                      zipCode: true,
+                                      neighborhood: true
+                                    }));
+                                    enrichmentTimeoutRef.current = null;
+                                  }, 2000);
+                                }
+                              }}
                   onEnrichmentComplete={(data) => {
                                 if (data?.success && data?.data) {
                                   setEnrichedData(data.data);
@@ -922,23 +942,28 @@ export default function Application() {
                                   });
 
                                   // Auto-fill both visible and hidden enriched fields
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    // Visible fields
-                                    parcelId: data.data.parcel_id || prev.parcelId,
-                                    zoning: data.data.zoning_code || prev.zoning,
-                                    lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
-                                    lotSizeUnit: (data.data.lot_size_unit as string) || prev.lotSizeUnit,
-                                    // Hidden enriched fields
-                                    situsAddress: data.data.situs_address || prev.situsAddress,
-                                    administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                                    parcelOwner: data.data.parcel_owner || prev.parcelOwner,
-                                    acreageCad: data.data.acreage_cad || prev.acreageCad,
-                                    zoningCode: data.data.zoning_code || prev.zoningCode,
-                                    overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
-                                    floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
-                                    baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
-                                  }));
+                                  setFormData(prev => {
+                                    console.log('[Enrichment Complete] Preserving ownershipStatus:', prev.ownershipStatus);
+                                    return {
+                                      ...prev,
+                                      // Visible fields
+                                      parcelId: data.data.parcel_id || prev.parcelId,
+                                      zoning: data.data.zoning_code || prev.zoning,
+                                      lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
+                                      lotSizeUnit: (data.data.lot_size_unit as string) || prev.lotSizeUnit,
+                                      // Hidden enriched fields
+                                      situsAddress: data.data.situs_address || prev.situsAddress,
+                                      administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                                      parcelOwner: data.data.parcel_owner || prev.parcelOwner,
+                                      acreageCad: data.data.acreage_cad || prev.acreageCad,
+                                      zoningCode: data.data.zoning_code || prev.zoningCode,
+                                      overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
+                                      floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
+                                      baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation,
+                                      // Explicitly preserve ownershipStatus
+                                      ownershipStatus: prev.ownershipStatus
+                                    };
+                                  });
 
                                   // Mark which fields were successfully enriched
                                   setEnrichedFields(prev => ({

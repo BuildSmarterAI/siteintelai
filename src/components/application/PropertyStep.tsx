@@ -53,7 +53,10 @@ export function PropertyStep({
         </Label>
         <Select
           value={formData.ownershipStatus}
-          onValueChange={(value) => onChange('ownershipStatus', value)}
+          onValueChange={(value) => {
+            console.log('[PropertyStep] ownershipStatus changing to:', value);
+            onChange('ownershipStatus', value);
+          }}
         >
           <SelectTrigger 
             id="ownershipStatus" 
