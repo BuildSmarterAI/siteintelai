@@ -48,11 +48,6 @@ export const FIELD_TOOLTIPS = {
     example: "Commercial - C2 or Industrial - I1",
     whyWeAsk: "Critical for determining what you can build and whether you need rezoning"
   },
-  ownershipStatus: {
-    content: "Your current relationship to this property",
-    example: "Under contract, Owned, or Exploring options",
-    whyWeAsk: "Helps us understand your timeline and recommend appropriate next steps"
-  },
   
   // Step 3: Project Intent
   projectType: {

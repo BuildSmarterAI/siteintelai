@@ -341,8 +341,7 @@ export default function Application() {
 
   const handleNext = async () => {
     console.log('[Next Button Clicked] Current Step:', currentStep, 'Form Data:', {
-      propertyAddress: formData.propertyAddress,
-      ownershipStatus: formData.ownershipStatus
+      propertyAddress: formData.propertyAddress
     });
     
     // Auto-mark Step 1 as completed if we're past it and all fields are valid
@@ -492,7 +491,6 @@ export default function Application() {
         lotSizeUnit: formData.lotSizeUnit,
         existingImprovements: formData.currentUse,
         zoningClassification: formData.zoning,
-        ownershipStatus: formData.ownershipStatus,
         geoLat: formData.geoLat,
         geoLng: formData.geoLng,
         county: formData.county,
@@ -629,9 +627,6 @@ export default function Application() {
     
     // Project type scoring
     if (formData.projectType.includes("Mixed-Use") || formData.projectType.includes("Healthcare")) score += 20;
-    
-    // Ownership status scoring
-    if (["Under Contract (Hard Money In)", "Closed", "Owned Long-Term"].includes(formData.ownershipStatus)) score += 30;
     
     return score;
   };
@@ -847,24 +842,22 @@ export default function Application() {
                            {Object.keys(errors).length > 0 && (
                              <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
                                <div className="flex items-start gap-3">
-                                 <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
-                                 <div>
-                                   <h3 className="font-semibold text-maxx-red mb-1">Please Complete Required Fields</h3>
-                                   <ul className="list-disc list-inside text-sm text-charcoal space-y-1">
-                                     {errors.propertyAddress && <li>Property Address is required</li>}
-                                     {errors.ownershipStatus && <li>Ownership / Acquisition Status is required</li>}
-                                   </ul>
-                                 </div>
-                               </div>
+                                  <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
+                                  <div>
+                                    <h3 className="font-semibold text-maxx-red mb-1">Please Complete Required Fields</h3>
+                                    <ul className="list-disc list-inside text-sm text-charcoal space-y-1">
+                                      {errors.propertyAddress && <li>Property Address is required</li>}
+                                    </ul>
+                                  </div>
+                                </div>
                              </div>
                             )}
                             
-                             <PropertyStep
-                               formData={{
-                                 propertyAddress: formData.propertyAddress,
-                                 ownershipStatus: formData.ownershipStatus,
-                               }}
-                               onChange={handleInputChange}
+                              <PropertyStep
+                                formData={{
+                                  propertyAddress: formData.propertyAddress,
+                                }}
+                                onChange={handleInputChange}
                                onAddressSelect={(value, coordinates, addressDetails) => {
                                 handleInputChange('propertyAddress', value);
                                 
@@ -872,28 +865,25 @@ export default function Application() {
                                 setIsAddressLoading(true);
                                 
                                  if (coordinates || addressDetails) {
-                                   // Consolidate all address-related updates into a single setFormData call
-                                   setFormData(prev => {
-                                     console.log('[Address Select] Preserving ownershipStatus:', prev.ownershipStatus);
-                                     return {
-                                       ...prev,
-                                       propertyAddress: value,
-                                       geoLat: coordinates?.lat ?? prev.geoLat,
-                                       geoLng: coordinates?.lng ?? prev.geoLng,
-                                       county: addressDetails?.county ?? prev.county,
-                                       city: addressDetails?.city ?? prev.city,
-                                       state: addressDetails?.state ?? prev.state,
-                                       zipCode: addressDetails?.zipCode ?? prev.zipCode,
-                                       neighborhood: addressDetails?.neighborhood ?? prev.neighborhood,
-                                       sublocality: addressDetails?.sublocality ?? prev.sublocality,
-                                       placeId: addressDetails?.placeId ?? prev.placeId,
-                                       submarket: addressDetails?.submarket ?? prev.submarket,
-                                       currentUse: addressDetails?.currentUse ?? prev.currentUse,
-                                       utilityAccess: addressDetails?.utilityAccess ?? prev.utilityAccess,
-                                       // Explicitly preserve ownershipStatus
-                                       ownershipStatus: prev.ownershipStatus
-                                     };
-                                   });
+                                    // Consolidate all address-related updates into a single setFormData call
+                                    setFormData(prev => {
+                                      return {
+                                        ...prev,
+                                        propertyAddress: value,
+                                        geoLat: coordinates?.lat ?? prev.geoLat,
+                                        geoLng: coordinates?.lng ?? prev.geoLng,
+                                        county: addressDetails?.county ?? prev.county,
+                                        city: addressDetails?.city ?? prev.city,
+                                        state: addressDetails?.state ?? prev.state,
+                                        zipCode: addressDetails?.zipCode ?? prev.zipCode,
+                                        neighborhood: addressDetails?.neighborhood ?? prev.neighborhood,
+                                        sublocality: addressDetails?.sublocality ?? prev.sublocality,
+                                        placeId: addressDetails?.placeId ?? prev.placeId,
+                                        submarket: addressDetails?.submarket ?? prev.submarket,
+                                        currentUse: addressDetails?.currentUse ?? prev.currentUse,
+                                        utilityAccess: addressDetails?.utilityAccess ?? prev.utilityAccess,
+                                      };
+                                    });
                                   
                                   // Mark Google-populated fields as enriched
                                   setEnrichedFields(prev => ({
@@ -941,29 +931,26 @@ export default function Application() {
                                     resolvedLotSize
                                   });
 
-                                  // Auto-fill both visible and hidden enriched fields
-                                  setFormData(prev => {
-                                    console.log('[Enrichment Complete] Preserving ownershipStatus:', prev.ownershipStatus);
-                                    return {
-                                      ...prev,
-                                      // Visible fields
-                                      parcelId: data.data.parcel_id || prev.parcelId,
-                                      zoning: data.data.zoning_code || prev.zoning,
-                                      lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
-                                      lotSizeUnit: (data.data.lot_size_unit as string) || prev.lotSizeUnit,
-                                      // Hidden enriched fields
-                                      situsAddress: data.data.situs_address || prev.situsAddress,
-                                      administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                                      parcelOwner: data.data.parcel_owner || prev.parcelOwner,
-                                      acreageCad: data.data.acreage_cad || prev.acreageCad,
-                                      zoningCode: data.data.zoning_code || prev.zoningCode,
-                                      overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
-                                      floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
-                                      baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation,
-                                      // Explicitly preserve ownershipStatus
-                                      ownershipStatus: prev.ownershipStatus
-                                    };
-                                  });
+                                   // Auto-fill both visible and hidden enriched fields
+                                   setFormData(prev => {
+                                     return {
+                                       ...prev,
+                                       // Visible fields
+                                       parcelId: data.data.parcel_id || prev.parcelId,
+                                       zoning: data.data.zoning_code || prev.zoning,
+                                       lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
+                                       lotSizeUnit: (data.data.lot_size_unit as string) || prev.lotSizeUnit,
+                                       // Hidden enriched fields
+                                       situsAddress: data.data.situs_address || prev.situsAddress,
+                                       administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                                       parcelOwner: data.data.parcel_owner || prev.parcelOwner,
+                                       acreageCad: data.data.acreage_cad || prev.acreageCad,
+                                       zoningCode: data.data.zoning_code || prev.zoningCode,
+                                       overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
+                                       floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
+                                       baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation,
+                                     };
+                                   });
 
                                   // Mark which fields were successfully enriched
                                   setEnrichedFields(prev => ({
@@ -1347,47 +1334,9 @@ export default function Application() {
                                 Zoning determines allowed uses and development requirements.
                               </p>
                             </div>
-
-                             <div>
-                               <Label htmlFor="ownershipStatus" className="font-body font-semibold text-charcoal flex items-center gap-1">
-                                 Ownership / Acquisition Status <span className="text-maxx-red text-lg">*</span>
-                               </Label>
-                              <Select value={formData.ownershipStatus} onValueChange={(value) => handleInputChange('ownershipStatus', value)}>
-                                <SelectTrigger className={`mt-2 ${errors.ownershipStatus ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
-                                  <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="exploring">Exploring Opportunities</SelectItem>
-                                  <SelectItem value="site-identified">Site Identified</SelectItem>
-                                  <SelectItem value="loi-drafted">LOI Drafted</SelectItem>
-                                  <SelectItem value="loi-signed">LOI Signed</SelectItem>
-                                  <SelectItem value="under-negotiation">Under Negotiation (PSA)</SelectItem>
-                                  <SelectItem value="under-contract-dd">Under Contract (Due Diligence)</SelectItem>
-                                  <SelectItem value="under-contract-hard">Under Contract (Hard Money In)</SelectItem>
-                                  <SelectItem value="closed">Closed</SelectItem>
-                                  <SelectItem value="owned-long-term">Owned Long-Term</SelectItem>
-                                  <SelectItem value="other">Other</SelectItem>
-                                </SelectContent>
-                               </Select>
-                               <p className="text-sm text-charcoal/60 mt-1">
-                                 Acquisition timeline affects feasibility study scope and urgency.
-                               </p>
-                              {errors.ownershipStatus && (
-                                <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 border border-red-200 rounded">
-                                  <AlertCircle className="w-4 h-4 text-maxx-red flex-shrink-0" />
-                                  <p className="text-maxx-red text-sm font-medium">{errors.ownershipStatus}</p>
-                                </div>
-                              )}
-                              {formData.ownershipStatus && !errors.ownershipStatus && (
-                                <div className="flex items-center gap-2 mt-2 text-sm text-green-600">
-                                  <CheckCircle className="w-4 h-4" />
-                                  <span>Status selected ✓</span>
-                                </div>
-                              )}
-                             </div>
-                          </div>
-                          
-                          {/* Interactive Map for Parcel Drawing */}
+                           </div>
+                           
+                           {/* Interactive Map for Parcel Drawing */}
                           {formData.geoLat && formData.geoLng && (
                             <Card className="mt-6">
                               <CardHeader>
@@ -2261,7 +2210,7 @@ export default function Application() {
                               Next
                               <ArrowRight className="w-4 h-4" />
                             </Button>
-                            {currentStep === 2 && (!formData.propertyAddress || !formData.ownershipStatus) && (
+                            {currentStep === 2 && !formData.propertyAddress && (
                               <p className="text-xs text-charcoal/60">
                                 Complete all required fields to continue
                               </p>

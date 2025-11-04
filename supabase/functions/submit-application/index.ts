@@ -227,7 +227,7 @@ serve(async (req) => {
       lot_size_value: parseNumber(requestData.lotSizeValue),
       lot_size_unit: requestData.lotSizeUnit || null,
       existing_improvements: requestData.existingImprovements,
-      ownership_status: requestData.ownershipStatus,
+      ownership_status: requestData.ownershipStatus || 'not_specified',
       geo_lat: geo_lat,
       geo_lng: geo_lng,
       

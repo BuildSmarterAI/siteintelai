@@ -38,7 +38,7 @@ serve(async (req) => {
     // Calculate completion percentage based on filled fields
     const requiredFields = [
       'fullName', 'company', 'email', 'phone', // Step 1
-      'propertyAddress', 'ownershipStatus', // Step 2
+      'propertyAddress', // Step 2
       'projectType', // Step 3
       // Steps 4-5 are optional
     ];
@@ -61,7 +61,7 @@ serve(async (req) => {
       phone: formData.phone || null,
       property_address: formData.propertyAddress || null,
       formatted_address: formData.propertyAddress || null,
-      ownership_status: formData.ownershipStatus || null,
+      ownership_status: 'not_specified',
       geo_lat: formData.geoLat || null,
       geo_lng: formData.geoLng || null,
       county: formData.county || null,

@@ -15,7 +15,6 @@ export interface ApplicationFormData {
   lotSizeUnit: string;
   currentUse: string;
   zoning: string;
-  ownershipStatus: string;
   geoLat: number | null;
   geoLng: number | null;
   county: string;
@@ -90,7 +89,6 @@ const initialFormData: ApplicationFormData = {
   lotSizeUnit: "acres",
   currentUse: "",
   zoning: "",
-  ownershipStatus: "",
   geoLat: null,
   geoLng: null,
   county: "",
@@ -164,7 +162,6 @@ export function useApplicationForm() {
 
     if (step === 2) {
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
-      if (!formData.ownershipStatus) newErrors.ownershipStatus = "Ownership status is required";
     }
 
     if (step === 3) {
