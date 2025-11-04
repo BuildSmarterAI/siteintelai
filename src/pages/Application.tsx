@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -860,10 +860,10 @@ export default function Application() {
                             )}
                             
                              <PropertyStep
-                               formData={useMemo(() => ({
+                               formData={{
                                  propertyAddress: formData.propertyAddress,
                                  ownershipStatus: formData.ownershipStatus,
-                               }), [formData.propertyAddress, formData.ownershipStatus])}
+                               }}
                                onChange={handleInputChange}
                                onAddressSelect={(value, coordinates, addressDetails) => {
                                 handleInputChange('propertyAddress', value);
