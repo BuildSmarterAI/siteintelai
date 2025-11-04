@@ -3,6 +3,18 @@ project_id = "mcmfwlgovubpdcfiqfvk"
 [functions.orchestrate-application]
 verify_jwt = true
 
+[functions.hii-ingest]
+verify_jwt = false
+
+[functions.hii-alerts]
+verify_jwt = false
+
+[functions.hii-score]
+verify_jwt = false
+
+[functions.hii-geojson]
+verify_jwt = false
+
 [functions.validate-gis-endpoints]
 verify_jwt = false
 
