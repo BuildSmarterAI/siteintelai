@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import proj4 from "https://cdn.skypack.dev/proj4@2.8.0";
+import proj4 from 'npm:proj4@2.8.0';
 
 // Define EPSG:2278 (Texas South Central, US survey feet) projection
 // Authoritative definition from epsg.io - false easting/northing in meters, converted internally by proj4
