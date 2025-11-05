@@ -131,6 +131,12 @@ export default {
           info: "hsl(var(--status-info))",        // Neutral data annotations
           pending: "hsl(var(--status-pending))",
         },
+        // Hospitality Intelligence (HII) Module Colors
+        hii: {
+          high: "hsl(var(--hii-high))",      // High activity/score (green)
+          medium: "hsl(var(--hii-medium))",  // Medium activity/score (yellow)
+          low: "hsl(var(--hii-low))",        // Low activity/score (red)
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

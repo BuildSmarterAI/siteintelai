@@ -34,6 +34,7 @@ import ParcelExplorer from "./pages/ParcelExplorer";
 import Beta from "./pages/Beta";
 import BetaSignup from "./pages/BetaSignup";
 import BetaThankYou from "./pages/BetaThankYou";
+import HospitalityIntelligence from "./pages/HospitalityIntelligence";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +75,8 @@ const App = () => (
               <Route path="/products/feasibility" element={<Feasibility />} />
               <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
               <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
+              <Route path="/hospitality-intelligence" element={<HospitalityIntelligence />} />
+              <Route path="/feasibility/:parcelId/hospitality" element={<HospitalityIntelligence />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />

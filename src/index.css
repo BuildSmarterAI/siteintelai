@@ -103,6 +103,11 @@ All colors MUST be HSL.
     --status-info: 199 89% 48%;
     --status-pending: 217 91% 60%;
     
+    /* Hospitality Intelligence (HII) Module Colors */
+    --hii-high: 142 71% 45%;        /* #15803D - Green for high activity */
+    --hii-medium: 48 96% 53%;       /* #FACC15 - Yellow for medium activity */
+    --hii-low: 0 72% 51%;           /* #DC2626 - Red for low activity */
+    
     /* Intent-specific theme extensions */
     --intent-build-primary: 226 63% 11%;      /* Midnight Blue */
     --intent-build-bg: 226 63% 11% / 0.08;
@@ -141,6 +146,11 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 0 0% 98%;
     --sidebar-border: 220 10% 18%;
     --sidebar-ring: 4 85% 48%;
+    
+    /* HII colors (dark mode adjusted) */
+    --hii-high: 142 71% 50%;        /* Slightly brighter for dark mode */
+    --hii-medium: 48 96% 58%;       /* Slightly brighter for dark mode */
+    --hii-low: 0 72% 56%;           /* Slightly brighter for dark mode */
     
     /* Dark mode gradients */
     --gradient-hero: linear-gradient(135deg, hsl(220 20% 8% / 0.95), hsl(240 80% 18% / 0.85));
