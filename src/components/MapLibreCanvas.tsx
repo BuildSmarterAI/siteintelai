@@ -213,6 +213,12 @@ export function MapLibreCanvas({
   const [measurementPoints, setMeasurementPoints] = useState<[number, number][]>([]);
   const measurementSourceId = 'measurement-source';
   
+  // Basemap style state (persisted in localStorage)
+  const [basemapStyle, setBasemapStyle] = useState<'streets' | 'satellite' | 'hybrid'>(() => {
+    const saved = localStorage.getItem('mapBasemapStyle');
+    return (saved as 'streets' | 'satellite' | 'hybrid') || 'streets';
+  });
+  
   // Layer visibility state (persisted in localStorage with intent-aware defaults)
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>(() => {
     const saved = localStorage.getItem('mapLayerVisibility');
@@ -233,10 +239,111 @@ export function MapLibreCanvas({
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
   const toMapLibre = (coords: [number, number]): [number, number] => [coords[1], coords[0]];
 
+  // Basemap style configuration
+  const getBasemapStyle = (styleType: 'streets' | 'satellite' | 'hybrid') => {
+    const styles = {
+      streets: {
+        version: 8 as const,
+        sources: {
+          'osm-tiles': {
+            type: 'raster' as const,
+            tiles: [
+              'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            ],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors',
+          },
+        },
+        layers: [
+          {
+            id: 'osm-tiles-layer',
+            type: 'raster' as const,
+            source: 'osm-tiles',
+            minzoom: 0,
+            maxzoom: 19,
+          },
+        ],
+      },
+      satellite: {
+        version: 8 as const,
+        sources: {
+          'google-satellite': {
+            type: 'raster' as const,
+            tiles: [
+              'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+              'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+              'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+              'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            ],
+            tileSize: 256,
+            attribution: '© Google',
+          },
+        },
+        layers: [
+          {
+            id: 'google-satellite-layer',
+            type: 'raster' as const,
+            source: 'google-satellite',
+            minzoom: 0,
+            maxzoom: 20,
+          },
+        ],
+      },
+      hybrid: {
+        version: 8 as const,
+        sources: {
+          'google-satellite': {
+            type: 'raster' as const,
+            tiles: [
+              'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+              'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+              'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+              'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+            ],
+            tileSize: 256,
+            attribution: '© Google',
+          },
+          'osm-labels': {
+            type: 'raster' as const,
+            tiles: [
+              'https://stamen-tiles.a.ssl.fastly.net/toner-hybrid/{z}/{x}/{y}.png',
+            ],
+            tileSize: 256,
+          },
+        },
+        layers: [
+          {
+            id: 'google-satellite-layer',
+            type: 'raster' as const,
+            source: 'google-satellite',
+            minzoom: 0,
+            maxzoom: 20,
+          },
+          {
+            id: 'osm-labels-layer',
+            type: 'raster' as const,
+            source: 'osm-labels',
+            minzoom: 0,
+            maxzoom: 19,
+          },
+        ],
+      },
+    };
+    
+    return styles[styleType];
+  };
+
   // Save visibility state to localStorage
   useEffect(() => {
     localStorage.setItem('mapLayerVisibility', JSON.stringify(layerVisibility));
   }, [layerVisibility]);
+
+  // Save basemap style to localStorage
+  useEffect(() => {
+    localStorage.setItem('mapBasemapStyle', basemapStyle);
+  }, [basemapStyle]);
 
   // Save opacity state to localStorage
   useEffect(() => {
@@ -256,6 +363,32 @@ export function MapLibreCanvas({
   // Toggle fullscreen mode
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
+  };
+
+  // Toggle basemap style
+  const toggleBasemap = () => {
+    const styles: Array<'streets' | 'satellite' | 'hybrid'> = ['streets', 'satellite', 'hybrid'];
+    const currentIndex = styles.indexOf(basemapStyle);
+    const nextStyle = styles[(currentIndex + 1) % styles.length];
+    
+    if (map.current) {
+      // Change basemap style
+      map.current.setStyle(getBasemapStyle(nextStyle));
+      
+      // Wait for style to load, then trigger layer re-rendering
+      map.current.once('styledata', () => {
+        setMapLoaded(true);
+      });
+      
+      setBasemapStyle(nextStyle);
+      
+      const labels = {
+        streets: 'Streets',
+        satellite: 'Satellite',
+        hybrid: 'Hybrid'
+      };
+      toast.success(`Switched to ${labels[nextStyle]} view`);
+    }
   };
 
   // Export map as PNG
@@ -350,30 +483,7 @@ export function MapLibreCanvas({
       map.current = new maplibregl.Map({
         container: mapContainer.current,
         preserveDrawingBuffer: true, // Enable PNG export
-        style: {
-          version: 8,
-          sources: {
-            'osm-tiles': {
-              type: 'raster',
-              tiles: [
-                'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-              ],
-              tileSize: 256,
-              attribution: '© OpenStreetMap contributors',
-            },
-          },
-          layers: [
-            {
-              id: 'osm-tiles-layer',
-              type: 'raster',
-              source: 'osm-tiles',
-              minzoom: 0,
-              maxzoom: 19,
-            },
-          ],
-        },
+        style: getBasemapStyle(basemapStyle),
         center: toMapLibre(center),
         zoom: zoom,
         antialias: true,
@@ -453,6 +563,15 @@ export function MapLibreCanvas({
   // Add parcel layer
   useEffect(() => {
     if (!map.current || !mapLoaded || !parcel?.geometry) return;
+
+    // Wait for style to finish loading after basemap change
+    if (map.current.isStyleLoaded() === false) {
+      const handler = () => {
+        setMapLoaded(true);
+      };
+      map.current.once('styledata', handler);
+      return;
+    }
 
     const sourceId = 'parcel-source';
     const fillLayerId = 'parcel-fill';
@@ -1426,6 +1545,18 @@ export function MapLibreCanvas({
 
       {/* Top-right controls */}
       <div className="absolute top-2 right-2 z-10 flex gap-2">
+        <Button
+          onClick={toggleBasemap}
+          size="sm"
+          variant="secondary"
+          className="shadow-lg bg-background hover:bg-muted min-w-[100px]"
+          title={`Current: ${basemapStyle}. Click to change.`}
+        >
+          <Map className="h-4 w-4 mr-2" />
+          {basemapStyle === 'streets' && 'Streets'}
+          {basemapStyle === 'satellite' && 'Satellite'}
+          {basemapStyle === 'hybrid' && 'Hybrid'}
+        </Button>
         <Button
           onClick={() => {
             if (!map.current) return;
