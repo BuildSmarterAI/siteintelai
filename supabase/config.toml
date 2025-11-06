@@ -3,6 +3,9 @@ project_id = "mcmfwlgovubpdcfiqfvk"
 [functions.gis-fetch-with-versioning]
 verify_jwt = false
 
+[functions.gis-get-layer]
+verify_jwt = false
+
 [functions.orchestrate-application]
 verify_jwt = true
 
