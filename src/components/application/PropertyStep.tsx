@@ -14,6 +14,9 @@ interface PropertyStepProps {
     geoLng?: number;
     parcelId?: string;
     lotSize?: string;
+    lotSizeUnit?: string;
+    parcelOwner?: string;
+    zoning?: string;
   };
   onChange: (field: string, value: any) => void;
   onAddressSelect: (lat: number, lng: number, address: string) => void;
@@ -103,23 +106,69 @@ export function PropertyStep({
         
         {/* Display selected address if available */}
         {formData.propertyAddress && (
-          <div className="mt-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-green-900 dark:text-green-100">
-                  Selected Address:
-                </p>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  {formData.propertyAddress}
-                </p>
+          <div className="mt-2 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <MapPin className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                {/* Primary Address */}
+                <div>
+                  <p className="text-sm font-semibold text-green-900 dark:text-green-100">
+                    Selected Address:
+                  </p>
+                  <p className="text-sm text-green-700 dark:text-green-300">
+                    {formData.propertyAddress}
+                  </p>
+                </div>
+
+                {/* Parcel Details Grid - Show if ANY enriched data exists */}
+                {(formData.parcelId || formData.lotSize || formData.parcelOwner || formData.zoning) && (
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm border-t border-green-200 dark:border-green-700 pt-2">
+                    {/* Parcel ID */}
+                    {formData.parcelId && (
+                      <>
+                        <span className="text-green-800 dark:text-green-200 font-medium">Parcel ID:</span>
+                        <span className="text-green-700 dark:text-green-300">{formData.parcelId}</span>
+                      </>
+                    )}
+                    
+                    {/* Lot Size */}
+                    {formData.lotSize && (
+                      <>
+                        <span className="text-green-800 dark:text-green-200 font-medium">Lot Size:</span>
+                        <span className="text-green-700 dark:text-green-300">
+                          {formData.lotSize} {formData.lotSizeUnit || 'acres'}
+                        </span>
+                      </>
+                    )}
+                    
+                    {/* Owner */}
+                    {formData.parcelOwner && (
+                      <>
+                        <span className="text-green-800 dark:text-green-200 font-medium">Owner:</span>
+                        <span className="text-green-700 dark:text-green-300 truncate" title={formData.parcelOwner}>
+                          {formData.parcelOwner}
+                        </span>
+                      </>
+                    )}
+                    
+                    {/* Zoning */}
+                    {formData.zoning && (
+                      <>
+                        <span className="text-green-800 dark:text-green-200 font-medium">Zoning:</span>
+                        <span className="text-green-700 dark:text-green-300">{formData.zoning}</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
+              
+              {/* Clear Button */}
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onChange('propertyAddress', '')}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 flex-shrink-0"
               >
                 Clear
               </Button>

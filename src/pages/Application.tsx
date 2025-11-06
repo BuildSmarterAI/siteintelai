@@ -862,6 +862,13 @@ export default function Application() {
                               <PropertyStep
                                 formData={{
                                   propertyAddress: formData.propertyAddress,
+                                  geoLat: formData.geoLat,
+                                  geoLng: formData.geoLng,
+                                  parcelId: formData.parcelId,
+                                  lotSize: formData.lotSize,
+                                  lotSizeUnit: formData.lotSizeUnit,
+                                  parcelOwner: formData.parcelOwner,
+                                  zoning: formData.zoning,
                                 }}
                                 onChange={handleInputChange}
                                 onAddressSelect={(lat: number, lng: number, address: string) => {
