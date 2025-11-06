@@ -111,9 +111,15 @@ export default function Application() {
               const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 0;
               
               if (currentStepFromUrl <= 1) {
-                // Auto-advance to step 2 since contact info is complete
-                navigate('/application?step=2', { replace: true });
-                setCurrentStep(2);
+                if (intentCapturedThisSession && savedIntent) {
+                  // Both contact info and intent captured - skip to step 2
+                  navigate('/application?step=2', { replace: true });
+                  setCurrentStep(2);
+                } else {
+                  // Intent not captured - ensure user starts at step 0
+                  navigate('/application?step=0', { replace: true });
+                  setCurrentStep(0);
+                }
               }
             } else if (profile.full_name && profile.email) {
               // Profile is PARTIAL - show friendly message and let them complete
