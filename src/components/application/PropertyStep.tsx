@@ -45,6 +45,13 @@ export function PropertyStep({
   const [selectedParcelFromMap, setSelectedParcelFromMap] = useState<any>(null);
   const [isMapLoading, setIsMapLoading] = useState(true);
   
+  const handleMapOpenChange = (open: boolean) => {
+    setIsMapOpen(open);
+    if (open) {
+      setIsMapLoading(false);
+    }
+  };
+  
   // Determine map center (use selected location or default to Houston)
   const mapCenter: [number, number] = formData.geoLat && formData.geoLng 
     ? [formData.geoLat, formData.geoLng]
@@ -103,7 +110,7 @@ export function PropertyStep({
       </div>
 
       {/* Map Selection Section */}
-      <Collapsible open={isMapOpen} onOpenChange={setIsMapOpen}>
+      <Collapsible open={isMapOpen} onOpenChange={handleMapOpenChange}>
         <CollapsibleTrigger asChild>
           <Button
             type="button"
