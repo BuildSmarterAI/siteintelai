@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.gis-get-layer]
 verify_jwt = false
 
+[functions.gis-refresh-scheduler]
+verify_jwt = false
+
 [functions.orchestrate-application]
 verify_jwt = true
 
