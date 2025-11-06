@@ -1,7 +1,12 @@
 /**
  * BuildSmarter™ Feasibility Core
  * Function: fetch-geospatial-layers
- * Purpose: Aggregate counties, FEMA flood zones, and TxDOT traffic data.
+ * Purpose: Orchestrate GIS cache refresh using the versioned cache system
+ * 
+ * PHASE 6 UPDATE: Now uses gis-fetch-with-versioning for intelligent caching
+ * - ETag-based change detection
+ * - Automatic compression and storage
+ * - Version tracking and expiry management
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
@@ -11,30 +16,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// ---------- County Boundaries ----------
-const COUNTY_ENDPOINTS = [
-  {
-    name: 'Harris County',
-    source: 'HCAD',
-    url: 'https://www.gis.hctx.net/arcgis/rest/services/repository/HCAD_Counties/MapServer/0/query?where=1%3D1&outFields=OBJECTID,code,name,GlobalID&outSR=4326&f=geojson'
-  },
-  {
-    name: 'Fort Bend County',
-    source: 'FBCAD',
-    url: 'https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/1/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
-  },
-  {
-    name: 'Montgomery County',
-    source: 'MCAD',
-    url: 'https://services.arcgis.com/KTcxiTD9dsQw6z7O/arcgis/rest/services/Montgomery_County_Boundary/FeatureServer/0/query?where=1%3D1&outFields=*&outSR=4326&f=geojson'
-  }
+// Define layers to refresh (mapped to gis_layers table)
+const LAYERS_TO_REFRESH = [
+  // County boundaries
+  { layer_key: 'hcad:county_boundary', area_key: 'harris', priority: 1 },
+  { layer_key: 'fbcad:county_boundary', area_key: 'fort_bend', priority: 1 },
+  // FEMA flood zones (on-demand queries now handled by query-fema-by-point)
+  // TxDOT traffic data
+  { layer_key: 'txdot:aadt', area_key: 'all', priority: 2 },
 ];
 
-// ---------- FEMA NFHL (Flood Hazard Zones) ----------
-const FEMA_URL = 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query?where=1%3D1&outFields=OBJECTID,DFIRM_ID,FLD_ZONE,ZONE_SUBTY,STATIC_BFE&outSR=4326&f=geojson&resultRecordCount=2000';
-
-// ---------- TxDOT AADT (Traffic Volumes) ----------
-const TXDOT_URL = 'https://gis-txdot.opendata.arcgis.com/datasets/d5f56ecd2b274b4d8dc3c2d6fe067d37_0.geojson';
+interface RefreshResult {
+  layer_key: string;
+  area_key: string;
+  status: 'success' | 'unchanged' | 'error';
+  message?: string;
+  record_count?: number;
+  duration_ms?: number;
+  version_id?: string;
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -42,137 +42,120 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const results = [];
+    // Parse optional parameters
+    let forceRefresh = false;
+    try {
+      const body = await req.json();
+      forceRefresh = body.force_refresh || false;
+    } catch {
+      // No body provided - use defaults
+    }
 
-    console.log('Starting geospatial layers fetch...');
+    console.log(`[fetch-geospatial-layers] Starting refresh (force: ${forceRefresh})...`);
+    
+    const results: RefreshResult[] = [];
 
-    // ---------- COUNTY BOUNDARIES ----------
-    console.log('Fetching county boundaries...');
-    for (const county of COUNTY_ENDPOINTS) {
+    // Refresh each layer using the intelligent cache system
+    for (const layer of LAYERS_TO_REFRESH) {
+      const layerStart = Date.now();
+      console.log(`[fetch-geospatial-layers] Refreshing ${layer.layer_key}/${layer.area_key}...`);
+
       try {
-        console.log(`Fetching ${county.name}...`);
-        const response = await fetch(county.url);
-        const data = await response.json();
+        // Call gis-fetch-with-versioning for intelligent refresh
+        const { data, error } = await supabase.functions.invoke('gis-fetch-with-versioning', {
+          body: {
+            layer_key: layer.layer_key,
+            area_key: layer.area_key,
+            force_refresh: forceRefresh
+          }
+        });
 
-        if (!data.features || data.features.length === 0) {
-          console.warn(`No features found for ${county.name}`);
+        if (error) {
+          console.error(`[fetch-geospatial-layers] Error refreshing ${layer.layer_key}:`, error);
+          results.push({
+            layer_key: layer.layer_key,
+            area_key: layer.area_key,
+            status: 'error',
+            message: error.message || 'Function invocation failed',
+            duration_ms: Date.now() - layerStart
+          });
           continue;
         }
 
-        const geometry = data.features[0].geometry;
-        const countyName = data.features[0].properties?.name || county.name;
+        // Parse response
+        const status = data?.status || 'unknown';
+        const recordCount = data?.record_count || 0;
+        const versionId = data?.version_id;
 
-        const { error } = await supabase.from('county_boundaries').upsert(
-          {
-            county_name: countyName,
-            geometry,
-            source: county.source,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: 'county_name' }
-        );
+        console.log(`[fetch-geospatial-layers] ${layer.layer_key} result: ${status} (${recordCount} records)`);
 
-        if (error) {
-          console.error(`Error upserting ${county.name}:`, error);
-          throw error;
-        }
-
-        console.log(`✓ ${countyName} updated successfully`);
         results.push({
-          type: 'county',
-          county_name: countyName,
-          source: county.source,
-          updated_at: new Date().toISOString()
+          layer_key: layer.layer_key,
+          area_key: layer.area_key,
+          status: status === 'success' ? 'success' : status === 'unchanged' ? 'unchanged' : 'error',
+          message: data?.message,
+          record_count: recordCount,
+          version_id: versionId,
+          duration_ms: Date.now() - layerStart
         });
+
       } catch (err) {
-        console.error(`Failed to fetch ${county.name}:`, err);
+        console.error(`[fetch-geospatial-layers] Exception refreshing ${layer.layer_key}:`, err);
         results.push({
-          type: 'county',
-          county_name: county.name,
-          error: err.message
+          layer_key: layer.layer_key,
+          area_key: layer.area_key,
+          status: 'error',
+          message: err.message,
+          duration_ms: Date.now() - layerStart
         });
       }
     }
 
-    // FEMA flood zones are now queried on-demand per parcel in compute-geospatial-score
-    console.log('✓ FEMA queries moved to on-demand (per-parcel) approach');
-    results.push({
-      type: 'fema',
-      record_count: 0,
-      note: 'FEMA flood zones now queried on-demand per parcel',
-      source: 'FEMA NFHL MapServer 28'
-    });
+    // Generate summary
+    const summary = {
+      success: true,
+      message: 'GIS cache refresh completed',
+      total_layers: LAYERS_TO_REFRESH.length,
+      refreshed: results.filter(r => r.status === 'success').length,
+      unchanged: results.filter(r => r.status === 'unchanged').length,
+      errors: results.filter(r => r.status === 'error').length,
+      execution_time_ms: Date.now() - startTime,
+      results
+    };
 
-    // ---------- TXDOT TRAFFIC SEGMENTS ----------
-    console.log('Fetching TxDOT traffic segments...');
-    try {
-      const txdotRes = await fetch(TXDOT_URL);
-      const txdotData = await txdotRes.json();
-      const txdotFeatures = txdotData?.features?.slice(0, 2000) || [];
+    console.log(`[fetch-geospatial-layers] Completed: ${summary.refreshed} refreshed, ${summary.unchanged} unchanged, ${summary.errors} errors`);
 
-      console.log(`Processing ${txdotFeatures.length} TxDOT features...`);
-      let txdotSuccess = 0;
-      let txdotErrors = 0;
-
-      for (const seg of txdotFeatures) {
-        const { error } = await supabase.from('txdot_traffic_segments').upsert({
-          segment_id: seg?.properties?.OBJECTID?.toString() || `txdot_${Date.now()}_${Math.random()}`,
-          aadt: seg?.properties?.AADT || seg?.properties?.aadt,
-          year: seg?.properties?.AADT_YR || seg?.properties?.year,
-          roadway: seg?.properties?.ROUTE_NAME || seg?.properties?.route,
-          geometry: seg.geometry,
-          source: 'TxDOT',
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'segment_id' });
-
-        if (error) {
-          console.error('TxDOT upsert error:', error);
-          txdotErrors++;
-        } else {
-          txdotSuccess++;
-        }
-      }
-
-      console.log(`✓ TxDOT segments updated: ${txdotSuccess} success, ${txdotErrors} errors`);
-      results.push({
-        type: 'txdot',
-        record_count: txdotSuccess,
-        errors: txdotErrors,
-        source: 'TxDOT'
-      });
-    } catch (err) {
-      console.error('Failed to fetch TxDOT data:', err);
-      results.push({
-        type: 'txdot',
-        error: err.message
+    // Log errors if any
+    if (summary.errors > 0) {
+      console.error('[fetch-geospatial-layers] Errors occurred:');
+      results.filter(r => r.status === 'error').forEach(r => {
+        console.error(`  - ${r.layer_key}/${r.area_key}: ${r.message}`);
       });
     }
-
-    console.log('Geospatial layers fetch completed');
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'All layers fetched and updated successfully.',
-        results
-      }),
+      JSON.stringify(summary),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 
       }
     );
+
   } catch (err) {
-    console.error('Fetch Error:', err);
+    console.error('[fetch-geospatial-layers] Fatal error:', err);
     return new Response(
       JSON.stringify({
         success: false,
-        message: err.message
+        message: err.message,
+        execution_time_ms: Date.now() - startTime
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
