@@ -116,5 +116,8 @@ verify_jwt = true
 [functions.enrich-wetlands]
 verify_jwt = true
 
+[functions.gis-migrate-legacy-data]
+verify_jwt = false
+
 [functions.submit-beta-signup]
 verify_jwt = false
