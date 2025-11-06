@@ -1,5 +1,5 @@
 import { Label } from "@/components/ui/label";
-import { AddressAutocomplete } from "@/components/ui/address-autocomplete";
+import { ParcelSearchBar } from "@/components/ParcelSearchBar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PropertyStepProps {
@@ -7,7 +7,8 @@ interface PropertyStepProps {
     propertyAddress: string;
   };
   onChange: (field: string, value: any) => void;
-  onAddressSelect: (value: any, coordinates: any, addressDetails: any) => void;
+  onAddressSelect: (lat: number, lng: number, address: string) => void;
+  onParcelSelect?: (parcel: any) => void;
   onEnrichmentComplete?: (data: any) => void;
   errors: Record<string, string>;
   isAddressLoading: boolean;
@@ -20,11 +21,12 @@ interface PropertyStepProps {
 export function PropertyStep({ 
   formData, 
   onChange, 
-  onAddressSelect, 
+  onAddressSelect,
+  onParcelSelect,
   onEnrichmentComplete,
   errors,
   isAddressLoading,
-  placeholder = "123 Main Street, City, State, ZIP",
+  placeholder = "Address, parcel ID, or intersection...",
   label = "Property Address",
   required = true,
   error
@@ -34,16 +36,26 @@ export function PropertyStep({
       <legend className="sr-only">Property Information</legend>
 
       <div className="space-y-2">
-        <AddressAutocomplete
-          value={formData.propertyAddress}
-          onChange={onAddressSelect}
-          onEnrichmentComplete={onEnrichmentComplete}
-          placeholder={placeholder}
-          label={label}
-          required={required}
-          className="touch-target"
-          error={error || errors.propertyAddress}
+        <Label htmlFor="property-search" className="font-body font-semibold text-charcoal">
+          {label} {required && <span className="text-maxx-red">*</span>}
+        </Label>
+        <p className="text-sm text-muted-foreground mb-2">
+          Search by street address, parcel ID (10+ digits), intersection (e.g., "Main St & Elm Ave"), or click coordinates on map
+        </p>
+        
+        {/* ParcelSearchBar component with all search capabilities */}
+        <ParcelSearchBar
+          onAddressSelect={onAddressSelect}
+          onParcelSelect={onParcelSelect}
+          containerClassName="relative"
         />
+        
+        {error && (
+          <p className="text-sm text-maxx-red mt-1">{error}</p>
+        )}
+        {errors.propertyAddress && !error && (
+          <p className="text-sm text-maxx-red mt-1">{errors.propertyAddress}</p>
+        )}
       </div>
     </fieldset>
   );

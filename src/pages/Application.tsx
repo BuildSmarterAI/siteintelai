@@ -864,62 +864,111 @@ export default function Application() {
                                   propertyAddress: formData.propertyAddress,
                                 }}
                                 onChange={handleInputChange}
-                               onAddressSelect={(value, coordinates, addressDetails) => {
-                                handleInputChange('propertyAddress', value);
-                                
-                                // Set loading state when address is being populated
-                                setIsAddressLoading(true);
-                                
-                                 if (coordinates || addressDetails) {
-                                    // Consolidate all address-related updates into a single setFormData call
-                                    setFormData(prev => {
-                                      return {
-                                        ...prev,
-                                        propertyAddress: value,
-                                        geoLat: coordinates?.lat ?? prev.geoLat,
-                                        geoLng: coordinates?.lng ?? prev.geoLng,
-                                        county: addressDetails?.county ?? prev.county,
-                                        city: addressDetails?.city ?? prev.city,
-                                        state: addressDetails?.state ?? prev.state,
-                                        zipCode: addressDetails?.zipCode ?? prev.zipCode,
-                                        neighborhood: addressDetails?.neighborhood ?? prev.neighborhood,
-                                        sublocality: addressDetails?.sublocality ?? prev.sublocality,
-                                        placeId: addressDetails?.placeId ?? prev.placeId,
-                                        submarket: addressDetails?.submarket ?? prev.submarket,
-                                        currentUse: addressDetails?.currentUse ?? prev.currentUse,
-                                        utilityAccess: addressDetails?.utilityAccess ?? prev.utilityAccess,
-                                      };
-                                    });
+                                onAddressSelect={(lat: number, lng: number, address: string) => {
+                                  console.log('[Address Selected]', { lat, lng, address });
                                   
-                                  // Mark Google-populated fields as enriched
-                                  setEnrichedFields(prev => ({
+                                  // Update address and coordinates
+                                  setFormData(prev => ({
                                     ...prev,
-                                    county: !!addressDetails?.county,
-                                    city: !!addressDetails?.city,
-                                    state: !!addressDetails?.state,
-                                    zipCode: !!addressDetails?.zipCode,
-                                    neighborhood: !!addressDetails?.neighborhood
+                                    propertyAddress: address,
+                                    geoLat: lat,
+                                    geoLng: lng,
                                   }));
                                   
-                                  // Auto-unlock Google fields after 2 seconds (they're basic info)
-                                  // Store timeout ref so it can be cleared if user makes changes
-                                  if (enrichmentTimeoutRef.current) {
-                                    clearTimeout(enrichmentTimeoutRef.current);
+                                  // Trigger enrichment via AddressAutocomplete logic
+                                  setIsAddressLoading(true);
+                                  
+                                  toast({
+                                    title: "Location Selected",
+                                    description: "Fetching property details...",
+                                  });
+                                }}
+                                onParcelSelect={(parcel: any) => {
+                                  console.log('[Parcel Selected]', parcel);
+                                  
+                                  if (!parcel?.properties || !parcel?.geometry) {
+                                    console.error('Invalid parcel data');
+                                    return;
                                   }
-                                  enrichmentTimeoutRef.current = window.setTimeout(() => {
-                                    setIsAddressLoading(false);
+                                  
+                                  const props = parcel.properties;
+                                  
+                                  // Calculate parcel centroid from geometry
+                                  let centroidLat: number | null = null;
+                                  let centroidLng: number | null = null;
+                                  
+                                  if (parcel.geometry.type === 'Polygon' && parcel.geometry.coordinates?.[0]?.[0]) {
+                                    const [lng, lat] = parcel.geometry.coordinates[0][0];
+                                    centroidLat = lat;
+                                    centroidLng = lng;
+                                  }
+                                  
+                                  // Extract parcel data
+                                  const parcelId = props.ACCOUNT || props.HCAD_NUM || props.GEO_ID || '';
+                                  const situsAddress = props.SITUS_ADDRESS || props.SITE_ADDR_1 || props.PROP_ADDR || '';
+                                  const ownerName = props.OWNER_NAME || props.OWNER || '';
+                                  const acreage = props.ACREAGE || props.CALC_ACRE || props.LAND_ACRES || null;
+                                  const county = props.COUNTY || props.SITE_COUNTY || 'Harris';
+                                  const city = props.SITE_CITY || props.SITUS_CITY || '';
+                                  const zipCode = props.SITE_ZIP || props.SITUS_ZIP || '';
+                                  const zoning = props.ZONING || props.ZONE_CLASS || '';
+                                  
+                                  // Display address: prefer situs, fallback to "Parcel #ID"
+                                  const displayAddress = situsAddress || `Parcel #${parcelId}`;
+                                  
+                                  // Update form with parcel data
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    propertyAddress: displayAddress,
+                                    parcelId: parcelId,
+                                    geoLat: centroidLat,
+                                    geoLng: centroidLng,
+                                    lotSize: acreage ? String(acreage) : prev.lotSize,
+                                    lotSizeUnit: acreage ? 'acres' : prev.lotSizeUnit,
+                                    county: county,
+                                    city: city,
+                                    zipCode: zipCode,
+                                    zoning: zoning || prev.zoning,
+                                    parcelOwner: ownerName,
+                                    situsAddress: situsAddress,
+                                  }));
+                                  
+                                  // Mark parcel-sourced fields as enriched
+                                  setEnrichedFields(prev => ({
+                                    ...prev,
+                                    parcelId: !!parcelId,
+                                    lotSize: !!acreage,
+                                    county: !!county,
+                                    city: !!city,
+                                    zipCode: !!zipCode,
+                                    zoning: !!zoning,
+                                  }));
+                                  
+                                  // Store HCAD values for conflict detection
+                                  setHcadValues({
+                                    parcelId: parcelId,
+                                    lotSize: acreage ? String(acreage) : undefined,
+                                    zoning: zoning,
+                                  });
+                                  
+                                  toast({
+                                    title: "Parcel Selected ✅",
+                                    description: `${displayAddress} (${acreage || '?'} acres)`,
+                                  });
+                                  
+                                  // Auto-unlock parcel fields after brief delay
+                                  setTimeout(() => {
                                     setUnlockedFields(prev => ({
                                       ...prev,
+                                      parcelId: true,
+                                      lotSize: true,
                                       county: true,
                                       city: true,
-                                      state: true,
                                       zipCode: true,
-                                      neighborhood: true
+                                      zoning: true,
                                     }));
-                                    enrichmentTimeoutRef.current = null;
-                                  }, 2000);
-                                }
-                              }}
+                                  }, 1500);
+                                }}
                   onEnrichmentComplete={(data) => {
                                 if (data?.success && data?.data) {
                                   setEnrichedData(data.data);
