@@ -101,6 +101,32 @@ export function PropertyStep({
           containerClassName="relative"
         />
         
+        {/* Display selected address if available */}
+        {formData.propertyAddress && (
+          <div className="mt-2 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-green-900 dark:text-green-100">
+                  Selected Address:
+                </p>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  {formData.propertyAddress}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onChange('propertyAddress', '')}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+              >
+                Clear
+              </Button>
+            </div>
+          </div>
+        )}
+        
         {error && (
           <p className="text-sm text-maxx-red mt-1">{error}</p>
         )}
