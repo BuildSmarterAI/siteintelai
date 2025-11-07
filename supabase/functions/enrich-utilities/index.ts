@@ -458,8 +458,26 @@ serve(async (req) => {
       throw new Error("Must provide either application_id or latitude/longitude");
     }
     
-    console.log(`🌍 Coordinates: ${geo_lat}, ${geo_lng} | City: ${city || 'unknown'}`)
+    // PHASE 1: Entry Point Diagnostics
+    console.log('🚀 [enrich-utilities] Function invoked with:', {
+      application_id: application_id || 'not_provided',
+      direct_coords: latitude !== undefined && longitude !== undefined,
+      city_hint: cityHint || 'not_provided',
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log('📍 [enrich-utilities] Coordinates resolved:', {
+      geo_lat,
+      geo_lng,
+      county: county || 'not_set',
+      city: city || 'not_set',
+      source: application_id ? 'database' : 'direct'
+    });
 
+    // PHASE 7: Performance Monitoring - Start timer
+    const perfStart = Date.now();
+    const perfMarkers: Record<string, number> = {};
+    
     let water: any[] = [];
     let sewer: any[] = [];
     let storm: any[] = [];
@@ -509,9 +527,13 @@ serve(async (req) => {
         
         // 1. Water Distribution Mains (Layer 3) - GRACEFUL DEGRADATION
         try {
-          console.log('🔵 Querying Water Distribution Mains (Layer 3)...');
-          console.log(`📍 Using coordinates: ${geo_lng}, ${geo_lat}`);
-          console.log(`📏 Search radius: ${waterRadius} ft`);
+          // PHASE 2: Query Execution Tracking
+          console.log('💧 [enrich-utilities] Querying water mains...', {
+            endpoint: eps.water.url,
+            search_radius_ft: waterRadius,
+            coordinates: { geo_lat, geo_lng },
+            crs: eps.water.crs || 4326
+          });
           water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
             timeout_ms: eps.water.timeout_ms,
             retry_attempts: eps.water.retry_attempts,
@@ -522,11 +544,22 @@ serve(async (req) => {
             spatialRel: eps.water.spatialRel
           });
           
+          perfMarkers.water_complete = Date.now() - perfStart;
+          
           if (water.length > 0) {
             flags.push("water_via_houston_gis");
-            console.log(`✅ Water Mains: ${water.length} lines found`);
+            const closestDistance = Math.min(...water.map(f => {
+              const formatted = formatLines([f], geo_lat, geo_lng, 'water', waterCrs);
+              return formatted[0]?.distance_ft || Infinity;
+            }));
+            
+            console.log('✓ [enrich-utilities] Water mains query complete:', {
+              features_found: water.length,
+              elapsed_ms: perfMarkers.water_complete,
+              closest_distance_ft: closestDistance !== Infinity ? Math.round(closestDistance) : null
+            });
           } else {
-            console.log('ℹ️ Water Mains: No lines found in search radius');
+            console.log('⚠️ [enrich-utilities] Water mains: No lines found in search radius');
           }
         } catch (err) {
           console.warn('⚠️ Water Distribution Mains (Layer 3) query failed:', err instanceof Error ? err.message : String(err));
@@ -691,7 +724,12 @@ serve(async (req) => {
           : eps.sewer.search_radius_ft;
         
         try {
-          console.log('🔵 Querying Sewer Gravity Mains...');
+          // PHASE 2: Query Execution Tracking
+          console.log('🚽 [enrich-utilities] Querying sewer gravity lines...', {
+            endpoint_gravity: eps.sewer.url,
+            search_radius_ft: sewerRadius,
+            coordinates: { geo_lat, geo_lng }
+          });
           sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
             timeout_ms: eps.sewer.timeout_ms,
             retry_attempts: eps.sewer.retry_attempts,
@@ -702,11 +740,16 @@ serve(async (req) => {
             spatialRel: eps.sewer.spatialRel
           });
           
+          perfMarkers.sewer_gravity_complete = Date.now() - perfStart;
+          
           if (sewerGravity.length > 0) {
             flags.push("sewer_via_arcgis_online");
-            console.log(`✅ Sewer Gravity: ${sewerGravity.length} lines found`);
+            console.log('✓ [enrich-utilities] Sewer gravity query complete:', {
+              features_found: sewerGravity.length,
+              elapsed_ms: perfMarkers.sewer_gravity_complete - (perfMarkers.water_complete || 0)
+            });
           } else {
-            console.log('ℹ️ Sewer Gravity: No lines found in search radius');
+            console.log('⚠️ [enrich-utilities] Sewer gravity: No lines found in search radius');
           }
         } catch (err) {
           console.warn('⚠️ Sewer Gravity Mains query failed:', err instanceof Error ? err.message : String(err));
@@ -717,10 +760,17 @@ serve(async (req) => {
         // 5. Sewer Force Mains - GRACEFUL DEGRADATION
         if (eps.sewer_force) {
           try {
-            console.log('🔵 Querying Sewer Force Mains...');
+            // PHASE 2: Query Execution Tracking
             const forceRadius = isUrbanArea && eps.sewer_force.urban_search_radius_ft 
               ? eps.sewer_force.urban_search_radius_ft 
               : eps.sewer_force.search_radius_ft;
+            
+            console.log('🚽 [enrich-utilities] Querying sewer force mains...', {
+              endpoint_force: eps.sewer_force.url,
+              search_radius_ft: forceRadius,
+              coordinates: { geo_lat, geo_lng },
+              crs: eps.sewer_force.crs || 2278
+            });
             
             sewer_force = await queryArcGIS(eps.sewer_force.url, eps.sewer_force.outFields, geo_lat, geo_lng, "houston_sewer_force", {
               timeout_ms: eps.sewer_force.timeout_ms,
@@ -732,17 +782,26 @@ serve(async (req) => {
               spatialRel: eps.sewer_force.spatialRel
             });
             
+            perfMarkers.sewer_force_complete = Date.now() - perfStart;
+            
             if (sewer_force.length > 0) {
               flags.push("sewer_force_via_arcgis_online");
-              console.log(`✅ Sewer Force: ${sewer_force.length} lines found`);
+              console.log('✓ [enrich-utilities] Sewer force mains query complete:', {
+                features_found: sewer_force.length,
+                elapsed_ms: perfMarkers.sewer_force_complete - (perfMarkers.sewer_gravity_complete || 0)
+              });
             } else {
-              console.log('ℹ️ Sewer Force: No lines found in search radius');
+              console.log('⚠️ [enrich-utilities] Sewer force mains: No lines found in search radius');
             }
           } catch (err) {
             console.warn('⚠️ Sewer Force Mains query failed:', err instanceof Error ? err.message : String(err));
             flags.push('utilities_sewer_force_unavailable');
             failedServices++;
           }
+        } else {
+          // PHASE 3: Conditional Logic Visibility
+          console.warn('⚠️ [enrich-utilities] Sewer force mains endpoint not configured for this location');
+          flags.push('sewer_force_not_configured');
         }
         
         // Combine gravity and force mains
@@ -750,10 +809,16 @@ serve(async (req) => {
         
         // 6. Storm Drainage - GRACEFUL DEGRADATION
         try {
-          console.log('🔵 Querying Storm Drainage...');
+          // PHASE 2: Query Execution Tracking
           const stormRadius = isUrbanArea && eps.storm.urban_search_radius_ft 
             ? eps.storm.urban_search_radius_ft 
             : eps.storm.search_radius_ft;
+          
+          console.log('🌧️ [enrich-utilities] Querying storm drains...', {
+            endpoint: eps.storm.url,
+            search_radius_ft: stormRadius,
+            coordinates: { geo_lat, geo_lng }
+          });
           
           storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
             timeout_ms: eps.storm.timeout_ms,
@@ -765,11 +830,16 @@ serve(async (req) => {
             spatialRel: eps.storm.spatialRel
           });
           
+          perfMarkers.storm_complete = Date.now() - perfStart;
+          
           if (storm.length > 0) {
             flags.push("storm_via_production_server");
-            console.log(`✅ Storm Drainage: ${storm.length} lines found`);
+            console.log('✓ [enrich-utilities] Storm drains query complete:', {
+              features_found: storm.length,
+              elapsed_ms: perfMarkers.storm_complete - (perfMarkers.sewer_force_complete || perfMarkers.sewer_gravity_complete || 0)
+            });
           } else {
-            console.log('ℹ️ Storm Drainage: No lines found in search radius');
+            console.log('⚠️ [enrich-utilities] Storm drains: No lines found in search radius');
           }
         } catch (err) {
           console.warn('⚠️ Storm Drainage query failed:', err instanceof Error ? err.message : String(err));
@@ -1112,6 +1182,16 @@ serve(async (req) => {
     // 5. Save results with api_meta, enrichment_status, and utilities_summary
     // Only update database if we have an application_id
     if (application_id) {
+      // PHASE 4: Database Update Diagnostics
+      console.log('💾 [enrich-utilities] Preparing database update:', {
+        application_id,
+        water_features: water.length,
+        sewer_features: sewer.length + sewer_force.length,
+        storm_features: storm.length,
+        flags: flags,
+        enrichment_status: enrichmentStatus
+      });
+      
       const { error: updateError } = await supabase.from("applications").update({
         water_lines: formatLines(water, geo_lat, geo_lng, 'water', waterCrs),
         sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', sewerCrs),
@@ -1183,12 +1263,36 @@ serve(async (req) => {
         console.error('Update error:', updateError);
         throw new Error(`Failed to update application: ${updateError.message}`);
       }
+      
+      // PHASE 4: Database Update Success
+      console.log('✅ [enrich-utilities] Database update successful:', {
+        application_id,
+        rows_affected: 1,
+        enrichment_metadata_size: JSON.stringify({
+          water_laterals: water_laterals.length,
+          water_fittings: water_fittings.length,
+          hcad_parcels: hcad_parcels.length
+        }).length,
+        utilities_summary_sources: Object.keys(utilitiesSummary).filter(k => utilitiesSummary[k as keyof typeof utilitiesSummary]?.has_service)
+      });
     }
 
-    console.log('Utilities enriched successfully:', {
+    // PHASE 7: Performance Breakdown
+    perfMarkers.total = Date.now() - perfStart;
+    const totalFeatures = water.length + sewer.length + storm.length + water_laterals.length + water_fittings.length;
+    
+    console.log('⏱️ [enrich-utilities] Performance breakdown:', {
+      total_ms: perfMarkers.total,
+      breakdown: perfMarkers,
+      features_per_second: totalFeatures > 0 ? ((totalFeatures / (perfMarkers.total / 1000)).toFixed(2)) : '0'
+    });
+    
+    console.log('✅ [enrich-utilities] Utilities enriched successfully:', {
       water: water.length,
       sewer: sewer.length,
       storm: storm.length,
+      water_laterals: water_laterals.length,
+      water_fittings: water_fittings.length,
       flags
     });
 
@@ -1209,9 +1313,22 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    console.error('Error in enrich-utilities:', err);
+    // PHASE 5: Enhanced Error Handling
+    console.error('❌ [enrich-utilities] FATAL ERROR:', {
+      error_type: err instanceof Error ? err.constructor.name : typeof err,
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+      application_id: application_id || 'not_provided',
+      coordinates_received: { latitude, longitude },
+      timestamp: new Date().toISOString()
+    });
+    
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }), 
+      JSON.stringify({ 
+        error: err instanceof Error ? err.message : String(err),
+        application_id: application_id || null,
+        timestamp: new Date().toISOString()
+      }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

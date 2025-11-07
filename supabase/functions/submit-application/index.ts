@@ -357,19 +357,41 @@ serve(async (req) => {
           }
         });
 
-        // Also trigger enrich-utilities (fire and forget)
+        // Also trigger enrich-utilities (fire and forget) - PHASE 6: Enhanced invocation guard
         if (geo_lat && geo_lng) {
-          console.log('Triggering enrich-utilities for application:', data.id);
+          console.log('✅ [submit-application] Coordinates available, triggering enrich-utilities:', {
+            application_id: data.id,
+            geo_lat,
+            geo_lng,
+            city: locality || 'unknown',
+            county: administrative_area_level_2 || 'unknown'
+          });
+          
           supabase.functions.invoke('enrich-utilities', {
             body: {
               application_id: data.id
             }
           }).then(result => {
             if (result.error) {
-              console.error('Utilities enrichment error:', result.error);
+              console.error('❌ [submit-application] Utilities enrichment error:', {
+                application_id: data.id,
+                error: result.error
+              });
             } else {
-              console.log('Utilities enrichment triggered successfully');
+              console.log('✅ [submit-application] Utilities enrichment triggered successfully:', {
+                application_id: data.id,
+                result_preview: result.data
+              });
             }
+          });
+        } else {
+          console.warn('⚠️ [submit-application] SKIPPING enrich-utilities: Missing coordinates', {
+            application_id: data.id,
+            geo_lat: geo_lat || 'null',
+            geo_lng: geo_lng || 'null',
+            property_address: requestData.propertyAddress,
+            formatted_address: formatted_address,
+            geocoding_attempted: !!(formatted_address || requestData.propertyAddress)
           });
         }
       } else {
