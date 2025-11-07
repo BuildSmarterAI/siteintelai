@@ -1656,7 +1656,7 @@ serve(async (req) => {
           error_message: updateError.message,
           error_details: updateError.details,
           error_hint: updateError.hint,
-          application_id,
+          application_id: application_id || null,
           payload_summary: {
             water_lines: water.length,
             sewer_lines: sewer.length,
