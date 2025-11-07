@@ -25,11 +25,16 @@ const ERROR_FLAGS = {
   FLOOD_HISTORY_ERROR: 'flood_history_error'
 };
 
+// Unified Parcels endpoint - Primary source for Harris, Fort Bend, Montgomery counties
+const UNIFIED_PARCELS_URL = "https://geogimstest.houstontx.gov/arcgis/rest/services/CIP/RealEstate/MapServer/7/query";
+
 // County endpoint catalog - Texas major counties (Top 10 by development activity)
 const ENDPOINT_CATALOG: Record<string, any> = {
   "Harris County": {
-    // HCAD Parcels MapServer Layer 0 (authoritative parcel source)
-    parcel_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
+    // Primary: Unified Parcels (Layer 7) - Combines HCAD, FBCAD, MCAD
+    parcel_url: UNIFIED_PARCELS_URL,
+    // Fallback: HCAD Parcels MapServer Layer 0 (authoritative parcel source)
+    parcel_fallback_url: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query",
     zoning_url: "https://services.arcgis.com/su8ic9KbA7PYVxPS/arcgis/rest/services/Current_Zoning_/FeatureServer/0/query",
     // HCAD Parcels field mappings (Layer 0) - using actual field names
     parcel_id_field: "HCAD_NUM",
@@ -49,8 +54,10 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     storm_lines_url: "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query"
   },
   "Fort Bend County": {
-    // FBCAD parcel service (confirmed working)
-    parcel_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
+    // Primary: Unified Parcels (Layer 7) - Combines HCAD, FBCAD, MCAD
+    parcel_url: UNIFIED_PARCELS_URL,
+    // Fallback: FBCAD parcel service (confirmed working)
+    parcel_fallback_url: "https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query",
     zoning_url: "https://gisweb.fortbendcountytx.gov/arcgis/rest/services/Planning/Zoning/MapServer/0/query",
     // FBCAD-specific field mappings (confirmed from service metadata)
     parcel_id_field: "PARCEL_ID",
