@@ -17,14 +17,15 @@ Deno.serve(async (req) => {
 
     // Official Harris County GIS endpoint
     const HCAD_URL = 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query';
-    const HCAD_FIELDS = 'OBJECTID,ACCOUNT,OWNER_NAME,ACREAGE,SITUS_ADDRESS,LAND_VALUE,IMPR_VALUE,LEGAL_DESCRIPTION';
+    const HCAD_FIELDS = 'OBJECTID,acct_num,owner_name_1,Acreage,site_zip,land_value,impr_value';
 
     // If searching by parcel ID
     if (parcelId) {
       try {
         const parcelQuery = `${HCAD_URL}?` +
-          `where=ACCOUNT='${parcelId}'&` +
+          `where=acct_num='${parcelId}'&` +
           `outFields=${HCAD_FIELDS}&` +
+          `inSR=4326&` +
           `returnGeometry=true&` +
           `outSR=4326&` +
           `f=geojson`;
@@ -71,6 +72,7 @@ Deno.serve(async (req) => {
       const arcgisQuery = `${HCAD_URL}?` +
         `geometry=${bboxGeometry}&` +
         `geometryType=esriGeometryEnvelope&` +
+        `inSR=4326&` +
         `spatialRel=esriSpatialRelIntersects&` +
         `outFields=${HCAD_FIELDS}&` +
         `returnGeometry=true&` +

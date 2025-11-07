@@ -29,14 +29,16 @@ async function bump(
   appId: string, 
   newStatus: string, 
   currentRev: number,
-  errorCode?: string
+  errorCode?: string,
+  errorMessage?: string
 ) {
-  const updates = {
+  const updates: any = {
     status: newStatus,
     status_rev: currentRev + 1,
     status_percent: STATE_PROGRESS[newStatus] || 0,
     updated_at: new Date().toISOString(),
     error_code: errorCode || null,
+    error_message: errorMessage || null,
     attempts: 0 // Reset on successful transition or error
   };
 
@@ -112,7 +114,7 @@ async function doGeocodeAndParcel(app: any) {
             : null);
       
       if (fetchError || !derivedAddress) {
-        throw new Error('Failed to fetch application address');
+        throw { code: 'E003-1', message: 'Failed to fetch application address' };
       }
       
       console.log(`[doGeocodeAndParcel] Fetched address: ${derivedAddress}`);
@@ -125,7 +127,10 @@ async function doGeocodeAndParcel(app: any) {
         }
       });
       
-      if (response.error) throw new Error(response.error.message || 'Geocode/parcel failed');
+      if (response.error) {
+        throw { code: 'E003-2', message: response.error.message || 'Parcel lookup failed' };
+      }
+      
       console.log(`[doGeocodeAndParcel] ✅ Geocode-only completed for ${app.id}`);
       return response.data;
     },
@@ -136,13 +141,22 @@ async function doGeocodeAndParcel(app: any) {
 
 async function enrichOverlays(app: any) {
   console.log(`[enrichOverlays] Starting for app ${app.id}`);
+  
+  // Check if we have coordinates - proceed even without parcel
+  const hasCoordinates = app.geo_lat && app.geo_lng;
+  if (!hasCoordinates) {
+    throw { code: 'E402-1', message: 'Missing coordinates - cannot enrich utilities' };
+  }
+  
   return retryWithBackoff(
     async () => {
       const response = await sbAdmin.functions.invoke('enrich-utilities', {
         body: { application_id: app.id }
       });
       
-      if (response.error) throw new Error(response.error.message || 'Utilities enrich failed');
+      if (response.error) {
+        throw { code: 'E402-2', message: response.error.message || 'Utilities API failed' };
+      }
       return response.data;
     },
     MAX_ATTEMPTS,
@@ -318,8 +332,9 @@ async function orchestrate(appId: string): Promise<any> {
     }
   } catch (err: any) {
     const errorCode = err.code || 'E999';
+    const errorMessage = err.message || String(err);
     console.error(`[orchestrate] ${appId} - Error in phase ${app.status}:`, err);
-    await bump(appId, 'error', currentRev, errorCode);
+    await bump(appId, 'error', currentRev, errorCode, errorMessage);
     throw err;
   }
 }
