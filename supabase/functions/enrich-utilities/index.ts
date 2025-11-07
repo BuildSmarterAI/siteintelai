@@ -148,13 +148,31 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
       }
     }
     
+    // Enhanced storm drain fields (FACILITYID priority, INSTALL_YEAR, CONDITION)
+    const isStorm = utilityType?.toLowerCase().includes('storm');
+    const facility_id = isStorm ? (attrs.FACILITYID || attrs.PIPEID || null) : null;
+    const install_year = isStorm ? (
+      attrs.INSTALL_YEAR || 
+      (attrs.INSTALLDATE ? new Date(attrs.INSTALLDATE).getFullYear() : null)
+    ) : null;
+    const condition = isStorm ? (attrs.CONDITION || null) : null;
+    
     return {
+      ...(isStorm && facility_id && { facility_id }),
       diameter,
       material: attrs.MATERIAL || null,
       status: attrs.STATUS || attrs.LIFECYCLESTATUS || null,
       owner: attrs.OWNER || null,
+      ...(isStorm && install_year && { install_year }),
+      ...(isStorm && condition && { condition }),
       distance_ft
     };
+  }).filter((line: any) => {
+    // For storm lines, keep only if we have facility_id OR diameter (data quality)
+    if (utilityType?.toLowerCase().includes('storm')) {
+      return line.facility_id || line.diameter;
+    }
+    return true; // Keep all other utility types
   });
 }
 

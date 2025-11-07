@@ -1,7 +1,7 @@
 {
-  "version": "2.3.0",
-  "last_updated": "2025-10-15",
-  "changelog": "2025-11-07: FAULT TOLERANCE UPDATE - Temporarily removed wastewater_devices endpoint due to API errors (layer/field mismatch). Storm manholes endpoint validated and working. PREVIOUS: COMPLETE HOUSTON WATER GIS MIGRATION - Replaced failing mapsop1.houstontx.gov storm drainage with houstonwatergis.org/HPWStormdrainLineIPS. Added storm_manholes endpoint for comprehensive infrastructure analysis. All Houston utility queries now use official Houston Water GIS portal. Migrated Houston wastewater/sewer endpoints from geogimstest.houstontx.gov to official houstonwatergis.org portal for consistency with water infrastructure APIs. 2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
+  "version": "2.4.0",
+  "last_updated": "2025-11-07",
+  "changelog": "2025-11-07: STORM DRAIN OPTIMIZATION - Updated storm endpoint with FACILITYID/PIPEID for asset tracking, INSTALL_YEAR for accurate dates, CONDITION for asset state, native EPSG:2278 CRS, and optimized 300 ft search radius. Enhanced data normalization with priority fields and quality filtering. PREVIOUS: FAULT TOLERANCE UPDATE - Temporarily removed wastewater_devices endpoint due to API errors (layer/field mismatch). Storm manholes endpoint validated and working. COMPLETE HOUSTON WATER GIS MIGRATION - Replaced failing mapsop1.houstontx.gov storm drainage with houstonwatergis.org/HPWStormdrainLineIPS. Added storm_manholes endpoint for comprehensive infrastructure analysis. All Houston utility queries now use official Houston Water GIS portal. Migrated Houston wastewater/sewer endpoints from geogimstest.houstontx.gov to official houstonwatergis.org portal for consistency with water infrastructure APIs. 2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -122,19 +122,19 @@
       "last_validated": "2025-11-07"
     },
     "storm": {
-      "name": "Houston Storm Drain Lines",
+      "name": "Houston Storm Drain Lines (HPW IPS)",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query",
-      "outFields": ["DIAMETER", "MATERIAL", "INSTALLDATE", "OWNER", "STATUS", "ENABLED"],
+      "outFields": ["FACILITYID", "PIPEID", "DIAMETER", "MATERIAL", "INSTALL_YEAR", "INSTALLDATE", "OWNER", "STATUS", "CONDITION", "ENABLED"],
       "geometryType": "esriGeometryPoint",
-      "crs": 4326,
+      "crs": 2278,
       "timeout_ms": 15000,
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
-      "search_radius_ft": 1000,
-      "urban_search_radius_ft": 500,
+      "search_radius_ft": 300,
+      "urban_search_radius_ft": 300,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 0 = Storm Drain Lines from Houston Water GIS official portal. Migrated from mapsop1.houstontx.gov 2025-11-07 due to connection failures. Matches water/sewer endpoint architecture.",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALLDATE,OWNER,STATUS,ENABLED&f=json",
+      "notes": "Layer 0 = Storm Drain Lines (polylines) from Houston Water Infrastructure & Planning System. Contains pipe diameter, material, install year, and condition. Native CRS: EPSG:2278. Optimized 300 ft search radius per Houston Water GIS standards. Migrated from mapsop1.houstontx.gov 2025-11-07.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=FACILITYID,PIPEID,DIAMETER,MATERIAL,INSTALL_YEAR,INSTALLDATE,OWNER,STATUS,CONDITION,ENABLED&returnGeometry=true&f=json",
       "last_validated": "2025-11-07"
     },
     "storm_manholes": {
