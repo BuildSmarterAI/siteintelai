@@ -983,7 +983,7 @@ serve(async (req) => {
           failedServices++;
         }
 
-        // 6B. Storm Manholes - NEW
+        // 6B. Storm Manholes - GRACEFUL ERROR HANDLING
         if (eps.storm_manholes) {
           try {
             const manholeRadius = isUrbanArea && eps.storm_manholes.urban_search_radius_ft 
@@ -993,7 +993,8 @@ serve(async (req) => {
             console.log('🌧️ [enrich-utilities] Querying storm manholes...', {
               endpoint: eps.storm_manholes.url,
               search_radius_ft: manholeRadius,
-              coordinates: { geo_lat, geo_lng }
+              coordinates: { geo_lat, geo_lng },
+              outFields: eps.storm_manholes.outFields
             });
             
             stormManholes = await queryArcGIS(
@@ -1022,9 +1023,25 @@ serve(async (req) => {
               console.log('ℹ️ [enrich-utilities] Storm manholes: No manholes found in search radius');
             }
           } catch (err) {
-            console.warn('⚠️ Storm Manholes query failed:', err instanceof Error ? err.message : String(err));
+            // CRITICAL: Don't let storm manholes failure crash entire enrichment
+            console.error('⚠️ [GRACEFUL DEGRADATION] Storm Manholes query failed - continuing with other utilities:', {
+              error: err instanceof Error ? err.message : String(err),
+              stack: err instanceof Error ? err.stack : undefined,
+              endpoint: eps.storm_manholes?.url,
+              outFields: eps.storm_manholes?.outFields
+            });
+            stormManholes = []; // Ensure empty array instead of undefined
             flags.push('utilities_storm_manholes_unavailable');
+            // Add detailed error metadata for debugging
+            apiMeta.storm_manholes_error = {
+              message: err instanceof Error ? err.message : String(err),
+              timestamp: new Date().toISOString(),
+              attempted_fields: eps.storm_manholes?.outFields
+            };
           }
+        } else {
+          console.log('ℹ️ [enrich-utilities] Storm manholes endpoint not configured for this location');
+          stormManholes = [];
         }
 
         
@@ -1480,17 +1497,15 @@ serve(async (req) => {
             ).length
           }),
 
-          // Storm manholes data (NEW - point features)
+          // Storm manholes data (NEW - point features, gracefully handles API failures)
           ...(stormManholes.length > 0 && {
             storm_manholes_count: stormManholes.length,
             storm_manholes_data: stormManholes.map(m => ({
               facility_id: m.attributes.FACILITYID || null,
-              struct_type: m.attributes.STRUCTTYPE || 'Storm',
               diameter: m.attributes.DIAMETER || null,
               rim_elevation: m.attributes.RIM_ELEVATION || null,
               invert_elevation: m.attributes.INVERT_ELEVATION || null,
               material: m.attributes.MATERIAL || null,
-              install_date: m.attributes.INSTALLDATE || null,
               owner: m.attributes.OWNER || null,
               status: m.attributes.STATUS || null,
               distance_ft: m.distance_ft || null,
@@ -1506,10 +1521,11 @@ serve(async (req) => {
               return avgRim - avgInvert;
             })()
           }),
-          // Flag for absence
-          ...(!stormManholes.length && {
+          // Flag for absence or API failure
+          ...(stormManholes.length === 0 && {
             storm_manholes_count: 0,
-            nearest_storm_manhole_ft: null
+            nearest_storm_manhole_ft: null,
+            storm_manholes_unavailable: flags.includes('utilities_storm_manholes_unavailable')
           }),
           
           // Address validation data

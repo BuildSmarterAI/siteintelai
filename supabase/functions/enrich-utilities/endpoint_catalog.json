@@ -140,7 +140,7 @@
     "storm_manholes": {
       "name": "Houston Storm Drain Manholes",
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainManholesIPS/MapServer/0/query",
-      "outFields": ["FACILITYID", "DIAMETER", "RIM_ELEVATION", "INVERT_ELEVATION", "MATERIAL", "INSTALLDATE", "OWNER", "STATUS"],
+      "outFields": ["FACILITYID", "DIAMETER", "RIM_ELEVATION", "INVERT_ELEVATION", "MATERIAL", "OWNER", "STATUS"],
       "geometryType": "esriGeometryPoint",
       "crs": 4326,
       "timeout_ms": 10000,
@@ -149,8 +149,8 @@
       "search_radius_ft": 500,
       "urban_search_radius_ft": 300,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 0 = Storm Drain Manholes from Houston Water GIS. Point features showing storm system access points and elevations. Added 2025-11-07 as part of comprehensive Houston Water GIS migration.",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainManholesIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=FACILITYID,DIAMETER,RIM_ELEVATION,INVERT_ELEVATION,MATERIAL,INSTALLDATE,OWNER,STATUS&f=json",
+      "notes": "Layer 0 = Storm Drain Manholes from Houston Water GIS. INSTALLDATE removed from outFields due to API 400 errors. Using minimal field set for reliability.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainManholesIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=FACILITYID,DIAMETER,RIM_ELEVATION,INVERT_ELEVATION,MATERIAL,OWNER,STATUS&returnGeometry=true&f=json",
       "last_validated": "2025-11-07"
     },
     "sewer_service": {
