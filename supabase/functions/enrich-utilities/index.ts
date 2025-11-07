@@ -128,16 +128,24 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
       ? minDistanceToLine(geo_lat, geo_lng, geom.paths, geomCrs)
       : null;
     
-    // Handle storm drainage with PIPEWIDTH/PIPEHEIGHT/PIPEDIAMETER
+    // Handle storm drainage with WIDTH/HEIGHT for box/arch shapes
     let diameter = attrs.DIAMETER || attrs.PIPEDIAMETER || null;
-    if (!diameter && (attrs.WIDTH || attrs.HEIGHT || attrs.PIPEWIDTH || attrs.PIPEHEIGHT)) {
-      // For storm drains with width/height, use the larger dimension
-      diameter = Math.max(
-        attrs.WIDTH || 0, 
-        attrs.HEIGHT || 0, 
-        attrs.PIPEWIDTH || 0, 
-        attrs.PIPEHEIGHT || 0
-      ) || null;
+    const width = attrs.WIDTH || attrs.PIPEWIDTH || null;
+    const height = attrs.HEIGHT || attrs.PIPEHEIGHT || null;
+    const shape = attrs.MAINSHAPE || attrs.SHAPE || null;
+    
+    // Calculate equivalent diameter for non-circular pipes
+    if (!diameter && (width || height)) {
+      if (shape === "RND" && width) {
+        // Round pipes: use width as diameter
+        diameter = width;
+      } else if (width && height) {
+        // Box/Arch: calculate equivalent diameter = sqrt((4 * width * height) / π)
+        diameter = Math.round(Math.sqrt((4 * width * height) / Math.PI));
+      } else if (width) {
+        // Fallback: use width as approximate diameter
+        diameter = width;
+      }
     }
     
     return {
@@ -719,7 +727,8 @@ serve(async (req) => {
         
         // 4. Sewer Gravity Mains - GRACEFUL DEGRADATION
         let sewerGravity: any[] = [];
-        const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft 
+        let sewerService: any[] = [];
+        const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft
           ? eps.sewer.urban_search_radius_ft 
           : eps.sewer.search_radius_ft;
         
@@ -755,6 +764,45 @@ serve(async (req) => {
           console.warn('⚠️ Sewer Gravity Mains query failed:', err instanceof Error ? err.message : String(err));
           flags.push('utilities_sewer_gravity_unavailable');
           failedServices++;
+        }
+        
+        // 4B. Sewer Service Lines - GRACEFUL DEGRADATION (Layer 1)
+        if (eps.sewer_service) {
+          try {
+            const serviceRadius = isUrbanArea && eps.sewer_service.urban_search_radius_ft 
+              ? eps.sewer_service.urban_search_radius_ft 
+              : eps.sewer_service.search_radius_ft;
+            
+            console.log('🔧 [enrich-utilities] Querying sewer service lines (Layer 1)...', {
+              endpoint: eps.sewer_service.url,
+              search_radius_ft: serviceRadius,
+              coordinates: { geo_lat, geo_lng }
+            });
+            
+            sewerService = await queryArcGIS(eps.sewer_service.url, eps.sewer_service.outFields, geo_lat, geo_lng, "houston_sewer_service", {
+              timeout_ms: eps.sewer_service.timeout_ms,
+              retry_attempts: eps.sewer_service.retry_attempts,
+              retry_delays_ms: eps.sewer_service.retry_delays_ms,
+              search_radius_ft: serviceRadius,
+              crs: eps.sewer_service.crs || 4326,
+              geometryType: eps.sewer_service.geometryType,
+              spatialRel: eps.sewer_service.spatialRel
+            });
+            
+            if (sewerService.length > 0) {
+              flags.push("sewer_service_lines_found");
+              console.log('✓ [enrich-utilities] Sewer service lines query complete:', {
+                features_found: sewerService.length
+              });
+            } else {
+              console.log('⚠️ [enrich-utilities] Sewer service lines: No lines found in search radius');
+            }
+          } catch (err) {
+            console.warn('⚠️ Sewer Service Lines query failed:', err instanceof Error ? err.message : String(err));
+            flags.push('utilities_sewer_service_unavailable');
+          }
+        } else {
+          console.log('ℹ️ [enrich-utilities] Sewer service lines endpoint not configured');
         }
         
         // 5. Sewer Force Mains - GRACEFUL DEGRADATION
@@ -804,8 +852,17 @@ serve(async (req) => {
           flags.push('sewer_force_not_configured');
         }
         
-        // Combine gravity and force mains
-        sewer = [...sewerGravity, ...sewer_force];
+        // Combine gravity mains, service lines, and force mains (sorted by distance)
+        const allSewerFeatures = [
+          ...sewerGravity.map(f => ({ ...f, source: "gravity_main" })),
+          ...sewerService.map(f => ({ ...f, source: "service_line" })),
+          ...sewer_force.map(f => ({ ...f, source: "force_main" }))
+        ];
+        
+        // Sort by distance (closest first) - this ensures service lines (usually closest) appear first
+        sewer = allSewerFeatures.sort((a, b) => 
+          (a.distance_ft || Infinity) - (b.distance_ft || Infinity)
+        );
         
         // 6. Storm Drainage - GRACEFUL DEGRADATION
         try {
@@ -849,9 +906,9 @@ serve(async (req) => {
         
         // Log summary of utility query results
         const allWaterLines = [...water, ...water_laterals];
-        const allSewerLines = [...sewerGravity, ...sewer_force];
+        const allSewerLines = [...sewerGravity, ...sewerService, ...sewer_force];
         const allStormLines = [...storm];
-        console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length}, Storm: ${allStormLines.length}, Failed Services: ${failedServices}/${totalServices}`);
+        console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length} (Gravity: ${sewerGravity.length}, Service: ${sewerService.length}, Force: ${sewer_force.length}), Storm: ${allStormLines.length}, Failed Services: ${failedServices}/${totalServices}`);
         
         // Traffic counts (disabled - endpoint unavailable)
         traffic = [];

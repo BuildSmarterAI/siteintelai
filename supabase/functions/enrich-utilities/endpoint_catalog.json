@@ -122,15 +122,10 @@
       "last_validated": "2025-10-15"
     },
     "storm": {
-      "name": "Houston Storm Drainage",
-      "url": "https://mycity.maps.arcgis.com/apps/View/index.html?appid=c8b7e3a0f8234eacb5c2d8f7e5c3e8a0",
-      "outFields": ["*"],
-      "geometryType": "esriGeometryPoint",
-      "crs": 4326,
-      "name": "Houston Storm Drain Mains",
-      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query",
-      "outFields": ["DIAMETER", "MATERIAL", "INSTALLDATE", "OWNER"],
-      "geometryType": "esriGeometryPoint",
+      "name": "Houston Storm Drain Gravity Mains",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/1/query",
+      "outFields": ["FACILITYID", "WIDTH", "HEIGHT", "MATERIAL", "INSTALLDATE", "MAINSHAPE", "PIPETYPE", "OWNEDBY", "ACTIVEFLAG"],
+      "geometryType": "esriGeometryPolyline",
       "crs": 4326,
       "timeout_ms": 15000,
       "retry_attempts": 2,
@@ -138,9 +133,25 @@
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Houston storm drain main lines from houstonwatergis.org - Verified operational 2025-10-15",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALLDATE,OWNER&f=json",
-      "last_validated": "2025-10-15"
+      "notes": "Layer 1 = Storm Drain Gravity Mains (polylines). Confirmed operational 2025-11-07. Uses WIDTH/HEIGHT instead of DIAMETER for box/arch shapes.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/1/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=FACILITYID,WIDTH,HEIGHT,MATERIAL,INSTALLDATE,MAINSHAPE,PIPETYPE,OWNEDBY,ACTIVEFLAG&f=json",
+      "last_validated": "2025-11-07"
+    },
+    "sewer_service": {
+      "name": "Houston Wastewater Service Lines",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/1/query",
+      "outFields": ["SUBDIVISIONNAME", "DIAMETER", "MATERIAL", "INSTALLDATE", "STATUS", "OWNER", "ENABLED"],
+      "geometryType": "esriGeometryPolyline",
+      "crs": 4326,
+      "timeout_ms": 15000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "search_radius_ft": 300,
+      "urban_search_radius_ft": 300,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Layer 1 = Wastewater Service Lines (service leads from buildings to mains). More granular than Layer 3 gravity mains. Confirmed operational 2025-11-07.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/1/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=SUBDIVISIONNAME,DIAMETER,MATERIAL,INSTALLDATE,STATUS,OWNER,ENABLED&f=json",
+      "last_validated": "2025-11-07"
     },
     "traffic": {
       "name": "COH Traffic Counts (DISABLED - Endpoint Unavailable)",
