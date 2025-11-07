@@ -2852,7 +2852,6 @@ serve(async (req) => {
         if (enrichedData.lot_size_value) updateData.lot_size_value = enrichedData.lot_size_value;
         if (enrichedData.lot_size_unit) updateData.lot_size_unit = enrichedData.lot_size_unit;
         if (enrichedData.legal_description) updateData.legal_description = enrichedData.legal_description;
-        if (enrichedData.geom) updateData.geom = enrichedData.geom;
         
         const { error: updateError } = await supabase
           .from('applications')
