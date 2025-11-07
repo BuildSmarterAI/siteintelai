@@ -1,7 +1,7 @@
 {
   "version": "2.3.0",
   "last_updated": "2025-10-15",
-  "changelog": "2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
+  "changelog": "2025-11-07: Migrated Houston wastewater/sewer endpoints from geogimstest.houstontx.gov to official houstonwatergis.org portal for consistency with water infrastructure APIs. 2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -91,7 +91,7 @@
     },
     "sewer": {
       "name": "Houston Sewer Gravity Mains",
-      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/3/query",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/3/query",
       "outFields": ["DIAMETER", "MATERIAL", "OWNER", "STATUS"],
       "geometryType": "esriGeometryPoint",
       "crs": 4326,
@@ -101,13 +101,13 @@
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 3 = Sewer Gravity Mains from Houston Water GIS (verified working endpoint 2025-11-07)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&returnGeometry=false&f=json",
+      "notes": "Layer 3 = Sewer Gravity Mains from Houston Water GIS official portal. Switched to houstonwatergis.org endpoint 2025-11-07 for consistency with water infrastructure APIs.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/3/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&returnGeometry=false&f=json",
       "last_validated": "2025-11-07"
     },
     "sewer_force": {
       "name": "Houston Sewer Force Mains",
-      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/24/query",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/24/query",
       "outFields": ["DIAMETER", "MATERIAL", "OWNER", "STATUS"],
       "geometryType": "esriGeometryPoint",
       "crs": 4326,
@@ -117,8 +117,8 @@
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 24 = Force Mains from Houston Water GIS (verified working endpoint 2025-11-07)",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/24/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&f=json",
+      "notes": "Layer 24 = Force Mains from Houston Water GIS official portal. Switched to houstonwatergis.org endpoint 2025-11-07 for consistency with water infrastructure APIs.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/24/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,OWNER,STATUS&f=json",
       "last_validated": "2025-11-07"
     },
     "storm": {
@@ -139,7 +139,7 @@
     },
     "sewer_service": {
       "name": "Houston Wastewater Service Lines",
-        "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUtilities/MapServer/1/query",
+        "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/1/query",
         "outFields": ["SUBDIVISIONNAME", "DIAMETER", "MATERIAL", "INSTALLDATE", "STATUS", "OWNER", "ENABLED"],
         "geometryType": "esriGeometryPoint",
       "crs": 4326,
@@ -149,7 +149,7 @@
       "search_radius_ft": 300,
       "urban_search_radius_ft": 300,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 1 = Wastewater Service Lines (service leads from buildings to mains). More granular than Layer 3 gravity mains. Confirmed operational 2025-11-07.",
+      "notes": "Layer 1 = Wastewater Service Lines from Houston Water GIS official portal. Service leads from buildings to mains. Switched to houstonwatergis.org endpoint for consistency with water infrastructure APIs. Confirmed operational 2025-11-07.",
       "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/1/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=SUBDIVISIONNAME,DIAMETER,MATERIAL,INSTALLDATE,STATUS,OWNER,ENABLED&f=json",
       "last_validated": "2025-11-07"
     },
