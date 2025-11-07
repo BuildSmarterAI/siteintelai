@@ -1137,24 +1137,14 @@ serve(async (req) => {
       };
     };
 
-    // Build water summary with special handling for service area proxy
-    const waterSummary = water.length > 0 && water[0].attributes.PROVIDER_NAME
-      ? {
-          has_service: true,
-          service_provider: water[0].attributes.PROVIDER_NAME,
-          service_url: "TCEQ Water Service Area (Proxy)",
-          last_verified: new Date().toISOString(),
-          note: "Service area proxy - not line-specific data"
-        }
-      : {
-          has_service: false,
-          min_distance_ft: null,
-          service_url: null,
-          last_verified: new Date().toISOString()
-        };
-
     const utilitiesSummary = {
-      water: waterSummary,
+      water: buildUtilitySummary(
+        water,
+        "water",
+        cityLower.includes("houston") ? "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3" :
+        cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0" :
+        null
+      ),
       sewer: buildUtilitySummary(
         sewer, 
         "sewer",
