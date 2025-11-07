@@ -183,11 +183,14 @@ interface Report {
     data_flags?: string[];
   };
 }
-
 export default function ReportViewer() {
-  const { reportId } = useParams();
+  const {
+    reportId
+  } = useParams();
   const navigate = useNavigate();
-  const { productId } = useSubscription();
+  const {
+    productId
+  } = useSubscription();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -208,33 +211,37 @@ export default function ReportViewer() {
   const MapComponent = useMapLibre ? MapLibreCanvas : MapCanvas;
 
   // Map layers (parcel, flood, utilities, traffic, employment, drawnParcels)
-  const { data: mapLayers, refetch: refetchMapLayers, updateParcel, deleteParcel } = useMapLayers(report?.application_id || '');
+  const {
+    data: mapLayers,
+    refetch: refetchMapLayers,
+    updateParcel,
+    deleteParcel
+  } = useMapLayers(report?.application_id || '');
 
   // Admin role check
-  const { isAdmin } = useAdminRole();
+  const {
+    isAdmin
+  } = useAdminRole();
 
   // Re-enrichment hook
-  const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
+  const {
+    reEnrich,
+    loading: reEnrichLoading
+  } = useReEnrichApplication();
 
   // Fetch geospatial intelligence data
   useEffect(() => {
     if (!report?.application_id) return;
-    
     async function fetchGeospatialData() {
-      const { data } = await supabase
-        .from('feasibility_geospatial')
-        .select('*')
-        .eq('application_id', report.application_id)
-        .single();
-      
+      const {
+        data
+      } = await supabase.from('feasibility_geospatial').select('*').eq('application_id', report.application_id).single();
       if (data) {
         setGeospatialData(data);
       }
     }
-    
     fetchGeospatialData();
   }, [report?.application_id]);
-
   useEffect(() => {
     if (reportId) {
       checkAuthAndFetchReport();
@@ -244,17 +251,17 @@ export default function ReportViewer() {
   // Poll for PDF generation status
   useEffect(() => {
     if (!report || report.pdf_url) return;
-
     setPdfGenerating(true);
     const pollInterval = setInterval(async () => {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('pdf_url, status')
-        .eq('id', reportId)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('reports').select('pdf_url, status').eq('id', reportId).single();
       if (data?.pdf_url) {
-        setReport(prev => prev ? { ...prev, pdf_url: data.pdf_url } : null);
+        setReport(prev => prev ? {
+          ...prev,
+          pdf_url: data.pdf_url
+        } : null);
         setPdfGenerating(false);
         clearInterval(pollInterval);
         toast.success('PDF is ready for download');
@@ -271,27 +278,28 @@ export default function ReportViewer() {
       setPdfGenerating(false);
       setPdfError(true);
     }, 300000);
-
     return () => {
       clearInterval(pollInterval);
       clearTimeout(timeout);
     };
   }, [report?.pdf_url, reportId]);
-
   const checkAuthAndFetchReport = async () => {
     // Check authentication
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: {
+        session
+      }
+    } = await supabase.auth.getSession();
     const authenticated = !!session?.user;
     setIsAuthenticated(authenticated);
-
     await fetchReport(session?.user?.id);
   };
-
   const fetchReport = async (userId?: string) => {
     try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select(`
+      const {
+        data,
+        error
+      } = await supabase.from('reports').select(`
           *,
           applications!reports_application_id_fkey (
             formatted_address,
@@ -391,12 +399,9 @@ export default function ReportViewer() {
             storm_lines,
             data_flags
           )
-        `)
-        .eq('id', reportId)
-        .single();
-
+        `).eq('id', reportId).single();
       if (error) throw error;
-      
+
       // Type assertion for complex JSON fields
       const typedData: Report = {
         ...data,
@@ -433,7 +438,6 @@ export default function ReportViewer() {
       setLoading(false);
     }
   };
-
   const handleAuthSuccess = () => {
     setShowGate(false);
     setShowPreview(false);
@@ -457,7 +461,7 @@ export default function ReportViewer() {
         await updateParcel.mutateAsync({
           parcelId: editingParcel.id,
           name,
-          geometry: drawnGeometry,
+          geometry: drawnGeometry
         });
         setEditingParcel(null);
         setDrawnGeometry(null);
@@ -476,22 +480,22 @@ export default function ReportViewer() {
       toast.error('No parcel drawn or application not found');
       return;
     }
-
     setIsSavingParcel(true);
     try {
-      const { data, error } = await supabase.functions.invoke('save-drawn-parcel', {
+      const {
+        data,
+        error
+      } = await supabase.functions.invoke('save-drawn-parcel', {
         body: {
           geometry: drawnGeometry,
           name,
-          application_id: report.application_id,
-        },
+          application_id: report.application_id
+        }
       });
-
       if (error) throw error;
-
       console.log('✅ Parcel saved:', data);
       toast.success(`Parcel "${name}" saved with ${data.acreage_calc?.toFixed(2)} acres`);
-      
+
       // Clear drawn geometry and refetch layers
       setDrawnGeometry(null);
       await refetchMapLayers();
@@ -556,14 +560,12 @@ export default function ReportViewer() {
       toast.error('No application ID found');
       return;
     }
-
     const result = await reEnrich(report.application_id);
-    
     if (result.success) {
       toast.info('Re-enrichment started. The page will refresh in 10 seconds...', {
         duration: 10000
       });
-      
+
       // Refresh the page after 10 seconds to show updated data
       setTimeout(() => {
         window.location.reload();
@@ -577,35 +579,30 @@ export default function ReportViewer() {
       toast.error('Missing location data for map generation');
       return;
     }
-    
     toast.info('Regenerating map assets...');
-    
     try {
-      await Promise.all([
-        supabase.functions.invoke('render-static-map', {
-          body: {
-            application_id: report.application_id,
-            center: { 
-              lat: report.applications.geo_lat, 
-              lng: report.applications.geo_lng 
-            },
-            zoom: 17,
-            size: '1200x800'
-          }
-        }),
-        supabase.functions.invoke('render-streetview', {
-          body: {
-            application_id: report.application_id,
-            location: { 
-              lat: report.applications.geo_lat, 
-              lng: report.applications.geo_lng 
-            },
-            headings: [0, 90, 180, 270],
-            size: '640x400'
-          }
-        })
-      ]);
-      
+      await Promise.all([supabase.functions.invoke('render-static-map', {
+        body: {
+          application_id: report.application_id,
+          center: {
+            lat: report.applications.geo_lat,
+            lng: report.applications.geo_lng
+          },
+          zoom: 17,
+          size: '1200x800'
+        }
+      }), supabase.functions.invoke('render-streetview', {
+        body: {
+          application_id: report.application_id,
+          location: {
+            lat: report.applications.geo_lat,
+            lng: report.applications.geo_lng
+          },
+          headings: [0, 90, 180, 270],
+          size: '640x400'
+        }
+      })]);
+
       // Refetch report to get updated assets
       await fetchReport();
       toast.success('Map assets regenerated successfully');
@@ -614,25 +611,18 @@ export default function ReportViewer() {
       toast.error('Failed to regenerate maps. Please try again.');
     }
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
   if (!report) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
+    return <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">Report not found</p>
-      </div>
-    );
+      </div>;
   }
-
   const reportData = report.json_data || {};
-  
+
   // Handle legacy reports with rawText wrapper
   let parsedData = reportData;
   if (reportData.rawText && !reportData.summary) {
@@ -643,7 +633,6 @@ export default function ReportViewer() {
       console.error('Failed to parse legacy rawText format');
     }
   }
-  
   const summary = parsedData.summary || {};
   const zoning = parsedData.zoning || {};
   const flood = parsedData.flood || {};
@@ -652,19 +641,15 @@ export default function ReportViewer() {
   const traffic = parsedData.traffic || {};
   const marketDemographics = parsedData.market_demographics || {};
   // 🔒 IP Protection: Only load data_sources for enterprise users
-  const dataSources = (productId === 'enterprise' && parsedData.data_sources) || [];
-  
+  const dataSources = productId === 'enterprise' && parsedData.data_sources || [];
+
   // Helper to get data sources for a specific section
   const getSourcesForSection = (section: string) => {
     return dataSources.filter((ds: any) => ds.section === section);
   };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
+  return <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       {/* Show auth gate overlay if needed */}
-      {showGate && reportId && (
-        <ReportPreviewGate reportId={reportId} onAuthSuccess={handleAuthSuccess} />
-      )}
+      {showGate && reportId && <ReportPreviewGate reportId={reportId} onAuthSuccess={handleAuthSuccess} />}
       
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-50">
@@ -680,81 +665,56 @@ export default function ReportViewer() {
                 <div className="flex items-center gap-2 mt-1">
                   <Clock className="h-3 w-3 text-muted-foreground" />
                   <span className="text-xs text-muted-foreground">
-                    Data as of {new Date(report.applications?.updated_at || report.created_at).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric', 
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
+                    Data as of {new Date(report.applications?.updated_at || report.created_at).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
                   </span>
                 </div>
-                {report.applications?.data_flags && 
-                 (report.applications.data_flags.includes('critical_utilities_missing') || 
-                  report.applications.data_flags.includes('critical_feasibility_data_missing')) && (
-                  <Alert variant="destructive" className="mt-2">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      This report is incomplete. Critical data could not be retrieved. 
-                      {isAdmin && ' Use "Re-Enrich Data" to retry.'}
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {report.applications?.data_flags && (report.applications.data_flags.includes('critical_utilities_missing') || report.applications.data_flags.includes('critical_feasibility_data_missing'))}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
               {/* Admin: Re-enrich Button */}
-              {isAdmin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReEnrich}
-                  disabled={reEnrichLoading}
-                  className="gap-2 w-full sm:w-auto"
-                >
+              {isAdmin && <Button variant="outline" size="sm" onClick={handleReEnrich} disabled={reEnrichLoading} className="gap-2 w-full sm:w-auto">
                   <RefreshCw className={`h-4 w-4 ${reEnrichLoading ? 'animate-spin' : ''}`} />
                   <span className="hidden sm:inline">{reEnrichLoading ? 'Re-enriching...' : 'Re-enrich Report'}</span>
                   <span className="sm:hidden">{reEnrichLoading ? 'Re-enriching...' : 'Re-enrich'}</span>
-                </Button>
-              )}
-              {pdfGenerating && (
-                <Button variant="outline" disabled className="w-full sm:w-auto">
+                </Button>}
+              {pdfGenerating && <Button variant="outline" disabled className="w-full sm:w-auto">
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   <span className="hidden sm:inline">Generating PDF...</span>
                   <span className="sm:hidden">Generating...</span>
-                </Button>
-              )}
-              {!pdfGenerating && report.pdf_url && (
-                <Button variant="outline" onClick={() => window.open(report.pdf_url!, '_blank')} className="w-full sm:w-auto">
+                </Button>}
+              {!pdfGenerating && report.pdf_url && <Button variant="outline" onClick={() => window.open(report.pdf_url!, '_blank')} className="w-full sm:w-auto">
                   <Download className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Download PDF</span>
                   <span className="sm:hidden">PDF</span>
-                </Button>
-              )}
-              {!pdfGenerating && !report.pdf_url && pdfError && (
-                <Button 
-                  variant="outline" 
-                  onClick={async () => {
-                    setPdfError(false);
-                    setPdfGenerating(true);
-                    try {
-                      await supabase.functions.invoke('generate-pdf', {
-                        body: { report_id: reportId, application_id: report.application_id }
-                      });
-                      toast.success('PDF generation restarted');
-                    } catch (error) {
-                      toast.error('Failed to regenerate PDF');
-                      setPdfError(true);
-                      setPdfGenerating(false);
-                    }
-                  }}
-                  className="w-full sm:w-auto"
-                >
+                </Button>}
+              {!pdfGenerating && !report.pdf_url && pdfError && <Button variant="outline" onClick={async () => {
+              setPdfError(false);
+              setPdfGenerating(true);
+              try {
+                await supabase.functions.invoke('generate-pdf', {
+                  body: {
+                    report_id: reportId,
+                    application_id: report.application_id
+                  }
+                });
+                toast.success('PDF generation restarted');
+              } catch (error) {
+                toast.error('Failed to regenerate PDF');
+                setPdfError(true);
+                setPdfGenerating(false);
+              }
+            }} className="w-full sm:w-auto">
                   <Download className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Retry PDF Generation</span>
                   <span className="sm:hidden">Retry PDF</span>
-                </Button>
-              )}
+                </Button>}
               <Button variant="ghost" onClick={() => navigate('/dashboard')} className="w-full sm:w-auto">
                 <span className="hidden sm:inline">Back to Dashboard</span>
                 <span className="sm:hidden">Dashboard</span>
@@ -767,25 +727,18 @@ export default function ReportViewer() {
       {/* Main Content */}
       <main className="container mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Limited Preview Section - shown when not authenticated */}
-        {showPreview && !showGate && (
-          <div className="space-y-8">
+        {showPreview && !showGate && <div className="space-y-8">
             {/* Score Preview - Fully Visible */}
             <div className="text-center">
               <Badge variant="outline" className="mb-4 bg-primary/10 text-primary border-primary/20">
                 🔓 Quick Preview - Sign in for full access
               </Badge>
               
-              <ScoreCircle 
-                score={report.feasibility_score ?? 0} 
-                size="lg" 
-                showLabel={true}
-              />
+              <ScoreCircle score={report.feasibility_score ?? 0} size="lg" showLabel={true} />
               
-              {!report.feasibility_score && (
-                <Badge variant="destructive" className="mt-2">
+              {!report.feasibility_score && <Badge variant="destructive" className="mt-2">
                   Score calculation pending
-                </Badge>
-              )}
+                </Badge>}
               
               <p className="text-sm text-muted-foreground mt-4">
                 {report.applications?.formatted_address}
@@ -801,42 +754,30 @@ export default function ReportViewer() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {summary.key_opportunities && summary.key_opportunities.length > 0 && (
-                  <div>
+                {summary.key_opportunities && summary.key_opportunities.length > 0 && <div>
                     <h3 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
                       <Zap className="h-4 w-4" />
                       Key Opportunities
                     </h3>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {summary.key_opportunities.slice(0, 2).map((opp: string, i: number) => (
-                        <li key={i}>{opp}</li>
-                      ))}
+                      {summary.key_opportunities.slice(0, 2).map((opp: string, i: number) => <li key={i}>{opp}</li>)}
                     </ul>
-                  </div>
-                )}
+                  </div>}
 
-                {summary.key_risks && summary.key_risks.length > 0 && (
-                  <div>
+                {summary.key_risks && summary.key_risks.length > 0 && <div>
                     <h3 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       Key Risks
                     </h3>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {summary.key_risks.slice(0, 2).map((risk: string, i: number) => (
-                        <li key={i}>{risk}</li>
-                      ))}
+                      {summary.key_risks.slice(0, 2).map((risk: string, i: number) => <li key={i}>{risk}</li>)}
                     </ul>
-                  </div>
-                )}
+                  </div>}
                 
                 {/* Blur gradient overlay on preview */}
                 <div className="relative mt-6 p-6 border rounded-lg">
                   <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background z-10 rounded-lg flex items-center justify-center">
-                    <Button 
-                      size="lg" 
-                      onClick={() => setShowGate(true)}
-                      className="shadow-xl"
-                    >
+                    <Button size="lg" onClick={() => setShowGate(true)} className="shadow-xl">
                       <Lock className="mr-2 h-5 w-5" />
                       Sign In to Unlock Full Report
                     </Button>
@@ -849,18 +790,14 @@ export default function ReportViewer() {
                       {summary.executive_summary?.substring(0, 200)}...
                     </p>
                     <div className="grid grid-cols-2 gap-4">
-                      {zoning.classification && (
-                        <div className="border rounded p-3">
+                      {zoning.classification && <div className="border rounded p-3">
                           <p className="text-xs text-muted-foreground uppercase mb-1">Zoning</p>
                           <p className="font-semibold">{zoning.classification}</p>
-                        </div>
-                      )}
-                      {flood.zone && (
-                        <div className="border rounded p-3">
+                        </div>}
+                      {flood.zone && <div className="border rounded p-3">
                           <p className="text-xs text-muted-foreground uppercase mb-1">Flood Zone</p>
                           <p className="font-semibold">{flood.zone}</p>
-                        </div>
-                      )}
+                        </div>}
                     </div>
                   </div>
                 </div>
@@ -899,12 +836,10 @@ export default function ReportViewer() {
                 </CardContent>
               </Card>
             </div>
-          </div>
-        )}
+          </div>}
 
         {/* Full Report Content - only show if authenticated or owner */}
-        {!showPreview && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {!showPreview && <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
               {/* Score Overview */}
               <Card>
@@ -930,41 +865,32 @@ export default function ReportViewer() {
                       </p>
                     </div>
 
-                    {summary.key_opportunities && summary.key_opportunities.length > 0 && (
-                      <div>
+                    {summary.key_opportunities && summary.key_opportunities.length > 0 && <div>
                         <h3 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
                           <Zap className="h-4 w-4" />
                           Key Opportunities
                         </h3>
                         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                          {summary.key_opportunities.map((opp: string, i: number) => (
-                            <li key={i}>{opp}</li>
-                          ))}
+                          {summary.key_opportunities.map((opp: string, i: number) => <li key={i}>{opp}</li>)}
                         </ul>
-                      </div>
-                    )}
+                      </div>}
 
-                    {summary.key_risks && summary.key_risks.length > 0 && (
-                      <div>
+                    {summary.key_risks && summary.key_risks.length > 0 && <div>
                         <h3 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
                           <FileText className="h-4 w-4" />
                           Key Risks
                         </h3>
                         <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                          {summary.key_risks.map((risk: string, i: number) => (
-                            <li key={i}>{risk}</li>
-                          ))}
+                          {summary.key_risks.map((risk: string, i: number) => <li key={i}>{risk}</li>)}
                         </ul>
-                      </div>
-                    )}
+                      </div>}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
         {/* Google Maps Visualization */}
-        {report.applications?.geo_lat && report.applications?.geo_lng && (
-          <Card className="mb-8">
+        {report.applications?.geo_lat && report.applications?.geo_lng && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -973,19 +899,12 @@ export default function ReportViewer() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Static Map */}
-              {report.report_assets?.static_map_url ? (
-                <div className="space-y-4">
-                  <img 
-                    src={report.report_assets.static_map_url} 
-                    alt="Google Static Map of site"
-                    className="w-full rounded-lg border shadow-sm"
-                  />
+              {report.report_assets?.static_map_url ? <div className="space-y-4">
+                  <img src={report.report_assets.static_map_url} alt="Google Static Map of site" className="w-full rounded-lg border shadow-sm" />
                   <p className="text-sm text-muted-foreground">
                     Aerial view from Google Maps • Updated: {new Date(report.applications.updated_at || report.created_at).toLocaleDateString()}
                   </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-lg">
+                </div> : <div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed rounded-lg">
                   <MapPin className="h-12 w-12 text-muted-foreground mb-4" />
                   <p className="text-sm text-muted-foreground mb-2">
                     Map assets are being generated...
@@ -993,425 +912,256 @@ export default function ReportViewer() {
                   <p className="text-xs text-muted-foreground">
                     This typically takes 10-15 seconds. Refresh the page if this persists.
                   </p>
-                  {isOwner && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="mt-4"
-                      onClick={handleRegenerateMapAssets}
-                    >
+                  {isOwner && <Button variant="outline" size="sm" className="mt-4" onClick={handleRegenerateMapAssets}>
                       <Zap className="h-4 w-4 mr-2" />
                       Generate Now
-                    </Button>
-                  )}
-                </div>
-              )}
+                    </Button>}
+                </div>}
 
               {/* Street View */}
-              {report.report_assets?.streetview && report.report_assets.streetview.length > 0 && (
-                <div>
+              {report.report_assets?.streetview && report.report_assets.streetview.length > 0 && <div>
                   <h4 className="font-semibold mb-3 flex items-center gap-2">
                     <Car className="h-5 w-5" />
                     Street View
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {report.report_assets.streetview.map((sv) => (
-                      <div key={sv.heading} className="space-y-2">
-                        <img 
-                          src={sv.url} 
-                          alt={`Street view facing ${sv.direction}`}
-                          className="w-full rounded border shadow-sm cursor-pointer hover:opacity-80 transition"
-                          onClick={() => window.open(sv.url, '_blank')}
-                        />
+                    {report.report_assets.streetview.map(sv => <div key={sv.heading} className="space-y-2">
+                        <img src={sv.url} alt={`Street view facing ${sv.direction}`} className="w-full rounded border shadow-sm cursor-pointer hover:opacity-80 transition" onClick={() => window.open(sv.url, '_blank')} />
                         <p className="text-xs text-center text-muted-foreground">
                           {sv.direction} View
                         </p>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
-                </div>
-              )}
+                </div>}
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* Property Map */}
-        {report.applications?.geo_lat && report.applications?.geo_lng && (
-          <Card className="mb-8">
+        {report.applications?.geo_lat && report.applications?.geo_lng && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
                 Interactive Property Map
-                {useMapLibre && (
-                  <Badge variant="outline" className="text-xs">
+                {useMapLibre && <Badge variant="outline" className="text-xs">
                     MapLibre GL
-                  </Badge>
-                )}
+                  </Badge>}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative">
-                {useMapLibre ? (
-                  <MapLibreCanvas
-                    center={[report.applications.geo_lat, report.applications.geo_lng]}
-                    zoom={(() => {
-                      const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
-                      if (acreage < 1) return 18;
-                      if (acreage < 5) return 16;
-                      if (acreage < 10) return 15;
-                      return 14;
-                    })()}
-                    className="h-[500px] md:h-[600px] lg:h-[700px] w-full rounded-lg"
-                    propertyAddress={report.applications.formatted_address}
-                    femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
-                    intentType={report.applications.intent_type as 'build' | 'buy' | null}
-                    parcel={mapLayers?.parcel}
-                    drawnParcels={mapLayers?.drawnParcels}
-                    hcadParcels={mapLayers?.hcadParcels || []}
-                    waterLines={mapLayers?.waterLines || []}
-                    sewerLines={mapLayers?.sewerLines || []}
-                    stormLines={mapLayers?.stormLines || []}
-                    stormManholes={mapLayers?.stormManholes || []}
-                    forceMain={mapLayers?.forceMain || []}
-                    zoningDistricts={mapLayers?.zoningDistricts || []}
-                    drawingEnabled={drawingMode}
-                    onParcelDrawn={handleParcelDrawn}
-                    onParcelSelected={handleParcelSelected}
-                    selectedParcelId={selectedParcel?.id || null}
-                    editingParcelId={editingParcel?.id || null}
-                    employmentCenters={
-                      (mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0)
-                        ? mapLayers.employmentCenters
-                        : (
-                            report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
-                              ? report.applications.employment_clusters
-                                  .filter((c: any) => c.lat && c.lng)
-                                  .map((cluster: any) => ({
-                                    name: cluster.name || 'Employment Center',
-                                    jobs: cluster.jobs || 0,
-                                    distance_miles: cluster.distance || 0,
-                                    coordinates: [cluster.lat, cluster.lng] as [number, number],
-                                  }))
-                              : []
-                          )
-                    }
-                  />
-                ) : (
-                  <MapCanvas
-                    center={[report.applications.geo_lat, report.applications.geo_lng]}
-                    zoom={(() => {
-                      const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
-                      if (acreage < 1) return 18;
-                      if (acreage < 5) return 16;
-                      if (acreage < 10) return 15;
-                      return 14;
-                    })()}
-                    className="h-[300px] md:h-96 w-full rounded-lg"
-                    propertyAddress={report.applications.formatted_address}
-                    femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code}
-                    parcel={mapLayers?.parcel}
-                    employmentCenters={
-                      report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters)
-                        ? report.applications.employment_clusters
-                            .filter((c: any) => c.lat && c.lng)
-                            .map((cluster: any) => ({
-                              name: cluster.name || 'Employment Center',
-                              jobs: cluster.jobs || 0,
-                              distance_miles: cluster.distance || 0,
-                              coordinates: [cluster.lat, cluster.lng] as [number, number],
-                              lat: cluster.lat,
-                              lng: cluster.lng,
-                              distance: cluster.distance,
-                              industries: cluster.industries
-                            }))
-                        : []
-                    }
-                  />
-                )}
+                {useMapLibre ? <MapLibreCanvas center={[report.applications.geo_lat, report.applications.geo_lng]} zoom={(() => {
+                  const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
+                  if (acreage < 1) return 18;
+                  if (acreage < 5) return 16;
+                  if (acreage < 10) return 15;
+                  return 14;
+                })()} className="h-[500px] md:h-[600px] lg:h-[700px] w-full rounded-lg" propertyAddress={report.applications.formatted_address} femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code} intentType={report.applications.intent_type as 'build' | 'buy' | null} parcel={mapLayers?.parcel} drawnParcels={mapLayers?.drawnParcels} hcadParcels={mapLayers?.hcadParcels || []} waterLines={mapLayers?.waterLines || []} sewerLines={mapLayers?.sewerLines || []} stormLines={mapLayers?.stormLines || []} stormManholes={mapLayers?.stormManholes || []} forceMain={mapLayers?.forceMain || []} zoningDistricts={mapLayers?.zoningDistricts || []} drawingEnabled={drawingMode} onParcelDrawn={handleParcelDrawn} onParcelSelected={handleParcelSelected} selectedParcelId={selectedParcel?.id || null} editingParcelId={editingParcel?.id || null} employmentCenters={mapLayers?.employmentCenters && mapLayers.employmentCenters.length > 0 ? mapLayers.employmentCenters : report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters) ? report.applications.employment_clusters.filter((c: any) => c.lat && c.lng).map((cluster: any) => ({
+                  name: cluster.name || 'Employment Center',
+                  jobs: cluster.jobs || 0,
+                  distance_miles: cluster.distance || 0,
+                  coordinates: [cluster.lat, cluster.lng] as [number, number]
+                })) : []} /> : <MapCanvas center={[report.applications.geo_lat, report.applications.geo_lng]} zoom={(() => {
+                  const acreage = report.applications.acreage_cad || report.applications.lot_size_value || 1;
+                  if (acreage < 1) return 18;
+                  if (acreage < 5) return 16;
+                  if (acreage < 10) return 15;
+                  return 14;
+                })()} className="h-[300px] md:h-96 w-full rounded-lg" propertyAddress={report.applications.formatted_address} femaFloodZone={(geospatialData?.fema_flood_risk as any)?.zone_code} parcel={mapLayers?.parcel} employmentCenters={report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters) ? report.applications.employment_clusters.filter((c: any) => c.lat && c.lng).map((cluster: any) => ({
+                  name: cluster.name || 'Employment Center',
+                  jobs: cluster.jobs || 0,
+                  distance_miles: cluster.distance || 0,
+                  coordinates: [cluster.lat, cluster.lng] as [number, number],
+                  lat: cluster.lat,
+                  lng: cluster.lng,
+                  distance: cluster.distance,
+                  industries: cluster.industries
+                })) : []} />}
                 
                 {/* Drawing Control - Only for MapLibre and authenticated owners */}
-                {useMapLibre && isAuthenticated && isOwner && (
-                  <DrawParcelControl
-                    drawingActive={drawingMode}
-                    onToggleDrawing={() => setDrawingMode(!drawingMode)}
-                    onSaveParcel={handleSaveParcel}
-                    onCancelDrawing={handleCancelDrawing}
-                    isSaving={isSavingParcel}
-                    editMode={!!editingParcel}
-                    editingParcelName={editingParcel?.name || ''}
-                  />
-                )}
+                {useMapLibre && isAuthenticated && isOwner && <DrawParcelControl drawingActive={drawingMode} onToggleDrawing={() => setDrawingMode(!drawingMode)} onSaveParcel={handleSaveParcel} onCancelDrawing={handleCancelDrawing} isSaving={isSavingParcel} editMode={!!editingParcel} editingParcelName={editingParcel?.name || ''} />}
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   <span>Property Location</span>
                 </div>
-                {report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters) && report.applications.employment_clusters.length > 0 && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                {report.applications.employment_clusters && Array.isArray(report.applications.employment_clusters) && report.applications.employment_clusters.length > 0 && <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="w-3 h-3 rounded-full bg-purple-500"></div>
                     <span>Employment Centers</span>
-                  </div>
-                )}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ PHASE 3: Drawn Parcels Management */}
-        {useMapLibre && isAuthenticated && isOwner && mapLayers?.drawnParcels && (
-          <div className="mb-8">
-            <DrawnParcelsList
-              parcels={mapLayers.drawnParcels}
-              onEdit={handleEditParcel}
-              onDelete={handleDeleteParcel}
-              onZoomTo={handleZoomToParcel}
-              onDrawNew={handleDrawNewParcel}
-              isLoading={!mapLayers}
-            />
-          </div>
-        )}
+        {useMapLibre && isAuthenticated && isOwner && mapLayers?.drawnParcels && <div className="mb-8">
+            <DrawnParcelsList parcels={mapLayers.drawnParcels} onEdit={handleEditParcel} onDelete={handleDeleteParcel} onZoomTo={handleZoomToParcel} onDrawNew={handleDrawNewParcel} isLoading={!mapLayers} />
+          </div>}
 
         {/* ⭐ PHASE 3: Geospatial Intelligence Card */}
-        <GeospatialIntelligenceCard 
-          applicationId={report.application_id} 
-          reportCreatedAt={report.created_at}
-        />
+        <GeospatialIntelligenceCard applicationId={report.application_id} reportCreatedAt={report.created_at} />
 
         {/* ⭐ PHASE 1: Property Owner & Account Information Card */}
-        {(report.applications?.parcel_owner || report.applications?.parcel_id) && (
-          <Card className="mb-8">
+        {(report.applications?.parcel_owner || report.applications?.parcel_id) && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
                 Property Owner & Account Information
               </CardTitle>
               {/* Only show data source badges to enterprise users */}
-              {productId === 'enterprise' && (
-                <DataSourceBadge 
-                  datasetName="HCAD Official Records" 
-                  timestamp={report.applications.updated_at || report.created_at}
-                />
-              )}
+              {productId === 'enterprise' && <DataSourceBadge datasetName="HCAD Official Records" timestamp={report.applications.updated_at || report.created_at} />}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {report.applications.parcel_owner && (
-                  <div>
+                {report.applications.parcel_owner && <div>
                     <p className="text-xs text-muted-foreground uppercase mb-1">Property Owner</p>
                     <p className="font-semibold text-lg">{report.applications.parcel_owner}</p>
-                  </div>
-                )}
-                {report.applications.parcel_id && (
-                  <div>
+                  </div>}
+                {report.applications.parcel_id && <div>
                     <p className="text-xs text-muted-foreground uppercase mb-1">Parcel ID</p>
                     <p className="font-mono font-semibold">{report.applications.parcel_id}</p>
-                  </div>
-                )}
-                {report.applications.acct_num && (
-                  <div>
+                  </div>}
+                {report.applications.acct_num && <div>
                     <p className="text-xs text-muted-foreground uppercase mb-1">Account Number</p>
                     <p className="font-mono font-semibold">{report.applications.acct_num}</p>
-                  </div>
-                )}
-                {report.applications.lot_size_value && (
-                  <div>
+                  </div>}
+                {report.applications.lot_size_value && <div>
                     <p className="text-xs text-muted-foreground uppercase mb-1">Lot Size</p>
                     <p className="font-semibold text-lg">
                       {report.applications.lot_size_value.toLocaleString()} {report.applications.lot_size_unit || 'acres'}
                     </p>
-                  </div>
-                )}
+                  </div>}
               </div>
               
               {/* Legal Description */}
-              {(report.applications.legal_dscr_1 || report.applications.legal_dscr_2 || 
-                report.applications.legal_dscr_3 || report.applications.legal_dscr_4) && (
-                <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
+              {(report.applications.legal_dscr_1 || report.applications.legal_dscr_2 || report.applications.legal_dscr_3 || report.applications.legal_dscr_4) && <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
                   <p className="text-xs text-muted-foreground uppercase mb-2">Legal Description</p>
                   <p className="text-sm leading-relaxed">
-                    {[
-                      report.applications.legal_dscr_1,
-                      report.applications.legal_dscr_2,
-                      report.applications.legal_dscr_3,
-                      report.applications.legal_dscr_4
-                    ].filter(Boolean).join(' ')}
+                    {[report.applications.legal_dscr_1, report.applications.legal_dscr_2, report.applications.legal_dscr_3, report.applications.legal_dscr_4].filter(Boolean).join(' ')}
                   </p>
-                </div>
-              )}
+                </div>}
               
               {/* Tax Exemptions */}
-              {(report.applications.ag_use || report.applications.homestead) && (
-                <div className="mt-4">
+              {(report.applications.ag_use || report.applications.homestead) && <div className="mt-4">
                   <p className="text-xs text-muted-foreground uppercase mb-2">Tax Exemptions</p>
                   <div className="flex flex-wrap gap-2">
-                    {report.applications.ag_use && (
-                      <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
+                    {report.applications.ag_use && <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
                         🌾 Agricultural Use Exemption
-                      </Badge>
-                    )}
-                    {report.applications.homestead && (
-                      <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
+                      </Badge>}
+                    {report.applications.homestead && <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
                         🏠 Homestead Exemption
-                      </Badge>
-                    )}
+                      </Badge>}
                   </div>
-                </div>
-              )}
+                </div>}
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ NEW: Property Valuation Card */}
-        {(report.applications?.tot_appr_val || report.applications?.bldg_sqft) && (
-          <Card className="mb-8">
+        {(report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
                 Property Valuation & Building Characteristics
               </CardTitle>
               {/* Only show data source badges to enterprise users */}
-              {productId === 'enterprise' && (
-                <DataSourceBadge 
-                  datasetName="HCAD Official Assessment" 
-                  timestamp={report.applications.updated_at || report.created_at}
-                />
-              )}
+              {productId === 'enterprise' && <DataSourceBadge datasetName="HCAD Official Assessment" timestamp={report.applications.updated_at || report.created_at} />}
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Valuation Section */}
-                {report.applications?.tot_appr_val && (
-                  <div className="space-y-4">
+                {report.applications?.tot_appr_val && <div className="space-y-4">
                     <h3 className="font-semibold text-lg border-b pb-2">Property Valuation</h3>
                     <div className="grid grid-cols-2 gap-4">
-                      {report.applications.tot_appr_val && (
-                        <div>
+                      {report.applications.tot_appr_val && <div>
                           <p className="text-xs text-muted-foreground uppercase">Total Appraised</p>
                           <p className="text-2xl font-bold text-primary">
                             ${Number(report.applications.tot_appr_val).toLocaleString()}
                           </p>
-                        </div>
-                      )}
-                      {report.applications.tot_market_val && (
-                        <div>
+                        </div>}
+                      {report.applications.tot_market_val && <div>
                           <p className="text-xs text-muted-foreground uppercase">Market Value</p>
                           <p className="text-2xl font-bold">
                             ${Number(report.applications.tot_market_val).toLocaleString()}
                           </p>
-                        </div>
-                      )}
-                      {report.applications.land_val && (
-                        <div>
+                        </div>}
+                      {report.applications.land_val && <div>
                           <p className="text-xs text-muted-foreground uppercase">Land Value</p>
                           <p className="text-xl font-semibold">
                             ${Number(report.applications.land_val).toLocaleString()}
                           </p>
-                        </div>
-                      )}
-                      {report.applications.imprv_val && (
-                        <div>
+                        </div>}
+                      {report.applications.imprv_val && <div>
                           <p className="text-xs text-muted-foreground uppercase">Improvements</p>
                           <p className="text-xl font-semibold">
                             ${Number(report.applications.imprv_val).toLocaleString()}
                           </p>
-                        </div>
-                      )}
+                        </div>}
                     </div>
-                    {report.applications.taxable_value && (
-                      <div className="pt-2 border-t">
+                    {report.applications.taxable_value && <div className="pt-2 border-t">
                         <p className="text-xs text-muted-foreground uppercase">Taxable Value</p>
                         <p className="text-lg font-semibold">
                           ${Number(report.applications.taxable_value).toLocaleString()}
                         </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
 
                 {/* Building Characteristics Section */}
-                {report.applications?.bldg_sqft && (
-                  <div className="space-y-4">
+                {report.applications?.bldg_sqft && <div className="space-y-4">
                     <h3 className="font-semibold text-lg border-b pb-2">Building Details</h3>
                     <dl className="grid grid-cols-2 gap-3 text-sm">
-                      {report.applications.bldg_sqft && (
-                        <>
+                      {report.applications.bldg_sqft && <>
                           <dt className="text-muted-foreground">Building Area:</dt>
                           <dd className="font-semibold">{Number(report.applications.bldg_sqft).toLocaleString()} SF</dd>
-                        </>
-                      )}
-                      {report.applications.year_built && (
-                        <>
+                        </>}
+                      {report.applications.year_built && <>
                           <dt className="text-muted-foreground">Year Built:</dt>
                           <dd className="font-semibold">{report.applications.year_built}</dd>
-                        </>
-                      )}
-                      {report.applications.effective_yr && (
-                        <>
+                        </>}
+                      {report.applications.effective_yr && <>
                           <dt className="text-muted-foreground">Effective Year:</dt>
                           <dd className="font-semibold">{report.applications.effective_yr}</dd>
-                        </>
-                      )}
-                      {report.applications.num_stories && (
-                        <>
+                        </>}
+                      {report.applications.num_stories && <>
                           <dt className="text-muted-foreground">Stories:</dt>
                           <dd className="font-semibold">{report.applications.num_stories}</dd>
-                        </>
-                      )}
-                      {report.applications.state_class && (
-                        <>
+                        </>}
+                      {report.applications.state_class && <>
                           <dt className="text-muted-foreground">Classification:</dt>
                           <dd className="font-semibold">{report.applications.state_class}</dd>
-                        </>
-                      )}
-                      {report.applications.prop_type && (
-                        <>
+                        </>}
+                      {report.applications.prop_type && <>
                           <dt className="text-muted-foreground">Property Type:</dt>
                           <dd className="font-semibold">{report.applications.prop_type}</dd>
-                        </>
-                      )}
+                        </>}
                     </dl>
                     
                     {/* ⭐ PHASE 2: Enhanced Legal Description */}
-                    {(report.applications.subdivision || report.applications.block || report.applications.lot) && (
-                      <div className="pt-2 border-t">
+                    {(report.applications.subdivision || report.applications.block || report.applications.lot) && <div className="pt-2 border-t">
                         <p className="text-xs text-muted-foreground uppercase mb-2">Legal Description</p>
                         
                         {/* Structured Legal Components */}
                         <dl className="grid grid-cols-2 gap-2 text-sm">
-                          {report.applications.subdivision && (
-                            <>
+                          {report.applications.subdivision && <>
                               <dt className="text-muted-foreground">Subdivision:</dt>
                               <dd className="font-medium">{report.applications.subdivision}</dd>
-                            </>
-                          )}
-                          {report.applications.block && (
-                            <>
+                            </>}
+                          {report.applications.block && <>
                               <dt className="text-muted-foreground">Block:</dt>
                               <dd className="font-medium">{report.applications.block}</dd>
-                            </>
-                          )}
-                          {report.applications.lot && (
-                            <>
+                            </>}
+                          {report.applications.lot && <>
                               <dt className="text-muted-foreground">Lot:</dt>
                               <dd className="font-medium">{report.applications.lot}</dd>
-                            </>
-                          )}
+                            </>}
                         </dl>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ NEW: Tax & Incentives Card - PHASE 2 */}
-        {(report.applications?.tax_rate_total || report.applications?.taxing_jurisdictions || 
-          report.applications?.opportunity_zone || report.applications?.enterprise_zone || 
-          report.applications?.foreign_trade_zone || report.applications?.mud_district) && (
-          <Card className="mb-8">
+        {(report.applications?.tax_rate_total || report.applications?.taxing_jurisdictions || report.applications?.opportunity_zone || report.applications?.enterprise_zone || report.applications?.foreign_trade_zone || report.applications?.mud_district) && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Landmark className="h-5 w-5" />
@@ -1421,8 +1171,7 @@ export default function ReportViewer() {
             <CardContent>
               <div className="space-y-4">
                 {/* Tax Rate Section */}
-                {report.applications?.tax_rate_total && (
-                  <div>
+                {report.applications?.tax_rate_total && <div>
                     <div className="flex items-baseline gap-2 mb-3">
                       <p className="text-3xl font-bold text-primary">
                         {(report.applications.tax_rate_total * 100).toFixed(4)}%
@@ -1431,72 +1180,49 @@ export default function ReportViewer() {
                     </div>
                     
                     {/* Tax Breakdown */}
-                    {report.applications?.taxing_jurisdictions && Array.isArray(report.applications.taxing_jurisdictions) && (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
-                        {report.applications.taxing_jurisdictions.map((jurisdiction: any, i: number) => (
-                          <div key={i}>
+                    {report.applications?.taxing_jurisdictions && Array.isArray(report.applications.taxing_jurisdictions) && <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 bg-muted/50 rounded-lg">
+                        {report.applications.taxing_jurisdictions.map((jurisdiction: any, i: number) => <div key={i}>
                             <p className="text-xs text-muted-foreground">{jurisdiction.name || 'N/A'}</p>
                             <p className="font-semibold">
                               {jurisdiction.rate ? `${(jurisdiction.rate * 100).toFixed(4)}%` : 'N/A'}
                             </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                          </div>)}
+                      </div>}
+                  </div>}
 
                 {/* Special Zones & Districts */}
-                {(report.applications?.opportunity_zone || report.applications?.enterprise_zone || 
-                  report.applications?.foreign_trade_zone || report.applications?.mud_district || 
-                  report.applications?.etj_provider) && (
-                  <div className="pt-4 border-t">
+                {(report.applications?.opportunity_zone || report.applications?.enterprise_zone || report.applications?.foreign_trade_zone || report.applications?.mud_district || report.applications?.etj_provider) && <div className="pt-4 border-t">
                     <h4 className="font-semibold mb-3 text-sm">Special Designations</h4>
                     <div className="flex flex-wrap gap-2">
-                      {report.applications.opportunity_zone && (
-                        <Badge variant="default" className="bg-green-600">
+                      {report.applications.opportunity_zone && <Badge variant="default" className="bg-green-600">
                           <Zap className="h-3 w-3 mr-1" />
                           Opportunity Zone
-                        </Badge>
-                      )}
-                      {report.applications.enterprise_zone && (
-                        <Badge variant="default" className="bg-blue-600">
+                        </Badge>}
+                      {report.applications.enterprise_zone && <Badge variant="default" className="bg-blue-600">
                           Enterprise Zone
-                        </Badge>
-                      )}
-                      {report.applications.foreign_trade_zone && (
-                        <Badge variant="default" className="bg-purple-600">
+                        </Badge>}
+                      {report.applications.foreign_trade_zone && <Badge variant="default" className="bg-purple-600">
                           Foreign Trade Zone
-                        </Badge>
-                      )}
-                      {report.applications.mud_district && (
-                        <Badge variant="secondary">
+                        </Badge>}
+                      {report.applications.mud_district && <Badge variant="secondary">
                           MUD: {report.applications.mud_district}
-                        </Badge>
-                      )}
-                      {report.applications.etj_provider && (
-                        <Badge variant="outline">
+                        </Badge>}
+                      {report.applications.etj_provider && <Badge variant="outline">
                           ETJ: {report.applications.etj_provider}
-                        </Badge>
-                      )}
+                        </Badge>}
                     </div>
                     
-                    {report.applications.exemption_code && (
-                      <div className="mt-3 text-sm">
+                    {report.applications.exemption_code && <div className="mt-3 text-sm">
                         <span className="text-muted-foreground">Exemption Code: </span>
                         <span className="font-medium">{report.applications.exemption_code}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ NEW: Proposed Development Card */}
-        {report.applications?.project_type && report.applications.project_type.length > 0 && (
-          <Card className="mb-8">
+        {report.applications?.project_type && report.applications.project_type.length > 0 && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
@@ -1508,222 +1234,150 @@ export default function ReportViewer() {
                 <div>
                   <p className="text-sm text-muted-foreground mb-2">Project Types</p>
                   <div className="flex flex-wrap gap-2">
-                    {report.applications.project_type.map((type: string) => (
-                      <Badge key={type} variant="secondary">
+                    {report.applications.project_type.map((type: string) => <Badge key={type} variant="secondary">
                         {type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
-                      </Badge>
-                    ))}
+                      </Badge>)}
                   </div>
                 </div>
                 
-                {(report.applications.building_size_value || report.applications.desired_budget) && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-                    {report.applications.building_size_value && (
-                      <div>
+                {(report.applications.building_size_value || report.applications.desired_budget) && <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                    {report.applications.building_size_value && <div>
                         <p className="text-sm text-muted-foreground">Building Size</p>
                         <p className="text-xl font-bold mt-1">
                           {Number(report.applications.building_size_value).toLocaleString()} {report.applications.building_size_unit || 'SF'}
                         </p>
-                      </div>
-                    )}
-                    {report.applications.stories_height && (
-                      <div>
+                      </div>}
+                    {report.applications.stories_height && <div>
                         <p className="text-sm text-muted-foreground">Stories</p>
                         <p className="text-xl font-bold mt-1">{report.applications.stories_height}</p>
-                      </div>
-                    )}
-                    {report.applications.desired_budget && (
-                      <div>
+                      </div>}
+                    {report.applications.desired_budget && <div>
                         <p className="text-sm text-muted-foreground">Development Budget</p>
                         <p className="text-2xl font-bold text-primary mt-1">
                           ${Number(report.applications.desired_budget).toLocaleString()}
                         </p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
 
-                {(report.applications.prototype_requirements || report.applications.quality_level || report.applications.tenant_requirements) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
-                    {report.applications.prototype_requirements && (
-                      <div>
+                {(report.applications.prototype_requirements || report.applications.quality_level || report.applications.tenant_requirements) && <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
+                    {report.applications.prototype_requirements && <div>
                         <p className="text-muted-foreground">Prototype Requirements:</p>
                         <p className="font-medium">{report.applications.prototype_requirements}</p>
-                      </div>
-                    )}
-                    {report.applications.quality_level && (
-                      <div>
+                      </div>}
+                    {report.applications.quality_level && <div>
                         <p className="text-muted-foreground">Quality Level:</p>
                         <p className="font-medium">{report.applications.quality_level}</p>
-                      </div>
-                    )}
-                    {report.applications.tenant_requirements && (
-                      <div className="md:col-span-2">
+                      </div>}
+                    {report.applications.tenant_requirements && <div className="md:col-span-2">
                         <p className="text-muted-foreground">Tenant Requirements:</p>
                         <p className="font-medium">{report.applications.tenant_requirements}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
 
-                {(report.applications.access_priorities || report.applications.known_risks || report.applications.utility_access || report.applications.environmental_constraints) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
-                    {report.applications.access_priorities && report.applications.access_priorities.length > 0 && (
-                      <div>
+                {(report.applications.access_priorities || report.applications.known_risks || report.applications.utility_access || report.applications.environmental_constraints) && <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
+                    {report.applications.access_priorities && report.applications.access_priorities.length > 0 && <div>
                         <p className="text-muted-foreground mb-1">Access Priorities:</p>
                         <div className="flex flex-wrap gap-1">
-                          {report.applications.access_priorities.map((priority: string) => (
-                            <Badge key={priority} variant="outline" className="text-xs">
+                          {report.applications.access_priorities.map((priority: string) => <Badge key={priority} variant="outline" className="text-xs">
                               {priority.replace(/_/g, ' ')}
-                            </Badge>
-                          ))}
+                            </Badge>)}
                         </div>
-                      </div>
-                    )}
-                    {report.applications.known_risks && report.applications.known_risks.length > 0 && (
-                      <div>
+                      </div>}
+                    {report.applications.known_risks && report.applications.known_risks.length > 0 && <div>
                         <p className="text-muted-foreground mb-1">Known Risks:</p>
                         <div className="flex flex-wrap gap-1">
-                          {report.applications.known_risks.map((risk: string) => (
-                            <Badge key={risk} variant="outline" className="text-xs">
+                          {report.applications.known_risks.map((risk: string) => <Badge key={risk} variant="outline" className="text-xs">
                               {risk.replace(/_/g, ' ')}
-                            </Badge>
-                          ))}
+                            </Badge>)}
                         </div>
-                      </div>
-                    )}
-                    {report.applications.utility_access && report.applications.utility_access.length > 0 && (
-                      <div>
+                      </div>}
+                    {report.applications.utility_access && report.applications.utility_access.length > 0 && <div>
                         <p className="text-muted-foreground mb-1">Required Utilities:</p>
                         <div className="flex flex-wrap gap-1">
-                          {report.applications.utility_access.map((utility: string) => (
-                            <Badge key={utility} variant="outline" className="text-xs">
+                          {report.applications.utility_access.map((utility: string) => <Badge key={utility} variant="outline" className="text-xs">
                               {utility.replace(/_/g, ' ')}
-                            </Badge>
-                          ))}
+                            </Badge>)}
                         </div>
-                      </div>
-                    )}
-                    {report.applications.environmental_constraints && report.applications.environmental_constraints.length > 0 && (
-                      <div>
+                      </div>}
+                    {report.applications.environmental_constraints && report.applications.environmental_constraints.length > 0 && <div>
                         <p className="text-muted-foreground mb-1">Environmental Constraints:</p>
                         <div className="flex flex-wrap gap-1">
-                          {report.applications.environmental_constraints.map((constraint: string) => (
-                            <Badge key={constraint} variant="outline" className="text-xs">
+                          {report.applications.environmental_constraints.map((constraint: string) => <Badge key={constraint} variant="outline" className="text-xs">
                               {constraint.replace(/_/g, ' ')}
-                            </Badge>
-                          ))}
+                            </Badge>)}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ NEW: Project Feasibility Analysis Card */}
-        {report.json_data?.project_feasibility && (
-          <Card className="mb-8">
+        {report.json_data?.project_feasibility && <Card className="mb-8">
             <CardHeader>
               <CardTitle>Project Feasibility Analysis</CardTitle>
-              {report.json_data.project_feasibility.component_score && (
-                <Badge className="mt-2">
+              {report.json_data.project_feasibility.component_score && <Badge className="mt-2">
                   Score: {report.json_data.project_feasibility.component_score}/100
-                </Badge>
-              )}
+                </Badge>}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {report.json_data.project_feasibility.verdict && (
-                  <div 
-                    className="prose max-w-none text-sm"
-                    dangerouslySetInnerHTML={{ 
-                      __html: DOMPurify.sanitize(report.json_data.project_feasibility.verdict)
-                    }} 
-                  />
-                )}
+                {report.json_data.project_feasibility.verdict && <div className="prose max-w-none text-sm" dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(report.json_data.project_feasibility.verdict)
+                }} />}
                 
-                {report.json_data.project_feasibility.zoning_compliance && (
-                  <div className="flex items-center gap-2 pt-2">
+                {report.json_data.project_feasibility.zoning_compliance && <div className="flex items-center gap-2 pt-2">
                     <span className="text-sm text-muted-foreground">Zoning Compliance:</span>
-                    <Badge variant={
-                      report.json_data.project_feasibility.zoning_compliance === 'permitted' ? 'default' :
-                      report.json_data.project_feasibility.zoning_compliance === 'conditional' ? 'secondary' :
-                      'destructive'
-                    }>
+                    <Badge variant={report.json_data.project_feasibility.zoning_compliance === 'permitted' ? 'default' : report.json_data.project_feasibility.zoning_compliance === 'conditional' ? 'secondary' : 'destructive'}>
                       {report.json_data.project_feasibility.zoning_compliance?.toUpperCase().replace(/_/g, ' ')}
                     </Badge>
-                  </div>
-                )}
+                  </div>}
 
-                {report.json_data.project_feasibility.use_specific_insights && report.json_data.project_feasibility.use_specific_insights.length > 0 && (
-                  <div className="pt-4 border-t">
+                {report.json_data.project_feasibility.use_specific_insights && report.json_data.project_feasibility.use_specific_insights.length > 0 && <div className="pt-4 border-t">
                     <h4 className="font-semibold mb-2 text-sm">Use-Specific Insights:</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {report.json_data.project_feasibility.use_specific_insights.map((insight: string, i: number) => (
-                        <li key={i}>{insight}</li>
-                      ))}
+                      {report.json_data.project_feasibility.use_specific_insights.map((insight: string, i: number) => <li key={i}>{insight}</li>)}
                     </ul>
-                  </div>
-                )}
+                  </div>}
 
-                {report.json_data.project_feasibility.budget_analysis && (
-                  <div className="pt-4 border-t">
+                {report.json_data.project_feasibility.budget_analysis && <div className="pt-4 border-t">
                     <h4 className="font-semibold mb-3 text-sm">Budget Analysis:</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                      {report.json_data.project_feasibility.budget_analysis.estimated_hard_costs && (
-                        <div>
+                      {report.json_data.project_feasibility.budget_analysis.estimated_hard_costs && <div>
                           <p className="text-muted-foreground">Hard Costs:</p>
                           <p className="font-semibold">${Number(report.json_data.project_feasibility.budget_analysis.estimated_hard_costs).toLocaleString()}</p>
-                        </div>
-                      )}
-                      {report.json_data.project_feasibility.budget_analysis.estimated_soft_costs && (
-                        <div>
+                        </div>}
+                      {report.json_data.project_feasibility.budget_analysis.estimated_soft_costs && <div>
                           <p className="text-muted-foreground">Soft Costs:</p>
                           <p className="font-semibold">${Number(report.json_data.project_feasibility.budget_analysis.estimated_soft_costs).toLocaleString()}</p>
-                        </div>
-                      )}
-                      {report.json_data.project_feasibility.budget_analysis.budget_adequacy && (
-                        <div>
+                        </div>}
+                      {report.json_data.project_feasibility.budget_analysis.budget_adequacy && <div>
                           <p className="text-muted-foreground">Budget Status:</p>
-                          <Badge variant={
-                            report.json_data.project_feasibility.budget_analysis.budget_adequacy === 'adequate' ? 'default' :
-                            report.json_data.project_feasibility.budget_analysis.budget_adequacy === 'tight' ? 'secondary' :
-                            'destructive'
-                          }>
+                          <Badge variant={report.json_data.project_feasibility.budget_analysis.budget_adequacy === 'adequate' ? 'default' : report.json_data.project_feasibility.budget_analysis.budget_adequacy === 'tight' ? 'secondary' : 'destructive'}>
                             {report.json_data.project_feasibility.budget_analysis.budget_adequacy?.toUpperCase()}
                           </Badge>
-                        </div>
-                      )}
+                        </div>}
                     </div>
-                  </div>
-                )}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ NEW: Cost & Timeline Card - PHASE 1 */}
-        {(report.json_data?.cost_schedule || report.applications?.costs_output || report.applications?.schedule_output) && (
-          <Card className="mb-8">
+        {(report.json_data?.cost_schedule || report.applications?.costs_output || report.applications?.schedule_output) && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5" />
                 Cost & Timeline Analysis
               </CardTitle>
-              {report.json_data?.cost_schedule?.component_score && (
-                <Badge className="mt-2">
+              {report.json_data?.cost_schedule?.component_score && <Badge className="mt-2">
                   Score: {report.json_data.cost_schedule.component_score}/100
-                </Badge>
-              )}
+                </Badge>}
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {/* Timeline Section */}
-                {report.json_data?.cost_schedule?.estimated_timeline_months && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {report.json_data?.cost_schedule?.estimated_timeline_months && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="p-4 bg-muted/50 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
@@ -1735,25 +1389,18 @@ export default function ReportViewer() {
                       <p className="text-xs text-muted-foreground">months estimated</p>
                     </div>
                     
-                    {report.json_data?.cost_schedule?.permitting_complexity && (
-                      <div className="p-4 bg-muted/50 rounded-lg">
+                    {report.json_data?.cost_schedule?.permitting_complexity && <div className="p-4 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">Complexity</span>
                         </div>
-                        <Badge variant={
-                          report.json_data.cost_schedule.permitting_complexity === 'low' ? 'default' :
-                          report.json_data.cost_schedule.permitting_complexity === 'moderate' ? 'secondary' :
-                          'destructive'
-                        } className="text-lg">
+                        <Badge variant={report.json_data.cost_schedule.permitting_complexity === 'low' ? 'default' : report.json_data.cost_schedule.permitting_complexity === 'moderate' ? 'secondary' : 'destructive'} className="text-lg">
                           {report.json_data.cost_schedule.permitting_complexity?.toUpperCase()}
                         </Badge>
                         <p className="text-xs text-muted-foreground mt-1">permitting level</p>
-                      </div>
-                    )}
+                      </div>}
                     
-                    {report.applications?.desired_budget && (
-                      <div className="p-4 bg-muted/50 rounded-lg">
+                    {report.applications?.desired_budget && <div className="p-4 bg-muted/50 rounded-lg">
                         <div className="flex items-center gap-2 mb-2">
                           <DollarSign className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">Project Budget</span>
@@ -1762,57 +1409,41 @@ export default function ReportViewer() {
                           ${(report.applications.desired_budget / 1000000).toFixed(1)}M
                         </p>
                         <p className="text-xs text-muted-foreground">development budget</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
 
                 {/* Critical Path Items */}
-                {report.json_data?.cost_schedule?.critical_path_items && report.json_data.cost_schedule.critical_path_items.length > 0 && (
-                  <div className="pt-4 border-t">
+                {report.json_data?.cost_schedule?.critical_path_items && report.json_data.cost_schedule.critical_path_items.length > 0 && <div className="pt-4 border-t">
                     <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
                       <Zap className="h-4 w-4 text-orange-600" />
                       Critical Path Items
                     </h4>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                      {report.json_data.cost_schedule.critical_path_items.map((item: string, i: number) => (
-                        <li key={i}>{item}</li>
-                      ))}
+                      {report.json_data.cost_schedule.critical_path_items.map((item: string, i: number) => <li key={i}>{item}</li>)}
                     </ul>
-                  </div>
-                )}
+                  </div>}
 
                 {/* AI Analysis Output */}
-                {(report.applications?.schedule_output || report.applications?.costs_output) && (
-                  <div className="pt-4 border-t">
-                    {report.applications.schedule_output && (
-                      <div className="mb-4">
+                {(report.applications?.schedule_output || report.applications?.costs_output) && <div className="pt-4 border-t">
+                    {report.applications.schedule_output && <div className="mb-4">
                         <h4 className="font-semibold mb-2 text-sm">Schedule Analysis:</h4>
-                        <div 
-                          className="prose prose-sm max-w-none text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report.applications.schedule_output) }}
-                        />
-                      </div>
-                    )}
-                    {report.applications.costs_output && (
-                      <div>
+                        <div className="prose prose-sm max-w-none text-muted-foreground" dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(report.applications.schedule_output)
+                    }} />
+                      </div>}
+                    {report.applications.costs_output && <div>
                         <h4 className="font-semibold mb-2 text-sm">Cost Analysis:</h4>
-                        <div 
-                          className="prose prose-sm max-w-none text-muted-foreground"
-                          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report.applications.costs_output) }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                )}
+                        <div className="prose prose-sm max-w-none text-muted-foreground" dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(report.applications.costs_output)
+                    }} />
+                      </div>}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* ⭐ NEW: Permitting Timeline Section */}
-        {report.applications?.average_permit_time_months && (
-          <Card className="mb-8">
+        {report.applications?.average_permit_time_months && <Card className="mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Landmark className="h-5 w-5" />
@@ -1834,32 +1465,24 @@ export default function ReportViewer() {
                     <p className="text-sm text-muted-foreground mt-1">months</p>
                   </div>
 
-                  {report.applications.city && (
-                    <div className="p-6 bg-muted/50 rounded-lg">
+                  {report.applications.city && <div className="p-6 bg-muted/50 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <Building2 className="h-5 w-5 text-muted-foreground" />
                         <span className="text-sm font-medium text-muted-foreground">Jurisdiction</span>
                       </div>
                       <p className="text-lg font-semibold">{report.applications.city}</p>
                       <p className="text-sm text-muted-foreground">{report.applications.county} County</p>
-                    </div>
-                  )}
+                    </div>}
 
-                  {report.json_data?.cost_schedule?.permitting_complexity && (
-                    <div className="p-6 bg-muted/50 rounded-lg">
+                  {report.json_data?.cost_schedule?.permitting_complexity && <div className="p-6 bg-muted/50 rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <FileText className="h-5 w-5 text-muted-foreground" />
                         <span className="text-sm font-medium text-muted-foreground">Complexity Level</span>
                       </div>
-                      <Badge variant={
-                        report.json_data.cost_schedule.permitting_complexity === 'low' ? 'default' :
-                        report.json_data.cost_schedule.permitting_complexity === 'moderate' ? 'secondary' :
-                        'destructive'
-                      } className="text-lg px-4 py-1">
+                      <Badge variant={report.json_data.cost_schedule.permitting_complexity === 'low' ? 'default' : report.json_data.cost_schedule.permitting_complexity === 'moderate' ? 'secondary' : 'destructive'} className="text-lg px-4 py-1">
                         {report.json_data.cost_schedule.permitting_complexity?.toUpperCase()}
                       </Badge>
-                    </div>
-                  )}
+                    </div>}
                 </div>
 
                 {/* Approval Process Timeline */}
@@ -1947,8 +1570,7 @@ export default function ReportViewer() {
                 </div>
 
                 {/* Contact Information */}
-                {report.applications.city && (
-                  <div className="pt-4 border-t bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-4">
+                {report.applications.city && <div className="pt-4 border-t bg-blue-50/50 dark:bg-blue-950/20 rounded-lg p-4">
                     <h4 className="font-semibold mb-2 flex items-center gap-2 text-sm">
                       <Building2 className="h-4 w-4" />
                       Permitting Office Contact
@@ -1960,16 +1582,13 @@ export default function ReportViewer() {
                     <p className="text-xs text-muted-foreground mt-1">
                       Recommend scheduling a pre-application meeting to discuss project-specific requirements
                     </p>
-                  </div>
-                )}
+                  </div>}
               </div>
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* Visual Assets Section */}
-        {report.report_assets?.static_map_url && (
-          <Card>
+        {report.report_assets?.static_map_url && <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="w-5 h-5 text-primary" />
@@ -1978,38 +1597,25 @@ export default function ReportViewer() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <img 
-                  src={report.report_assets.static_map_url} 
-                  alt="Property map with parcel, flood zones, and utilities"
-                  className="w-full rounded-lg shadow-lg"
-                />
+                <img src={report.report_assets.static_map_url} alt="Property map with parcel, flood zones, and utilities" className="w-full rounded-lg shadow-lg" />
                 <p className="text-sm text-muted-foreground mt-2 text-center">
                   Property boundary (blue), FEMA flood zone (yellow), utilities (orange)
                 </p>
               </div>
               
-              {report.report_assets.streetview && report.report_assets.streetview.length > 0 && (
-                <div>
+              {report.report_assets.streetview && report.report_assets.streetview.length > 0 && <div>
                   <h4 className="font-semibold mb-3">Street View Photos</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    {report.report_assets.streetview.map((sv) => (
-                      <div key={sv.direction}>
-                        <img 
-                          src={sv.url} 
-                          alt={`Street view looking ${sv.direction}`}
-                          className="rounded-lg shadow-md w-full"
-                        />
+                    {report.report_assets.streetview.map(sv => <div key={sv.direction}>
+                        <img src={sv.url} alt={`Street view looking ${sv.direction}`} className="rounded-lg shadow-md w-full" />
                         <p className="text-sm text-center mt-2 text-muted-foreground">
                           {sv.direction} View
                         </p>
-                      </div>
-                    ))}
+                      </div>)}
                   </div>
-                </div>
-              )}
+                </div>}
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
@@ -2032,33 +1638,22 @@ export default function ReportViewer() {
                 <CardTitle>Zoning Analysis</CardTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {zoning.component_score || 'N/A'}</Badge>
-                  {report.applications?.zoning_code && (
-                    <Badge variant="outline">{report.applications.zoning_code}</Badge>
-                  )}
+                  {report.applications?.zoning_code && <Badge variant="outline">{report.applications.zoning_code}</Badge>}
                   {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('zoning').map((source: any, idx: number) => (
-                    <DataSourceBadge
-                      key={idx}
-                      datasetName={source.dataset_name}
-                      timestamp={source.timestamp}
-                      endpointUrl={source.endpoint_url}
-                    />
-                  ))}
+                  {productId === 'enterprise' && getSourcesForSection('zoning').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
                 </div>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(zoning.verdict || '<p>No zoning analysis available.</p>') }} />
+                <div dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(zoning.verdict || '<p>No zoning analysis available.</p>')
+                  }} />
                 
-                {zoning.permitted_uses && zoning.permitted_uses.length > 0 && (
-                  <div className="mt-4">
+                {zoning.permitted_uses && zoning.permitted_uses.length > 0 && <div className="mt-4">
                     <h4 className="font-semibold">Permitted Uses</h4>
                     <ul>
-                      {zoning.permitted_uses.map((use: string, i: number) => (
-                        <li key={i}>{use}</li>
-                      ))}
+                      {zoning.permitted_uses.map((use: string, i: number) => <li key={i}>{use}</li>)}
                     </ul>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
@@ -2069,26 +1664,16 @@ export default function ReportViewer() {
                 <CardTitle>Flood Risk Analysis</CardTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {flood.component_score || 'N/A'}</Badge>
-                  {report.applications?.floodplain_zone && (
-                    <Badge variant={report.applications.floodplain_zone === 'X' ? 'default' : 'destructive'}>
+                  {report.applications?.floodplain_zone && <Badge variant={report.applications.floodplain_zone === 'X' ? 'default' : 'destructive'}>
                       Zone {report.applications.floodplain_zone}
-                    </Badge>
-                  )}
+                    </Badge>}
                   {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('flood').map((source: any, idx: number) => (
-                    <DataSourceBadge
-                      key={idx}
-                      datasetName={source.dataset_name}
-                      timestamp={source.timestamp}
-                      endpointUrl={source.endpoint_url}
-                    />
-                  ))}
+                  {productId === 'enterprise' && getSourcesForSection('flood').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Base Flood Elevation (BFE) */}
-                {report.applications?.base_flood_elevation && (
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                {report.applications?.base_flood_elevation && <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-start gap-3">
                       <div className="p-2 bg-blue-100 rounded">
                         <TrendingUp className="h-5 w-5 text-blue-700" />
@@ -2098,22 +1683,19 @@ export default function ReportViewer() {
                         <p className="text-2xl font-bold text-blue-700">
                           {report.applications.base_flood_elevation} ft NAVD88
                         </p>
-                        {report.applications.base_flood_elevation_source && (
-                          <p className="text-xs text-blue-600 mt-1">
+                        {report.applications.base_flood_elevation_source && <p className="text-xs text-blue-600 mt-1">
                             Source: {report.applications.base_flood_elevation_source}
-                          </p>
-                        )}
-                        {report.applications.fema_firm_panel && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          </p>}
+                        {report.applications.fema_firm_panel && <p className="text-xs text-muted-foreground mt-1">
                             FIRM Panel: {report.applications.fema_firm_panel}
-                          </p>
-                        )}
+                          </p>}
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
                 
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(flood.verdict || '<p>No flood analysis available.</p>') }} />
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(flood.verdict || '<p>No flood analysis available.</p>')
+                  }} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -2125,41 +1707,28 @@ export default function ReportViewer() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {utilities.component_score || 'N/A'}</Badge>
                   {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('utilities').map((source: any, idx: number) => (
-                    <DataSourceBadge
-                      key={idx}
-                      datasetName={source.dataset_name}
-                      timestamp={source.timestamp}
-                      endpointUrl={source.endpoint_url}
-                    />
-                  ))}
+                  {productId === 'enterprise' && getSourcesForSection('utilities').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* ⭐ NEW: Infrastructure & Connectivity Section - PHASE 3 */}
-                {(report.applications?.power_kv_nearby || report.applications?.fiber_available || 
-                  report.applications?.broadband_providers || report.applications?.distance_highway_ft || 
-                  report.applications?.distance_transit_ft) && (
-                  <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
+                {(report.applications?.power_kv_nearby || report.applications?.fiber_available || report.applications?.broadband_providers || report.applications?.distance_highway_ft || report.applications?.distance_transit_ft) && <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
                     <h4 className="font-semibold mb-4 flex items-center gap-2">
                       <Wifi className="h-4 w-4" />
                       Infrastructure & Connectivity
                     </h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {report.applications.power_kv_nearby && (
-                        <div className="p-3 bg-background rounded border">
+                      {report.applications.power_kv_nearby && <div className="p-3 bg-background rounded border">
                           <div className="flex items-center gap-2 mb-1">
                             <Zap className="h-4 w-4 text-yellow-600" />
                             <span className="text-xs text-muted-foreground">Power</span>
                           </div>
                           <p className="text-xl font-bold">{report.applications.power_kv_nearby} kV</p>
                           <p className="text-xs text-muted-foreground">nearby capacity</p>
-                        </div>
-                      )}
+                        </div>}
                       
-                      {typeof report.applications.fiber_available === 'boolean' && (
-                        <div className="p-3 bg-background rounded border">
+                      {typeof report.applications.fiber_available === 'boolean' && <div className="p-3 bg-background rounded border">
                           <div className="flex items-center gap-2 mb-1">
                             <Wifi className="h-4 w-4 text-blue-600" />
                             <span className="text-xs text-muted-foreground">Fiber Optic</span>
@@ -2167,11 +1736,9 @@ export default function ReportViewer() {
                           <Badge variant={report.applications.fiber_available ? 'default' : 'secondary'}>
                             {report.applications.fiber_available ? 'Available' : 'Not Available'}
                           </Badge>
-                        </div>
-                      )}
+                        </div>}
                       
-                      {report.applications.distance_highway_ft && (
-                        <div className="p-3 bg-background rounded border">
+                      {report.applications.distance_highway_ft && <div className="p-3 bg-background rounded border">
                           <div className="flex items-center gap-2 mb-1">
                             <Car className="h-4 w-4 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">Highway Access</span>
@@ -2180,11 +1747,9 @@ export default function ReportViewer() {
                             {(report.applications.distance_highway_ft / 5280).toFixed(2)} mi
                           </p>
                           <p className="text-xs text-muted-foreground">to nearest highway</p>
-                        </div>
-                      )}
+                        </div>}
                       
-                      {report.applications.distance_transit_ft && (
-                        <div className="p-3 bg-background rounded border">
+                      {report.applications.distance_transit_ft && <div className="p-3 bg-background rounded border">
                           <div className="flex items-center gap-2 mb-1">
                             <Users className="h-4 w-4 text-muted-foreground" />
                             <span className="text-xs text-muted-foreground">Transit Access</span>
@@ -2193,42 +1758,31 @@ export default function ReportViewer() {
                             {(report.applications.distance_transit_ft / 5280).toFixed(2)} mi
                           </p>
                           <p className="text-xs text-muted-foreground">to transit stop</p>
-                        </div>
-                      )}
+                        </div>}
                       
-                      {report.applications.broadband_providers && Array.isArray(report.applications.broadband_providers) && report.applications.broadband_providers.length > 0 && (
-                        <div className="p-3 bg-background rounded border md:col-span-2">
+                      {report.applications.broadband_providers && Array.isArray(report.applications.broadband_providers) && report.applications.broadband_providers.length > 0 && <div className="p-3 bg-background rounded border md:col-span-2">
                           <div className="flex items-center gap-2 mb-2">
                             <Wifi className="h-4 w-4 text-green-600" />
                             <span className="text-xs text-muted-foreground">Broadband Providers</span>
                           </div>
                           <div className="flex flex-wrap gap-1">
-                            {report.applications.broadband_providers.map((provider: any, i: number) => (
-                              <Badge key={i} variant="outline" className="text-xs">
+                            {report.applications.broadband_providers.map((provider: any, i: number) => <Badge key={i} variant="outline" className="text-xs">
                                 {typeof provider === 'string' ? provider : provider.name || `Provider ${i + 1}`}
-                              </Badge>
-                            ))}
+                              </Badge>)}
                           </div>
-                        </div>
-                      )}
+                        </div>}
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* Original Utilities Analysis */}
-                {utilities.verdict && (
-                  <div className="prose prose-sm max-w-none mb-6">
-                    <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(utilities.verdict) }} />
-                  </div>
-                )}
+                {utilities.verdict && <div className="prose prose-sm max-w-none mb-6">
+                    <div dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(utilities.verdict)
+                    }} />
+                  </div>}
 
                 {/* Detailed Utility Line Results */}
-                <UtilityResults 
-                  waterLines={report.applications.water_lines || null}
-                  sewerLines={report.applications.sewer_lines || null}
-                  stormLines={report.applications.storm_lines || null}
-                  dataFlags={report.applications.data_flags || []}
-                />
+                <UtilityResults waterLines={report.applications.water_lines || null} sewerLines={report.applications.sewer_lines || null} stormLines={report.applications.storm_lines || null} dataFlags={report.applications.data_flags || []} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -2240,45 +1794,22 @@ export default function ReportViewer() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   <Badge>Score: {environmental.component_score || 'N/A'}</Badge>
                   {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('environmental').map((source: any, idx: number) => (
-                    <DataSourceBadge
-                      key={idx}
-                      datasetName={source.dataset_name}
-                      timestamp={source.timestamp}
-                      endpointUrl={source.endpoint_url}
-                    />
-                  ))}
+                  {productId === 'enterprise' && getSourcesForSection('environmental').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* ⭐ PRIORITY: Wetlands - HIGH REGULATORY IMPACT */}
-                {report.applications?.wetlands_type && (
-                  <div className={`p-4 rounded-lg border-2 ${
-                    report.applications.wetlands_type === 'None detected' 
-                      ? 'bg-green-50 dark:bg-green-950/20 border-green-500'
-                      : 'bg-red-50 dark:bg-red-950/20 border-red-500'
-                  }`}>
+                {report.applications?.wetlands_type && <div className={`p-4 rounded-lg border-2 ${report.applications.wetlands_type === 'None detected' ? 'bg-green-50 dark:bg-green-950/20 border-green-500' : 'bg-red-50 dark:bg-red-950/20 border-red-500'}`}>
                     <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                      <MapPin className={`h-5 w-5 ${
-                        report.applications.wetlands_type === 'None detected' 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`} />
-                      <span className={
-                        report.applications.wetlands_type === 'None detected' 
-                          ? 'text-green-700 dark:text-green-400' 
-                          : 'text-red-700 dark:text-red-400'
-                      }>
+                      <MapPin className={`h-5 w-5 ${report.applications.wetlands_type === 'None detected' ? 'text-green-600' : 'text-red-600'}`} />
+                      <span className={report.applications.wetlands_type === 'None detected' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
                         Wetlands Status (Regulatory Priority)
                       </span>
                     </h4>
                     <p className="text-sm font-medium mb-2">
                       {report.applications.wetlands_type}
                     </p>
-                    {report.applications.wetlands_type !== 'None detected' && 
-                     report.applications.wetlands_type !== 'API Error' &&
-                     !report.applications.wetlands_type.includes('Manual Verification') && (
-                      <div className="mt-3 space-y-2">
+                    {report.applications.wetlands_type !== 'None detected' && report.applications.wetlands_type !== 'API Error' && !report.applications.wetlands_type.includes('Manual Verification') && <div className="mt-3 space-y-2">
                         <Badge variant="destructive" className="text-xs">
                           🚨 Section 404 CWA Permit Required
                         </Badge>
@@ -2286,126 +1817,89 @@ export default function ReportViewer() {
                           <strong>Regulatory Impact:</strong> Wetland delineation and Army Corps of Engineers permit required. 
                           Expect 6-12 month permitting timeline. Consult wetland specialist immediately.
                         </p>
-                      </div>
-                    )}
-                    {report.applications.wetlands_type === 'None detected' && (
-                      <Badge variant="default" className="mt-2 bg-green-600">
+                      </div>}
+                    {report.applications.wetlands_type === 'None detected' && <Badge variant="default" className="mt-2 bg-green-600">
                         ✅ No Wetlands Detected
-                      </Badge>
-                    )}
-                  </div>
-                )}
+                      </Badge>}
+                  </div>}
 
 
                 <div className="grid grid-cols-1 gap-6">
                   {/* Soil Characteristics */}
-                  {(report.applications?.soil_series || report.applications?.soil_drainage_class || 
-                    report.applications?.soil_slope_percent) && (
-                    <div className="p-4 bg-muted/30 rounded-lg border">
+                  {(report.applications?.soil_series || report.applications?.soil_drainage_class || report.applications?.soil_slope_percent) && <div className="p-4 bg-muted/30 rounded-lg border">
                       <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
                         <Landmark className="h-4 w-4 text-amber-600" />
                         Soil Characteristics
                       </h4>
                       <div className="space-y-1 text-sm">
-                        {report.applications.soil_series && (
-                          <p className="text-muted-foreground">
+                        {report.applications.soil_series && <p className="text-muted-foreground">
                             <span className="font-medium">Series:</span> {report.applications.soil_series}
-                          </p>
-                        )}
-                        {report.applications.soil_drainage_class && (
-                          <p className="text-muted-foreground">
+                          </p>}
+                        {report.applications.soil_drainage_class && <p className="text-muted-foreground">
                             <span className="font-medium">Drainage:</span> {report.applications.soil_drainage_class}
-                          </p>
-                        )}
-                        {report.applications.soil_slope_percent !== null && report.applications.soil_slope_percent !== undefined && (
-                          <p className="text-muted-foreground">
+                          </p>}
+                        {report.applications.soil_slope_percent !== null && report.applications.soil_slope_percent !== undefined && <p className="text-muted-foreground">
                             <span className="font-medium">Slope:</span> {report.applications.soil_slope_percent}%
-                          </p>
-                        )}
+                          </p>}
                       </div>
-                      {report.applications.soil_slope_percent && report.applications.soil_slope_percent > 5 && (
-                        <Badge variant="secondary" className="mt-2">
+                      {report.applications.soil_slope_percent && report.applications.soil_slope_percent > 5 && <Badge variant="secondary" className="mt-2">
                           Engineering Required (Slope &gt; 5%)
-                        </Badge>
-                      )}
-                    </div>
-                  )}
+                        </Badge>}
+                    </div>}
                 </div>
 
                 {/* Environmental Sites */}
-                {report.applications?.environmental_sites && 
-                 Array.isArray(report.applications.environmental_sites) && 
-                 report.applications.environmental_sites.length > 0 && (
-                  <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/30">
+                {report.applications?.environmental_sites && Array.isArray(report.applications.environmental_sites) && report.applications.environmental_sites.length > 0 && <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/30">
                     <h4 className="font-semibold mb-3 text-sm flex items-center gap-2 text-destructive">
                       <FileText className="h-4 w-4" />
                       Nearby Environmental Sites ({report.applications.environmental_sites.length})
                     </h4>
                     <div className="space-y-2">
-                      {report.applications.environmental_sites.slice(0, 10).map((site: any, i: number) => (
-                        <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
+                      {report.applications.environmental_sites.slice(0, 10).map((site: any, i: number) => <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
                           <div className="flex-1">
                             <p className="font-medium">{site.site_name}</p>
-                            {site.program && (
-                              <p className="text-xs text-muted-foreground">{site.program}</p>
-                            )}
-                            {site.status && (
-                              <Badge variant="outline" className="mt-1 text-xs">
+                            {site.program && <p className="text-xs text-muted-foreground">{site.program}</p>}
+                            {site.status && <Badge variant="outline" className="mt-1 text-xs">
                                 {site.status}
-                              </Badge>
-                            )}
+                              </Badge>}
                           </div>
-                          {site.distance_mi && (
-                            <Badge variant="secondary" className="whitespace-nowrap">
+                          {site.distance_mi && <Badge variant="secondary" className="whitespace-nowrap">
                               {site.distance_mi} mi
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
+                            </Badge>}
+                        </div>)}
                     </div>
                     <p className="text-xs text-muted-foreground mt-3">
                       Note: Proximity to environmental sites may require Phase I/II Environmental Assessments
                     </p>
-                  </div>
-                )}
+                  </div>}
 
                 {/* Historical Flood Events */}
-                {report.applications?.historical_flood_events && 
-                 Array.isArray(report.applications.historical_flood_events) && 
-                 report.applications.historical_flood_events.length > 0 && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                {report.applications?.historical_flood_events && Array.isArray(report.applications.historical_flood_events) && report.applications.historical_flood_events.length > 0 && <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                     <h4 className="font-semibold mb-3 text-sm flex items-center gap-2 text-blue-700 dark:text-blue-400">
                       <FileText className="h-4 w-4" />
                       Historical Flood Events ({report.applications.historical_flood_events.length})
                     </h4>
                     <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {report.applications.historical_flood_events.slice(0, 10).map((event: any, i: number) => (
-                        <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
+                      {report.applications.historical_flood_events.slice(0, 10).map((event: any, i: number) => <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
                           <div className="flex-1">
                             <p className="font-medium">{event.title}</p>
-                            {event.county && (
-                              <p className="text-xs text-muted-foreground">{event.county}</p>
-                            )}
-                            {event.disaster_number && (
-                              <Badge variant="outline" className="mt-1 text-xs">
+                            {event.county && <p className="text-xs text-muted-foreground">{event.county}</p>}
+                            {event.disaster_number && <Badge variant="outline" className="mt-1 text-xs">
                                 DR-{event.disaster_number}
-                              </Badge>
-                            )}
+                              </Badge>}
                           </div>
-                          {event.declaration_date && (
-                            <Badge variant="secondary" className="whitespace-nowrap">
+                          {event.declaration_date && <Badge variant="secondary" className="whitespace-nowrap">
                               {new Date(event.declaration_date).getFullYear()}
-                            </Badge>
-                          )}
-                        </div>
-                      ))}
+                            </Badge>}
+                        </div>)}
                     </div>
-                  </div>
-                )}
+                  </div>}
 
                 {/* Original Environmental Analysis Verdict */}
                 <div className="prose prose-sm max-w-none pt-4 border-t">
-                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(environmental.verdict || '<p>No environmental analysis available.</p>') }} />
+                  <div dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(environmental.verdict || '<p>No environmental analysis available.</p>')
+                    }} />
                 </div>
               </CardContent>
             </Card>
@@ -2419,48 +1913,25 @@ export default function ReportViewer() {
                   Traffic & Access Analysis
                 </CardTitle>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {traffic.component_score && (
-                    <Badge>Score: {traffic.component_score}</Badge>
-                  )}
+                  {traffic.component_score && <Badge>Score: {traffic.component_score}</Badge>}
                   {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('traffic').map((source: any, idx: number) => (
-                    <DataSourceBadge
-                      key={idx}
-                      datasetName={source.dataset_name}
-                      timestamp={source.timestamp}
-                      endpointUrl={source.endpoint_url}
-                    />
-                  ))}
-                  {report.applications?.traffic_aadt && (
-                    <Badge 
-                      variant={
-                        report.applications.traffic_aadt > 20000 
-                          ? 'default' 
-                          : report.applications.traffic_aadt > 10000 
-                          ? 'secondary' 
-                          : 'outline'
-                      }
-                    >
+                  {productId === 'enterprise' && getSourcesForSection('traffic').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
+                  {report.applications?.traffic_aadt && <Badge variant={report.applications.traffic_aadt > 20000 ? 'default' : report.applications.traffic_aadt > 10000 ? 'secondary' : 'outline'}>
                       {report.applications.traffic_aadt.toLocaleString()} AADT
-                    </Badge>
-                  )}
-                  {report.applications?.traffic_road_name && (
-                    <Badge variant="outline">{report.applications.traffic_road_name}</Badge>
-                  )}
+                    </Badge>}
+                  {report.applications?.traffic_road_name && <Badge variant="outline">{report.applications.traffic_road_name}</Badge>}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* ⭐ Enhanced: Traffic Mobility Metrics */}
-                {(report.applications?.truck_percent || report.applications?.congestion_level) && (
-                  <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                {(report.applications?.truck_percent || report.applications?.congestion_level) && <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
                     <h4 className="font-semibold mb-4 flex items-center gap-2">
                       <Car className="h-5 w-5 text-orange-600" />
                       Traffic Mobility Analysis
                     </h4>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {report.applications.truck_percent !== null && (
-                        <Card className="border-orange-200 bg-white/70 dark:bg-background/70">
+                      {report.applications.truck_percent !== null && <Card className="border-orange-200 bg-white/70 dark:bg-background/70">
                           <CardContent className="pt-6">
                             <div className="flex items-center gap-2 mb-2">
                               <TrendingUp className="h-5 w-5 text-orange-600" />
@@ -2473,44 +1944,27 @@ export default function ReportViewer() {
                               Commercial vehicles
                             </Badge>
                             <p className="text-xs text-muted-foreground mt-2">
-                              {report.applications.truck_percent > 10 ? 'High commercial traffic' : 
-                               report.applications.truck_percent > 5 ? 'Moderate commercial flow' : 
-                               'Low truck volume'}
+                              {report.applications.truck_percent > 10 ? 'High commercial traffic' : report.applications.truck_percent > 5 ? 'Moderate commercial flow' : 'Low truck volume'}
                             </p>
                           </CardContent>
-                        </Card>
-                      )}
+                        </Card>}
                       
-                      {report.applications.congestion_level && (
-                        <Card className="border-red-200 bg-white/70 dark:bg-background/70">
+                      {report.applications.congestion_level && <Card className="border-red-200 bg-white/70 dark:bg-background/70">
                           <CardContent className="pt-6">
                             <div className="flex items-center gap-2 mb-2">
                               <Clock className="h-5 w-5 text-red-600" />
                               <span className="text-sm text-muted-foreground">Congestion</span>
                             </div>
-                            <Badge 
-                              variant={
-                                report.applications.congestion_level.toLowerCase() === 'low' ? 'default' :
-                                report.applications.congestion_level.toLowerCase() === 'moderate' ? 'secondary' :
-                                'destructive'
-                              }
-                              className="text-2xl px-4 py-2"
-                            >
+                            <Badge variant={report.applications.congestion_level.toLowerCase() === 'low' ? 'default' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'secondary' : 'destructive'} className="text-2xl px-4 py-2">
                               {report.applications.congestion_level}
                             </Badge>
                             <p className="text-xs text-muted-foreground mt-3">
-                              {report.applications.congestion_level.toLowerCase() === 'high' 
-                                ? 'Peak hour delays expected' 
-                                : report.applications.congestion_level.toLowerCase() === 'moderate'
-                                ? 'Some delays during rush hours'
-                                : 'Free-flowing traffic'}
+                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Peak hour delays expected' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Some delays during rush hours' : 'Free-flowing traffic'}
                             </p>
                           </CardContent>
-                        </Card>
-                      )}
+                        </Card>}
                       
-                      {report.applications.traffic_direction && (
-                        <Card className="border-blue-200 bg-white/70 dark:bg-background/70">
+                      {report.applications.traffic_direction && <Card className="border-blue-200 bg-white/70 dark:bg-background/70">
                           <CardContent className="pt-6">
                             <div className="flex items-center gap-2 mb-2">
                               <TrendingUp className="h-5 w-5 text-blue-600" />
@@ -2523,22 +1977,15 @@ export default function ReportViewer() {
                               Primary direction
                             </p>
                           </CardContent>
-                        </Card>
-                      )}
+                        </Card>}
                       
-                      {report.applications.traffic_map_url && (
-                        <Card className="border-purple-200 bg-white/70 dark:bg-background/70">
+                      {report.applications.traffic_map_url && <Card className="border-purple-200 bg-white/70 dark:bg-background/70">
                           <CardContent className="pt-6">
                             <div className="flex items-center gap-2 mb-2">
                               <MapPin className="h-5 w-5 text-purple-600" />
                               <span className="text-sm text-muted-foreground">Interactive Map</span>
                             </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="mt-2"
-                              onClick={() => window.open(report.applications.traffic_map_url!, '_blank')}
-                            >
+                            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.open(report.applications.traffic_map_url!, '_blank')}>
                               <MapPin className="h-4 w-4 mr-2" />
                               View Traffic Map
                             </Button>
@@ -2546,13 +1993,11 @@ export default function ReportViewer() {
                               Live traffic visualization
                             </p>
                           </CardContent>
-                        </Card>
-                      )}
+                        </Card>}
                     </div>
 
                     {/* Peak Hour Analysis */}
-                    {report.applications.congestion_level && (
-                      <div className="mt-4 p-3 bg-white/50 dark:bg-background/50 rounded border border-muted">
+                    {report.applications.congestion_level && <div className="mt-4 p-3 bg-white/50 dark:bg-background/50 rounded border border-muted">
                         <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
                           <Clock className="h-4 w-4" />
                           Peak Hour Analysis
@@ -2560,20 +2005,14 @@ export default function ReportViewer() {
                         <div className="grid grid-cols-2 gap-3 text-xs">
                           <div>
                             <p className="text-muted-foreground mb-1">Morning Rush (7-9 AM)</p>
-                            <Badge variant={
-                              report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'
-                            }>
-                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : 
-                               report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
+                            <Badge variant={report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'}>
+                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
                             </Badge>
                           </div>
                           <div>
                             <p className="text-muted-foreground mb-1">Evening Rush (4-6 PM)</p>
-                            <Badge variant={
-                              report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'
-                            }>
-                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : 
-                               report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
+                            <Badge variant={report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'}>
+                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
                             </Badge>
                           </div>
                           <div>
@@ -2587,13 +2026,10 @@ export default function ReportViewer() {
                             <Badge variant="outline">Light</Badge>
                           </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
 
-                {report.applications?.traffic_aadt ? (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {report.applications?.traffic_aadt ? <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                     <Card className="border-muted">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-2 mb-2">
@@ -2612,18 +2048,13 @@ export default function ReportViewer() {
                           <span className="text-sm text-muted-foreground">Traffic Level</span>
                         </div>
                         <p className="text-2xl font-bold">
-                          {report.applications.traffic_aadt > 20000 
-                            ? 'High' 
-                            : report.applications.traffic_aadt > 10000 
-                            ? 'Medium' 
-                            : 'Low'}
+                          {report.applications.traffic_aadt > 20000 ? 'High' : report.applications.traffic_aadt > 10000 ? 'Medium' : 'Low'}
                         </p>
                         <p className="text-xs text-muted-foreground">exposure rating</p>
                       </CardContent>
                     </Card>
                     
-                    {report.applications?.traffic_year && (
-                      <Card className="border-muted">
+                    {report.applications?.traffic_year && <Card className="border-muted">
                         <CardContent className="pt-6">
                           <div className="flex items-center gap-2 mb-2">
                             <FileText className="h-4 w-4 text-muted-foreground" />
@@ -2632,17 +2063,15 @@ export default function ReportViewer() {
                           <p className="text-2xl font-bold">{report.applications.traffic_year}</p>
                           <p className="text-xs text-muted-foreground">TxDOT traffic count</p>
                         </CardContent>
-                      </Card>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                      </Card>}
+                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
                     Traffic data not available for this property
-                  </div>
-                )}
+                  </div>}
                 
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(traffic.verdict || '<p>Traffic analysis not available. This may be added in future reports.</p>') }} />
+                  <div dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(traffic.verdict || '<p>Traffic analysis not available. This may be added in future reports.</p>')
+                    }} />
                 </div>
               </CardContent>
             </Card>
@@ -2655,32 +2084,23 @@ export default function ReportViewer() {
                   <Users className="h-5 w-5" />
                   Market Demographics
                 </CardTitle>
-                {marketDemographics.component_score && (
-                  <Badge className="mt-2">Score: {marketDemographics.component_score}</Badge>
-                )}
+                {marketDemographics.component_score && <Badge className="mt-2">Score: {marketDemographics.component_score}</Badge>}
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* ⭐ NEW: Trade Area Analysis Section */}
-                {(report.applications?.drive_time_15min_population || 
-                  report.applications?.drive_time_30min_population || 
-                  report.applications?.population_1mi ||
-                  report.applications?.population_3mi ||
-                  report.applications?.population_5mi) && (
-                  <div className="mb-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                {(report.applications?.drive_time_15min_population || report.applications?.drive_time_30min_population || report.applications?.population_1mi || report.applications?.population_3mi || report.applications?.population_5mi) && <div className="mb-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
                     <h4 className="font-semibold mb-4 flex items-center gap-2 text-lg">
                       <TrendingUp className="h-5 w-5 text-purple-600" />
                       Trade Area Analysis
                     </h4>
 
                     {/* Drive-Time Demographics */}
-                    {(report.applications.drive_time_15min_population || report.applications.drive_time_30min_population) && (
-                      <div className="mb-6">
+                    {(report.applications.drive_time_15min_population || report.applications.drive_time_30min_population) && <div className="mb-6">
                         <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase">
                           Traffic-Adjusted Market Reach
                         </h5>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {report.applications.drive_time_15min_population && (
-                            <Card className="border-purple-200 bg-white/50 dark:bg-background/50">
+                          {report.applications.drive_time_15min_population && <Card className="border-purple-200 bg-white/50 dark:bg-background/50">
                               <CardContent className="pt-6">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Clock className="h-5 w-5 text-purple-600" />
@@ -2696,11 +2116,9 @@ export default function ReportViewer() {
                                   </p>
                                 </div>
                               </CardContent>
-                            </Card>
-                          )}
+                            </Card>}
                           
-                          {report.applications.drive_time_30min_population && (
-                            <Card className="border-blue-200 bg-white/50 dark:bg-background/50">
+                          {report.applications.drive_time_30min_population && <Card className="border-blue-200 bg-white/50 dark:bg-background/50">
                               <CardContent className="pt-6">
                                 <div className="flex items-center gap-2 mb-2">
                                   <Clock className="h-5 w-5 text-blue-600" />
@@ -2716,22 +2134,18 @@ export default function ReportViewer() {
                                   </p>
                                 </div>
                               </CardContent>
-                            </Card>
-                          )}
+                            </Card>}
                         </div>
-                      </div>
-                    )}
+                      </div>}
 
                     {/* Comparison: Drive-Time vs Concentric Rings */}
-                    {(report.applications.population_1mi || report.applications.population_3mi || report.applications.population_5mi) && (
-                      <div className="mb-6">
+                    {(report.applications.population_1mi || report.applications.population_3mi || report.applications.population_5mi) && <div className="mb-6">
                         <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase flex items-center gap-2">
                           <MapPin className="h-4 w-4" />
                           Concentric Ring Analysis
                         </h5>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {report.applications.population_1mi && (
-                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                          {report.applications.population_1mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                               <div className="text-center">
                                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-2">
                                   <span className="text-lg font-bold text-green-700 dark:text-green-400">1</span>
@@ -2741,11 +2155,9 @@ export default function ReportViewer() {
                                 </p>
                                 <p className="text-xs text-muted-foreground">within 1 mile</p>
                               </div>
-                            </div>
-                          )}
+                            </div>}
                           
-                          {report.applications.population_3mi && (
-                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                          {report.applications.population_3mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                               <div className="text-center">
                                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-2">
                                   <span className="text-lg font-bold text-blue-700 dark:text-blue-400">3</span>
@@ -2755,11 +2167,9 @@ export default function ReportViewer() {
                                 </p>
                                 <p className="text-xs text-muted-foreground">within 3 miles</p>
                               </div>
-                            </div>
-                          )}
+                            </div>}
                           
-                          {report.applications.population_5mi && (
-                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                          {report.applications.population_5mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                               <div className="text-center">
                                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-2">
                                   <span className="text-lg font-bold text-purple-700 dark:text-purple-400">5</span>
@@ -2769,49 +2179,39 @@ export default function ReportViewer() {
                                 </p>
                                 <p className="text-xs text-muted-foreground">within 5 miles</p>
                               </div>
-                            </div>
-                          )}
+                            </div>}
                         </div>
                         
                         {/* Comparison Insight */}
-                        {report.applications.drive_time_15min_population && report.applications.population_3mi && (
-                          <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded border border-blue-200/50 dark:border-blue-800/50">
+                        {report.applications.drive_time_15min_population && report.applications.population_3mi && <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded border border-blue-200/50 dark:border-blue-800/50">
                             <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-1">
                               Market Reach Comparison
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {report.applications.drive_time_15min_population > report.applications.population_3mi ? (
-                                <>
+                              {report.applications.drive_time_15min_population > report.applications.population_3mi ? <>
                                   <span className="font-semibold text-green-700 dark:text-green-400">
                                     {Math.round((report.applications.drive_time_15min_population / report.applications.population_3mi - 1) * 100)}% more people
                                   </span>
                                   {' '}are accessible within 15-minute drive time compared to a 3-mile radius, indicating good road connectivity and market access.
-                                </>
-                              ) : (
-                                <>
+                                </> : <>
                                   The 3-mile radius captures{' '}
                                   <span className="font-semibold">
                                     {Math.round((report.applications.population_3mi / report.applications.drive_time_15min_population - 1) * 100)}% more people
                                   </span>
                                   {' '}than 15-minute drive time, suggesting dense urban environment with traffic congestion.
-                                </>
-                              )}
+                                </>}
                             </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                          </div>}
+                      </div>}
 
                     {/* Demographics & Economic Indicators */}
-                    {(report.applications.growth_rate_5yr || report.applications.median_income || report.applications.households_5mi) && (
-                      <div>
+                    {(report.applications.growth_rate_5yr || report.applications.median_income || report.applications.households_5mi) && <div>
                         <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase flex items-center gap-2">
                           <DollarSign className="h-4 w-4" />
                           Market Characteristics
                         </h5>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {report.applications.growth_rate_5yr && (
-                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                          {report.applications.growth_rate_5yr && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                               <div className="flex items-center gap-2 mb-1">
                                 <TrendingUp className="h-4 w-4 text-green-600" />
                                 <span className="text-xs text-muted-foreground uppercase">5-Year Growth</span>
@@ -2820,15 +2220,11 @@ export default function ReportViewer() {
                                 {report.applications.growth_rate_5yr > 0 ? '+' : ''}{(report.applications.growth_rate_5yr * 100).toFixed(1)}%
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {report.applications.growth_rate_5yr > 0.1 ? 'High growth market' : 
-                                 report.applications.growth_rate_5yr > 0.05 ? 'Moderate growth' : 
-                                 'Stable market'}
+                                {report.applications.growth_rate_5yr > 0.1 ? 'High growth market' : report.applications.growth_rate_5yr > 0.05 ? 'Moderate growth' : 'Stable market'}
                               </p>
-                            </div>
-                          )}
+                            </div>}
                           
-                          {report.applications.median_income && (
-                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                          {report.applications.median_income && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                               <div className="flex items-center gap-2 mb-1">
                                 <DollarSign className="h-4 w-4 text-blue-600" />
                                 <span className="text-xs text-muted-foreground uppercase">Median Income</span>
@@ -2837,15 +2233,11 @@ export default function ReportViewer() {
                                 ${(report.applications.median_income / 1000).toFixed(0)}k
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">
-                                {report.applications.median_income > 75000 ? 'High income area' : 
-                                 report.applications.median_income > 50000 ? 'Middle income' : 
-                                 'Value-oriented market'}
+                                {report.applications.median_income > 75000 ? 'High income area' : report.applications.median_income > 50000 ? 'Middle income' : 'Value-oriented market'}
                               </p>
-                            </div>
-                          )}
+                            </div>}
                           
-                          {report.applications.households_5mi && (
-                            <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
+                          {report.applications.households_5mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                               <div className="flex items-center gap-2 mb-1">
                                 <Users className="h-4 w-4 text-purple-600" />
                                 <span className="text-xs text-muted-foreground uppercase">Households</span>
@@ -2854,25 +2246,18 @@ export default function ReportViewer() {
                                 {(report.applications.households_5mi / 1000).toFixed(1)}k
                               </p>
                               <p className="text-xs text-muted-foreground mt-1">within 5 miles</p>
-                            </div>
-                          )}
+                            </div>}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      </div>}
+                  </div>}
 
-                {report.applications?.employment_clusters && 
-                 Array.isArray(report.applications.employment_clusters) && 
-                 report.applications.employment_clusters.length > 0 ? (
-                  <div className="mb-6">
+                {report.applications?.employment_clusters && Array.isArray(report.applications.employment_clusters) && report.applications.employment_clusters.length > 0 ? <div className="mb-6">
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Nearby Employment Centers
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {report.applications.employment_clusters.map((cluster: any, i: number) => (
-                        <Card key={i} className="border-muted">
+                      {report.applications.employment_clusters.map((cluster: any, i: number) => <Card key={i} className="border-muted">
                           <CardContent className="pt-4">
                             <div className="flex justify-between items-start mb-2">
                               <h5 className="font-medium text-sm">{cluster.name || `Employment Center ${i + 1}`}</h5>
@@ -2884,28 +2269,22 @@ export default function ReportViewer() {
                               {cluster.jobs ? cluster.jobs.toLocaleString() : 'N/A'}
                             </p>
                             <p className="text-xs text-muted-foreground">jobs available</p>
-                            {cluster.industries && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {cluster.industries.slice(0, 3).map((industry: string, idx: number) => (
-                                  <Badge key={idx} variant="secondary" className="text-xs">
+                            {cluster.industries && <div className="mt-2 flex flex-wrap gap-1">
+                                {cluster.industries.slice(0, 3).map((industry: string, idx: number) => <Badge key={idx} variant="secondary" className="text-xs">
                                     {industry}
-                                  </Badge>
-                                ))}
-                              </div>
-                            )}
+                                  </Badge>)}
+                              </div>}
                           </CardContent>
-                        </Card>
-                      ))}
+                        </Card>)}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
                     Employment cluster data not available for this property
-                  </div>
-                )}
+                  </div>}
                 
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>') }} />
+                  <div dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>')
+                    }} />
                 </div>
               </CardContent>
             </Card>
@@ -2921,18 +2300,13 @@ export default function ReportViewer() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {report.applications.drivetimes && report.applications.drivetimes.length > 0 ? (
-                  <div>
+                {report.applications.drivetimes && report.applications.drivetimes.length > 0 ? <div>
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <Clock className="w-4 h-4" />
                       Drive Times to Key Destinations
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {report.applications.drivetimes.map((dt) => (
-                        <div 
-                          key={dt.destination}
-                          className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted"
-                        >
+                      {report.applications.drivetimes.map(dt => <div key={dt.destination} className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
                           <h5 className="font-medium text-sm mb-2">{dt.destination}</h5>
                           <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-bold text-primary">{dt.duration_min}</span>
@@ -2941,28 +2315,19 @@ export default function ReportViewer() {
                           <p className="text-xs text-muted-foreground mt-1">
                             {dt.distance_mi?.toFixed(1)} miles
                           </p>
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
                     Drive time data unavailable for this location
-                  </div>
-                )}
+                  </div>}
                 
-                {report.applications.nearby_places && report.applications.nearby_places.length > 0 ? (
-                  <div>
+                {report.applications.nearby_places && report.applications.nearby_places.length > 0 ? <div>
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
                       Nearby Amenities
                     </h4>
                     <div className="space-y-2">
-                      {report.applications.nearby_places.map((place, idx) => (
-                        <div 
-                          key={idx}
-                          className="flex justify-between items-center border-b pb-2 last:border-0"
-                        >
+                      {report.applications.nearby_places.map((place, idx) => <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-0">
                           <div>
                             <span className="font-medium">{place.name}</span>
                             <span className="text-xs text-muted-foreground ml-2">
@@ -2972,41 +2337,31 @@ export default function ReportViewer() {
                           <span className="text-sm text-muted-foreground">
                             {(place.distance_ft / 5280).toFixed(2)} mi
                           </span>
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
+                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
                     Nearby amenities data unavailable for this location
-                  </div>
-                )}
+                  </div>}
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
 
         {/* Intent-Specific Next Steps */}
-        {report.applications.intent_type && (
-          <Card className="mt-6 border-primary">
+        {report.applications.intent_type && <Card className="mt-6 border-primary">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {report.applications.intent_type === 'build' ? (
-                  <>
+                {report.applications.intent_type === 'build' ? <>
                     <Zap className="text-primary" />
                     Next Steps for Development
-                  </>
-                ) : (
-                  <>
+                  </> : <>
                     <DollarSign className="text-primary" />
                     Next Steps for Investment
-                  </>
-                )}
+                  </>}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {report.applications.intent_type === 'build' ? (
-                <>
+              {report.applications.intent_type === 'build' ? <>
                   <Button variant="outline" className="w-full justify-start" onClick={() => window.open('https://schedulr.siteintel.ai', '_blank')}>
                     <Clock className="mr-2 h-4 w-4" />
                     📅 Explore Schedule & Cost with Schedulr™
@@ -3015,9 +2370,7 @@ export default function ReportViewer() {
                     <Building2 className="mr-2 h-4 w-4" />
                     🏛️ Connect with Entitlement Consultant
                   </Button>
-                </>
-              ) : (
-                <>
+                </> : <>
                   <Button variant="outline" className="w-full justify-start" onClick={() => window.open('https://www.floodsmart.gov/', '_blank')}>
                     <AlertTriangle className="mr-2 h-4 w-4" />
                     🌊 Get Flood Insurance Quote
@@ -3026,31 +2379,19 @@ export default function ReportViewer() {
                     <TrendingUp className="mr-2 h-4 w-4" />
                     📊 Compare Similar Parcels (Coming Soon)
                   </Button>
-                </>
-              )}
+                </>}
             </CardContent>
-          </Card>
-        )}
+          </Card>}
       </div>
 
       {/* Data Sources Sidebar */}
       <div className="lg:col-span-1">
-        <DataSourcesDisplay 
-          dataSources={dataSources}
-          accessLevel={
-            !isAuthenticated ? 'public' :
-            !isOwner ? 'authenticated' :
-            productId === 'enterprise' ? 'enterprise' :
-            'owner'
-          }
-        />
+        <DataSourcesDisplay dataSources={dataSources} accessLevel={!isAuthenticated ? 'public' : !isOwner ? 'authenticated' : productId === 'enterprise' ? 'enterprise' : 'owner'} />
       </div>
-    </div>
-        )}
+    </div>}
       </main>
 
       {/* AI Chat Assistant */}
       {report && report.applications && <ReportChatAssistant reportData={report} applicationData={report.applications} />}
-    </div>
-  );
+    </div>;
 }
