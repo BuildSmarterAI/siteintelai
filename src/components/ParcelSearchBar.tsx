@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Navigation, MapPin } from 'lucide-react';
+import { Search, Navigation, MapPin, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
@@ -144,13 +144,15 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
           <PopoverTrigger asChild>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin" />
+              )}
               <Input
                 type="text"
                 placeholder="Address, cross street, or parcel ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
-                disabled={isSearching}
+                className="pl-10 pr-10 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
               />
             </div>
           </PopoverTrigger>
