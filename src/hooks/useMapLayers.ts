@@ -169,79 +169,82 @@ export function useMapLayers(applicationId: string) {
         drawnParcels = parcelsData || [];
       }
 
-      // Fetch utilities data
+      // Fetch utilities data from correct columns
       const { data: utilitiesData } = await supabase
         .from('applications')
-        .select('utilities_summary')
+        .select('water_lines, sewer_lines, storm_lines, enrichment_metadata')
         .eq('id', applicationId)
         .single();
 
-      const utilitiesSummary = utilitiesData?.utilities_summary as any;
+      const waterLinesData = utilitiesData?.water_lines || [];
+      const sewerLinesData = utilitiesData?.sewer_lines || [];
+      const stormLinesData = utilitiesData?.storm_lines || [];
+      const enrichmentMeta = utilitiesData?.enrichment_metadata as any;
       
-      // Transform water lines from utilities_summary
+      // Transform water lines from top-level column
       const waterLines: any[] = [];
-      if (utilitiesSummary?.water_lines && Array.isArray(utilitiesSummary.water_lines)) {
-        utilitiesSummary.water_lines.forEach((line: any) => {
+      if (Array.isArray(waterLinesData)) {
+        waterLinesData.forEach((line: any) => {
           if (line.geometry) {
             waterLines.push({
               geometry: line.geometry,
               facility_id: line.facility_id,
-              diameter_in: line.diameter_in,
+              diameter_in: line.diameter,
               material: line.material,
               install_year: line.install_year,
               condition: line.condition,
               status: line.status,
               distance_ft: line.distance_ft,
-              attributes: line.attributes,
+              attributes: line,
             });
           }
         });
       }
 
-      // Transform sewer lines from utilities_summary
+      // Transform sewer lines from top-level column
       const sewerLines: any[] = [];
-      if (utilitiesSummary?.sewer_lines && Array.isArray(utilitiesSummary.sewer_lines)) {
-        utilitiesSummary.sewer_lines.forEach((line: any) => {
+      if (Array.isArray(sewerLinesData)) {
+        sewerLinesData.forEach((line: any) => {
           if (line.geometry) {
             sewerLines.push({
               geometry: line.geometry,
               facility_id: line.facility_id,
-              diameter_in: line.diameter_in,
+              diameter_in: line.diameter,
               material: line.material,
               install_year: line.install_year,
               condition: line.condition,
               status: line.status,
               distance_ft: line.distance_ft,
-              attributes: line.attributes,
+              attributes: line,
             });
           }
         });
       }
 
-      // Transform storm lines from utilities_summary
+      // Transform storm lines from top-level column
       const stormLines: any[] = [];
-      if (utilitiesSummary?.storm_lines && Array.isArray(utilitiesSummary.storm_lines)) {
-        utilitiesSummary.storm_lines.forEach((line: any) => {
+      if (Array.isArray(stormLinesData)) {
+        stormLinesData.forEach((line: any) => {
           if (line.geometry) {
             stormLines.push({
               geometry: line.geometry,
               facility_id: line.facility_id,
-              diameter_in: line.diameter_in,
+              diameter_in: line.diameter,
               material: line.material,
               install_year: line.install_year,
               condition: line.condition,
               status: line.status,
               distance_ft: line.distance_ft,
-              attributes: line.attributes,
+              attributes: line,
             });
           }
         });
       }
 
-      // Transform storm manholes from utilities_summary
+      // Transform storm manholes from enrichment_metadata
       const stormManholes: any[] = [];
-      if (utilitiesSummary?.storm_manholes_data && Array.isArray(utilitiesSummary.storm_manholes_data)) {
-        utilitiesSummary.storm_manholes_data.forEach((manhole: any) => {
+      if (enrichmentMeta?.storm_manholes_data && Array.isArray(enrichmentMeta.storm_manholes_data)) {
+        enrichmentMeta.storm_manholes_data.forEach((manhole: any) => {
           if (manhole.geometry || (manhole.lat && manhole.lng)) {
             stormManholes.push({
               geometry: manhole.geometry || {

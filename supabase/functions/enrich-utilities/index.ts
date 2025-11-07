@@ -165,7 +165,8 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
       owner: attrs.OWNER || null,
       ...(isStorm && install_year && { install_year }),
       ...(isStorm && condition && { condition }),
-      distance_ft
+      distance_ft,
+      geometry: geom  // ✅ Preserve geometry for map rendering
     };
   }).filter((line: any) => {
     // For storm lines, keep only if we have facility_id OR diameter (data quality)
