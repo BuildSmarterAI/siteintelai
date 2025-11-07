@@ -1673,10 +1673,24 @@ serve(async (req) => {
         console.log('🔄 [enrich-utilities] Retrying with minimal payload...');
         
         const minimalPayload = {
+          // Core utility arrays - these are what populate the report tables
+          water_lines: formatLines(water, geo_lat, geo_lng, "water"),
+          sewer_lines: formatLines(sewer, geo_lat, geo_lng, "sewer"),
+          storm_lines: formatLines(storm, geo_lat, geo_lng, "storm"),
+          
+          // Summary stats (small footprint)
           utilities_summary: utilitiesSummary,
-          data_flags: [...flags, 'database_update_partial_failure'],
+          
+          // Flags indicating what succeeded/failed
+          data_flags: [...flags, 'database_update_partial_failure', 'enrichment_metadata_excluded'],
+          
           enrichment_status: 'partial',
-          enrichment_error: `Full update failed: ${updateError.message}. Data collected but not fully saved.`
+          enrichment_error: `Full update failed: ${updateError.message}. Core utilities saved, but enrichment_metadata excluded to reduce payload size.`,
+          
+          // Also save counts for quick reference
+          water_lines_count: water.length,
+          sewer_lines_count: sewer.length,
+          storm_lines_count: storm.length
         };
         
         if (application_id) {
