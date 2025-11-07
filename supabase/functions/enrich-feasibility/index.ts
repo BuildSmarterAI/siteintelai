@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import proj4 from 'npm:proj4@2.8.0';
+import { logExternalCall } from '../_shared/observability.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -1528,6 +1529,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
       };
 
       let waterData;
+      const waterStart = Date.now();
       
       if (useProxy) {
         // Route through utility-proxy edge function
@@ -1547,6 +1549,17 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
         const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParamsUrl}`);
         waterData = await safeJsonParse(waterResp, 'Water lines query');
       }
+      
+      // Log water lines API call
+      await logExternalCall(
+        supabase,
+        'utility_water_lines',
+        endpoints.water_lines_url,
+        Date.now() - waterStart,
+        !!waterData?.features?.length,
+        null,
+        waterData?.error?.message || null
+      );
       
       console.log('Water lines API response:', {
         hasFeatures: !!waterData?.features,
@@ -1594,6 +1607,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
       };
 
       let sewerData;
+      const sewerStart = Date.now();
       
       if (useProxy) {
         const { data, error } = await supabase.functions.invoke('utility-proxy', {
@@ -1610,6 +1624,17 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
         const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParamsUrl}`);
         sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
       }
+      
+      // Log sewer lines API call
+      await logExternalCall(
+        supabase,
+        'utility_sewer_lines',
+        endpoints.sewer_lines_url,
+        Date.now() - sewerStart,
+        !!sewerData?.features?.length,
+        null,
+        sewerData?.error?.message || null
+      );
       
       console.log('Sewer lines API response:', {
         hasFeatures: !!sewerData?.features,
@@ -1657,6 +1682,7 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
       };
 
       let stormData;
+      const stormStart = Date.now();
       
       if (useProxy) {
         const { data, error } = await supabase.functions.invoke('utility-proxy', {
@@ -1673,6 +1699,17 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
         const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParamsUrl}`);
         stormData = await safeJsonParse(stormResp, 'Storm lines query');
       }
+      
+      // Log storm lines API call
+      await logExternalCall(
+        supabase,
+        'utility_storm_lines',
+        endpoints.storm_lines_url,
+        Date.now() - stormStart,
+        !!stormData?.features?.length,
+        null,
+        stormData?.error?.message || null
+      );
       
       console.log('Storm lines API response:', {
         hasFeatures: !!stormData?.features,
@@ -2240,6 +2277,7 @@ serve(async (req) => {
           
           // 🔄 Tier 1: Primary envelope/point query with retry logic
           try {
+            const tier1Start = Date.now();
             parcelData = await retryWithBackoff(
             async () => {
               const controller = new AbortController();
@@ -2263,6 +2301,17 @@ serve(async (req) => {
                   feature_count: data?.features?.length || 0,
                   success: !!data?.features?.[0]
                 });
+                
+                // Log API call
+                await logExternalCall(
+                  supabase,
+                  'hcad_parcel_tier1',
+                  endpoints.parcel_url,
+                  Date.now() - tier1Start,
+                  !!data?.features?.[0],
+                  application_id,
+                  data?.error?.message || null
+                );
                 
                 return data;
               } catch (err) {
@@ -2301,6 +2350,7 @@ serve(async (req) => {
             if (houstonGeocode && houstonGeocode.xmin && houstonGeocode.xmax && houstonGeocode.ymin && houstonGeocode.ymax) {
               const envelopeGeometry2278 = `${houstonGeocode.xmin},${houstonGeocode.ymin},${houstonGeocode.xmax},${houstonGeocode.ymax}`;
               
+              const tier1bStart = Date.now();
               const tier1bData = await retryWithBackoff(
                 async () => {
                   const tier1bParams: Record<string, string> = {
@@ -2337,6 +2387,17 @@ serve(async (req) => {
                       feature_count: data?.features?.length || 0,
                       success: !!data?.features?.[0]
                     });
+                    
+                    // Log API call
+                    await logExternalCall(
+                      supabase,
+                      'hcad_parcel_tier1b',
+                      endpoints.parcel_url,
+                      Date.now() - tier1bStart,
+                      !!data?.features?.[0],
+                      application_id,
+                      data?.error?.message || null
+                    );
                     
                     return data;
                   } catch (err) {
@@ -2380,6 +2441,7 @@ serve(async (req) => {
           console.log('🔄 Tier 2: Trying 500-foot buffered point query...');
           
           try {
+            const tier2Start = Date.now();
             const bufferedData = await retryWithBackoff(
               async () => {
                 const bufferedParams: Record<string, string> = {
@@ -2418,6 +2480,17 @@ serve(async (req) => {
                     success: !!data?.features?.[0]
                   });
                   
+                  // Log API call
+                  await logExternalCall(
+                    supabase,
+                    'hcad_parcel_tier2',
+                    endpoints.parcel_url,
+                    Date.now() - tier2Start,
+                    !!data?.features?.[0],
+                    application_id,
+                    data?.error?.message || null
+                  );
+                  
                   return data;
                 } catch (err) {
                   clearTimeout(timeout);
@@ -2451,6 +2524,7 @@ serve(async (req) => {
           console.log('🔄 Tier 3: Trying 1000-foot extended buffered query (last resort)...');
           
           try {
+            const tier3Start = Date.now();
             const extendedData = await retryWithBackoff(
               async () => {
                 const extendedParams: Record<string, string> = {
@@ -2488,6 +2562,17 @@ serve(async (req) => {
                     feature_count: data?.features?.length || 0,
                     success: !!data?.features?.[0]
                   });
+                  
+                  // Log API call
+                  await logExternalCall(
+                    supabase,
+                    'hcad_parcel_tier3',
+                    endpoints.parcel_url,
+                    Date.now() - tier3Start,
+                    !!data?.features?.[0],
+                    application_id,
+                    data?.error?.message || null
+                  );
                   
                   return data;
                 } catch (err) {
