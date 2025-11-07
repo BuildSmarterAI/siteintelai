@@ -102,12 +102,11 @@ async function doGeocodeAndParcel(app: any) {
       // Fetch address from application record (robust fallback across schemas)
       const { data: appData, error: fetchError } = await sbAdmin
         .from('applications')
-        .select('address, formatted_address, property_address')
+        .select('formatted_address, property_address')
         .eq('id', app.id)
         .single();
       
-      const derivedAddress = appData?.address
-        || appData?.formatted_address
+      const derivedAddress = appData?.formatted_address
         || (appData?.property_address && typeof appData.property_address === 'object'
             ? appData.property_address.formatted_address
             : null);
