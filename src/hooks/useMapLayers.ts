@@ -18,6 +18,7 @@ interface MapLayersData {
   waterLines: any[];
   sewerLines: any[];
   stormLines: any[];
+  stormManholes: any[];
   forceMain: any[];
   zoningDistricts: any[];
 }
@@ -237,6 +238,32 @@ export function useMapLayers(applicationId: string) {
         });
       }
 
+      // Transform storm manholes from utilities_summary
+      const stormManholes: any[] = [];
+      if (utilitiesSummary?.storm_manholes_data && Array.isArray(utilitiesSummary.storm_manholes_data)) {
+        utilitiesSummary.storm_manholes_data.forEach((manhole: any) => {
+          if (manhole.geometry || (manhole.lat && manhole.lng)) {
+            stormManholes.push({
+              geometry: manhole.geometry || {
+                type: 'Point',
+                coordinates: [manhole.lng, manhole.lat]
+              },
+              facility_id: manhole.facility_id,
+              struct_type: manhole.struct_type || 'Storm',
+              diameter: manhole.diameter,
+              rim_elevation: manhole.rim_elevation,
+              invert_elevation: manhole.invert_elevation,
+              material: manhole.material,
+              install_date: manhole.install_date,
+              owner: manhole.owner,
+              status: manhole.status,
+              distance_ft: manhole.distance_ft,
+              attributes: manhole
+            });
+          }
+        });
+      }
+
       // New infrastructure layers (empty arrays for now - future: fetch from ArcGIS)
       const hcadParcels: any[] = [];
       const forceMain: any[] = [];
@@ -253,6 +280,7 @@ export function useMapLayers(applicationId: string) {
         waterLines,
         sewerLines,
         stormLines,
+        stormManholes,
         forceMain,
         zoningDistricts,
       };

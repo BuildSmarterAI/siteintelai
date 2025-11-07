@@ -13,6 +13,7 @@ interface MapLegendProps {
   hasWaterLines?: boolean;
   hasSewerLines?: boolean;
   hasStormLines?: boolean;
+  hasStormManholes?: boolean;
   hasForceMain?: boolean;
   hasZoningDistricts?: boolean;
 }
@@ -36,6 +37,7 @@ export function MapLegend({
   hasWaterLines = false,
   hasSewerLines = false,
   hasStormLines = false,
+  hasStormManholes = false,
   hasForceMain = false,
   hasZoningDistricts = false,
 }: MapLegendProps) {
@@ -152,6 +154,19 @@ export function MapLegend({
           <div className="flex items-center gap-2">
             <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#14B8A6' }} />
             <span className="text-muted-foreground">Houston Water HPW IPS</span>
+          </div>
+        </div>
+      )}
+
+      {/* Storm Manholes */}
+      {hasStormManholes && (
+        <div className="space-y-1.5 pt-2 border-t">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Storm Drain Manholes</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 bg-blue-400 border-2 border-blue-800 rounded-full" />
+            <span className="text-xs text-muted-foreground">Houston Water HPW IPS</span>
           </div>
         </div>
       )}

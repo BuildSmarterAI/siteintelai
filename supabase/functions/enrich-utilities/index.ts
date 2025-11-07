@@ -1484,6 +1484,7 @@ serve(async (req) => {
             storm_manholes_count: stormManholes.length,
             storm_manholes_data: stormManholes.map(m => ({
               facility_id: m.attributes.FACILITYID || null,
+              struct_type: m.attributes.STRUCTTYPE || 'Storm',
               diameter: m.attributes.DIAMETER || null,
               rim_elevation: m.attributes.RIM_ELEVATION || null,
               invert_elevation: m.attributes.INVERT_ELEVATION || null,
@@ -1491,8 +1492,23 @@ serve(async (req) => {
               install_date: m.attributes.INSTALLDATE || null,
               owner: m.attributes.OWNER || null,
               status: m.attributes.STATUS || null,
-              distance_ft: m.distance_ft || null
-            }))
+              distance_ft: m.distance_ft || null,
+              geometry: m.geometry || null
+            })),
+            // Aggregated metrics for AI scoring
+            nearest_storm_manhole_ft: Math.min(...stormManholes.map(m => m.distance_ft || Infinity)),
+            avg_rim_elev_ft: stormManholes.reduce((sum, m) => sum + (m.attributes.RIM_ELEVATION || 0), 0) / stormManholes.length,
+            avg_invert_elev_ft: stormManholes.reduce((sum, m) => sum + (m.attributes.INVERT_ELEVATION || 0), 0) / stormManholes.length,
+            elevation_difference_ft: (() => {
+              const avgRim = stormManholes.reduce((sum, m) => sum + (m.attributes.RIM_ELEVATION || 0), 0) / stormManholes.length;
+              const avgInvert = stormManholes.reduce((sum, m) => sum + (m.attributes.INVERT_ELEVATION || 0), 0) / stormManholes.length;
+              return avgRim - avgInvert;
+            })()
+          }),
+          // Flag for absence
+          ...(!stormManholes.length && {
+            storm_manholes_count: 0,
+            nearest_storm_manhole_ft: null
           }),
           
           // Address validation data

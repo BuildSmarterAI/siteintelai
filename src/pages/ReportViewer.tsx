@@ -1071,6 +1071,7 @@ export default function ReportViewer() {
                     waterLines={mapLayers?.waterLines || []}
                     sewerLines={mapLayers?.sewerLines || []}
                     stormLines={mapLayers?.stormLines || []}
+                    stormManholes={mapLayers?.stormManholes || []}
                     forceMain={mapLayers?.forceMain || []}
                     zoningDistricts={mapLayers?.zoningDistricts || []}
                     drawingEnabled={drawingMode}

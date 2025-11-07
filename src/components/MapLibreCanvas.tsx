@@ -47,6 +47,14 @@ export const LAYER_CONFIG = {
     opacity: 0.8,
     intentRelevance: { build: true, buy: true },
   },
+  stormManholes: {
+    id: 'storm-manholes',
+    title: 'Storm Drain Manholes',
+    source: 'Houston Water HPW Manhole IPS',
+    color: '#60A5FA',
+    opacity: 0.9,
+    intentRelevance: { build: true, buy: true },
+  },
   forceMain: {
     id: 'force-main',
     title: 'Force Main',
@@ -92,6 +100,7 @@ function getInitialLayerVisibility(
     waterLines: true,
     sewerLines: true,
     stormLines: true,
+    stormManholes: true,
     forceMain: true,
     floodZones: true,
     zoningDistricts: true,
@@ -129,6 +138,7 @@ interface LayerVisibility {
   waterLines: boolean;
   sewerLines: boolean;
   stormLines: boolean;
+  stormManholes: boolean;
   forceMain: boolean;
   floodZones: boolean;
   zoningDistricts: boolean;
@@ -156,6 +166,7 @@ interface MapLibreCanvasProps {
   waterLines?: any[];
   sewerLines?: any[];
   stormLines?: any[];
+  stormManholes?: any[];
   forceMain?: any[];
   zoningDistricts?: any[];
   showParcels?: boolean;
@@ -197,6 +208,7 @@ export function MapLibreCanvas({
   waterLines = [],
   sewerLines = [],
   stormLines = [],
+  stormManholes = [],
   forceMain = [],
   zoningDistricts = [],
   showParcels = false,
@@ -470,6 +482,7 @@ export function MapLibreCanvas({
     if (waterLines.length > 0 && layerVisibility.waterLines) visible.push(`${waterLines.length} water line(s) in blue`);
     if (sewerLines.length > 0 && layerVisibility.sewerLines) visible.push(`${sewerLines.length} sewer line(s) in green`);
     if (stormLines.length > 0 && layerVisibility.stormLines) visible.push(`${stormLines.length} storm drain line(s) in teal`);
+    if (stormManholes.length > 0 && layerVisibility.stormManholes) visible.push(`${stormManholes.length} storm manhole(s) in blue circles`);
     if (traffic.length > 0 && layerVisibility.traffic) visible.push(`${traffic.length} traffic segment(s)`);
     if (employmentCenters.length > 0 && layerVisibility.employment) visible.push(`${employmentCenters.length} employment center(s)`);
     
@@ -1057,6 +1070,159 @@ export function MapLibreCanvas({
       map.current.setLayoutProperty('storm-lines-layer', 'visibility', visibility);
     }
   }, [layerVisibility.stormLines, mapLoaded]);
+
+  // Add storm manholes layer (point features)
+  useEffect(() => {
+    if (!map.current || !mapLoaded || stormManholes.length === 0) return;
+
+    const sourceId = 'storm-manholes-source';
+    const layerId = 'storm-manholes-layer';
+
+    try {
+      // Remove existing layers if present
+      if (map.current.getLayer(layerId)) map.current.removeLayer(layerId);
+      if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+
+      // Transform manhole data to GeoJSON features
+      const features = stormManholes
+        .filter(manhole => manhole.geometry && manhole.geometry.coordinates)
+        .map((manhole, idx) => ({
+          type: 'Feature' as const,
+          id: idx,
+          geometry: manhole.geometry,
+          properties: {
+            facility_id: manhole.facility_id || 'Unknown',
+            struct_type: manhole.struct_type || 'Storm',
+            diameter: manhole.diameter || null,
+            rim_elevation: manhole.rim_elevation || null,
+            invert_elevation: manhole.invert_elevation || null,
+            material: manhole.material || 'Unknown',
+            install_date: manhole.install_date || null,
+            owner: manhole.owner || 'Unknown',
+            status: manhole.status || 'Active',
+            distance_ft: manhole.distance_ft || null,
+          },
+        }));
+
+      // Add GeoJSON source
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features,
+        },
+      });
+
+      // Add storm manhole circle layer with blue styling
+      map.current.addLayer({
+        id: layerId,
+        type: 'circle',
+        source: sourceId,
+        paint: {
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12, 4,
+            16, 8,
+          ],
+          'circle-color': '#60A5FA',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#1E40AF',
+          'circle-opacity': 0.85,
+          'circle-stroke-opacity': 1,
+        },
+        layout: {
+          visibility: layerVisibility.stormManholes ? 'visible' : 'none',
+        },
+      });
+
+      // Add hover popup with manhole details
+      map.current.on('click', layerId, (e) => {
+        if (!e.features || e.features.length === 0) return;
+        
+        const props = e.features[0].properties;
+        const elevationDiff = props.rim_elevation && props.invert_elevation
+          ? (props.rim_elevation - props.invert_elevation).toFixed(1)
+          : 'N/A';
+        
+        const statusColor = 
+          props.status === 'Active' ? '#10B981' :
+          props.status === 'Planned' ? '#F59E0B' :
+          props.status === 'Abandoned' ? '#EF4444' : '#6B7280';
+        
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 12px; font-family: 'IBM Plex Sans', sans-serif; min-width: 240px;">
+              <div style="font-weight: 600; font-size: 14px; color: #60A5FA; margin-bottom: 6px;">
+                Storm Drain Manhole
+              </div>
+              <div style="font-size: 12px; line-height: 1.6; color: #374151;">
+                <div style="margin-bottom: 4px;">
+                  <strong>Facility ID:</strong> ${props.facility_id}
+                </div>
+                <div style="margin-bottom: 4px;">
+                  <strong>Type:</strong> ${props.struct_type}
+                </div>
+                ${props.diameter ? `
+                  <div style="margin-bottom: 4px;">
+                    <strong>Diameter:</strong> ${props.diameter}"
+                  </div>
+                ` : ''}
+                <div style="margin-bottom: 4px;">
+                  <strong>Owner:</strong> ${props.owner}
+                </div>
+                <div style="margin-bottom: 4px;">
+                  <strong>Status:</strong> 
+                  <span style="color: ${statusColor}; font-weight: 600;">
+                    ${props.status}
+                  </span>
+                </div>
+                ${props.rim_elevation ? `
+                  <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB;">
+                    <strong>Rim Elevation:</strong> ${props.rim_elevation.toFixed(1)} ft<br/>
+                    <strong>Invert Elevation:</strong> ${props.invert_elevation ? props.invert_elevation.toFixed(1) + ' ft' : 'N/A'}<br/>
+                    <strong>Depth:</strong> ${elevationDiff} ft
+                  </div>
+                ` : ''}
+                ${props.distance_ft ? `
+                  <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #6B7280;">
+                    ${props.distance_ft.toFixed(0)} ft from parcel
+                  </div>
+                ` : ''}
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-size: 10px; color: #9CA3AF;">
+                Source: Houston Water HPW Manhole IPS
+              </div>
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      // Cursor changes on hover
+      map.current.on('mouseenter', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      
+      map.current.on('mouseleave', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+
+      console.log(`🕳️ Storm manholes rendered: ${features.length} manholes`);
+    } catch (error) {
+      console.error('Failed to add storm manholes layer:', error);
+    }
+  }, [stormManholes, mapLoaded, layerVisibility.stormManholes]);
+
+  // Update storm manholes visibility when toggled
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.stormManholes ? 'visible' : 'none';
+    if (map.current.getLayer('storm-manholes-layer')) {
+      map.current.setLayoutProperty('storm-manholes-layer', 'visibility', visibility);
+    }
+  }, [layerVisibility.stormManholes, mapLoaded]);
 
   // Add water lines layer
   useEffect(() => {
@@ -1965,6 +2131,7 @@ export function MapLibreCanvas({
         hasWaterLines={waterLines.length > 0}
         hasSewerLines={sewerLines.length > 0}
         hasStormLines={stormLines.length > 0}
+        hasStormManholes={stormManholes.length > 0}
         hasForceMain={forceMain.length > 0}
         hasZoningDistricts={zoningDistricts.length > 0}
       />
@@ -2103,6 +2270,7 @@ export function MapLibreCanvas({
         hasWaterLines={waterLines.length > 0}
         hasSewerLines={sewerLines.length > 0}
         hasStormLines={stormLines.length > 0}
+        hasStormManholes={stormManholes.length > 0}
         hasForceMain={forceMain.length > 0}
         hasFloodZones={floodZones.length > 0}
         hasZoningDistricts={zoningDistricts.length > 0}

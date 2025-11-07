@@ -14,6 +14,7 @@ interface LayerVisibility {
   waterLines: boolean;
   sewerLines: boolean;
   stormLines: boolean;
+  stormManholes: boolean;
   forceMain: boolean;
   floodZones: boolean;
   zoningDistricts: boolean;
@@ -31,6 +32,7 @@ interface MapLayerFABProps {
   hasWaterLines: boolean;
   hasSewerLines: boolean;
   hasStormLines: boolean;
+  hasStormManholes: boolean;
   hasForceMain: boolean;
   hasFloodZones: boolean;
   hasZoningDistricts: boolean;
@@ -56,6 +58,7 @@ export function MapLayerFAB({
   hasWaterLines,
   hasSewerLines,
   hasStormLines,
+  hasStormManholes,
   hasForceMain,
   hasFloodZones,
   hasZoningDistricts,
@@ -68,6 +71,7 @@ export function MapLayerFAB({
     { key: 'waterLines' as const, label: 'Water Lines', show: hasWaterLines },
     { key: 'sewerLines' as const, label: 'Sewer Lines', show: hasSewerLines },
     { key: 'stormLines' as const, label: 'Storm Lines', show: hasStormLines },
+    { key: 'stormManholes' as const, label: 'Storm Manholes', show: hasStormManholes },
     { key: 'forceMain' as const, label: 'Force Main', show: hasForceMain },
     { key: 'floodZones' as const, label: 'Flood Zones', show: hasFloodZones },
     { key: 'zoningDistricts' as const, label: 'Zoning', show: hasZoningDistricts },
