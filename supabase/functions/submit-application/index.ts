@@ -202,13 +202,32 @@ serve(async (req) => {
     let sublocality: string | null = requestData.sublocality || null;
     let place_id: string | null = requestData.placeId || null;
 
-    // Fallback geocoding by address if coordinates missing
-    if ((geo_lat === null || geo_lng === null) && requestData.propertyAddress) {
+    // Geocoding: forward (address->coords) or reverse (coords->components)
+    const needsForwardGeocoding = (geo_lat === null || geo_lng === null) && requestData.propertyAddress;
+    const needsReverseGeocoding = geo_lat !== null && geo_lng !== null && 
+      (!postal_code || !locality || !administrative_area_level_1);
+    
+    if (needsForwardGeocoding || needsReverseGeocoding) {
       try {
         const apiKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
         if (apiKey) {
-          const q = encodeURIComponent(String(requestData.propertyAddress));
-          const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
+          let geoResp;
+          
+          if (needsReverseGeocoding) {
+            // Reverse geocoding: coords -> address components
+            console.log('🔄 [geocoding] Using reverse geocoding (have coords, missing components):', {
+              geo_lat,
+              geo_lng,
+              missing: { postal_code: !postal_code, locality: !locality, state: !administrative_area_level_1 }
+            });
+            geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${geo_lat},${geo_lng}&key=${apiKey}`);
+          } else {
+            // Forward geocoding: address -> coords + components
+            console.log('🔄 [geocoding] Using forward geocoding (missing coords)');
+            const q = encodeURIComponent(String(requestData.propertyAddress));
+            geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${q}&key=${apiKey}`);
+          }
+          
           const geoData = await geoResp.json();
           if (geoData?.results?.[0]) {
             const result = geoData.results[0];
