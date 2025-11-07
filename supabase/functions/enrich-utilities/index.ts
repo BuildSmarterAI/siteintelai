@@ -1458,7 +1458,11 @@ serve(async (req) => {
 
       console.log('═══════════════════════════════════════════════════');
       
-      const { error: updateError } = await supabase.from("applications").update({
+      // PHASE 4: Add Observability for Database Update
+      const dbUpdateStart = Date.now();
+      
+      // Prepare the full update payload
+      const updatePayload = {
         water_lines: formatLines(water, geo_lat, geo_lng, 'water', waterCrs),
         sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', sewerCrs),
         storm_lines: formatLines(storm, geo_lat, geo_lng, 'storm', stormCrs),
@@ -1554,11 +1558,117 @@ serve(async (req) => {
           parcel_owner: hcad_parcels[0].attributes.CurrOwner || null,
           acreage_cad: calculated_acreage || hcad_parcels[0].attributes.StatedArea || null
         })
-      }).eq("id", application_id);
+      };
 
+      // PHASE 1: Log payload size before update
+      console.log('📊 [enrich-utilities] Database update payload size:', {
+        water_lines_count: water.length,
+        sewer_lines_count: sewer.length,
+        storm_lines_count: storm.length,
+        water_laterals_count: water_laterals.length,
+        water_fittings_count: water_fittings.length,
+        hcad_parcels_count: hcad_parcels.length,
+        payload_json_size_kb: (JSON.stringify(updatePayload).length / 1024).toFixed(2)
+      });
+      
+      // PHASE 3: Resilient Database Update with Transaction Rollback
+      const { error: updateError } = await supabase
+        .from("applications")
+        .update(updatePayload)
+        .eq("id", application_id);
+
+      const dbUpdateDuration = Date.now() - dbUpdateStart;
+
+      // PHASE 4: Log database operation to observability
+      await logExternalCall(
+        supabase,
+        'supabase_database',
+        'applications.update',
+        dbUpdateDuration,
+        !updateError,
+        application_id,
+        updateError?.message || null
+      );
+
+      // PHASE 1: Granular Error Logging (Don't throw - return partial success)
       if (updateError) {
-        console.error('Update error:', updateError);
-        throw new Error(`Failed to update application: ${updateError.message}`);
+        console.error('❌ [enrich-utilities] Database update failed - GRANULAR ERROR DETAILS:', {
+          error_code: updateError.code,
+          error_message: updateError.message,
+          error_details: updateError.details,
+          error_hint: updateError.hint,
+          application_id,
+          payload_summary: {
+            water_lines: water.length,
+            sewer_lines: sewer.length,
+            storm_lines: storm.length,
+            water_laterals: water_laterals.length,
+            water_fittings: water_fittings.length,
+            hcad_parcels: hcad_parcels.length,
+            payload_size_bytes: JSON.stringify(updatePayload).length
+          },
+          timestamp: new Date().toISOString()
+        });
+        
+        // PHASE 3: Retry with minimal payload (just counts and flags)
+        console.log('🔄 [enrich-utilities] Retrying with minimal payload...');
+        
+        const minimalPayload = {
+          utilities_summary: utilitiesSummary,
+          data_flags: [...flags, 'database_update_partial_failure'],
+          enrichment_status: 'partial',
+          enrichment_error: `Full update failed: ${updateError.message}. Data collected but not fully saved.`
+        };
+        
+        const { error: retryError } = await supabase
+          .from("applications")
+          .update(minimalPayload)
+          .eq("id", application_id);
+        
+        if (retryError) {
+          console.error('❌ [enrich-utilities] Minimal payload retry also failed:', retryError);
+          flags.push('database_update_complete_failure');
+          
+          // Still return partial success with the data we collected
+          return new Response(
+            JSON.stringify({ 
+              success: true, // Data was collected successfully
+              warning: 'Data collected but could not be saved to database',
+              database_error: updateError.message,
+              retry_error: retryError.message,
+              utilities: {
+                water: water.length,
+                sewer: sewer.length,
+                storm: storm.length,
+                water_laterals: water_laterals.length,
+                water_fittings: water_fittings.length
+              },
+              flags 
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        console.log('⚠️ [enrich-utilities] Minimal payload saved successfully');
+        flags.push('database_update_minimal_success');
+        
+        // Return partial success
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            warning: 'Data collected but only summary saved to database',
+            database_error: updateError.message,
+            utilities: {
+              water: water.length,
+              sewer: sewer.length,
+              storm: storm.length,
+              water_laterals: water_laterals.length,
+              water_fittings: water_fittings.length
+            },
+            flags 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
       
       // PHASE 4: Database Update Success

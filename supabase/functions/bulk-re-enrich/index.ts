@@ -15,13 +15,15 @@ Deno.serve(async (req) => {
   const sbAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   try {
-    console.log('[bulk-re-enrich] Starting bulk re-enrichment for E003 applications');
+    console.log('[bulk-re-enrich] Starting bulk re-enrichment for failed applications');
 
-    // Find all E003 applications with coordinates and parcel_id (geocode succeeded, enrichment failed)
+    // Find all applications with:
+    // 1. enrichment_status = 'failed' OR error_code starts with 'E003'
+    // 2. Have valid geo_lat and geo_lng (can skip geocode phase)
     const { data: failedApps, error: queryError } = await sbAdmin
       .from('applications')
-      .select('id, formatted_address, geo_lat, geo_lng, parcel_id, error_code, created_at')
-      .eq('error_code', 'E003')
+      .select('id, formatted_address, geo_lat, geo_lng, parcel_id, error_code, enrichment_status, created_at')
+      .or('error_code.like.E003%,enrichment_status.eq.failed')
       .not('geo_lat', 'is', null)
       .not('geo_lng', 'is', null)
       .order('created_at', { ascending: false });
@@ -32,11 +34,11 @@ Deno.serve(async (req) => {
     }
 
     if (!failedApps || failedApps.length === 0) {
-      console.log('[bulk-re-enrich] No E003 applications found to re-enrich');
+      console.log('[bulk-re-enrich] No failed applications with coordinates found');
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'No E003 applications found',
+          message: 'No failed applications with coordinates found',
           count: 0,
           applications: []
         }),
@@ -44,7 +46,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[bulk-re-enrich] Found ${failedApps.length} applications to re-enrich`);
+    console.log(`[bulk-re-enrich] Found ${failedApps.length} applications to re-enrich:`, {
+      with_error_code: failedApps.filter(a => a.error_code).length,
+      with_failed_status: failedApps.filter(a => a.enrichment_status === 'failed').length
+    });
 
     const results = [];
     for (const app of failedApps) {

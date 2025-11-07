@@ -495,7 +495,7 @@ export default function Dashboard() {
                     Admin: Bulk Re-enrichment
                   </CardTitle>
                   <CardDescription>
-                    Re-process all failed applications with E003 errors that have geocode + parcel data
+                    Re-process all failed applications (E003 errors or failed enrichment status) that have geocode data
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -518,7 +518,7 @@ export default function Dashboard() {
                     ) : (
                       <>
                         <RefreshCw className="mr-2 h-4 w-4" />
-                        Re-enrich All E003 Failed Apps
+                        Re-enrich All Failed Apps
                       </>
                     )}
                   </Button>
