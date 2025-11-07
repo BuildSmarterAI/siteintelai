@@ -109,11 +109,13 @@ serve(async (req) => {
 
     console.log(`Re-enriching address: ${address}`);
 
-    // Reset enrichment status to allow re-enrichment
+    // Reset status to allow orchestration to run from the beginning
     const { error: resetError } = await supabase
       .from('applications')
       .update({ 
-        enrichment_status: 'queued',
+        status: 'queued',
+        error_code: null,
+        attempts: 0,
         data_flags: []
       })
       .eq('id', application_id);

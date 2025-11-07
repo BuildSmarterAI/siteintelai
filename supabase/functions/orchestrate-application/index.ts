@@ -99,23 +99,29 @@ async function doGeocodeAndParcel(app: any) {
   console.log(`[doGeocodeAndParcel] Starting GEOCODE-ONLY mode for app ${app.id}`);
   return retryWithBackoff(
     async () => {
-      // Fetch address from application record
+      // Fetch address from application record (robust fallback across schemas)
       const { data: appData, error: fetchError } = await sbAdmin
         .from('applications')
-        .select('address')
+        .select('address, formatted_address, property_address')
         .eq('id', app.id)
         .single();
       
-      if (fetchError || !appData?.address) {
+      const derivedAddress = appData?.address
+        || appData?.formatted_address
+        || (appData?.property_address && typeof appData.property_address === 'object'
+            ? appData.property_address.formatted_address
+            : null);
+      
+      if (fetchError || !derivedAddress) {
         throw new Error('Failed to fetch application address');
       }
       
-      console.log(`[doGeocodeAndParcel] Fetched address: ${appData.address}`);
+      console.log(`[doGeocodeAndParcel] Fetched address: ${derivedAddress}`);
       
       const response = await sbAdmin.functions.invoke('enrich-feasibility', {
         body: { 
           application_id: app.id,
-          address: appData.address,
+          address: derivedAddress,
           mode: 'geocode_only'  // Only fetch geocode + parcel, skip flood/zoning validation
         }
       });
@@ -326,7 +332,17 @@ Deno.serve(async (req: Request) => {
 
   try {
     const url = new URL(req.url);
-    const appId = url.searchParams.get('application_id');
+    let appId = url.searchParams.get('application_id');
+
+    // Fallback: accept application_id from POST/PUT body as well
+    if (!appId && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
+      try {
+        const body = await req.json();
+        appId = body?.application_id || body?.app_id || null;
+      } catch (_) {
+        // ignore JSON parse errors here
+      }
+    }
     
     if (!appId) {
       return new Response(JSON.stringify({ error: 'Missing application_id' }), {
