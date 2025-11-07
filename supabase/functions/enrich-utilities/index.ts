@@ -614,12 +614,18 @@ serve(async (req) => {
         
         // 1. Water Distribution Mains (Layer 3) - GRACEFUL DEGRADATION
         try {
-          // PHASE 2: Query Execution Tracking
-          console.log('💧 [enrich-utilities] Querying water mains...', {
-            endpoint: eps.water.url,
+          // PHASE 1-2: Detailed Query Debugging
+          console.log('💧 [QUERY DEBUG] Water Distribution Query Configuration:', {
+            endpoint_url: eps.water.url,
+            endpoint_layer: eps.water.url.split('/').pop()?.replace('/query', ''),
+            outFields: eps.water.outFields,
             search_radius_ft: waterRadius,
+            crs: eps.water.crs,
+            geometryType: eps.water.geometryType,
+            spatialRel: eps.water.spatialRel,
+            timeout_ms: eps.water.timeout_ms,
             coordinates: { geo_lat, geo_lng },
-            crs: eps.water.crs || 4326
+            catalog_last_validated: eps.water.last_validated
           });
           water = await queryArcGIS(eps.water.url, eps.water.outFields, geo_lat, geo_lng, "houston_water", {
             timeout_ms: eps.water.timeout_ms,
@@ -812,11 +818,18 @@ serve(async (req) => {
           : eps.sewer.search_radius_ft;
         
         try {
-          // PHASE 2: Query Execution Tracking
-          console.log('🚽 [enrich-utilities] Querying sewer gravity lines...', {
-            endpoint_gravity: eps.sewer.url,
+          // PHASE 1-2: Detailed Query Debugging
+          console.log('🚽 [QUERY DEBUG] Sewer Gravity Query Configuration:', {
+            endpoint_url: eps.sewer.url,
+            endpoint_layer: eps.sewer.url.split('/').pop()?.replace('/query', ''),
+            outFields: eps.sewer.outFields,
             search_radius_ft: sewerRadius,
-            coordinates: { geo_lat, geo_lng }
+            crs: eps.sewer.crs,
+            geometryType: eps.sewer.geometryType,
+            spatialRel: eps.sewer.spatialRel,
+            timeout_ms: eps.sewer.timeout_ms,
+            coordinates: { geo_lat, geo_lng },
+            catalog_last_validated: eps.sewer.last_validated
           });
           sewerGravity = await queryArcGIS(eps.sewer.url, eps.sewer.outFields, geo_lat, geo_lng, "houston_sewer_gravity", {
             timeout_ms: eps.sewer.timeout_ms,
@@ -945,15 +958,22 @@ serve(async (req) => {
         
         // 6. Storm Drainage - GRACEFUL DEGRADATION
         try {
-          // PHASE 2: Query Execution Tracking
+          // PHASE 1-2: Detailed Query Debugging
           const stormRadius = isUrbanArea && eps.storm.urban_search_radius_ft 
             ? eps.storm.urban_search_radius_ft 
             : eps.storm.search_radius_ft;
           
-          console.log('🌧️ [enrich-utilities] Querying storm drains...', {
-            endpoint: eps.storm.url,
+          console.log('🌧️ [QUERY DEBUG] Storm Drain Query Configuration:', {
+            endpoint_url: eps.storm.url,
+            endpoint_layer: eps.storm.url.split('/').pop()?.replace('/query', ''),
+            outFields: eps.storm.outFields,
             search_radius_ft: stormRadius,
-            coordinates: { geo_lat, geo_lng }
+            crs: eps.storm.crs,
+            geometryType: eps.storm.geometryType,
+            spatialRel: eps.storm.spatialRel,
+            timeout_ms: eps.storm.timeout_ms,
+            coordinates: { geo_lat, geo_lng },
+            catalog_last_validated: eps.storm.last_validated
           });
           
           storm = await queryArcGIS(eps.storm.url, eps.storm.outFields, geo_lat, geo_lng, "houston_storm", {
