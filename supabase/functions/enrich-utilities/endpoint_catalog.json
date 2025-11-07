@@ -94,7 +94,7 @@
       "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/3/query",
       "outFields": ["DIAMETER", "MATERIAL", "OWNER", "STATUS"],
       "geometryType": "esriGeometryPoint",
-      "crs": "EPSG:4326",
+      "crs": 4326,
       "timeout_ms": 15000,
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
