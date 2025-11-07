@@ -1,7 +1,7 @@
 {
   "version": "2.4.0",
   "last_updated": "2025-11-08",
-  "changelog": "2025-11-08: HOUSTON WATER IPS MIGRATION - Updated sewer endpoints to use dedicated HPWWastewaterGravityMainIPS/MapServer/0 and HPWWastewaterForceMainIPS/MapServer/0 services instead of legacy HWWastewaterLineIPS multi-layer service. Fixed storm structures endpoint from HPWStormdrainManholesIPS to HPWStormdrainStructureIPS/MapServer/0. All services now use official Houston Water Infrastructure & Planning System (IPS) architecture. PREVIOUS: 2025-11-07 STORM DRAIN OPTIMIZATION - Updated storm endpoint with FACILITYID/PIPEID for asset tracking, INSTALL_YEAR for accurate dates, CONDITION for asset state, native EPSG:2278 CRS, and optimized 300 ft search radius. Enhanced data normalization with priority fields and quality filtering.",
+  "changelog": "2025-11-08: CRITICAL STABILITY FIXES - (1) Fixed ReferenceError: application_id crash in enrich-utilities by adding existence checks before all DB operations. (2) Increased storm drain search radius from 300ft to 500ft for better coverage. (3) Added resilient error handling to return partial data on DB failures. HOUSTON WATER IPS MIGRATION - Updated sewer endpoints to use dedicated HPWWastewaterGravityMainIPS/MapServer/0 and HPWWastewaterForceMainIPS/MapServer/0 services instead of legacy HWWastewaterLineIPS multi-layer service. Fixed storm structures endpoint from HPWStormdrainManholesIPS to HPWStormdrainStructureIPS/MapServer/0. All services now use official Houston Water Infrastructure & Planning System (IPS) architecture. PREVIOUS: 2025-11-07 STORM DRAIN OPTIMIZATION - Updated storm endpoint with FACILITYID/PIPEID for asset tracking, INSTALL_YEAR for accurate dates, CONDITION for asset state, native EPSG:2278 CRS, and optimized 300 ft search radius. Enhanced data normalization with priority fields and quality filtering.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -130,12 +130,12 @@
       "timeout_ms": 15000,
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
-      "search_radius_ft": 300,
-      "urban_search_radius_ft": 300,
+      "search_radius_ft": 500,
+      "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 0 = Storm Drain Lines (polylines) from Houston Water Infrastructure & Planning System. Contains pipe diameter, material, install year, and condition. Native CRS: EPSG:2278. Optimized 300 ft search radius per Houston Water GIS standards. Migrated from mapsop1.houstontx.gov 2025-11-07.",
-      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=300&units=esriSRUnit_Foot&outFields=FACILITYID,PIPEID,DIAMETER,MATERIAL,INSTALL_YEAR,INSTALLDATE,OWNER,STATUS,CONDITION,ENABLED&returnGeometry=true&f=json",
-      "last_validated": "2025-11-07"
+      "notes": "Layer 0 = Storm Drain Lines (polylines) from Houston Water Infrastructure & Planning System. Contains pipe diameter, material, install year, and condition. Native CRS: EPSG:2278. Increased to 500 ft search radius for better coverage (2025-11-08). Migrated from mapsop1.houstontx.gov 2025-11-07.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=FACILITYID,PIPEID,DIAMETER,MATERIAL,INSTALL_YEAR,INSTALLDATE,OWNER,STATUS,CONDITION,ENABLED&returnGeometry=true&f=json",
+      "last_validated": "2025-11-08"
     },
     "storm_manholes": {
       "name": "Houston Storm Drain Structures (Manholes & Inlets)",

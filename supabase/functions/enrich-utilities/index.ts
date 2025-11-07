@@ -2,6 +2,35 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import proj4 from 'npm:proj4@2.8.0';
 
+// Import observability logging
+const logExternalCall = async (
+  supabase: any,
+  source: string,
+  endpoint: string,
+  durationMs: number,
+  success: boolean,
+  applicationId: string | null = null,
+  errorMessage: string | null = null
+) => {
+  try {
+    const logEntry = {
+      source,
+      endpoint,
+      duration_ms: durationMs,
+      success,
+      application_id: applicationId,
+      error_message: errorMessage,
+    };
+    
+    const { error } = await supabase.from('api_logs').insert(logEntry);
+    if (error) {
+      console.error('[observability] Failed to insert API log:', error);
+    }
+  } catch (e) {
+    console.error('[observability] Error in logExternalCall:', e);
+  }
+};
+
 // Define EPSG:2278 (Texas South Central, US survey feet) projection
 // Authoritative definition from epsg.io - false easting/northing in meters, converted internally by proj4
 const EPSG_2278_DEF = "+proj=lcc +lat_0=27.8333333333333 +lon_0=-99 +lat_1=30.2833333333333 +lat_2=28.3833333333333 +x_0=600000 +y_0=3999999.9998984 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=us-ft +no_defs";
@@ -1591,24 +1620,34 @@ serve(async (req) => {
         payload_json_size_kb: (JSON.stringify(updatePayload).length / 1024).toFixed(2)
       });
       
-      // PHASE 3: Resilient Database Update with Transaction Rollback
-      const { error: updateError } = await supabase
-        .from("applications")
-        .update(updatePayload)
-        .eq("id", application_id);
+      // PHASE 3: Resilient Database Update (only if application_id provided)
+      let updateError = null;
+      let dbUpdateDuration = 0;
+      
+      if (application_id) {
+        const { error } = await supabase
+          .from("applications")
+          .update(updatePayload)
+          .eq("id", application_id);
+        
+        updateError = error;
+        dbUpdateDuration = Date.now() - dbUpdateStart;
+      } else {
+        console.log('ℹ️ [enrich-utilities] Direct coordinate call - skipping database update');
+      }
 
-      const dbUpdateDuration = Date.now() - dbUpdateStart;
-
-      // PHASE 4: Log database operation to observability
-      await logExternalCall(
-        supabase,
-        'supabase_database',
-        'applications.update',
-        dbUpdateDuration,
-        !updateError,
-        application_id,
-        updateError?.message || null
-      );
+      // PHASE 4: Log database operation to observability (only if application_id exists)
+      if (application_id) {
+        await logExternalCall(
+          supabase,
+          'supabase_database',
+          'applications.update',
+          dbUpdateDuration,
+          !updateError,
+          application_id,
+          updateError?.message || null
+        );
+      }
 
       // PHASE 1: Granular Error Logging (Don't throw - return partial success)
       if (updateError) {
@@ -1640,10 +1679,17 @@ serve(async (req) => {
           enrichment_error: `Full update failed: ${updateError.message}. Data collected but not fully saved.`
         };
         
-        const { error: retryError } = await supabase
-          .from("applications")
-          .update(minimalPayload)
-          .eq("id", application_id);
+        if (application_id) {
+          const { error: retryError } = await supabase
+            .from("applications")
+            .update(minimalPayload)
+            .eq("id", application_id);
+          
+          if (retryError) {
+            console.error('❌ [enrich-utilities] Minimal payload retry also failed:', retryError);
+            flags.push('database_update_complete_failure');
+          }
+        }
         
         if (retryError) {
           console.error('❌ [enrich-utilities] Minimal payload retry also failed:', retryError);
@@ -1733,16 +1779,18 @@ serve(async (req) => {
       flags.push('utilities_enrichment_total_failure');
       console.error('❌ [enrich-utilities] CRITICAL: All utility services failed completely');
       
-      // Mark enrichment as failed in the database
-      await supabase
-        .from('applications')
-        .update({
-          enrichment_status: 'failed',
-          enrichment_error: 'All utility services failed to respond',
-          data_flags: flags,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', application_id);
+      // Mark enrichment as failed in the database (only if application_id provided)
+      if (application_id) {
+        await supabase
+          .from('applications')
+          .update({
+            enrichment_status: 'failed',
+            enrichment_error: 'All utility services failed to respond',
+            data_flags: flags,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', application_id);
+      }
 
       return new Response(
         JSON.stringify({ 
