@@ -1360,7 +1360,7 @@ serve(async (req) => {
       water: buildUtilitySummary(
         water,
         "water",
-        cityLower.includes("houston") ? "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/3" :
+        cityLower.includes("houston") ? eps.water.url :
         cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0" :
         null
       ),

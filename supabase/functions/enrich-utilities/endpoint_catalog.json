@@ -1,6 +1,6 @@
 {
   "version": "2.4.0",
-  "last_updated": "2025-11-07",
+  "last_updated": "2025-11-08",
   "changelog": "2025-11-07: STORM DRAIN OPTIMIZATION - Updated storm endpoint with FACILITYID/PIPEID for asset tracking, INSTALL_YEAR for accurate dates, CONDITION for asset state, native EPSG:2278 CRS, and optimized 300 ft search radius. Enhanced data normalization with priority fields and quality filtering. PREVIOUS: FAULT TOLERANCE UPDATE - Temporarily removed wastewater_devices endpoint due to API errors (layer/field mismatch). Storm manholes endpoint validated and working. COMPLETE HOUSTON WATER GIS MIGRATION - Replaced failing mapsop1.houstontx.gov storm drainage with houstonwatergis.org/HPWStormdrainLineIPS. Added storm_manholes endpoint for comprehensive infrastructure analysis. All Houston utility queries now use official Houston Water GIS portal. Migrated Houston wastewater/sewer endpoints from geogimstest.houstontx.gov to official houstonwatergis.org portal for consistency with water infrastructure APIs. 2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
   "config": {
     "default_timeout_ms": 8000,
@@ -13,7 +13,7 @@
   "houston": {
     "parcels_unified": {
       "name": "Houston Region Unified Parcels (HCAD, FBCAD, MCAD)",
-      "url": "https://geogimstest.houstontx.gov/arcgis/rest/services/CIP/RealEstate/MapServer/7/query",
+      "url": "https://geogimsms.houstontx.gov/arcgis/rest/services/CIP/RealEstate/MapServer/7/query",
       "outFields": ["LOWPARCELID", "owner_name_1", "acreage_1", "site_county", "site_str_num", "site_str_name", "site_city", "site_zip"],
       "geometryType": "esriGeometryPoint",
       "crs": 2278,
@@ -22,8 +22,8 @@
       "retry_delays_ms": [1000, 2000],
       "spatialRel": "esriSpatialRelWithin",
       "notes": "Layer 7 = Unified Parcels combining Harris (HCAD), Fort Bend (FBCAD), and Montgomery (MCAD) counties. Fallback parcel source when county-specific CAD endpoints are unavailable.",
-      "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/CIP/RealEstate/MapServer/7/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&outSR=4326&spatialRel=esriSpatialRelWithin&outFields=LOWPARCELID,owner_name_1,acreage_1,site_county&returnGeometry=true&f=json",
-      "last_validated": "2025-11-07"
+      "test_url": "https://geogimsms.houstontx.gov/arcgis/rest/services/CIP/RealEstate/MapServer/7/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&outSR=4326&spatialRel=esriSpatialRelWithin&outFields=LOWPARCELID,owner_name_1,acreage_1,site_county&returnGeometry=true&f=json",
+      "last_validated": "2025-11-08"
     },
     "water": {
       "name": "COH Water Distribution Mains (ArcGIS Online)",
