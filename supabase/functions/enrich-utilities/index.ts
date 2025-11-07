@@ -157,8 +157,8 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
       ? minDistanceToLine(geo_lat, geo_lng, geom.paths, geomCrs)
       : null;
     
-    // Handle storm drainage with WIDTH/HEIGHT for box/arch shapes
-    let diameter = attrs.DIAMETER || attrs.PIPEDIAMETER || null;
+    // Handle different diameter field names (sewer service lines use SIZECD)
+    let diameter = attrs.DIAMETER || attrs.SIZECD || attrs.PIPEDIAMETER || null;
     const width = attrs.WIDTH || attrs.PIPEWIDTH || null;
     const height = attrs.HEIGHT || attrs.PIPEHEIGHT || null;
     const shape = attrs.MAINSHAPE || attrs.SHAPE || null;
@@ -166,24 +166,33 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
     // Calculate equivalent diameter for non-circular pipes
     if (!diameter && (width || height)) {
       if (shape === "RND" && width) {
-        // Round pipes: use width as diameter
         diameter = width;
       } else if (width && height) {
-        // Box/Arch: calculate equivalent diameter = sqrt((4 * width * height) / π)
         diameter = Math.round(Math.sqrt((4 * width * height) / Math.PI));
       } else if (width) {
-        // Fallback: use width as approximate diameter
         diameter = width;
       }
     }
     
     // Enhanced storm drain fields (FACILITYID priority, INSTALL_YEAR, CONDITION)
     const isStorm = utilityType?.toLowerCase().includes('storm');
+    const isSewer = utilityType?.toLowerCase().includes('sewer');
     const facility_id = isStorm ? (attrs.FACILITYID || attrs.PIPEID || null) : null;
-    const install_year = isStorm ? (
-      attrs.INSTALL_YEAR || 
-      (attrs.INSTALLDATE ? new Date(attrs.INSTALLDATE).getFullYear() : null)
-    ) : null;
+    
+    // Handle install year/date conversion (supports both INSTALL_YEAR and INSERVICEDATE/INSTALLDATE)
+    let install_year = null;
+    if (isStorm) {
+      install_year = attrs.INSTALL_YEAR || 
+        (attrs.INSTALLDATE ? new Date(attrs.INSTALLDATE).getFullYear() : null);
+    } else if (isSewer) {
+      // Sewer lines use INSERVICEDATE (epoch ms) or INSTALLDATE
+      if (attrs.INSERVICEDATE && typeof attrs.INSERVICEDATE === 'number') {
+        install_year = new Date(attrs.INSERVICEDATE).getFullYear();
+      } else if (attrs.INSTALLDATE) {
+        install_year = new Date(attrs.INSTALLDATE).getFullYear();
+      }
+    }
+    
     const condition = isStorm ? (attrs.CONDITION || null) : null;
     
     return {
@@ -192,17 +201,17 @@ function formatLines(features: any[], geo_lat: number, geo_lng: number, utilityT
       material: attrs.MATERIAL || null,
       status: attrs.STATUS || attrs.LIFECYCLESTATUS || null,
       owner: attrs.OWNER || null,
-      ...(isStorm && install_year && { install_year }),
+      ...(install_year && { install_year }),
       ...(isStorm && condition && { condition }),
       distance_ft,
-      geometry: geom  // ✅ Preserve geometry for map rendering
+      geometry: geom
     };
   }).filter((line: any) => {
     // For storm lines, keep only if we have facility_id OR diameter (data quality)
     if (utilityType?.toLowerCase().includes('storm')) {
       return line.facility_id || line.diameter;
     }
-    return true; // Keep all other utility types
+    return true;
   });
 }
 
@@ -865,7 +874,7 @@ serve(async (req) => {
             retry_attempts: eps.sewer.retry_attempts,
             retry_delays_ms: eps.sewer.retry_delays_ms,
             search_radius_ft: sewerRadius,
-            crs: eps.sewer.crs ?? 4326,
+            crs: eps.sewer.crs || 2278,
             geometryType: eps.sewer.geometryType,
             spatialRel: eps.sewer.spatialRel
           });
@@ -905,7 +914,7 @@ serve(async (req) => {
               retry_attempts: eps.sewer_service.retry_attempts,
               retry_delays_ms: eps.sewer_service.retry_delays_ms,
               search_radius_ft: serviceRadius,
-              crs: eps.sewer_service.crs || 4326,
+              crs: eps.sewer_service.crs || 2278,
               geometryType: eps.sewer_service.geometryType,
               spatialRel: eps.sewer_service.spatialRel
             });
@@ -946,7 +955,7 @@ serve(async (req) => {
               retry_attempts: eps.sewer_force.retry_attempts,
               retry_delays_ms: eps.sewer_force.retry_delays_ms,
               search_radius_ft: forceRadius,
-              crs: eps.sewer_force.crs ?? 4326,
+              crs: eps.sewer_force.crs || 2278,
               geometryType: eps.sewer_force.geometryType,
               spatialRel: eps.sewer_force.spatialRel
             });
