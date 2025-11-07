@@ -552,7 +552,6 @@ serve(async (req) => {
     let water_laterals: any[] = [];
     let water_fittings: any[] = [];
     let stormManholes: any[] = [];
-    let wastewaterDevices: any[] = [];
     let address_points: any[] = [];
     let traffic: any[] = [];
     let hcad_parcels: any[] = [];
@@ -1009,60 +1008,13 @@ serve(async (req) => {
           }
         }
 
-        // 6C. Wastewater Devices (Lift Stations) - NEW
-        if (eps.wastewater_devices) {
-          try {
-            const deviceRadius = isUrbanArea && eps.wastewater_devices.urban_search_radius_ft 
-              ? eps.wastewater_devices.urban_search_radius_ft 
-              : eps.wastewater_devices.search_radius_ft;
-            
-            console.log('🔧 [enrich-utilities] Querying wastewater devices (lift stations)...', {
-              endpoint: eps.wastewater_devices.url,
-              search_radius_ft: deviceRadius,
-              coordinates: { geo_lat, geo_lng }
-            });
-            
-            wastewaterDevices = await queryArcGIS(
-              eps.wastewater_devices.url, 
-              eps.wastewater_devices.outFields, 
-              geo_lat, 
-              geo_lng, 
-              "houston_wastewater_devices", 
-              {
-                timeout_ms: eps.wastewater_devices.timeout_ms,
-                retry_attempts: eps.wastewater_devices.retry_attempts,
-                retry_delays_ms: eps.wastewater_devices.retry_delays_ms,
-                search_radius_ft: deviceRadius,
-                crs: eps.wastewater_devices.crs ?? 4326,
-                geometryType: eps.wastewater_devices.geometryType,
-                spatialRel: eps.wastewater_devices.spatialRel
-              }
-            );
-            
-            if (wastewaterDevices.length > 0) {
-              flags.push("wastewater_devices_found");
-              console.log('✓ [enrich-utilities] Wastewater devices query complete:', {
-                features_found: wastewaterDevices.length,
-                lift_stations: wastewaterDevices.filter(d => 
-                  d.attributes.SUBTYPECD === 'LIFT_STATION' || 
-                  d.attributes.FACILITYID?.includes('LIFT')
-                ).length
-              });
-            } else {
-              console.log('ℹ️ [enrich-utilities] Wastewater devices: No devices found in search radius');
-            }
-          } catch (err) {
-            console.warn('⚠️ Wastewater Devices query failed:', err instanceof Error ? err.message : String(err));
-            flags.push('utilities_wastewater_devices_unavailable');
-          }
-        }
         
         // Log summary of utility query results
         const allWaterLines = [...water, ...water_laterals];
         const allSewerLines = [...sewerGravity, ...sewerService, ...sewer_force];
         const allStormLines = [...storm];
-      const allStormFeatures = [...storm, ...stormManholes];
-      console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length} (Gravity: ${sewerGravity.length}, Service: ${sewerService.length}, Force: ${sewer_force.length}), Storm: ${allStormFeatures.length} (Lines: ${storm.length}, Manholes: ${stormManholes.length}), Wastewater Devices: ${wastewaterDevices.length}, Failed Services: ${failedServices}/${totalServices}`);
+    const allStormFeatures = [...storm, ...stormManholes];
+    console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length} (Gravity: ${sewerGravity.length}, Service: ${sewerService.length}, Force: ${sewer_force.length}), Storm: ${allStormFeatures.length} (Lines: ${storm.length}, Manholes: ${stormManholes.length}), Failed Services: ${failedServices}/${totalServices}`);
         
         // Traffic counts (disabled - endpoint unavailable)
         traffic = [];
@@ -1524,24 +1476,6 @@ serve(async (req) => {
               distance_ft: m.distance_ft || null
             }))
           }),
-
-          // Wastewater devices data (NEW - lift stations and pumps)
-          ...(wastewaterDevices.length > 0 && {
-            wastewater_devices_count: wastewaterDevices.length,
-            wastewater_devices_data: wastewaterDevices.map(d => ({
-              facility_id: d.attributes.FACILITYID || null,
-              type: d.attributes.SUBTYPECD || null,
-              install_date: d.attributes.INSTALLDATE || null,
-              owner: d.attributes.OWNER || null,
-              status: d.attributes.STATUS || null,
-              enabled: d.attributes.ENABLED || null,
-              distance_ft: d.distance_ft || null
-            })),
-            lift_stations_count: wastewaterDevices.filter(d => 
-              d.attributes.SUBTYPECD === 'LIFT_STATION' || 
-              d.attributes.FACILITYID?.toLowerCase().includes('lift')
-            ).length
-          }),
           
           // Address validation data
           ...(address_points.length > 0 && {
@@ -1608,45 +1542,53 @@ serve(async (req) => {
       flags
     });
 
-    // 🚨 CRITICAL DATA VALIDATION: Block report generation if critical utilities missing
-    const hasWater = water_laterals.length > 0 || water.length > 0;
-    const hasSewer = (sewer.length + sewer_force.length) > 0;
-
-    if (!hasWater || !hasSewer) {
-      console.error('❌ [enrich-utilities] CRITICAL DATA MISSING:', {
-        water_found: hasWater,
-        sewer_found: hasSewer,
-        application_id,
-        flags
-      });
+    // 🛡️ FAULT-TOLERANT VALIDATION: Save partial results even if some services fail
+    // ONLY return 500 if ALL services fail or no data at all
+    const hasAnyData = water.length > 0 || water_laterals.length > 0 || 
+                       sewerGravity.length > 0 || sewerService.length > 0 || sewer_force.length > 0 ||
+                       storm.length > 0 || stormManholes.length > 0;
+    
+    if (!hasAnyData && failedServices === totalServices) {
+      flags.push('utilities_enrichment_total_failure');
+      console.error('❌ [enrich-utilities] CRITICAL: All utility services failed completely');
       
       // Mark enrichment as failed in the database
       await supabase
         .from('applications')
         .update({
           enrichment_status: 'failed',
-          data_flags: [...flags, 'critical_utilities_missing']
+          enrichment_error: 'All utility services failed to respond',
+          data_flags: flags,
+          updated_at: new Date().toISOString()
         })
         .eq('id', application_id);
-      
+
       return new Response(
         JSON.stringify({ 
-          success: false,
-          error: 'Critical utilities data missing',
-          details: `Missing: ${!hasWater ? 'water' : ''} ${!hasSewer ? 'sewer' : ''}`.trim(),
-          application_id,
-          utilities: {
-            water: water.length,
-            sewer: sewer.length + sewer_force.length,
-            storm: storm.length
-          }
+          error: 'All utility services failed', 
+          details: 'Could not retrieve any utility data from any service',
+          flags 
         }), 
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { status: 500, headers: corsHeaders }
       );
     }
+
+    // Log partial success scenario
+    if (failedServices > 0 && hasAnyData) {
+      console.warn(`⚠️ [enrich-utilities] PARTIAL SUCCESS: ${failedServices}/${totalServices} services failed, but saving available data`);
+      flags.push('utilities_enrichment_partial');
+    }
+
+    // Log what data we successfully got
+    console.log('✅ [enrich-utilities] Data collection complete (fault-tolerant):', {
+      water: water.length,
+      sewer: sewerGravity.length + sewerService.length + sewer_force.length,
+      storm: storm.length + stormManholes.length,
+      water_laterals: water_laterals.length,
+      water_fittings: water_fittings.length,
+      partial: failedServices > 0,
+      failed_services: failedServices
+    });
 
     return new Response(
       JSON.stringify({ 
