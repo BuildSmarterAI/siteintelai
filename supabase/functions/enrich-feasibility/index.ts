@@ -1930,9 +1930,9 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { application_id, address } = await req.json();
+    const { application_id, address, mode } = await req.json();
 
-    console.log('Enriching application:', { application_id, address });
+    console.log('Enriching application:', { application_id, address, mode });
 
     // Fetch application record to check intent_type
     let intentType = 'build'; // Default to build
@@ -2868,6 +2868,79 @@ serve(async (req) => {
     } catch (error) {
       console.error('Parcel query error:', error);
       dataFlags.push('parcel_query_failed');
+    }
+
+    // 🎯 GEOCODE-ONLY MODE: If mode is 'geocode_only', save geo/parcel and exit
+    // This ensures enrich-utilities can always run even if flood/zoning APIs are down
+    if (mode === 'geocode_only') {
+      console.log('[GEOCODE-ONLY MODE] Saving geocode and parcel data, skipping flood/zoning/validation');
+      
+      if (application_id) {
+        const updateData: any = {
+          enrichment_status: 'geocoded',
+          data_flags: dataFlags,
+          enrichment_metadata: {
+            phase: 'geocode_only',
+            completed_at: new Date().toISOString()
+          }
+        };
+        
+        // Save geocode data
+        if (enrichedData.geo_lat) updateData.geo_lat = enrichedData.geo_lat;
+        if (enrichedData.geo_lng) updateData.geo_lng = enrichedData.geo_lng;
+        if (enrichedData.situs_address) updateData.situs_address = enrichedData.situs_address;
+        if (enrichedData.place_id) updateData.place_id = enrichedData.place_id;
+        if (enrichedData.administrative_area_level_2) updateData.administrative_area_level_2 = enrichedData.administrative_area_level_2;
+        if (enrichedData.administrative_area_level_1) updateData.administrative_area_level_1 = enrichedData.administrative_area_level_1;
+        if (enrichedData.postal_code) updateData.postal_code = enrichedData.postal_code;
+        if (enrichedData.neighborhood) updateData.neighborhood = enrichedData.neighborhood;
+        if (enrichedData.sublocality) updateData.sublocality = enrichedData.sublocality;
+        if (enrichedData.city) updateData.city = enrichedData.city;
+        if (enrichedData.submarket_enriched) updateData.submarket_enriched = enrichedData.submarket_enriched;
+        
+        // Save parcel data
+        if (enrichedData.parcel_id) updateData.parcel_id = enrichedData.parcel_id;
+        if (enrichedData.parcel_owner) updateData.parcel_owner = enrichedData.parcel_owner;
+        if (enrichedData.acreage_cad) updateData.acreage_cad = enrichedData.acreage_cad;
+        if (enrichedData.lot_size_value) updateData.lot_size_value = enrichedData.lot_size_value;
+        if (enrichedData.lot_size_unit) updateData.lot_size_unit = enrichedData.lot_size_unit;
+        if (enrichedData.legal_description) updateData.legal_description = enrichedData.legal_description;
+        if (enrichedData.geom) updateData.geom = enrichedData.geom;
+        
+        const { error: updateError } = await supabase
+          .from('applications')
+          .update(updateData)
+          .eq('id', application_id);
+        
+        if (updateError) {
+          console.error('[GEOCODE-ONLY] Database update error:', updateError);
+          return new Response(JSON.stringify({ 
+            success: false, 
+            error: 'Failed to update application',
+            details: updateError.message 
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        console.log('[GEOCODE-ONLY] ✅ Geocode and parcel data saved successfully');
+      }
+      
+      return new Response(JSON.stringify({
+        success: true,
+        phase: 'geocode_only',
+        county: countyName,
+        data: {
+          geo_lat: enrichedData.geo_lat,
+          geo_lng: enrichedData.geo_lng,
+          parcel_id: enrichedData.parcel_id,
+          situs_address: enrichedData.situs_address
+        },
+        data_flags: dataFlags
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Step 4: Query zoning data

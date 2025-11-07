@@ -96,14 +96,32 @@ async function retryWithBackoff<T>(
 
 // Phase implementations (call existing edge functions)
 async function doGeocodeAndParcel(app: any) {
-  console.log(`[doGeocodeAndParcel] Starting for app ${app.id}`);
+  console.log(`[doGeocodeAndParcel] Starting GEOCODE-ONLY mode for app ${app.id}`);
   return retryWithBackoff(
     async () => {
+      // Fetch address from application record
+      const { data: appData, error: fetchError } = await sbAdmin
+        .from('applications')
+        .select('address')
+        .eq('id', app.id)
+        .single();
+      
+      if (fetchError || !appData?.address) {
+        throw new Error('Failed to fetch application address');
+      }
+      
+      console.log(`[doGeocodeAndParcel] Fetched address: ${appData.address}`);
+      
       const response = await sbAdmin.functions.invoke('enrich-feasibility', {
-        body: { application_id: app.id }
+        body: { 
+          application_id: app.id,
+          address: appData.address,
+          mode: 'geocode_only'  // Only fetch geocode + parcel, skip flood/zoning validation
+        }
       });
       
       if (response.error) throw new Error(response.error.message || 'Geocode/parcel failed');
+      console.log(`[doGeocodeAndParcel] ✅ Geocode-only completed for ${app.id}`);
       return response.data;
     },
     MAX_ATTEMPTS,
