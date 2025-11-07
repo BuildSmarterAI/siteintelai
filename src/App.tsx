@@ -35,6 +35,7 @@ import Beta from "./pages/Beta";
 import BetaSignup from "./pages/BetaSignup";
 import BetaThankYou from "./pages/BetaThankYou";
 import HospitalityIntelligence from "./pages/HospitalityIntelligence";
+import UtilitiesDiagnostic from "./pages/UtilitiesDiagnostic";
 
 const queryClient = new QueryClient();
 
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/legal/terms" element={<Terms />} />
               <Route path="/legal/beta-nda" element={<BetaNDA />} />
               <Route path="/admin/geospatial" element={<AdminGeospatial />} />
+              <Route path="/admin/utilities-diagnostic" element={<UtilitiesDiagnostic />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
