@@ -148,10 +148,10 @@ export function MapLegend({
       {/* Storm Lines */}
       {hasStormLines && (
         <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">Storm Infrastructure</p>
+          <p className="font-medium text-foreground">Storm Drain Lines</p>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#8B5CF6' }} />
-            <span className="text-muted-foreground">Storm drains</span>
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#14B8A6' }} />
+            <span className="text-muted-foreground">Houston Water HPW IPS</span>
           </div>
         </div>
       )}

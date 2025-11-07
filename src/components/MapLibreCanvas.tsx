@@ -41,9 +41,9 @@ export const LAYER_CONFIG = {
   },
   stormLines: {
     id: 'storm-lines',
-    title: 'Storm Lines',
-    source: 'City of Houston Public Works',
-    color: '#8B5CF6',
+    title: 'Storm Drain Lines',
+    source: 'Houston Water HPW Stormdrain Line IPS',
+    color: '#14B8A6',
     opacity: 0.8,
     intentRelevance: { build: true, buy: true },
   },
@@ -467,6 +467,7 @@ export function MapLibreCanvas({
     if (parcel && layerVisibility.parcel) visible.push('parcel boundary in orange');
     if (floodZones.length > 0 && layerVisibility.flood) visible.push(`${floodZones.length} flood zone(s)`);
     if (utilities.length > 0 && layerVisibility.utilities) visible.push(`${utilities.length} utility line(s)`);
+    if (stormLines.length > 0 && layerVisibility.stormLines) visible.push(`${stormLines.length} storm drain line(s) in teal`);
     if (traffic.length > 0 && layerVisibility.traffic) visible.push(`${traffic.length} traffic segment(s)`);
     if (employmentCenters.length > 0 && layerVisibility.employment) visible.push(`${employmentCenters.length} employment center(s)`);
     
@@ -913,6 +914,147 @@ export function MapLibreCanvas({
       map.current.setLayoutProperty('utilities-layer', 'visibility', visibility);
     }
   }, [layerVisibility.utilities, mapLoaded]);
+
+  // Add storm drain lines layer
+  useEffect(() => {
+    if (!map.current || !mapLoaded || stormLines.length === 0) return;
+
+    const sourceId = 'storm-lines-source';
+    const layerId = 'storm-lines-layer';
+
+    try {
+      // Remove existing layers if present
+      if (map.current.getLayer(layerId)) map.current.removeLayer(layerId);
+      if (map.current.getSource(sourceId)) map.current.removeSource(sourceId);
+
+      // Transform storm lines data to GeoJSON features
+      const features = stormLines
+        .filter(line => line.geometry && line.geometry.coordinates)
+        .map((line, idx) => ({
+          type: 'Feature' as const,
+          id: idx,
+          geometry: line.geometry,
+          properties: {
+            facility_id: line.facility_id || line.attributes?.FACILITYID || 'Unknown',
+            diameter_in: line.diameter_in || line.attributes?.DIAMETER || null,
+            material: line.material || line.attributes?.MATERIAL || 'Unknown',
+            install_year: line.install_year || line.attributes?.INSTALL_YEAR || null,
+            condition: line.condition || line.attributes?.CONDITION || 'Unknown',
+            status: line.status || line.attributes?.STATUS || 'Active',
+            distance_ft: line.distance_ft || null,
+          },
+        }));
+
+      // Add GeoJSON source
+      map.current.addSource(sourceId, {
+        type: 'geojson',
+        data: {
+          type: 'FeatureCollection',
+          features,
+        },
+      });
+
+      // Add storm drain polyline layer with teal styling
+      map.current.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        paint: {
+          'line-color': '#14B8A6',
+          'line-width': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            12, 2,
+            16, 4,
+          ],
+          'line-opacity': 0.8,
+        },
+        layout: {
+          'line-cap': 'round',
+          'line-join': 'round',
+          visibility: layerVisibility.stormLines ? 'visible' : 'none',
+        },
+      });
+
+      // Add hover popup with facility details
+      map.current.on('click', layerId, (e) => {
+        if (!e.features || e.features.length === 0) return;
+        
+        const props = e.features[0].properties;
+        const diameterDisplay = props.diameter_in 
+          ? `${props.diameter_in}" diameter` 
+          : 'Unknown diameter';
+        const conditionColor = 
+          props.condition === 'Active' ? '#10B981' :
+          props.condition === 'Planned' ? '#F59E0B' :
+          props.condition === 'Abandoned' ? '#EF4444' : '#6B7280';
+        
+        new maplibregl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="padding: 12px; font-family: 'IBM Plex Sans', sans-serif; min-width: 220px;">
+              <div style="font-weight: 600; font-size: 14px; color: #14B8A6; margin-bottom: 6px;">
+                Storm Drain Line
+              </div>
+              <div style="font-size: 12px; line-height: 1.6; color: #374151;">
+                <div style="margin-bottom: 4px;">
+                  <strong>Facility ID:</strong> ${props.facility_id}
+                </div>
+                <div style="margin-bottom: 4px;">
+                  <strong>Diameter:</strong> ${diameterDisplay}
+                </div>
+                <div style="margin-bottom: 4px;">
+                  <strong>Material:</strong> ${props.material}
+                </div>
+                <div style="margin-bottom: 4px;">
+                  <strong>Condition:</strong> 
+                  <span style="color: ${conditionColor}; font-weight: 600;">
+                    ${props.condition}
+                  </span>
+                </div>
+                ${props.install_year ? `
+                  <div style="margin-bottom: 4px;">
+                    <strong>Installed:</strong> ${props.install_year}
+                  </div>
+                ` : ''}
+                ${props.distance_ft ? `
+                  <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-size: 11px; color: #6B7280;">
+                    ${props.distance_ft.toFixed(0)} ft from parcel
+                  </div>
+                ` : ''}
+              </div>
+              <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #E5E7EB; font-size: 10px; color: #9CA3AF;">
+                Source: Houston Water HPW IPS
+              </div>
+            </div>
+          `)
+          .addTo(map.current!);
+      });
+
+      // Cursor changes on hover
+      map.current.on('mouseenter', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      
+      map.current.on('mouseleave', layerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+
+      console.log(`🌊 Storm drain lines rendered: ${features.length} segments`);
+    } catch (error) {
+      console.error('Failed to add storm lines layer:', error);
+    }
+  }, [stormLines, mapLoaded, layerVisibility.stormLines]);
+
+  // Update storm lines visibility when toggled
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    const visibility = layerVisibility.stormLines ? 'visible' : 'none';
+    if (map.current.getLayer('storm-lines-layer')) {
+      map.current.setLayoutProperty('storm-lines-layer', 'visibility', visibility);
+    }
+  }, [layerVisibility.stormLines, mapLoaded]);
 
   // Add traffic layer
   useEffect(() => {

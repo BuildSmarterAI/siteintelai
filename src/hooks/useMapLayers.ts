@@ -168,11 +168,39 @@ export function useMapLayers(applicationId: string) {
         drawnParcels = parcelsData || [];
       }
 
+      // Fetch utilities data with storm lines
+      const { data: utilitiesData } = await supabase
+        .from('applications')
+        .select('utilities_summary')
+        .eq('id', applicationId)
+        .single();
+
+      // Transform storm lines from utilities_summary
+      const stormLines: any[] = [];
+      const utilitiesSummary = utilitiesData?.utilities_summary as any;
+      
+      if (utilitiesSummary?.storm_lines && Array.isArray(utilitiesSummary.storm_lines)) {
+        utilitiesSummary.storm_lines.forEach((line: any) => {
+          if (line.geometry) {
+            stormLines.push({
+              geometry: line.geometry,
+              facility_id: line.facility_id,
+              diameter_in: line.diameter_in,
+              material: line.material,
+              install_year: line.install_year,
+              condition: line.condition,
+              status: line.status,
+              distance_ft: line.distance_ft,
+              attributes: line.attributes,
+            });
+          }
+        });
+      }
+
       // New infrastructure layers (empty arrays for now - future: fetch from ArcGIS)
       const hcadParcels: any[] = [];
       const waterLines: any[] = [];
       const sewerLines: any[] = [];
-      const stormLines: any[] = [];
       const forceMain: any[] = [];
       const zoningDistricts: any[] = [];
 
