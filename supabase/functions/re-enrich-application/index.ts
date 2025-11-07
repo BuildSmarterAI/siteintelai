@@ -109,12 +109,24 @@ serve(async (req) => {
 
     console.log(`Re-enriching address: ${address}`);
 
-    // Call the enrich-feasibility function
+    // Reset enrichment status to allow re-enrichment
+    const { error: resetError } = await supabase
+      .from('applications')
+      .update({ 
+        enrichment_status: 'queued',
+        data_flags: []
+      })
+      .eq('id', application_id);
+
+    if (resetError) {
+      console.error('Failed to reset application status:', resetError);
+    }
+
+    // Call orchestrate-application to run the full enrichment pipeline with validation
     const { data: enrichmentResult, error: enrichmentError } = await supabase.functions.invoke(
-      'enrich-feasibility',
+      'orchestrate-application',
       {
         body: {
-          address: address,
           application_id: application_id
         }
       }
