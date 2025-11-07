@@ -803,7 +803,7 @@ serve(async (req) => {
             retry_attempts: eps.sewer.retry_attempts,
             retry_delays_ms: eps.sewer.retry_delays_ms,
             search_radius_ft: sewerRadius,
-            crs: eps.sewer.crs || 2278,
+            crs: eps.sewer.crs ?? 4326,
             geometryType: eps.sewer.geometryType,
             spatialRel: eps.sewer.spatialRel
           });
@@ -884,7 +884,7 @@ serve(async (req) => {
               retry_attempts: eps.sewer_force.retry_attempts,
               retry_delays_ms: eps.sewer_force.retry_delays_ms,
               search_radius_ft: forceRadius,
-              crs: eps.sewer_force.crs || 2278,
+              crs: eps.sewer_force.crs ?? 4326,
               geometryType: eps.sewer_force.geometryType,
               spatialRel: eps.sewer_force.spatialRel
             });
@@ -941,7 +941,7 @@ serve(async (req) => {
             retry_attempts: eps.storm.retry_attempts,
             retry_delays_ms: eps.storm.retry_delays_ms,
             search_radius_ft: stormRadius,
-            crs: eps.storm.crs || 2278,
+            crs: eps.storm.crs ?? 4326,
             geometryType: eps.storm.geometryType,
             spatialRel: eps.storm.spatialRel
           });
@@ -1264,22 +1264,19 @@ serve(async (req) => {
       sewer: buildUtilitySummary(
         sewer, 
         "sewer",
-        cityLower.includes("houston") ? "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Gravity_Main/FeatureServer/0" :
+        cityLower.includes("houston") ? eps.sewer.url :
         cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Wastewaterlines/FeatureServer/0" :
         null
       ),
       force_main: buildUtilitySummary(
-        sewer.filter(s => {
-          const formatted = formatLines([s], geo_lat, geo_lng)[0];
-          return formatted.diameter && formatted.diameter > 18; // Force mains typically larger
-        }),
+        sewer_force,
         "force_main",
-        cityLower.includes("houston") ? "https://services.arcgis.com/04HiymDgLlsbhaV4/ArcGIS/rest/services/Sewer_Water_Pipe_Network_-_Force_Main/FeatureServer/0" : null
+        cityLower.includes("houston") ? eps.sewer_force?.url : null
       ),
       storm: buildUtilitySummary(
         storm,
         "storm",
-        cityLower.includes("houston") ? "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/FeatureServer/7" :
+        cityLower.includes("houston") ? eps.storm.url :
         cityLower.includes("austin") ? "https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_ReclaimedWaterlines/FeatureServer/0" :
         null
       )
