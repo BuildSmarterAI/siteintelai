@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Search, Navigation, MapPin, Loader2 } from 'lucide-react';
+import { Search, Navigation, MapPin, Loader2, Clock, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+interface RecentSearch {
+  address: string;
+  lat: number;
+  lng: number;
+  timestamp: number;
+}
 
 interface ParcelSearchBarProps {
   onAddressSelect: (lat: number, lng: number, address: string) => void;
@@ -18,6 +25,7 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
   useEffect(() => {
     if (searchQuery.length < 3) {
@@ -31,6 +39,19 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
 
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('parcelSearchHistory');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setRecentSearches(parsed);
+      } catch (err) {
+        console.error('Failed to parse search history:', err);
+      }
+    }
+  }, []);
 
   const fetchSuggestions = async (query: string) => {
     setIsSearching(true);
@@ -50,7 +71,9 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
       // Check if coordinate format (lat,lng)
       if (/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(query)) {
         const [lat, lng] = query.split(',').map(s => parseFloat(s.trim()));
-        onAddressSelect(lat, lng, `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+        const address = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        saveToHistory(lat, lng, address);
+        onAddressSelect(lat, lng, address);
         setIsOpen(false);
         return;
       }
@@ -84,9 +107,11 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
         const parcel = data.features[0];
         const coords = parcel.geometry.coordinates[0][0];
         const [lng, lat] = coords;
+        const address = parcel.properties.SITUS_ADDRESS || 'Parcel Found';
         
+        saveToHistory(lat, lng, address);
         onParcelSelect?.(parcel);
-        onAddressSelect(lat, lng, parcel.properties.SITUS_ADDRESS || 'Parcel Found');
+        onAddressSelect(lat, lng, address);
         setIsOpen(false);
         toast.success('Parcel found');
       } else {
@@ -106,6 +131,7 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
 
       if (error) throw error;
 
+      saveToHistory(data.lat, data.lng, data.formatted_address);
       onAddressSelect(data.lat, data.lng, data.formatted_address);
       setIsOpen(false);
       toast.success('Location found');
@@ -137,6 +163,34 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     );
   };
 
+  const saveToHistory = (lat: number, lng: number, address: string) => {
+    const newSearch: RecentSearch = {
+      address,
+      lat,
+      lng,
+      timestamp: Date.now()
+    };
+
+    // Remove duplicates (same address)
+    const filtered = recentSearches.filter(
+      search => search.address.toLowerCase() !== address.toLowerCase()
+    );
+
+    // Add to beginning, limit to 5
+    const updated = [newSearch, ...filtered].slice(0, 5);
+    
+    setRecentSearches(updated);
+    localStorage.setItem('parcelSearchHistory', JSON.stringify(updated));
+  };
+
+  const removeFromHistory = (timestamp: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = recentSearches.filter(search => search.timestamp !== timestamp);
+    setRecentSearches(updated);
+    localStorage.setItem('parcelSearchHistory', JSON.stringify(updated));
+    toast.success('Removed from history');
+  };
+
   return (
     <div className={`absolute left-4 z-20 w-96 ${containerClassName ?? 'top-4'}`}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -152,6 +206,11 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
                 placeholder="Address, cross street, or parcel ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (searchQuery.length === 0 && recentSearches.length > 0) {
+                    setIsOpen(true);
+                  }
+                }}
                 className="pl-10 pr-10 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
               />
             </div>
@@ -175,32 +234,71 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
         >
           <Command>
             <CommandList>
-              <CommandEmpty>No results found</CommandEmpty>
-              <CommandGroup>
-                {suggestions.map((suggestion) => (
-                  <CommandItem
-                    key={suggestion.place_id}
-                    onSelect={async () => {
-                      try {
-                        const { data } = await supabase.functions.invoke('google-place-details', {
-                          body: { placeId: suggestion.place_id }
-                        });
-
-                        const { lat, lng } = data.result.geometry.location;
-                        onAddressSelect(lat, lng, suggestion.description);
+              {/* Recent Searches Section - Only show when no query */}
+              {searchQuery.length === 0 && recentSearches.length > 0 && (
+                <CommandGroup heading="Recent Searches">
+                  {recentSearches.map((search) => (
+                    <CommandItem
+                      key={search.timestamp}
+                      onSelect={() => {
+                        onAddressSelect(search.lat, search.lng, search.address);
                         setIsOpen(false);
-                        setSearchQuery('');
-                      } catch (err) {
-                        console.error('Place details error:', err);
-                        toast.error('Failed to get location details');
-                      }
-                    }}
-                  >
-                    <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                    {suggestion.description}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                        toast.success('Location selected from history');
+                      }}
+                      className="group"
+                    >
+                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span className="flex-1">{search.address}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(e) => removeFromHistory(search.timestamp, e)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              )}
+
+              {/* Search Suggestions Section */}
+              {suggestions.length > 0 && (
+                <>
+                  <CommandEmpty>No results found</CommandEmpty>
+                  <CommandGroup heading={searchQuery.length > 0 ? "Suggestions" : undefined}>
+                    {suggestions.map((suggestion) => (
+                      <CommandItem
+                        key={suggestion.place_id}
+                        onSelect={async () => {
+                          try {
+                            const { data } = await supabase.functions.invoke('google-place-details', {
+                              body: { placeId: suggestion.place_id }
+                            });
+
+                            const { lat, lng } = data.result.geometry.location;
+                            saveToHistory(lat, lng, suggestion.description);
+                            onAddressSelect(lat, lng, suggestion.description);
+                            setIsOpen(false);
+                            setSearchQuery('');
+                          } catch (err) {
+                            console.error('Place details error:', err);
+                            toast.error('Failed to get location details');
+                          }
+                        }}
+                      >
+                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                        {suggestion.description}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </>
+              )}
+
+              {/* Empty State */}
+              {searchQuery.length === 0 && recentSearches.length === 0 && (
+                <CommandEmpty>Start typing to search for an address</CommandEmpty>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
