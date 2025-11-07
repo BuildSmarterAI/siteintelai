@@ -1482,6 +1482,46 @@ serve(async (req) => {
       flags
     });
 
+    // 🚨 CRITICAL DATA VALIDATION: Block report generation if critical utilities missing
+    const hasWater = water_laterals.length > 0 || water.length > 0;
+    const hasSewer = (sewer.length + sewer_force.length) > 0;
+
+    if (!hasWater || !hasSewer) {
+      console.error('❌ [enrich-utilities] CRITICAL DATA MISSING:', {
+        water_found: hasWater,
+        sewer_found: hasSewer,
+        application_id,
+        flags
+      });
+      
+      // Mark enrichment as failed in the database
+      await supabase
+        .from('applications')
+        .update({
+          enrichment_status: 'failed',
+          data_flags: [...flags, 'critical_utilities_missing']
+        })
+        .eq('id', application_id);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Critical utilities data missing',
+          details: `Missing: ${!hasWater ? 'water' : ''} ${!hasSewer ? 'sewer' : ''}`.trim(),
+          application_id,
+          utilities: {
+            water: water.length,
+            sewer: sewer.length + sewer_force.length,
+            storm: storm.length
+          }
+        }), 
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true,

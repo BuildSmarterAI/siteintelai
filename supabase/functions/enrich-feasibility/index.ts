@@ -3677,6 +3677,45 @@ serve(async (req) => {
       }
       console.log('Enrichment saved to database');
       
+      // 🚨 CRITICAL DATA VALIDATION: Block report generation if critical data missing
+      const hasGeocode = enrichedData.geo_lat && enrichedData.geo_lng;
+      const hasParcel = enrichedData.parcel_id || parcelGeometry;
+      const hasZoning = enrichedData.zoning_category || enrichedData.enrichment_metadata?.zoning;
+      const hasFlood = enrichedData.floodplain_zone || enrichedData.enrichment_metadata?.flood_zone;
+
+      if (!hasGeocode || !hasParcel || !hasZoning || !hasFlood) {
+        const missing = [];
+        if (!hasGeocode) missing.push('geocode');
+        if (!hasParcel) missing.push('parcel');
+        if (!hasZoning) missing.push('zoning');
+        if (!hasFlood) missing.push('flood');
+        
+        console.error('❌ [enrich-feasibility] CRITICAL DATA MISSING:', {
+          missing,
+          application_id,
+          has: { hasGeocode, hasParcel, hasZoning, hasFlood }
+        });
+        
+        // Mark enrichment as failed
+        await supabase
+          .from('applications')
+          .update({
+            enrichment_status: 'failed',
+            data_flags: [...dataFlags, 'critical_feasibility_data_missing']
+          })
+          .eq('id', application_id);
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Critical feasibility data missing',
+          details: `Missing: ${missing.join(', ')}`,
+          application_id
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
       // 🚀 PHASE 3: Trigger geospatial scoring
       if (enrichedData.geo_lat && enrichedData.geo_lng) {
         try {

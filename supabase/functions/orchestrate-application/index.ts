@@ -14,7 +14,8 @@ const corsHeaders = {
 const STATE_PROGRESS: Record<string, number> = {
   queued: 5,
   enriching: 40,
-  ai: 70,
+  validating: 60,
+  ai: 75,
   rendering: 90,
   complete: 100,
   error: 0
@@ -170,6 +171,64 @@ async function renderAndStorePDF(app: any) {
   );
 }
 
+async function validateData(app: any) {
+  console.log(`[validateData] Validating critical data for app ${app.id}`);
+  
+  // Check for critical data completeness
+  const hasGeocode = app.geo_lat && app.geo_lng;
+  const hasParcel = app.parcel_id || app.enrichment_metadata?.parcel_geometry;
+  const hasWater = (
+    app.enrichment_metadata?.water_laterals_count > 0 ||
+    app.enrichment_metadata?.water_count > 0
+  );
+  const hasSewer = (
+    app.enrichment_metadata?.sewer_gravity_count > 0 ||
+    app.enrichment_metadata?.sewer_force_count > 0 ||
+    app.enrichment_metadata?.sewer_count > 0
+  );
+  const hasZoning = app.zoning_category || app.enrichment_metadata?.zoning;
+  const hasFlood = app.floodplain_zone || app.enrichment_metadata?.flood_zone;
+  
+  const missingCritical = [];
+  if (!hasGeocode) missingCritical.push('geocode');
+  if (!hasParcel) missingCritical.push('parcel');
+  if (!hasWater) missingCritical.push('utilities.water');
+  if (!hasSewer) missingCritical.push('utilities.sewer');
+  if (!hasZoning) missingCritical.push('zoning');
+  if (!hasFlood) missingCritical.push('flood');
+  
+  // Check for critical error flags
+  const criticalFlags = [
+    'geocode_failed',
+    'parcel_not_found',
+    'critical_utilities_missing',
+    'critical_feasibility_data_missing',
+    'utilities_api_timeout',
+    'zoning_unavailable',
+    'flood_data_error'
+  ];
+  
+  const hasCriticalErrors = (app.data_flags || []).some(
+    (flag: string) => criticalFlags.includes(flag)
+  );
+  
+  if (missingCritical.length > 0 || hasCriticalErrors) {
+    console.error(`[validateData] Validation FAILED for ${app.id}:`, {
+      missingCritical,
+      hasCriticalErrors,
+      data_flags: app.data_flags
+    });
+    throw {
+      code: 'E400',
+      message: `Missing critical data: ${missingCritical.join(', ')}`,
+      details: { missingCritical, hasCriticalErrors }
+    };
+  }
+  
+  console.log(`[validateData] ✅ Validation PASSED for ${app.id}`);
+  return { isComplete: true, missingCritical: [], hasCriticalErrors: false };
+}
+
 // Main orchestration switch
 async function orchestrate(appId: string): Promise<any> {
   const { data: app, error } = await sbAdmin
@@ -197,6 +256,12 @@ async function orchestrate(appId: string): Promise<any> {
       case 'enriching':
         console.log(`[orchestrate] ${appId} - Phase: Enrich Overlays`);
         await enrichOverlays(app);
+        await bump(appId, 'validating', currentRev);
+        return orchestrate(appId);
+
+      case 'validating':
+        console.log(`[orchestrate] ${appId} - Phase: Data Validation`);
+        await validateData(app);
         await bump(appId, 'ai', currentRev);
         return orchestrate(appId);
 

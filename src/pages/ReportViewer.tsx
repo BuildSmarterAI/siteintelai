@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { DrawnParcelsList } from "@/components/DrawnParcelsList";
-import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock, RefreshCw } from "lucide-react";
+import { Loader2, Download, FileText, MapPin, Zap, Car, Users, TrendingUp, Building2, Clock, DollarSign, Wifi, Landmark, AlertTriangle, Lock, RefreshCw, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { DataSourcesDisplay } from "@/components/DataSourcesDisplay";
@@ -688,6 +689,17 @@ export default function ReportViewer() {
                     })}
                   </span>
                 </div>
+                {report.applications?.data_flags && 
+                 (report.applications.data_flags.includes('critical_utilities_missing') || 
+                  report.applications.data_flags.includes('critical_feasibility_data_missing')) && (
+                  <Alert variant="destructive" className="mt-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="text-xs">
+                      This report is incomplete. Critical data could not be retrieved. 
+                      {isAdmin && ' Use "Re-Enrich Data" to retry.'}
+                    </AlertDescription>
+                  </Alert>
+                )}
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
