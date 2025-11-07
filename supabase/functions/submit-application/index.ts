@@ -7,6 +7,124 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ZIP Code to County mapping for Texas (most reliable)
+const TX_ZIP_TO_COUNTY: Record<string, string> = {
+  // Harris County
+  "77002": "Harris County", "77003": "Harris County", "77004": "Harris County",
+  "77005": "Harris County", "77006": "Harris County", "77007": "Harris County",
+  "77008": "Harris County", "77009": "Harris County", "77010": "Harris County",
+  "77011": "Harris County", "77012": "Harris County", "77013": "Harris County",
+  "77014": "Harris County", "77015": "Harris County", "77016": "Harris County",
+  "77017": "Harris County", "77018": "Harris County", "77019": "Harris County",
+  "77020": "Harris County", "77021": "Harris County", "77022": "Harris County",
+  "77023": "Harris County", "77024": "Harris County", "77025": "Harris County",
+  "77026": "Harris County", "77027": "Harris County", "77028": "Harris County",
+  "77029": "Harris County", "77030": "Harris County", "77031": "Harris County",
+  "77032": "Harris County", "77033": "Harris County", "77034": "Harris County",
+  "77035": "Harris County", "77036": "Harris County", "77037": "Harris County",
+  "77038": "Harris County", "77039": "Harris County", "77040": "Harris County",
+  "77041": "Harris County", "77042": "Harris County", "77043": "Harris County",
+  "77044": "Harris County", "77045": "Harris County", "77046": "Harris County",
+  "77047": "Harris County", "77048": "Harris County", "77049": "Harris County",
+  "77050": "Harris County", "77051": "Harris County", "77053": "Harris County",
+  "77054": "Harris County", "77055": "Harris County", "77056": "Harris County",
+  "77057": "Harris County", "77058": "Harris County", "77059": "Harris County",
+  "77060": "Harris County", "77061": "Harris County", "77062": "Harris County",
+  "77063": "Harris County", "77064": "Harris County", "77065": "Harris County",
+  "77066": "Harris County", "77067": "Harris County", "77068": "Harris County",
+  "77069": "Harris County", "77070": "Harris County", "77071": "Harris County",
+  "77072": "Harris County", "77073": "Harris County", "77074": "Harris County",
+  "77075": "Harris County", "77076": "Harris County", "77077": "Harris County",
+  "77078": "Harris County", "77079": "Harris County", "77080": "Harris County",
+  "77081": "Harris County", "77082": "Harris County", "77083": "Harris County",
+  "77084": "Harris County", "77085": "Harris County", "77086": "Harris County",
+  "77087": "Harris County", "77088": "Harris County", "77089": "Harris County",
+  "77090": "Harris County", "77091": "Harris County", "77092": "Harris County",
+  "77093": "Harris County", "77094": "Harris County", "77095": "Harris County",
+  "77096": "Harris County", "77098": "Harris County", "77099": "Harris County",
+  
+  // Fort Bend County
+  "77406": "Fort Bend County", "77407": "Fort Bend County", "77459": "Fort Bend County",
+  "77461": "Fort Bend County", "77464": "Fort Bend County", "77469": "Fort Bend County",
+  "77471": "Fort Bend County", "77477": "Fort Bend County", "77478": "Fort Bend County",
+  "77479": "Fort Bend County", "77489": "Fort Bend County", "77498": "Fort Bend County",
+  
+  // Montgomery County
+  "77301": "Montgomery County", "77302": "Montgomery County", "77303": "Montgomery County",
+  "77304": "Montgomery County", "77316": "Montgomery County", "77318": "Montgomery County",
+  "77356": "Montgomery County", "77362": "Montgomery County", "77380": "Montgomery County",
+  "77381": "Montgomery County", "77382": "Montgomery County", "77384": "Montgomery County",
+  "77385": "Montgomery County", "77386": "Montgomery County", "77389": "Montgomery County",
+  "77393": "Montgomery County",
+};
+
+// City to County mapping (fallback)
+const TX_CITY_TO_COUNTY: Record<string, string> = {
+  "Houston": "Harris County",
+  "Sugar Land": "Fort Bend County",
+  "Missouri City": "Fort Bend County",
+  "Stafford": "Fort Bend County",
+  "Richmond": "Fort Bend County",
+  "Rosenberg": "Fort Bend County",
+  "The Woodlands": "Montgomery County",
+  "Conroe": "Montgomery County",
+  "Spring": "Harris County",
+  "Cypress": "Harris County",
+  "Katy": "Harris County",
+  "Pearland": "Harris County",
+  "Pasadena": "Harris County",
+  "Humble": "Harris County",
+  "Tomball": "Harris County",
+};
+
+/**
+ * Infers county from available location data using multiple fallback strategies
+ */
+function inferCounty(
+  administrative_area_level_2: string | null | undefined,
+  postal_code: string | null | undefined,
+  locality: string | null | undefined,
+  administrative_area_level_1: string | null | undefined
+): string | null {
+  
+  // Strategy 1: Use Google's administrative_area_level_2 if present
+  if (administrative_area_level_2) {
+    console.log('✅ [county-inference] Using Google geocoding result:', administrative_area_level_2);
+    return administrative_area_level_2;
+  }
+  
+  // Strategy 2: ZIP code lookup (most reliable for Texas)
+  if (postal_code && administrative_area_level_1 === 'TX') {
+    const countyFromZip = TX_ZIP_TO_COUNTY[postal_code];
+    if (countyFromZip) {
+      console.log('✅ [county-inference] Inferred from ZIP code:', { postal_code, county: countyFromZip });
+      return countyFromZip;
+    } else {
+      console.warn('⚠️ [county-inference] ZIP code not in mapping:', postal_code);
+    }
+  }
+  
+  // Strategy 3: City lookup (less reliable, but better than nothing)
+  if (locality) {
+    const countyFromCity = TX_CITY_TO_COUNTY[locality];
+    if (countyFromCity) {
+      console.log('✅ [county-inference] Inferred from city:', { locality, county: countyFromCity });
+      return countyFromCity;
+    } else {
+      console.warn('⚠️ [county-inference] City not in mapping:', locality);
+    }
+  }
+  
+  console.error('❌ [county-inference] Could not infer county from any source:', {
+    administrative_area_level_2,
+    postal_code,
+    locality,
+    state: administrative_area_level_1
+  });
+  
+  return null;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -193,7 +311,8 @@ serve(async (req) => {
               postal_code,
               neighborhood_raw,
               sublocality,
-              place_id
+              place_id,
+              inferred_county: inferCounty(administrative_area_level_2, postal_code, locality, administrative_area_level_1)
             });
           }
         }
@@ -201,6 +320,14 @@ serve(async (req) => {
         console.error('Geocoding fallback failed:', e);
       }
     }
+
+    // Apply intelligent county inference
+    const inferredCounty = inferCounty(
+      administrative_area_level_2,
+      postal_code,
+      locality,
+      administrative_area_level_1
+    );
 
     // Prepare the application data
     const applicationData = {
@@ -216,7 +343,7 @@ serve(async (req) => {
       // Step 2: Property Information
       property_address: requestData.propertyAddress, // Can be string or JSON
       formatted_address: formatted_address,
-      county: administrative_area_level_2,
+      county: inferredCounty,
       city: locality,
       administrative_area_level_1: administrative_area_level_1,
       postal_code: postal_code,
@@ -364,7 +491,7 @@ serve(async (req) => {
             geo_lat,
             geo_lng,
             city: locality || 'unknown',
-            county: administrative_area_level_2 || 'unknown'
+            county: inferredCounty || 'unknown'
           });
           
           supabase.functions.invoke('enrich-utilities', {
