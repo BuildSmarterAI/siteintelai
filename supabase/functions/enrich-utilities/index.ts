@@ -240,10 +240,19 @@ const queryArcGIS = async (
     const params = new URLSearchParams(paramsObj);
     const finalUrl = `${url}?${params.toString()}`;
     
-    // Log final URL for Houston water queries
-    if (utilityType?.includes('houston_water')) {
-      console.log(`🔗 Final Houston Water URL: ${finalUrl}`);
-    }
+    // Log ALL utility URLs with detailed parameter breakdown
+    console.log(`🔗 [${utilityType}] Final Query URL:`, finalUrl);
+    console.log(`📋 [${utilityType}] Query Parameters:`, {
+      geometry: geometryParam,
+      geometryType: geometryType,
+      inSR: spatialReference,
+      spatialRel: spatialRel,
+      distance: paramsObj.distance || 'N/A',
+      units: paramsObj.units || 'N/A',
+      outFields: paramsObj.outFields,
+      returnGeometry: paramsObj.returnGeometry,
+      crs_strategy: useCrs ? `EPSG:${config.crs}` : 'WGS84'
+    });
     
     return finalUrl;
   };
@@ -263,17 +272,54 @@ const queryArcGIS = async (
       let status = 0;
       
       try {
+        const requestHeaders = {
+          'User-Agent': 'BuildSmarter-Feasibility/1.0',
+          'Referer': 'https://buildsmarter.app'
+        };
+
+        console.log(`📤 [${utilityType}] Sending request with headers:`, requestHeaders);
+
         const resp = await fetch(queryUrl, {
+          headers: requestHeaders,
           signal: AbortSignal.timeout(config.timeout_ms)
+        });
+
+        // Log response headers for debugging
+        console.log(`📥 [${utilityType}] Response headers:`, {
+          'content-type': resp.headers.get('content-type'),
+          'content-length': resp.headers.get('content-length'),
+          'server': resp.headers.get('server')
         });
         
         status = resp.status;
         const elapsed_ms = Date.now() - startTime;
         
         if (!resp.ok) {
-          console.error(`${utilityType} API returned status:`, status);
+          console.error(`❌ [${utilityType}] HTTP ${status} Error`);
           
-          const errorDetail = `HTTP ${status} (CRS: ${useCrs ? 'EPSG:' + config.crs : 'WGS84'})`;
+          // **NEW**: Capture full error response body for debugging
+          let errorBody = null;
+          let errorText = '';
+          try {
+            errorText = await resp.text();
+            errorBody = JSON.parse(errorText);
+            console.error(`❌ [${utilityType}] Error Response Body:`, JSON.stringify(errorBody, null, 2));
+          } catch (parseErr) {
+            console.error(`❌ [${utilityType}] Error Response (raw text):`, errorText);
+          }
+          
+          // **NEW**: Log request details for comparison
+          console.error(`❌ [${utilityType}] Failed Request Details:`, {
+            url: queryUrl,
+            status: status,
+            crs_strategy: useCrs ? `EPSG:${config.crs}` : 'WGS84',
+            geometry_type: config.geometryType,
+            spatial_rel: config.spatialRel,
+            search_radius_ft: config.search_radius_ft,
+            coordinates: { lat: geo_lat, lng: geo_lng }
+          });
+          
+          const errorDetail = errorBody?.error?.message || errorBody?.message || `HTTP ${status} (CRS: ${useCrs ? 'EPSG:' + config.crs : 'WGS84'})`;
           
           apiMeta.push({
             api: utilityType,
@@ -281,20 +327,33 @@ const queryArcGIS = async (
             status,
             elapsed_ms,
             timestamp: new Date().toISOString(),
-            error: errorDetail
+            error: errorDetail,
+            error_body: errorBody // Store full error for later analysis
           });
           
           // If 400 error and we haven't tried fallback yet, break to try WGS84
           if (status === 400 && useCrs && crsStrategies.length > 1) {
-            console.log(`${utilityType}: Got 400 with CRS ${config.crs}, will try WGS84 fallback...`);
+            console.log(`🔄 [${utilityType}] Got 400 with CRS ${config.crs}, attempting WGS84 fallback...`);
             throw new Error("HTTP_400_FALLBACK");
           }
           
-          throw new Error(`HTTP ${status}`);
+          throw new Error(errorDetail);
         }
         
         const json = await resp.json();
         console.log(`${utilityType} features found:`, json.features?.length || 0);
+        
+        // **NEW**: Log successful request details for comparison
+        console.log(`✅ [${utilityType}] Successful Query Details:`, {
+          features_found: json.features?.length || 0,
+          status: status,
+          elapsed_ms: elapsed_ms,
+          crs_strategy: useCrs ? `EPSG:${config.crs}` : 'WGS84',
+          geometry_type: config.geometryType,
+          spatial_rel: config.spatialRel,
+          search_radius_ft: config.search_radius_ft,
+          url_length: queryUrl.length
+        });
         
         if (json.error) {
           console.error(`${utilityType} API error:`, json.error);
@@ -1238,6 +1297,86 @@ serve(async (req) => {
         flags: flags,
         enrichment_status: enrichmentStatus
       });
+      
+      // **NEW**: Comparative API Call Summary for debugging
+      console.log('═══════════════════════════════════════════════════');
+      console.log('📊 API CALL SUMMARY (for debugging storm/sewer issues)');
+      console.log('═══════════════════════════════════════════════════');
+
+      const apiSummary = {
+        successful: apiMeta.filter(m => m.status >= 200 && m.status < 300),
+        failed: apiMeta.filter(m => m.status >= 400 || m.error),
+        http_400_errors: apiMeta.filter(m => m.status === 400)
+      };
+
+      console.log(`✅ Successful APIs: ${apiSummary.successful.length}`);
+      apiSummary.successful.forEach(api => {
+        console.log(`  - ${api.api}: ${api.status} (${api.elapsed_ms}ms)`);
+      });
+
+      console.log(`❌ Failed APIs: ${apiSummary.failed.length}`);
+      apiSummary.failed.forEach(api => {
+        console.log(`  - ${api.api}: ${api.status} - ${api.error}`);
+        if ((api as any).error_body) {
+          console.log(`    Full error: ${JSON.stringify((api as any).error_body)}`);
+        }
+      });
+
+      if (apiSummary.http_400_errors.length > 0) {
+        console.log('');
+        console.log('🔍 HTTP 400 ERRORS - DETAILED ANALYSIS:');
+        apiSummary.http_400_errors.forEach(api => {
+          console.log(`  API: ${api.api}`);
+          console.log(`  URL: ${api.url}`);
+          console.log(`  Error: ${JSON.stringify((api as any).error_body || api.error, null, 2)}`);
+          console.log('  ---');
+        });
+      }
+
+      // **NEW**: Compare successful water vs failed storm/sewer
+      const waterSuccess = apiSummary.successful.find(a => a.api?.includes('water'));
+      const stormFailed = apiSummary.failed.find(a => a.api?.includes('storm'));
+      const sewerFailed = apiSummary.failed.find(a => a.api?.includes('sewer'));
+
+      if (waterSuccess && (stormFailed || sewerFailed)) {
+        console.log('');
+        console.log('🔬 COMPARATIVE ANALYSIS: Water (✅) vs Storm/Sewer (❌)');
+        console.log('Water API (SUCCESS):');
+        console.log(`  URL: ${waterSuccess.url}`);
+        console.log(`  Status: ${waterSuccess.status}`);
+        
+        if (stormFailed) {
+          console.log('');
+          console.log('Storm API (FAILED):');
+          console.log(`  URL: ${stormFailed.url}`);
+          console.log(`  Status: ${stormFailed.status}`);
+          console.log(`  Error: ${stormFailed.error}`);
+          
+          // URL comparison
+          try {
+            const waterUrl = new URL(waterSuccess.url);
+            const stormUrl = new URL(stormFailed.url);
+            console.log('');
+            console.log('URL Differences:');
+            console.log(`  Water host: ${waterUrl.host}`);
+            console.log(`  Storm host: ${stormUrl.host}`);
+            console.log(`  Water path: ${waterUrl.pathname}`);
+            console.log(`  Storm path: ${stormUrl.pathname}`);
+          } catch (e) {
+            console.log('Could not parse URLs for comparison');
+          }
+        }
+        
+        if (sewerFailed) {
+          console.log('');
+          console.log('Sewer API (FAILED):');
+          console.log(`  URL: ${sewerFailed.url}`);
+          console.log(`  Status: ${sewerFailed.status}`);
+          console.log(`  Error: ${sewerFailed.error}`);
+        }
+      }
+
+      console.log('═══════════════════════════════════════════════════');
       
       const { error: updateError } = await supabase.from("applications").update({
         water_lines: formatLines(water, geo_lat, geo_lng, 'water', waterCrs),
