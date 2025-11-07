@@ -1,7 +1,7 @@
 {
   "version": "2.3.0",
   "last_updated": "2025-10-15",
-  "changelog": "2025-11-07: Migrated Houston wastewater/sewer endpoints from geogimstest.houstontx.gov to official houstonwatergis.org portal for consistency with water infrastructure APIs. 2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
+  "changelog": "2025-11-07: COMPLETE HOUSTON WATER GIS MIGRATION - Replaced failing mapsop1.houstontx.gov storm drainage with houstonwatergis.org/HPWStormdrainLineIPS. Added storm_manholes and wastewater_devices endpoints for comprehensive infrastructure analysis. All Houston utility queries now use official Houston Water GIS portal. Migrated Houston wastewater/sewer endpoints from geogimstest.houstontx.gov to official houstonwatergis.org portal for consistency with water infrastructure APIs. 2025-10-15: Fixed Houston endpoints - all services verified operational. Disabled Houston Traffic Counts (endpoint unavailable). Enhanced OSM fallback for utilities.",
   "config": {
     "default_timeout_ms": 8000,
     "default_retry_attempts": 3,
@@ -122,10 +122,10 @@
       "last_validated": "2025-11-07"
     },
     "storm": {
-      "name": "Houston Storm Drain Gravity Mains",
-        "url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/MapServer/7/query",
-        "outFields": ["FACILITYID", "WIDTH", "HEIGHT", "MATERIAL", "INSTALLDATE", "MAINSHAPE", "PIPETYPE", "OWNEDBY", "ACTIVEFLAG"],
-        "geometryType": "esriGeometryPoint",
+      "name": "Houston Storm Drain Lines",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query",
+      "outFields": ["DIAMETER", "MATERIAL", "INSTALLDATE", "OWNER", "STATUS", "ENABLED"],
+      "geometryType": "esriGeometryPoint",
       "crs": 4326,
       "timeout_ms": 15000,
       "retry_attempts": 2,
@@ -133,8 +133,40 @@
       "search_radius_ft": 1000,
       "urban_search_radius_ft": 500,
       "spatialRel": "esriSpatialRelIntersects",
-      "notes": "Layer 7 = Storm Drain Gravity Mains from Houston Public Works (verified working endpoint 2025-11-07)",
-      "test_url": "https://mapsop1.houstontx.gov/arcgis/rest/services/TDO/StormDrainageUtilityAssets/MapServer/7/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=FACILITYID,WIDTH,HEIGHT,MATERIAL,INSTALLDATE,MAINSHAPE,PIPETYPE,OWNEDBY,ACTIVEFLAG&f=json",
+      "notes": "Layer 0 = Storm Drain Lines from Houston Water GIS official portal. Migrated from mapsop1.houstontx.gov 2025-11-07 due to connection failures. Matches water/sewer endpoint architecture.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainLineIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=DIAMETER,MATERIAL,INSTALLDATE,OWNER,STATUS,ENABLED&f=json",
+      "last_validated": "2025-11-07"
+    },
+    "storm_manholes": {
+      "name": "Houston Storm Drain Manholes",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainManholesIPS/MapServer/0/query",
+      "outFields": ["FACILITYID", "DIAMETER", "RIM_ELEVATION", "INVERT_ELEVATION", "MATERIAL", "INSTALLDATE", "OWNER", "STATUS"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
+      "timeout_ms": 10000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "search_radius_ft": 500,
+      "urban_search_radius_ft": 300,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Layer 0 = Storm Drain Manholes from Houston Water GIS. Point features showing storm system access points and elevations. Added 2025-11-07 as part of comprehensive Houston Water GIS migration.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HPWStormdrainManholesIPS/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=FACILITYID,DIAMETER,RIM_ELEVATION,INVERT_ELEVATION,MATERIAL,INSTALLDATE,OWNER,STATUS&f=json",
+      "last_validated": "2025-11-07"
+    },
+    "wastewater_devices": {
+      "name": "Houston Wastewater Devices (Lift Stations)",
+      "url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterDeviceIPS/MapServer/4/query",
+      "outFields": ["FACILITYID", "SUBTYPECD", "INSTALLDATE", "OWNER", "STATUS", "ENABLED"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
+      "timeout_ms": 10000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "search_radius_ft": 2000,
+      "urban_search_radius_ft": 1000,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Layer 4 = Wastewater Devices including lift stations, pumps, and other critical sewer infrastructure. Point features. Added 2025-11-07 for comprehensive sewer system analysis.",
+      "test_url": "https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterDeviceIPS/MapServer/4/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=2000&units=esriSRUnit_Foot&outFields=FACILITYID,SUBTYPECD,INSTALLDATE,OWNER,STATUS,ENABLED&f=json",
       "last_validated": "2025-11-07"
     },
     "sewer_service": {

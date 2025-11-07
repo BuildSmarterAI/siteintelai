@@ -551,6 +551,8 @@ serve(async (req) => {
     let sewer_force: any[] = [];
     let water_laterals: any[] = [];
     let water_fittings: any[] = [];
+    let stormManholes: any[] = [];
+    let wastewaterDevices: any[] = [];
     let address_points: any[] = [];
     let traffic: any[] = [];
     let hcad_parcels: any[] = [];
@@ -962,12 +964,105 @@ serve(async (req) => {
           flags.push('utilities_storm_unavailable');
           failedServices++;
         }
+
+        // 6B. Storm Manholes - NEW
+        if (eps.storm_manholes) {
+          try {
+            const manholeRadius = isUrbanArea && eps.storm_manholes.urban_search_radius_ft 
+              ? eps.storm_manholes.urban_search_radius_ft 
+              : eps.storm_manholes.search_radius_ft;
+            
+            console.log('🌧️ [enrich-utilities] Querying storm manholes...', {
+              endpoint: eps.storm_manholes.url,
+              search_radius_ft: manholeRadius,
+              coordinates: { geo_lat, geo_lng }
+            });
+            
+            stormManholes = await queryArcGIS(
+              eps.storm_manholes.url, 
+              eps.storm_manholes.outFields, 
+              geo_lat, 
+              geo_lng, 
+              "houston_storm_manholes", 
+              {
+                timeout_ms: eps.storm_manholes.timeout_ms,
+                retry_attempts: eps.storm_manholes.retry_attempts,
+                retry_delays_ms: eps.storm_manholes.retry_delays_ms,
+                search_radius_ft: manholeRadius,
+                crs: eps.storm_manholes.crs ?? 4326,
+                geometryType: eps.storm_manholes.geometryType,
+                spatialRel: eps.storm_manholes.spatialRel
+              }
+            );
+            
+            if (stormManholes.length > 0) {
+              flags.push("storm_manholes_found");
+              console.log('✓ [enrich-utilities] Storm manholes query complete:', {
+                features_found: stormManholes.length
+              });
+            } else {
+              console.log('ℹ️ [enrich-utilities] Storm manholes: No manholes found in search radius');
+            }
+          } catch (err) {
+            console.warn('⚠️ Storm Manholes query failed:', err instanceof Error ? err.message : String(err));
+            flags.push('utilities_storm_manholes_unavailable');
+          }
+        }
+
+        // 6C. Wastewater Devices (Lift Stations) - NEW
+        if (eps.wastewater_devices) {
+          try {
+            const deviceRadius = isUrbanArea && eps.wastewater_devices.urban_search_radius_ft 
+              ? eps.wastewater_devices.urban_search_radius_ft 
+              : eps.wastewater_devices.search_radius_ft;
+            
+            console.log('🔧 [enrich-utilities] Querying wastewater devices (lift stations)...', {
+              endpoint: eps.wastewater_devices.url,
+              search_radius_ft: deviceRadius,
+              coordinates: { geo_lat, geo_lng }
+            });
+            
+            wastewaterDevices = await queryArcGIS(
+              eps.wastewater_devices.url, 
+              eps.wastewater_devices.outFields, 
+              geo_lat, 
+              geo_lng, 
+              "houston_wastewater_devices", 
+              {
+                timeout_ms: eps.wastewater_devices.timeout_ms,
+                retry_attempts: eps.wastewater_devices.retry_attempts,
+                retry_delays_ms: eps.wastewater_devices.retry_delays_ms,
+                search_radius_ft: deviceRadius,
+                crs: eps.wastewater_devices.crs ?? 4326,
+                geometryType: eps.wastewater_devices.geometryType,
+                spatialRel: eps.wastewater_devices.spatialRel
+              }
+            );
+            
+            if (wastewaterDevices.length > 0) {
+              flags.push("wastewater_devices_found");
+              console.log('✓ [enrich-utilities] Wastewater devices query complete:', {
+                features_found: wastewaterDevices.length,
+                lift_stations: wastewaterDevices.filter(d => 
+                  d.attributes.SUBTYPECD === 'LIFT_STATION' || 
+                  d.attributes.FACILITYID?.includes('LIFT')
+                ).length
+              });
+            } else {
+              console.log('ℹ️ [enrich-utilities] Wastewater devices: No devices found in search radius');
+            }
+          } catch (err) {
+            console.warn('⚠️ Wastewater Devices query failed:', err instanceof Error ? err.message : String(err));
+            flags.push('utilities_wastewater_devices_unavailable');
+          }
+        }
         
         // Log summary of utility query results
         const allWaterLines = [...water, ...water_laterals];
         const allSewerLines = [...sewerGravity, ...sewerService, ...sewer_force];
         const allStormLines = [...storm];
-        console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length} (Gravity: ${sewerGravity.length}, Service: ${sewerService.length}, Force: ${sewer_force.length}), Storm: ${allStormLines.length}, Failed Services: ${failedServices}/${totalServices}`);
+      const allStormFeatures = [...storm, ...stormManholes];
+      console.log(`📊 Utility query summary - Water: ${allWaterLines.length}, Sewer: ${allSewerLines.length} (Gravity: ${sewerGravity.length}, Service: ${sewerService.length}, Force: ${sewer_force.length}), Storm: ${allStormFeatures.length} (Lines: ${storm.length}, Manholes: ${stormManholes.length}), Wastewater Devices: ${wastewaterDevices.length}, Failed Services: ${failedServices}/${totalServices}`);
         
         // Traffic counts (disabled - endpoint unavailable)
         traffic = [];
@@ -1411,6 +1506,40 @@ serve(async (req) => {
             })),
             fire_hydrants_count: water_fittings.filter(f => 
               f.attributes.FITTING_TYPE?.toLowerCase().includes('hydrant')
+            ).length
+          }),
+
+          // Storm manholes data (NEW - point features)
+          ...(stormManholes.length > 0 && {
+            storm_manholes_count: stormManholes.length,
+            storm_manholes_data: stormManholes.map(m => ({
+              facility_id: m.attributes.FACILITYID || null,
+              diameter: m.attributes.DIAMETER || null,
+              rim_elevation: m.attributes.RIM_ELEVATION || null,
+              invert_elevation: m.attributes.INVERT_ELEVATION || null,
+              material: m.attributes.MATERIAL || null,
+              install_date: m.attributes.INSTALLDATE || null,
+              owner: m.attributes.OWNER || null,
+              status: m.attributes.STATUS || null,
+              distance_ft: m.distance_ft || null
+            }))
+          }),
+
+          // Wastewater devices data (NEW - lift stations and pumps)
+          ...(wastewaterDevices.length > 0 && {
+            wastewater_devices_count: wastewaterDevices.length,
+            wastewater_devices_data: wastewaterDevices.map(d => ({
+              facility_id: d.attributes.FACILITYID || null,
+              type: d.attributes.SUBTYPECD || null,
+              install_date: d.attributes.INSTALLDATE || null,
+              owner: d.attributes.OWNER || null,
+              status: d.attributes.STATUS || null,
+              enabled: d.attributes.ENABLED || null,
+              distance_ft: d.distance_ft || null
+            })),
+            lift_stations_count: wastewaterDevices.filter(d => 
+              d.attributes.SUBTYPECD === 'LIFT_STATION' || 
+              d.attributes.FACILITYID?.toLowerCase().includes('lift')
             ).length
           }),
           
