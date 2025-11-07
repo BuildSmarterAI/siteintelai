@@ -676,6 +676,18 @@ export default function ReportViewer() {
                 <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
                   {report.applications?.formatted_address || 'Property Report'}
                 </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Clock className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">
+                    Data as of {new Date(report.applications?.updated_at || report.created_at).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
