@@ -871,7 +871,7 @@ export default function Application() {
                                   zoning: formData.zoning,
                                 }}
                                 onChange={handleInputChange}
-                                onAddressSelect={(lat: number, lng: number, address: string) => {
+                                onAddressSelect={async (lat: number, lng: number, address: string) => {
                                   console.log('[Address Selected]', { lat, lng, address });
                                   
                                   // Update address and coordinates
@@ -882,13 +882,120 @@ export default function Application() {
                                     geoLng: lng,
                                   }));
                                   
-                                  // Trigger enrichment via AddressAutocomplete logic
                                   setIsAddressLoading(true);
                                   
                                   toast({
                                     title: "Location Selected",
                                     description: "Fetching property details...",
                                   });
+
+                                  try {
+                                    // Call enrichment API
+                                    const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
+                                      body: {
+                                        lat,
+                                        lng,
+                                        formatted_address: address,
+                                        mode: 'geocode_only'
+                                      }
+                                    });
+
+                                    if (error) {
+                                      console.error('[Enrichment Error]', error);
+                                      toast({
+                                        title: "Enrichment Failed",
+                                        description: "Could not load property details. Please enter them manually.",
+                                        variant: "destructive"
+                                      });
+                                      return;
+                                    }
+
+                                    if (data?.success && data?.data) {
+                                      const enrichedData = data.data;
+                                      
+                                      // Extract fields from enrichment response
+                                      const county = enrichedData.county || enrichedData.administrative_area_level_2 || '';
+                                      const city = enrichedData.city || enrichedData.locality || '';
+                                      const state = enrichedData.administrative_area_level_1 || enrichedData.state || 'TX';
+                                      const zipCode = enrichedData.postal_code || enrichedData.zipCode || '';
+                                      const neighborhood = enrichedData.neighborhood || enrichedData.sublocality || '';
+                                      const parcelId = enrichedData.parcel_id || '';
+                                      const lotSizeValue = enrichedData.acreage_cad || enrichedData.lot_size_value || '';
+                                      const zoning = enrichedData.zoning_code || '';
+                                      const parcelOwner = enrichedData.parcel_owner || '';
+
+                                      // Update form data with enriched fields
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        county,
+                                        city,
+                                        state,
+                                        zipCode,
+                                        neighborhood,
+                                        parcelId: parcelId || prev.parcelId,
+                                        lotSize: lotSizeValue ? String(lotSizeValue) : prev.lotSize,
+                                        zoning: zoning || prev.zoning,
+                                        parcelOwner: parcelOwner || prev.parcelOwner,
+                                        // Hidden enriched fields
+                                        situsAddress: enrichedData.situs_address || prev.situsAddress,
+                                        administrativeAreaLevel2: enrichedData.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                                        acreageCad: enrichedData.acreage_cad || prev.acreageCad,
+                                        zoningCode: enrichedData.zoning_code || prev.zoningCode,
+                                        overlayDistrict: enrichedData.overlay_district || prev.overlayDistrict,
+                                        floodplainZone: enrichedData.floodplain_zone || prev.floodplainZone,
+                                        baseFloodElevation: enrichedData.base_flood_elevation || prev.baseFloodElevation,
+                                      }));
+
+                                      // Mark fields as enriched
+                                      setEnrichedFields(prev => ({
+                                        ...prev,
+                                        county: !!county,
+                                        city: !!city,
+                                        state: !!state,
+                                        zipCode: !!zipCode,
+                                        neighborhood: !!neighborhood,
+                                        parcelId: !!parcelId,
+                                        lotSize: !!lotSizeValue,
+                                        zoning: !!zoning,
+                                      }));
+
+                                      // Store HCAD values for conflict detection
+                                      setHcadValues({
+                                        parcelId: parcelId || undefined,
+                                        lotSize: lotSizeValue ? String(lotSizeValue) : undefined,
+                                        zoning: zoning || undefined,
+                                      });
+
+                                      // Show success or partial toast
+                                      const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
+                                      if (hasFlags) {
+                                        toast({
+                                          title: "Property Data Partially Loaded",
+                                          description: "Some fields could not be auto-filled. Please complete them manually.",
+                                        });
+                                      } else {
+                                        toast({
+                                          title: "Property Details Loaded ✅",
+                                          description: "Fields have been auto-filled from public records.",
+                                        });
+                                      }
+                                    } else {
+                                      toast({
+                                        title: "Auto-fill Unavailable",
+                                        description: "Unable to load property data. Please enter details manually.",
+                                      });
+                                    }
+                                  } catch (err) {
+                                    console.error('[Enrichment Exception]', err);
+                                    toast({
+                                      title: "Error Loading Data",
+                                      description: "An unexpected error occurred. Please try again.",
+                                      variant: "destructive"
+                                    });
+                                  } finally {
+                                    // Always unlock fields
+                                    setIsAddressLoading(false);
+                                  }
                                 }}
                                 onParcelSelect={(parcel: any) => {
                                   console.log('[Parcel Selected]', parcel);
