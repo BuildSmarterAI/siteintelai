@@ -126,10 +126,10 @@ export function MapLegend({
       {/* Water Lines */}
       {hasWaterLines && (
         <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">Water Infrastructure</p>
+          <p className="font-medium text-foreground">Water Lines</p>
           <div className="flex items-center gap-2">
             <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#3B82F6' }} />
-            <span className="text-muted-foreground">Water mains</span>
+            <span className="text-muted-foreground">City of Houston Public Works</span>
           </div>
         </div>
       )}
@@ -137,10 +137,10 @@ export function MapLegend({
       {/* Sewer Lines */}
       {hasSewerLines && (
         <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">Sewer Infrastructure</p>
+          <p className="font-medium text-foreground">Sewer Lines</p>
           <div className="flex items-center gap-2">
             <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#10B981' }} />
-            <span className="text-muted-foreground">Sewer lines</span>
+            <span className="text-muted-foreground">City of Houston Public Works</span>
           </div>
         </div>
       )}

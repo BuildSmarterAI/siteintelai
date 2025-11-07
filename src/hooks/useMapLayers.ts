@@ -168,17 +168,57 @@ export function useMapLayers(applicationId: string) {
         drawnParcels = parcelsData || [];
       }
 
-      // Fetch utilities data with storm lines
+      // Fetch utilities data
       const { data: utilitiesData } = await supabase
         .from('applications')
         .select('utilities_summary')
         .eq('id', applicationId)
         .single();
 
-      // Transform storm lines from utilities_summary
-      const stormLines: any[] = [];
       const utilitiesSummary = utilitiesData?.utilities_summary as any;
       
+      // Transform water lines from utilities_summary
+      const waterLines: any[] = [];
+      if (utilitiesSummary?.water_lines && Array.isArray(utilitiesSummary.water_lines)) {
+        utilitiesSummary.water_lines.forEach((line: any) => {
+          if (line.geometry) {
+            waterLines.push({
+              geometry: line.geometry,
+              facility_id: line.facility_id,
+              diameter_in: line.diameter_in,
+              material: line.material,
+              install_year: line.install_year,
+              condition: line.condition,
+              status: line.status,
+              distance_ft: line.distance_ft,
+              attributes: line.attributes,
+            });
+          }
+        });
+      }
+
+      // Transform sewer lines from utilities_summary
+      const sewerLines: any[] = [];
+      if (utilitiesSummary?.sewer_lines && Array.isArray(utilitiesSummary.sewer_lines)) {
+        utilitiesSummary.sewer_lines.forEach((line: any) => {
+          if (line.geometry) {
+            sewerLines.push({
+              geometry: line.geometry,
+              facility_id: line.facility_id,
+              diameter_in: line.diameter_in,
+              material: line.material,
+              install_year: line.install_year,
+              condition: line.condition,
+              status: line.status,
+              distance_ft: line.distance_ft,
+              attributes: line.attributes,
+            });
+          }
+        });
+      }
+
+      // Transform storm lines from utilities_summary
+      const stormLines: any[] = [];
       if (utilitiesSummary?.storm_lines && Array.isArray(utilitiesSummary.storm_lines)) {
         utilitiesSummary.storm_lines.forEach((line: any) => {
           if (line.geometry) {
@@ -199,8 +239,6 @@ export function useMapLayers(applicationId: string) {
 
       // New infrastructure layers (empty arrays for now - future: fetch from ArcGIS)
       const hcadParcels: any[] = [];
-      const waterLines: any[] = [];
-      const sewerLines: any[] = [];
       const forceMain: any[] = [];
       const zoningDistricts: any[] = [];
 
