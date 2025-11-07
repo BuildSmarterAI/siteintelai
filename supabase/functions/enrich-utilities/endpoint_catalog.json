@@ -21,7 +21,7 @@
       "retry_attempts": 2,
       "retry_delays_ms": [1000, 2000],
       "spatialRel": "esriSpatialRelWithin",
-      "notes": "Layer 7 = Unified Parcels combining Harris (HCAD), Fort Bend (FBCAD), and Montgomery (MCAD) counties. Primary parcel source for Houston metro area.",
+      "notes": "Layer 7 = Unified Parcels combining Harris (HCAD), Fort Bend (FBCAD), and Montgomery (MCAD) counties. Fallback parcel source when county-specific CAD endpoints are unavailable.",
       "test_url": "https://geogimstest.houstontx.gov/arcgis/rest/services/CIP/RealEstate/MapServer/7/query?geometry=-95.3632144,29.7555266&geometryType=esriGeometryPoint&inSR=4326&outSR=4326&spatialRel=esriSpatialRelWithin&outFields=LOWPARCELID,owner_name_1,acreage_1,site_county&returnGeometry=true&f=json",
       "last_validated": "2025-11-07"
     },
