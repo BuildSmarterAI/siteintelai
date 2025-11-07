@@ -114,6 +114,8 @@ serve(async (req) => {
       .from('applications')
       .update({ 
         status: 'queued',
+        status_rev: 0,
+        status_percent: 5,
         error_code: null,
         attempts: 0,
         data_flags: []
