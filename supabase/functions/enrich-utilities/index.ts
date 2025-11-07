@@ -1189,10 +1189,12 @@ serve(async (req) => {
             console.log('MUD district found:', mudDistrict);
             
             // Update with MUD info
-            await supabase.from("applications").update({
-              mud_district: mudDistrict,
-              etj_provider: mudAttrs.AGENCY || "MUD"
-            }).eq("id", application_id);
+            if (application_id) {
+              await supabase.from("applications").update({
+                mud_district: mudDistrict,
+                etj_provider: mudAttrs.AGENCY || "MUD"
+              }).eq("id", application_id);
+            }
             
             mudFound = true;
             flags.push("etj_provider_boundary_only");
@@ -1217,10 +1219,12 @@ serve(async (req) => {
           console.log('✅ WCID district found:', wcidDistrict);
           
           // Update with WCID info
-          await supabase.from("applications").update({
-            wcid_district: wcidDistrict,
-            etj_provider: "WCID"
-          }).eq("id", application_id);
+          if (application_id) {
+            await supabase.from("applications").update({
+              wcid_district: wcidDistrict,
+              etj_provider: "WCID"
+            }).eq("id", application_id);
+          }
           
           wcidFound = true;
           flags.push("etj_provider_wcid");
@@ -1232,10 +1236,12 @@ serve(async (req) => {
       // If neither MUD nor WCID found, mark as Harris ETJ
       if (!wcidFound) {
         console.log('No MUD or WCID found - marking as Harris ETJ');
-        await supabase.from("applications").update({
-          mud_district: null,
-          etj_provider: "Harris_ETJ"
-        }).eq("id", application_id);
+        if (application_id) {
+          await supabase.from("applications").update({
+            mud_district: null,
+            etj_provider: "Harris_ETJ"
+          }).eq("id", application_id);
+        }
         
         flags.push("etj_provider_boundary_only");
       }
@@ -1273,10 +1279,12 @@ serve(async (req) => {
           console.log('✅ MUD district found:', mudDistrict);
           
           // Update application with MUD info
-          await supabase.from("applications").update({
-            mud_district: mudDistrict,
-            etj_provider: mudAttrs.AGENCY || "MUD"
-          }).eq("id", application_id);
+          if (application_id) {
+            await supabase.from("applications").update({
+              mud_district: mudDistrict,
+              etj_provider: mudAttrs.AGENCY || "MUD"
+            }).eq("id", application_id);
+          }
           
           flags.push("served_by_mud_district");
           console.log(`Property is in ${mudDistrict} - utilities managed by MUD, not HPW`);
