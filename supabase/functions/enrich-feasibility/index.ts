@@ -48,11 +48,8 @@ const ENDPOINT_CATALOG: Record<string, any> = {
     // Legal description fields (no single legal_desc field exists)
     legal_fields: "legal_dscr_1,legal_dscr_2,legal_dscr_3,legal_dscr_4",
     zoning_field: "ZONECODE",
-    overlay_field: "OVERLAY",
-    // Houston utility endpoints - using GeoGIMS test/ms servers (discovered from Geocortex directory)
-    water_lines_url: "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WaterUNPublic/MapServer/4/query",
-    sewer_lines_url: "https://geogimstest.houstontx.gov/arcgis/rest/services/HW/WastewaterUNPublic/MapServer/4/query",
-    storm_lines_url: "https://geogimsms.houstontx.gov/arcgis/rest/services/TDO/StormWater_Maintenance_gx/MapServer/1/query"
+    overlay_field: "OVERLAY"
+    // Note: Utility endpoints now managed centrally via enrich-utilities edge function
   },
   "Fort Bend County": {
     // Primary: FBCAD parcel service (confirmed working)
@@ -1489,10 +1486,10 @@ async function fallbackRoadFromOSM(lat: number, lng: number) {
   return {};
 }
 
-// Helper function to fetch utility infrastructure from city GIS
+// Helper function to fetch utility infrastructure via enrich-utilities edge function
 /**
- * For Houston utilities, route through proxy to bypass DNS block
- * cohgis.houstontx.gov is unreachable from Supabase edge runtime
+ * Centralized utility fetching - delegates to enrich-utilities edge function
+ * which maintains authoritative endpoint catalog with Houston Water IPS services
  */
 async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy: boolean = false): Promise<any> {
   const utilities: any = {
@@ -1504,243 +1501,108 @@ async function fetchUtilities(lat: number, lng: number, endpoints: any, useProxy
     power_kv_nearby: null
   };
 
-  const searchRadius = 2000; // Increased to 2000 feet radius for better coverage
-  
-  // Get Supabase client for proxy calls
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
   try {
-    // Fetch water lines if endpoint exists
-    if (endpoints.water_lines_url) {
-      console.log('Fetching water lines from:', endpoints.water_lines_url);
-      const waterParams = {
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: searchRadius.toString(),
-        units: 'esriFeet',
-        where: '1=1',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      };
+    // Get Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-      let waterData;
-      const waterStart = Date.now();
-      
-      if (useProxy) {
-        // Route through utility-proxy edge function
-        console.log('Using proxy for Houston utilities...');
-        const { data, error } = await supabase.functions.invoke('utility-proxy', {
-          body: {
-            url: endpoints.water_lines_url,
-            params: waterParams
-          }
-        });
-        
-        if (error) throw error;
-        waterData = data;
-      } else {
-        // Direct call
-        const waterParamsUrl = new URLSearchParams(waterParams as any);
-        const waterResp = await fetch(`${endpoints.water_lines_url}?${waterParamsUrl}`);
-        waterData = await safeJsonParse(waterResp, 'Water lines query');
+    console.log('📞 Invoking enrich-utilities edge function for centralized utility data...');
+    const utilityStart = Date.now();
+
+    // Call enrich-utilities edge function with coordinates
+    const { data: utilityData, error: utilityError } = await supabase.functions.invoke('enrich-utilities', {
+      body: {
+        lat,
+        lng,
+        search_radius_ft: 2000 // Consistent with previous behavior
       }
-      
-      // Log water lines API call
+    });
+
+    const utilityDuration = Date.now() - utilityStart;
+
+    if (utilityError) {
+      console.error('❌ enrich-utilities invocation failed:', utilityError);
       await logExternalCall(
         supabase,
-        'utility_water_lines',
-        endpoints.water_lines_url,
-        Date.now() - waterStart,
-        !!waterData?.features?.length,
+        'enrich-utilities',
+        'edge-function',
+        utilityDuration,
+        false,
         null,
-        waterData?.error?.message || null
+        utilityError.message
       );
-      
-      console.log('Water lines API response:', {
-        hasFeatures: !!waterData?.features,
-        featureCount: waterData?.features?.length || 0,
-        error: waterData?.error
-      });
-      
-      if (waterData?.features && waterData.features.length > 0) {
-        utilities.water_lines = waterData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return {
-            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
-            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
-            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
-            distance_ft: searchRadius
-          };
-        });
-        const maxDiameter = Math.max(...waterData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
+      return utilities; // Return empty utilities on error
+    }
+
+    console.log('✅ enrich-utilities responded:', {
+      duration_ms: utilityDuration,
+      water_count: utilityData?.water?.length || 0,
+      sewer_count: utilityData?.sewer?.length || 0,
+      storm_count: utilityData?.storm?.length || 0,
+      data_flags: utilityData?.data_flags || []
+    });
+
+    // Log successful call
+    await logExternalCall(
+      supabase,
+      'enrich-utilities',
+      'edge-function',
+      utilityDuration,
+      true,
+      null,
+      null
+    );
+
+    // Map enrich-utilities response to expected format
+    if (utilityData) {
+      // Map water lines
+      if (utilityData.water && utilityData.water.length > 0) {
+        utilities.water_lines = utilityData.water.map((line: any) => ({
+          diameter: line.diameter || null,
+          material: line.material || null,
+          install_date: line.install_year || null,
+          distance_ft: line.distance_ft || null
         }));
+        
+        const maxDiameter = Math.max(...utilityData.water.map((l: any) => l.diameter || 0));
         utilities.water_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
-        console.log('Water lines found:', utilities.water_lines.length, 'capacity:', utilities.water_capacity_mgd);
-      } else {
-        console.log('No water lines found in response');
+        console.log(`💧 Water: ${utilities.water_lines.length} lines, max diameter ${maxDiameter}", capacity ${utilities.water_capacity_mgd} MGD`);
       }
-    } else {
-      console.log('No water lines endpoint configured for this county');
-    }
 
-    // Fetch sewer lines if endpoint exists
-    if (endpoints.sewer_lines_url) {
-      console.log('Fetching sewer lines from:', endpoints.sewer_lines_url);
-      const sewerParams = {
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: searchRadius.toString(),
-        units: 'esriFeet',
-        where: '1=1',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      };
-
-      let sewerData;
-      const sewerStart = Date.now();
-      
-      if (useProxy) {
-        const { data, error } = await supabase.functions.invoke('utility-proxy', {
-          body: {
-            url: endpoints.sewer_lines_url,
-            params: sewerParams
-          }
-        });
-        
-        if (error) throw error;
-        sewerData = data;
-      } else {
-        const sewerParamsUrl = new URLSearchParams(sewerParams as any);
-        const sewerResp = await fetch(`${endpoints.sewer_lines_url}?${sewerParamsUrl}`);
-        sewerData = await safeJsonParse(sewerResp, 'Sewer lines query');
-      }
-      
-      // Log sewer lines API call
-      await logExternalCall(
-        supabase,
-        'utility_sewer_lines',
-        endpoints.sewer_lines_url,
-        Date.now() - sewerStart,
-        !!sewerData?.features?.length,
-        null,
-        sewerData?.error?.message || null
-      );
-      
-      console.log('Sewer lines API response:', {
-        hasFeatures: !!sewerData?.features,
-        featureCount: sewerData?.features?.length || 0,
-        error: sewerData?.error
-      });
-      
-      if (sewerData?.features && sewerData.features.length > 0) {
-        utilities.sewer_lines = sewerData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return {
-            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
-            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
-            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
-            distance_ft: searchRadius
-          };
-        });
-        const maxDiameter = Math.max(...sewerData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || 0;
+      // Map sewer lines
+      if (utilityData.sewer && utilityData.sewer.length > 0) {
+        utilities.sewer_lines = utilityData.sewer.map((line: any) => ({
+          diameter: line.diameter || null,
+          material: line.material || null,
+          install_date: line.install_year || null,
+          distance_ft: line.distance_ft || null
         }));
-        utilities.sewer_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
-        console.log('Sewer lines found:', utilities.sewer_lines.length, 'capacity:', utilities.sewer_capacity_mgd);
-      } else {
-        console.log('No sewer lines found in response');
-      }
-    } else {
-      console.log('No sewer lines endpoint configured for this county');
-    }
-
-    // Fetch storm lines if endpoint exists
-    if (endpoints.storm_lines_url) {
-      console.log('Fetching storm lines from:', endpoints.storm_lines_url);
-      const stormParams = {
-        geometry: `${lng},${lat}`,
-        geometryType: 'esriGeometryPoint',
-        inSR: '4326',
-        spatialRel: 'esriSpatialRelIntersects',
-        distance: searchRadius.toString(),
-        units: 'esriFeet',
-        where: '1=1',
-        outFields: '*',
-        returnGeometry: 'false',
-        f: 'json'
-      };
-
-      let stormData;
-      const stormStart = Date.now();
-      
-      if (useProxy) {
-        const { data, error } = await supabase.functions.invoke('utility-proxy', {
-          body: {
-            url: endpoints.storm_lines_url,
-            params: stormParams
-          }
-        });
         
-        if (error) throw error;
-        stormData = data;
-      } else {
-        const stormParamsUrl = new URLSearchParams(stormParams as any);
-        const stormResp = await fetch(`${endpoints.storm_lines_url}?${stormParamsUrl}`);
-        stormData = await safeJsonParse(stormResp, 'Storm lines query');
+        const maxDiameter = Math.max(...utilityData.sewer.map((l: any) => l.diameter || 0));
+        utilities.sewer_capacity_mgd = maxDiameter > 0 ? (maxDiameter / 12) * 0.5 : null;
+        console.log(`🚰 Sewer: ${utilities.sewer_lines.length} lines, max diameter ${maxDiameter}", capacity ${utilities.sewer_capacity_mgd} MGD`);
       }
-      
-      // Log storm lines API call
-      await logExternalCall(
-        supabase,
-        'utility_storm_lines',
-        endpoints.storm_lines_url,
-        Date.now() - stormStart,
-        !!stormData?.features?.length,
-        null,
-        stormData?.error?.message || null
-      );
-      
-      console.log('Storm lines API response:', {
-        hasFeatures: !!stormData?.features,
-        featureCount: stormData?.features?.length || 0,
-        error: stormData?.error
-      });
-      
-      if (stormData?.features && stormData.features.length > 0) {
-        utilities.storm_lines = stormData.features.map((f: any) => {
-          const attrs = f.attributes || {};
-          return {
-            diameter: Number(pickAttr(attrs, ['DIAMETER','PIPE_SIZE','DIAMETER_IN','PIPE_DIAM','DIAM','DIAMTR','SIZE','DIAM_IN'])) || null,
-            material: pickAttr(attrs, ['MATERIAL','MATL','PIPE_MATL','MAT_TYPE','MAT']) || null,
-            install_date: pickAttr(attrs, ['INSTALL_DATE','INSTDTTM','INSTALLDTE','DATE_INST','INSTALL_YR','YEAR_BUILT']) || null,
-            distance_ft: searchRadius
-          };
-        });
-        console.log('Storm lines found:', utilities.storm_lines.length);
-      } else {
-        console.log('No storm lines found in response');
-      }
-    } else {
-      console.log('No storm lines endpoint configured for this county');
-    }
 
-    // Power infrastructure typically requires manual lookup or private utility data
-    // Placeholder for future integration with utility company APIs
-    utilities.power_kv_nearby = null;
+      // Map storm lines
+      if (utilityData.storm && utilityData.storm.length > 0) {
+        utilities.storm_lines = utilityData.storm.map((line: any) => ({
+          diameter: line.diameter || null,
+          material: line.material || null,
+          install_date: line.install_year || null,
+          distance_ft: line.distance_ft || null
+        }));
+        console.log(`⛈️  Storm: ${utilities.storm_lines.length} lines`);
+      }
+
+      // Propagate data flags if any
+      if (utilityData.data_flags && utilityData.data_flags.length > 0) {
+        console.warn('⚠️  Utility data flags:', utilityData.data_flags);
+      }
+    }
 
   } catch (error) {
-    console.error('Utility infrastructure fetch error:', error);
+    console.error('❌ Utility infrastructure fetch error:', error);
   }
 
   return utilities;
