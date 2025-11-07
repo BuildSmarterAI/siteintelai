@@ -15,6 +15,7 @@ import { PaymentButton } from "@/components/PaymentButton";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
+import { useBulkReEnrich } from "@/hooks/useBulkReEnrich";
 import { IntentBadge } from "@/components/IntentBadge";
 import { ReportCardSkeleton, StatsCardSkeleton } from "@/components/ui/report-skeleton";
 import { OnboardingTour } from "@/components/OnboardingTour";
@@ -45,6 +46,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<any>(null);
   const { isAdmin } = useAdminRole();
   const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
+  const { bulkReEnrich, loading: bulkReEnrichLoading } = useBulkReEnrich();
   const [showTour, setShowTour] = useState(false);
   const [reportStatuses, setReportStatuses] = useState<Record<string, string>>({});
 
@@ -483,6 +485,46 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Admin Bulk Re-enrich Control */}
+            {isAdmin && (
+              <Card className="mb-6 border-orange-200 bg-orange-50/50 dark:bg-orange-950/20">
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <RefreshCw className="h-5 w-5 text-orange-600" />
+                    Admin: Bulk Re-enrichment
+                  </CardTitle>
+                  <CardDescription>
+                    Re-process all failed applications with E003 errors that have geocode + parcel data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    onClick={async () => {
+                      const result = await bulkReEnrich();
+                      if (result.success) {
+                        setTimeout(() => fetchReports(), 5000);
+                      }
+                    }}
+                    disabled={bulkReEnrichLoading}
+                    variant="default"
+                    className="w-full sm:w-auto"
+                  >
+                    {bulkReEnrichLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Re-enrich All E003 Failed Apps
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
               <div className="lg:col-span-2">
