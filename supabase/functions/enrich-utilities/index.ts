@@ -1529,9 +1529,9 @@ serve(async (req) => {
       
       // Prepare the full update payload
       const updatePayload = {
-        water_lines: formatLines(water, geo_lat, geo_lng, 'water', waterCrs),
-        sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', sewerCrs),
-        storm_lines: formatLines(storm, geo_lat, geo_lng, 'storm', stormCrs),
+        water_lines: formatLines(water, geo_lat, geo_lng, 'water', waterCrs).map(({ geometry, ...rest }: any) => rest),
+        sewer_lines: formatLines(sewer, geo_lat, geo_lng, 'sewer', sewerCrs).map(({ geometry, ...rest }: any) => rest),
+        storm_lines: formatLines(storm, geo_lat, geo_lng, 'storm', stormCrs).map(({ geometry, ...rest }: any) => rest),
         utilities_summary: utilitiesSummary,
         data_flags: flags,
         api_meta: apiMeta,
@@ -1691,9 +1691,9 @@ serve(async (req) => {
         
         const minimalPayload = {
           // Core utility arrays - these are what populate the report tables
-          water_lines: formatLines(water, geo_lat, geo_lng, "water"),
-          sewer_lines: formatLines(sewer, geo_lat, geo_lng, "sewer"),
-          storm_lines: formatLines(storm, geo_lat, geo_lng, "storm"),
+          water_lines: formatLines(water, geo_lat, geo_lng, "water").map(({ geometry, ...rest }: any) => rest),
+          sewer_lines: formatLines(sewer, geo_lat, geo_lng, "sewer").map(({ geometry, ...rest }: any) => rest),
+          storm_lines: formatLines(storm, geo_lat, geo_lng, "storm").map(({ geometry, ...rest }: any) => rest),
           
           // Summary stats (small footprint)
           utilities_summary: utilitiesSummary,
@@ -1701,20 +1701,16 @@ serve(async (req) => {
           // Flags indicating what succeeded/failed
           data_flags: [...flags, 'database_update_partial_failure', 'enrichment_metadata_excluded'],
           
-          enrichment_status: 'partial',
-          enrichment_error: `Full update failed: ${updateError.message}. Core utilities saved, but enrichment_metadata excluded to reduce payload size.`,
-          
-          // Also save counts for quick reference
-          water_lines_count: water.length,
-          sewer_lines_count: sewer.length,
-          storm_lines_count: storm.length
+          enrichment_status: 'partial'
         };
         
+        let retryError: any = null;
         if (application_id) {
-          const { error: retryError } = await supabase
+          const { error } = await supabase
             .from("applications")
             .update(minimalPayload)
             .eq("id", application_id);
+          retryError = error;
           
           if (retryError) {
             console.error('❌ [enrich-utilities] Minimal payload retry also failed:', retryError);
@@ -1816,7 +1812,6 @@ serve(async (req) => {
           .from('applications')
           .update({
             enrichment_status: 'failed',
-            enrichment_error: 'All utility services failed to respond',
             data_flags: flags,
             updated_at: new Date().toISOString()
           })
