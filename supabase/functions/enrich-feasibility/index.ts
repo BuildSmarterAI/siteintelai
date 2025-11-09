@@ -2654,15 +2654,6 @@ serve(async (req) => {
           ].filter(Boolean);
           enrichedData.situs_address = addressParts.length > 0 ? addressParts.join(' ') : null;
           
-          // Concatenate legal description
-          const legalParts = [
-            attrs.legal_dscr_1,
-            attrs.legal_dscr_2,
-            attrs.legal_dscr_3,
-            attrs.legal_dscr_4
-          ].filter(Boolean);
-          enrichedData.legal_description = legalParts.length > 0 ? legalParts.join(' ') : null;
-          
           // ⭐ NEW: Extract valuation data
           const pickAttr = (attrs: any, fields: string[]) => {
             for (const field of fields) {
@@ -2774,7 +2765,6 @@ serve(async (req) => {
           };
         } else {
           enrichedData.situs_address = attrs[endpoints.address_field] || null;
-          enrichedData.legal_description = attrs[endpoints.legal_field] || null;
         }
         
         enrichedData.administrative_area_level_2 = attrs[endpoints.county_field] || null;
@@ -2791,7 +2781,6 @@ serve(async (req) => {
           lot_size_value: enrichedData.lot_size_value,
           lot_size_unit: enrichedData.lot_size_unit,
           situs_address: enrichedData.situs_address,
-          legal_description: enrichedData.legal_description,
           county: enrichedData.administrative_area_level_2,
           has_geometry: !!selectedFeature.geometry,
           source_fields: {
@@ -2851,7 +2840,6 @@ serve(async (req) => {
         if (enrichedData.acreage_cad) updateData.acreage_cad = enrichedData.acreage_cad;
         if (enrichedData.lot_size_value) updateData.lot_size_value = enrichedData.lot_size_value;
         if (enrichedData.lot_size_unit) updateData.lot_size_unit = enrichedData.lot_size_unit;
-        if (enrichedData.legal_description) updateData.legal_description = enrichedData.legal_description;
         
         const { error: updateError } = await supabase
           .from('applications')
