@@ -535,9 +535,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Declare variables outside try block so they're accessible in catch
+  let application_id: string | undefined;
+  let latitude: number | undefined;
+  let longitude: number | undefined;
+
   try {
     const requestBody = await req.json();
-    const { application_id, latitude, longitude, city: cityHint } = requestBody;
+    const parsedBody = requestBody as { application_id?: string; latitude?: number; longitude?: number; city?: string };
+    application_id = parsedBody.application_id;
+    latitude = parsedBody.latitude;
+    longitude = parsedBody.longitude;
+    const cityHint = parsedBody.city;
     
     let geo_lat: number;
     let geo_lng: number;
@@ -1811,6 +1820,17 @@ serve(async (req) => {
         await supabase
           .from('applications')
           .update({
+            water_lines: [],
+            sewer_lines: [],
+            storm_lines: [],
+            utilities_summary: {
+              has_water: false,
+              has_sewer: false,
+              has_storm: false,
+              nearest_water_ft: null,
+              nearest_sewer_ft: null,
+              nearest_storm_ft: null
+            },
             enrichment_status: 'failed',
             data_flags: flags,
             updated_at: new Date().toISOString()
