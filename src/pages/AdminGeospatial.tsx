@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Database, CheckCircle, XCircle, MapPin } from 'lucide-react';
+import { Loader2, Database, CheckCircle, XCircle, MapPin, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useReEnrichApplication } from '@/hooks/useReEnrichApplication';
 
 const TEST_COORDINATES = [
   { name: 'Houston (Downtown)', lat: 29.7604, lng: -95.3698 },
@@ -19,7 +20,47 @@ export default function AdminGeospatial() {
   const [testLoading, setTestLoading] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
   const [testError, setTestError] = useState<string | null>(null);
+  const [latestApp, setLatestApp] = useState<any>(null);
+  const [fetchingApp, setFetchingApp] = useState(true);
   const { toast } = useToast();
+  const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
+
+  useEffect(() => {
+    fetchLatestApplication();
+  }, []);
+
+  const fetchLatestApplication = async () => {
+    setFetchingApp(true);
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('id, formatted_address, status, enrichment_status, created_at, water_lines, sewer_lines, storm_lines')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error) throw error;
+      setLatestApp(data);
+    } catch (err: any) {
+      console.error('Error fetching latest application:', err);
+    } finally {
+      setFetchingApp(false);
+    }
+  };
+
+  const handleReEnrich = async () => {
+    if (!latestApp) return;
+    
+    const result = await reEnrich(latestApp.id);
+    if (result.success) {
+      toast({
+        title: 'Re-enrichment started',
+        description: 'Check back in 30-60 seconds',
+      });
+      // Refresh after 5 seconds
+      setTimeout(() => fetchLatestApplication(), 5000);
+    }
+  };
 
   const fetchGeospatialLayers = async () => {
     setLoading(true);
@@ -99,6 +140,92 @@ export default function AdminGeospatial() {
 
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
+      {/* Re-enrich Latest Application */}
+      <Card className="max-w-3xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-6 w-6" />
+            Re-Enrich Latest Application
+          </CardTitle>
+          <CardDescription>
+            Test the utility enrichment fixes on the most recent application
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {fetchingApp ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : latestApp ? (
+            <>
+              <div className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Application ID:</span>
+                  <code className="text-xs bg-muted px-2 py-1 rounded">{latestApp.id}</code>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Address:</span>
+                  <span className="text-xs">{latestApp.formatted_address}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Status:</span>
+                  <span className="text-xs">{latestApp.status}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Enrichment:</span>
+                  <span className="text-xs">{latestApp.enrichment_status || 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Water Lines:</span>
+                  <span className="text-xs">{latestApp.water_lines ? `${latestApp.water_lines.length} lines` : 'NULL'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Sewer Lines:</span>
+                  <span className="text-xs">{latestApp.sewer_lines ? `${latestApp.sewer_lines.length} lines` : 'NULL'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Storm Lines:</span>
+                  <span className="text-xs">{latestApp.storm_lines ? `${latestApp.storm_lines.length} lines` : 'NULL'}</span>
+                </div>
+              </div>
+
+              <Button
+                onClick={handleReEnrich}
+                disabled={reEnrichLoading}
+                size="lg"
+                className="w-full"
+              >
+                {reEnrichLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Re-enriching...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Re-Enrich This Application
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={fetchLatestApplication}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                Refresh Application Data
+              </Button>
+            </>
+          ) : (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>No applications found</AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Test compute-geospatial-score */}
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
