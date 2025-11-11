@@ -14,7 +14,6 @@ const corsHeaders = {
 const STATE_PROGRESS: Record<string, number> = {
   queued: 5,
   enriching: 40,
-  validating: 60,
   ai: 75,
   rendering: 90,
   complete: 100,
@@ -67,7 +66,6 @@ function getStageLabel(status: string): string {
   const labels: Record<string, string> = {
     queued: 'Queued',
     enriching: 'Gathering Data',
-    validating: 'Validating Data',
     ai: 'AI Analysis',
     rendering: 'Generating PDF',
     complete: 'Complete',
@@ -80,7 +78,6 @@ function getStageMessage(status: string): string {
   const messages: Record<string, string> = {
     queued: 'Your report is in queue',
     enriching: 'Fetching parcel, zoning, and utility data',
-    validating: 'Verifying data completeness',
     ai: 'Analyzing feasibility with AI',
     rendering: 'Building your PDF report',
     complete: 'Your report is ready',
@@ -386,12 +383,11 @@ async function orchestrate(appId: string): Promise<any> {
       case 'enriching':
         console.log(`[orchestrate] ${appId} - Phase: Enrich Overlays`);
         await enrichOverlays(app);
-        await bump(appId, 'validating', currentRev);
-        return orchestrate(appId);
-
-      case 'validating':
+        
+        // Validate data before moving to AI phase
         console.log(`[orchestrate] ${appId} - Phase: Data Validation`);
         await validateData(app);
+        
         await bump(appId, 'ai', currentRev);
         return orchestrate(appId);
 
