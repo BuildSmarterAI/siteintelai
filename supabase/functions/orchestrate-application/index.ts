@@ -317,22 +317,24 @@ async function validateData(app: any) {
   const missingCritical = [];
   if (!hasGeocode) missingCritical.push('geocode');
   if (!hasParcel) missingCritical.push('parcel');
-  // Utilities are now optional - only log if missing, don't fail
+  
+  // Utilities, zoning, and flood are now optional - log warnings but don't fail
   if (!hasAnyUtility) {
     console.warn(`[validateData] No utility data available, but continuing...`);
   }
-  if (!hasZoning) missingCritical.push('zoning');
-  if (!hasFlood) missingCritical.push('flood');
+  if (!hasZoning) {
+    console.warn(`[validateData] No zoning data available (Houston has no zoning), continuing...`);
+  }
+  if (!hasFlood) {
+    console.warn(`[validateData] No flood data available, continuing...`);
+  }
   
-  // Check for critical error flags
+  // Check for critical error flags (only geocode and parcel are truly critical)
   const criticalFlags = [
     'geocode_failed',
-    'parcel_not_found',
-    'critical_utilities_missing',
-    'critical_feasibility_data_missing',
-    'utilities_api_timeout',
-    'zoning_unavailable',
-    'flood_data_error'
+    'parcel_not_found'
+    // Removed: utilities_api_timeout, zoning_unavailable, flood_data_error
+    // These are now warnings, not critical failures
   ];
   
   const hasCriticalErrors = (app.data_flags || []).some(

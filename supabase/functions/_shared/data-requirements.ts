@@ -13,9 +13,9 @@ export const CRITICAL_DATA_SOURCES = {
     storm: false,          // Storm drains optional but preferred
   },
   
-  // Regulatory overlays (MUST have)
-  zoning: true,            // Zoning classification required
-  flood: true,             // FEMA flood zone required
+  // Regulatory overlays (OPTIONAL - nice to have, but many cities like Houston don't have zoning)
+  zoning: false,           // Zoning classification optional (Houston doesn't have zoning)
+  flood: false,            // FEMA flood zone optional (may not be available for all areas)
   
   // Environmental data (OPTIONAL - nice to have)
   wetlands: false,         // NWI wetlands data
@@ -58,17 +58,18 @@ export function validateApplicationData(app: any): DataValidationResult {
     app.enrichment_metadata?.sewer_count > 0
   );
   
-  if (!hasWater) missingCritical.push('utilities.water');
-  if (!hasSewer) missingCritical.push('utilities.sewer');
+  // Utilities are optional - track but don't fail
+  if (!hasWater) missingOptional.push('utilities.water');
+  if (!hasSewer) missingOptional.push('utilities.sewer');
   
-  // Check zoning
+  // Check zoning (optional for Houston)
   if (!app.zoning_category && !app.enrichment_metadata?.zoning) {
-    missingCritical.push('zoning');
+    missingOptional.push('zoning');
   }
   
-  // Check flood zone
+  // Check flood zone (optional)
   if (!app.floodplain_zone && !app.enrichment_metadata?.flood_zone) {
-    missingCritical.push('flood');
+    missingOptional.push('flood');
   }
   
   // Optional data checks
@@ -79,13 +80,12 @@ export function validateApplicationData(app: any): DataValidationResult {
     missingOptional.push('epa_sites');
   }
   
-  // Check for critical errors in data_flags
+  // Check for critical errors in data_flags (only geocode and parcel failures are critical)
   const criticalFlags = [
     'geocode_failed',
-    'parcel_not_found',
-    'utilities_api_timeout',
-    'zoning_unavailable',
-    'flood_data_error'
+    'parcel_not_found'
+    // Removed: utilities_api_timeout, zoning_unavailable, flood_data_error
+    // These are now warnings, not critical failures
   ];
   
   const hasCriticalErrors = (app.data_flags || []).some(
