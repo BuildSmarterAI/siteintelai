@@ -51,13 +51,6 @@ export default {
           DEFAULT: "hsl(var(--feasibility-orange))",
           foreground: "hsl(var(--cloud-white))",
         },
-        // Architecture doc aliases (additive)
-        "feasibilityOrange": "hsl(var(--feasibility-orange))",
-        "dataCyan": "hsl(var(--data-cyan))",
-        "buildRed": "#D00E07",
-        "dealGreen": "#10B981",
-        "capacityBlue": "#0EA5E9",
-        "darkBg": "#0A0A0A",
         "midnight-blue": {
           DEFAULT: "hsl(var(--midnight-blue))",
           foreground: "hsl(var(--cloud-white))",
@@ -213,9 +206,6 @@ export default {
         serif: ['IBM Plex Serif', 'Georgia', 'serif'],              /* Optional: Subheads */
         mono: ['IBM Plex Mono', 'Courier New', 'monospace'],        /* Data/Code */
         cta: ['IBM Plex Sans', 'system-ui', 'sans-serif'],          /* CTAs: Bold */
-        // Architecture doc aliases (additive - Inter/Poppins if loaded)
-        heading: ['Poppins', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
-        inter: ['Inter', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
       },
     },
   },

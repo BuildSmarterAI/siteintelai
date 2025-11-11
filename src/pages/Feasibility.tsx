@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { FileText, Shield, DollarSign, Map, TrendingUp, CheckCircle2 } from "lucide-react";
-import AuthorityBadges from "@/components/marketing/AuthorityBadges";
+import AuthorityBadges from "@/components/sections/AuthorityBadges";
 import { Helmet } from "react-helmet";
 import {
   Breadcrumb,

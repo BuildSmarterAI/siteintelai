@@ -1,15 +1,15 @@
 import { Link } from "react-router-dom";
 import { Calendar, CheckCircle2 } from "lucide-react";
-import { CostHeroSection } from "@/components/marketing/cost-intelligence/CostHeroSection";
-import { IntroChallengeSection } from "@/components/marketing/cost-intelligence/IntroChallengeSection";
-import { FeaturePillarsSection } from "@/components/marketing/cost-intelligence/FeaturePillarsSection";
-import { CostRangeVisual } from "@/components/marketing/cost-intelligence/CostRangeVisual";
-import { BenefitsSection } from "@/components/marketing/cost-intelligence/BenefitsSection";
-import { UseCasesSection } from "@/components/marketing/cost-intelligence/UseCasesSection";
-import { PricingAccessSection } from "@/components/marketing/cost-intelligence/PricingAccessSection";
-import { EcosystemSection } from "@/components/marketing/cost-intelligence/EcosystemSection";
-import { TrustSection } from "@/components/marketing/cost-intelligence/TrustSection";
-import { FinalCTASection } from "@/components/marketing/cost-intelligence/FinalCTASection";
+import { CostHeroSection } from "@/components/sections/cost-intelligence/CostHeroSection";
+import { IntroChallengeSection } from "@/components/sections/cost-intelligence/IntroChallengeSection";
+import { FeaturePillarsSection } from "@/components/sections/cost-intelligence/FeaturePillarsSection";
+import { CostRangeVisual } from "@/components/sections/cost-intelligence/CostRangeVisual";
+import { BenefitsSection } from "@/components/sections/cost-intelligence/BenefitsSection";
+import { UseCasesSection } from "@/components/sections/cost-intelligence/UseCasesSection";
+import { PricingAccessSection } from "@/components/sections/cost-intelligence/PricingAccessSection";
+import { EcosystemSection } from "@/components/sections/cost-intelligence/EcosystemSection";
+import { TrustSection } from "@/components/sections/cost-intelligence/TrustSection";
+import { FinalCTASection } from "@/components/sections/cost-intelligence/FinalCTASection";
 import { Helmet } from "react-helmet";
 import {
   Breadcrumb,

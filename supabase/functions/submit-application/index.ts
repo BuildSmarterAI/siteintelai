@@ -426,7 +426,7 @@ serve(async (req) => {
       status: 'queued',
       status_rev: 0,
       status_percent: 5,
-      enrichment_status: 'pending',
+      enrichment_status: null,
     };
 
     console.log('Inserting application data:', applicationData);

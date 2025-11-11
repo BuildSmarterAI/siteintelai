@@ -36,10 +36,6 @@ import BetaSignup from "./pages/BetaSignup";
 import BetaThankYou from "./pages/BetaThankYou";
 import HospitalityIntelligence from "./pages/HospitalityIntelligence";
 import UtilitiesDiagnostic from "./pages/UtilitiesDiagnostic";
-import SiteDefinition from "./pages/feasibility/SiteDefinition";
-import ConfirmBoundary from "./pages/feasibility/ConfirmBoundary";
-import TypeSelector from "./pages/feasibility/TypeSelector";
-import IntakeForm from "./pages/feasibility/IntakeForm";
 
 const queryClient = new QueryClient();
 
@@ -80,11 +76,6 @@ const App = () => (
               <Route path="/products/feasibility" element={<Feasibility />} />
               <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
               <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
-              {/* New Feasibility Flow Routes (Phase 2) */}
-              <Route path="/feasibility/start" element={<SiteDefinition />} />
-              <Route path="/feasibility/confirm" element={<ConfirmBoundary />} />
-              <Route path="/feasibility/type" element={<TypeSelector />} />
-              <Route path="/feasibility/:intent" element={<IntakeForm />} />
               <Route path="/hospitality-intelligence" element={<HospitalityIntelligence />} />
               <Route path="/feasibility/:parcelId/hospitality" element={<HospitalityIntelligence />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
