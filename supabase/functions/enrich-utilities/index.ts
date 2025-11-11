@@ -638,10 +638,13 @@ serve(async (req) => {
     // 2. Decide which catalog entry to use
     const cityLower = city?.toLowerCase() || '';
     
+    // Hoist eps declaration outside city-specific blocks for proper scope
+    let eps: any = null;
+    
     try {
       if (cityLower.includes("houston")) {
         console.log('Using Houston endpoints');
-        const eps = endpointCatalog.houston;
+        eps = endpointCatalog.houston;
         
         // Set CRS values for Houston (override defaults)
         waterCrs = eps.water?.crs || 4326;
@@ -1103,7 +1106,7 @@ serve(async (req) => {
             apiMeta.storm_manholes_error = {
               message: err instanceof Error ? err.message : String(err),
               timestamp: new Date().toISOString(),
-              attempted_fields: eps.storm_manholes?.outFields
+              attempted_fields: eps?.storm_manholes?.outFields
             };
           }
         } else {
@@ -1121,7 +1124,7 @@ serve(async (req) => {
         
         // Traffic counts (disabled - endpoint unavailable)
         traffic = [];
-        if (eps.traffic && eps.traffic.enabled !== false) {
+        if (eps?.traffic && eps.traffic.enabled !== false) {
           try {
             console.log('Querying traffic counts...');
             traffic = await queryArcGIS(eps.traffic.url, eps.traffic.outFields, geo_lat, geo_lng, "houston_traffic", {
@@ -1146,7 +1149,7 @@ serve(async (req) => {
         }
       } else if (cityLower.includes("austin")) {
         console.log('Using Austin endpoints');
-        const eps = endpointCatalog.austin;
+        eps = endpointCatalog.austin;
         
         // Set CRS values for Austin (override defaults)
         waterCrs = eps.water?.crs || 4326;
