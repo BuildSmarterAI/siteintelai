@@ -39,8 +39,7 @@ async function bump(
     status_percent: STATE_PROGRESS[newStatus] || 0,
     updated_at: new Date().toISOString(),
     error_code: errorCode || null,
-    attempts: 0, // Reset on successful transition or error
-    current_substep: substepMessage || null
+    attempts: 0 // Reset on successful transition or error
   };
 
   const { error } = await sbAdmin
