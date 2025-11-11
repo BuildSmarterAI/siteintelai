@@ -125,7 +125,7 @@ async function retryWithBackoff<T>(
 
 // Phase implementations (call existing edge functions)
 async function doGeocodeAndParcel(app: any) {
-  console.log(`[doGeocodeAndParcel] Starting GEOCODE-ONLY mode for app ${app.id}`);
+  console.log(`[doGeocodeAndParcel] Starting full enrichment for app ${app.id}`);
   return retryWithBackoff(
     async () => {
       // Fetch address from application record (robust fallback across schemas)
@@ -149,8 +149,7 @@ async function doGeocodeAndParcel(app: any) {
       const response = await sbAdmin.functions.invoke('enrich-feasibility', {
         body: { 
           application_id: app.id,
-          address: derivedAddress,
-          mode: 'geocode_only'  // Only fetch geocode + parcel, skip flood/zoning validation
+          address: derivedAddress
         }
       });
       
@@ -158,7 +157,7 @@ async function doGeocodeAndParcel(app: any) {
         throw { code: 'E003-2', message: response.error.message || 'Parcel lookup failed' };
       }
       
-      console.log(`[doGeocodeAndParcel] ✅ Geocode-only completed for ${app.id}`);
+      console.log(`[doGeocodeAndParcel] ✅ Full enrichment completed for ${app.id}`);
       
       // Fetch elevation immediately after coordinates are available
       console.log(`[doGeocodeAndParcel] Fetching elevation for ${app.id}`);
