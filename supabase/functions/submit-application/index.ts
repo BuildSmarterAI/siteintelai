@@ -421,6 +421,12 @@ serve(async (req) => {
       overlay_district: requestData.overlayDistrict || null,
       floodplain_zone: requestData.floodplainZone || null,
       base_flood_elevation: parseNumber(requestData.baseFloodElevation),
+      
+      // Orchestration State Fields
+      status: 'queued',
+      status_rev: 0,
+      status_percent: 5,
+      enrichment_status: null,
     };
 
     console.log('Inserting application data:', applicationData);
@@ -483,86 +489,83 @@ serve(async (req) => {
       }
     }
 
-    // Trigger enrichment to auto-fill GIS fields (fire and forget - don't block response)
+    // Trigger orchestration workflow (fire and forget - don't block response)
     try {
-      const addressForEnrichment = formatted_address || String(requestData.propertyAddress || '') || null;
-      if (addressForEnrichment) {
-        console.log('Triggering enrich-feasibility for application:', data.id);
-        
-        // Fire and forget - don't await
-        supabase.functions.invoke('enrich-feasibility', {
-          body: {
-            application_id: data.id,
-            address: addressForEnrichment
-          }
-        }).then(result => {
-          if (result.error) {
-            console.error('Enrichment invocation error:', result.error);
-          } else {
-            console.log('Enrichment triggered successfully');
-          }
-        });
-
-        // Also trigger enrich-utilities (fire and forget) - PHASE 6: Enhanced invocation guard
-        if (geo_lat && geo_lng) {
-          console.log('✅ [submit-application] Coordinates available, triggering enrich-utilities:', {
-            application_id: data.id,
-            geo_lat,
-            geo_lng,
-            city: locality || 'unknown',
-            county: inferredCounty || 'unknown'
-          });
-          
-          supabase.functions.invoke('enrich-utilities', {
-            body: {
-              application_id: data.id
-            }
-          }).then(result => {
-            if (result.error) {
-              console.error('❌ [submit-application] Utilities enrichment error:', {
-                application_id: data.id,
-                error: result.error
-              });
-            } else {
-              console.log('✅ [submit-application] Utilities enrichment triggered successfully:', {
-                application_id: data.id,
-                result_preview: result.data
-              });
-            }
-          });
-        } else {
-          console.warn('⚠️ [submit-application] SKIPPING enrich-utilities: Missing coordinates', {
-            application_id: data.id,
-            geo_lat: geo_lat || 'null',
-            geo_lng: geo_lng || 'null',
-            property_address: requestData.propertyAddress,
-            formatted_address: formatted_address,
-            geocoding_attempted: !!(formatted_address || requestData.propertyAddress)
-          });
-        }
-      } else {
-        console.log('Skipping enrichment: no address available');
-      }
-    } catch (invokeError) {
-      console.error('Failed to trigger enrichment:', invokeError);
-    }
-
-    // Trigger AI report generation (fire and forget - won't block response)
-    try {
-      supabase.functions.invoke('generate-ai-report', {
-        body: { 
+      // Validate that we have minimum required data
+      if (!geo_lat || !geo_lng) {
+        console.error('❌ [submit-application] Cannot trigger orchestration: missing coordinates', {
           application_id: data.id,
-          report_type: 'full_report'
+          geo_lat,
+          geo_lng,
+          property_address: requestData.propertyAddress,
+          formatted_address: formatted_address
+        });
+        
+        // Update application to error state
+        await supabase
+          .from('applications')
+          .update({
+            status: 'error',
+            error_code: 'E001',
+            enrichment_status: 'failed',
+            data_flags: ['geocode_failed']
+          })
+          .eq('id', data.id);
+        
+        return new Response(JSON.stringify({
+          id: data.id,
+          created_at: data.created_at,
+          status: 'error',
+          message: 'Application created but geocoding failed. Missing coordinates.'
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      console.log('✅ [submit-application] Application created successfully:', {
+        id: data.id,
+        created_at: data.created_at,
+        property_address: requestData.propertyAddress,
+        formatted_address: formatted_address,
+        geo_lat,
+        geo_lng,
+        county: inferredCounty,
+        city: locality,
+        status: 'queued',
+        status_percent: 5,
+        will_trigger_orchestration: true
+      });
+
+      console.log('✅ [submit-application] Triggering orchestration workflow for:', data.id);
+      
+      // Fire and forget - don't block response
+      supabase.functions.invoke('orchestrate-application', {
+        body: {
+          application_id: data.id
         }
       }).then(result => {
         if (result.error) {
-          console.error('[submit-application] AI report generation error:', result.error);
+          console.error('❌ [submit-application] Orchestration trigger failed:', {
+            application_id: data.id,
+            error: result.error
+          });
         } else {
-          console.log('[submit-application] AI report generation triggered');
+          console.log('✅ [submit-application] Orchestration workflow started:', {
+            application_id: data.id,
+            result: result.data
+          });
         }
+      }).catch(err => {
+        console.error('❌ [submit-application] Orchestration invoke exception:', {
+          application_id: data.id,
+          error: err instanceof Error ? err.message : String(err)
+        });
       });
-    } catch (aiError) {
-      console.error('Failed to trigger AI report:', aiError);
+    } catch (orchestrateError) {
+      console.error('❌ [submit-application] Failed to trigger orchestration:', {
+        application_id: data.id,
+        error: orchestrateError instanceof Error ? orchestrateError.message : String(orchestrateError)
+      });
     }
 
     // Return success response
