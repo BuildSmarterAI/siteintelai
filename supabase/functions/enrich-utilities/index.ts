@@ -1808,15 +1808,15 @@ serve(async (req) => {
       flags
     });
 
-    // 🛡️ FAULT-TOLERANT VALIDATION: Always return 200 with flags
-    // Never return 500 - let orchestration handle failures based on flags
+    // 🛡️ FAULT-TOLERANT VALIDATION: Save partial results even if some services fail
+    // ONLY return 500 if ALL services fail or no data at all
     const hasAnyData = water.length > 0 || water_laterals.length > 0 || 
                        sewerGravity.length > 0 || sewerService.length > 0 || sewer_force.length > 0 ||
                        storm.length > 0 || stormManholes.length > 0;
     
     if (!hasAnyData && failedServices === totalServices) {
       flags.push('utilities_enrichment_total_failure');
-      console.error('❌ [enrich-utilities] CRITICAL: All utility services failed completely - returning 200 with flags');
+      console.error('❌ [enrich-utilities] CRITICAL: All utility services failed completely');
       
       // Mark enrichment as failed in the database (only if application_id provided)
       if (application_id) {
@@ -1841,23 +1841,13 @@ serve(async (req) => {
           .eq('id', application_id);
       }
 
-      // Return 200 with failure flags instead of 500 - orchestration will handle
       return new Response(
         JSON.stringify({ 
-          success: false,
-          application_id: application_id || null,
-          utilities: {
-            water: 0,
-            sewer: 0,
-            storm: 0,
-            water_laterals: 0,
-            water_fittings: 0
-          },
-          flags,
-          enrichment_status: 'failed',
-          error: 'All utility services failed'
+          error: 'All utility services failed', 
+          details: 'Could not retrieve any utility data from any service',
+          flags 
         }), 
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: corsHeaders }
       );
     }
 
