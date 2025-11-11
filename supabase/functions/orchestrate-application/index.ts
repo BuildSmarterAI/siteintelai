@@ -162,6 +162,50 @@ async function doGeocodeAndParcel(app: any) {
       }
       
       console.log(`[doGeocodeAndParcel] ✅ Geocode-only completed for ${app.id}`);
+      
+      // Fetch elevation immediately after coordinates are available
+      console.log(`[doGeocodeAndParcel] Fetching elevation for ${app.id}`);
+      try {
+        const { data: appCoords } = await sbAdmin
+          .from('applications')
+          .select('geo_lat, geo_lng, enrichment_metadata')
+          .eq('id', app.id)
+          .single();
+        
+        if (appCoords?.geo_lat && appCoords?.geo_lng) {
+          const elevResponse = await sbAdmin.functions.invoke('fetch-elevation', {
+            body: { 
+              lat: appCoords.geo_lat, 
+              lng: appCoords.geo_lng, 
+              application_id: app.id 
+            }
+          });
+          
+          if (elevResponse.data?.elevation_ft) {
+            // Update application with elevation data
+            const { error: updateErr } = await sbAdmin
+              .from('applications')
+              .update({ 
+                elevation: elevResponse.data.elevation_ft,
+                enrichment_metadata: {
+                  ...(appCoords.enrichment_metadata || {}),
+                  elevation_ft: elevResponse.data.elevation_ft,
+                  elevation_source: elevResponse.data.source,
+                  elevation_resolution: elevResponse.data.resolution
+                }
+              })
+              .eq('id', app.id);
+            
+            if (!updateErr) {
+              console.log(`[doGeocodeAndParcel] ✅ Elevation: ${elevResponse.data.elevation_ft} ft (${elevResponse.data.source})`);
+            }
+          }
+        }
+      } catch (elevErr) {
+        console.warn(`[doGeocodeAndParcel] ⚠️ Elevation fetch failed (non-blocking):`, elevErr);
+        // Don't throw - elevation is nice-to-have, not critical
+      }
+      
       return response.data;
     },
     MAX_ATTEMPTS,
