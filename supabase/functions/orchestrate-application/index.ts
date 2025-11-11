@@ -187,7 +187,23 @@ async function enrichOverlays(app: any) {
       if (response.error) {
         throw { code: 'E402-2', message: response.error.message || 'Utilities API failed' };
       }
-      return response.data;
+      
+      const utilsData = response.data;
+      
+      // Check if we got ANY utility data (partial success is still success!)
+      const hasAnyUtilities = 
+        (utilsData.utilities?.water || 0) > 0 ||
+        (utilsData.utilities?.sewer || 0) > 0 ||
+        (utilsData.utilities?.storm || 0) > 0;
+      
+      if (hasAnyUtilities || utilsData.success) {
+        console.log(`[enrichOverlays] ✅ Utilities retrieved (may be partial):`, utilsData.utilities);
+        return utilsData; // Continue with whatever data we have
+      } else {
+        // Truly no utilities at all
+        console.warn(`[enrichOverlays] No utilities available`);
+        throw { code: 'E402-3', message: 'No utility data retrieved' };
+      }
     },
     MAX_ATTEMPTS,
     'E402'
@@ -253,14 +269,17 @@ async function validateData(app: any) {
     app.enrichment_metadata?.sewer_force_count > 0 ||
     app.enrichment_metadata?.sewer_count > 0
   );
+  const hasAnyUtility = hasWater || hasSewer;
   const hasZoning = app.zoning_category || app.enrichment_metadata?.zoning;
   const hasFlood = app.floodplain_zone || app.enrichment_metadata?.flood_zone;
   
   const missingCritical = [];
   if (!hasGeocode) missingCritical.push('geocode');
   if (!hasParcel) missingCritical.push('parcel');
-  if (!hasWater) missingCritical.push('utilities.water');
-  if (!hasSewer) missingCritical.push('utilities.sewer');
+  // Utilities are now optional - only log if missing, don't fail
+  if (!hasAnyUtility) {
+    console.warn(`[validateData] No utility data available, but continuing...`);
+  }
   if (!hasZoning) missingCritical.push('zoning');
   if (!hasFlood) missingCritical.push('flood');
   

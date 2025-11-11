@@ -145,6 +145,11 @@ function UtilityTable({
 }
 
 export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }: UtilityResultsProps) {
+  const hasPartialDataFlags = 
+    dataFlags?.includes('utilities_enrichment_partial') || 
+    dataFlags?.includes('utilities_water_laterals_unavailable') ||
+    dataFlags?.includes('utilities_storm_unavailable');
+  
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
@@ -157,6 +162,27 @@ export function UtilityResults({ waterLines, sewerLines, stormLines, dataFlags }
           </Badge>
         )}
       </div>
+
+      {/* Partial Data Info Banner */}
+      {hasPartialDataFlags && (
+        <Card className="border-2 border-cyan-500/30 bg-cyan-50">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-cyan-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-headline text-base font-semibold text-charcoal mb-1">
+                  Partial Utility Data Available
+                </h4>
+                <p className="font-body text-sm text-charcoal/80">
+                  Some detailed utility layers were unavailable (water laterals, storm manholes), 
+                  but main water and sewer infrastructure data is shown below. 
+                  This is sufficient for initial feasibility assessment.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Water Lines */}
       <UtilityTable 
