@@ -187,7 +187,16 @@ async function enrichOverlays(app: any) {
       if (response.error) {
         throw { code: 'E402-2', message: response.error.message || 'Utilities API failed' };
       }
-      return response.data;
+      
+      // Check if utilities function returned failure flags (but with 200 status)
+      const data = response.data;
+      if (data && data.success === false) {
+        console.warn(`[enrichOverlays] Utilities enrichment failed with flags:`, data.flags);
+        // Don't throw - continue with partial/failed data
+        // The validation phase will catch critical missing data
+      }
+      
+      return data;
     },
     MAX_ATTEMPTS,
     'E402'
