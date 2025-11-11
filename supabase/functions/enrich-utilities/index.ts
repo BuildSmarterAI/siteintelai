@@ -615,6 +615,8 @@ serve(async (req) => {
     let sewer: any[] = [];
     let storm: any[] = [];
     let sewer_force: any[] = [];
+    let sewerGravity: any[] = [];
+    let sewerService: any[] = [];
     let water_laterals: any[] = [];
     let water_fittings: any[] = [];
     let stormManholes: any[] = [];
@@ -861,8 +863,7 @@ serve(async (req) => {
         }
         
         // 4. Sewer Gravity Mains - GRACEFUL DEGRADATION
-        let sewerGravity: any[] = [];
-        let sewerService: any[] = [];
+        // Variables declared at top of function (lines 618-619)
         const sewerRadius = isUrbanArea && eps.sewer.urban_search_radius_ft
           ? eps.sewer.urban_search_radius_ft 
           : eps.sewer.search_radius_ft;
