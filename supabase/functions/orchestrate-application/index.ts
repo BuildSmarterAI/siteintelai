@@ -30,7 +30,8 @@ async function bump(
   newStatus: string, 
   currentRev: number,
   errorCode?: string,
-  errorMessage?: string
+  errorMessage?: string,
+  substepMessage?: string
 ) {
   const updates: any = {
     status: newStatus,
@@ -38,7 +39,8 @@ async function bump(
     status_percent: STATE_PROGRESS[newStatus] || 0,
     updated_at: new Date().toISOString(),
     error_code: errorCode || null,
-    attempts: 0 // Reset on successful transition or error
+    attempts: 0, // Reset on successful transition or error
+    current_substep: substepMessage || null
   };
 
   const { error } = await sbAdmin
@@ -54,8 +56,38 @@ async function bump(
 
   console.log(`[bump] ${appId}: ${newStatus} (${STATE_PROGRESS[newStatus]}%)`);
 
-  // Publish realtime event to app channel
-  await publishEvent(appId, updates);
+  // Publish realtime event to app channel with enhanced metadata
+  await publishEvent(appId, {
+    ...updates,
+    stage_label: getStageLabel(newStatus),
+    stage_message: getStageMessage(newStatus)
+  });
+}
+
+function getStageLabel(status: string): string {
+  const labels: Record<string, string> = {
+    queued: 'Queued',
+    enriching: 'Gathering Data',
+    validating: 'Validating Data',
+    ai: 'AI Analysis',
+    rendering: 'Generating PDF',
+    complete: 'Complete',
+    error: 'Error'
+  };
+  return labels[status] || 'Processing';
+}
+
+function getStageMessage(status: string): string {
+  const messages: Record<string, string> = {
+    queued: 'Your report is in queue',
+    enriching: 'Fetching parcel, zoning, and utility data',
+    validating: 'Verifying data completeness',
+    ai: 'Analyzing feasibility with AI',
+    rendering: 'Building your PDF report',
+    complete: 'Your report is ready',
+    error: 'An error occurred'
+  };
+  return messages[status] || 'Processing your request';
 }
 
 async function publishEvent(appId: string, payload: any) {

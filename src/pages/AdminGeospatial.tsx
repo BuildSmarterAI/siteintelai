@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Database, CheckCircle, XCircle, MapPin, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useReEnrichApplication } from '@/hooks/useReEnrichApplication';
+import { ReEnrichProgressModal } from '@/components/admin/ReEnrichProgressModal';
 
 const TEST_COORDINATES = [
   { name: 'Houston (Downtown)', lat: 29.7604, lng: -95.3698 },
@@ -22,6 +23,8 @@ export default function AdminGeospatial() {
   const [testError, setTestError] = useState<string | null>(null);
   const [latestApp, setLatestApp] = useState<any>(null);
   const [fetchingApp, setFetchingApp] = useState(true);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [activeReEnrichId, setActiveReEnrichId] = useState<string | null>(null);
   const { toast } = useToast();
   const { reEnrich, loading: reEnrichLoading } = useReEnrichApplication();
 
@@ -51,15 +54,19 @@ export default function AdminGeospatial() {
   const handleReEnrich = async () => {
     if (!latestApp) return;
     
-    const result = await reEnrich(latestApp.id);
-    if (result.success) {
+    setActiveReEnrichId(latestApp.id);
+    setShowProgressModal(true);
+    
+    // Trigger re-enrich (but don't wait for response)
+    reEnrich(latestApp.id).catch(error => {
+      console.error('Re-enrich failed:', error);
+      setShowProgressModal(false);
       toast({
-        title: 'Re-enrichment started',
-        description: 'Check back in 30-60 seconds',
+        title: 'Re-enrichment failed',
+        description: 'Failed to start re-enrichment process',
+        variant: 'destructive',
       });
-      // Refresh after 5 seconds
-      setTimeout(() => fetchLatestApplication(), 5000);
-    }
+    });
   };
 
   const fetchGeospatialLayers = async () => {
@@ -491,6 +498,25 @@ export default function AdminGeospatial() {
           )}
         </CardContent>
       </Card>
+
+      {/* Re-Enrichment Progress Modal */}
+      <ReEnrichProgressModal
+        applicationId={activeReEnrichId || ''}
+        isOpen={showProgressModal}
+        onClose={() => {
+          setShowProgressModal(false);
+          setActiveReEnrichId(null);
+        }}
+        onComplete={() => {
+          setShowProgressModal(false);
+          setActiveReEnrichId(null);
+          fetchLatestApplication(); // Refresh the app data
+          toast({
+            title: 'Re-enrichment complete',
+            description: 'Application data has been refreshed successfully',
+          });
+        }}
+      />
     </div>
   );
 }
