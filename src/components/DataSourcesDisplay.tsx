@@ -1,4 +1,4 @@
-import { TrustBadgesGrid } from "./TrustBadgesGrid";
+import { TrustBadgesGrid } from "./marketing/TrustBadgesGrid";
 import { DataSourcesSidebar } from "./DataSourcesSidebar";
 
 interface DataSource {
