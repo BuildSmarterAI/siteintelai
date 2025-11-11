@@ -127,6 +127,7 @@ serve(async (req) => {
     }
 
     // Call orchestrate-application to run the full enrichment pipeline with validation
+    console.log(`[re-enrich] Invoking orchestrate-application for ${application_id}`);
     const { data: enrichmentResult, error: enrichmentError } = await supabase.functions.invoke(
       'orchestrate-application',
       {
@@ -136,8 +137,9 @@ serve(async (req) => {
       }
     );
 
+    // Handle invoke-level errors (network, etc.)
     if (enrichmentError) {
-      console.error('Enrichment failed:', enrichmentError);
+      console.error('[re-enrich] Invoke error:', enrichmentError);
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'Enrichment failed',
@@ -147,6 +149,22 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Handle function-level errors (orchestrate-application returned error status)
+    if (enrichmentResult && (enrichmentResult.error || enrichmentResult.ok === false)) {
+      console.error('[re-enrich] Orchestration error:', enrichmentResult);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Orchestration failed',
+        details: enrichmentResult.error || enrichmentResult.message || 'Unknown orchestration error',
+        error_code: enrichmentResult.error_code
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('[re-enrich] Orchestration completed successfully:', enrichmentResult);
 
     console.log('Re-enrichment completed successfully');
 
