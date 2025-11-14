@@ -5,6 +5,45 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Validates address input to prevent abuse
+ */
+function validateAddress(address: string): { valid: boolean; error?: string } {
+  if (!address || typeof address !== 'string') {
+    return { valid: false, error: 'Address must be a non-empty string' };
+  }
+  
+  // Trim whitespace
+  address = address.trim();
+  
+  // Min length: 5 characters (e.g., "123 A")
+  if (address.length < 5) {
+    return { valid: false, error: 'Address must be at least 5 characters' };
+  }
+  
+  // Max length: 200 characters (generous for full addresses)
+  if (address.length > 200) {
+    return { valid: false, error: 'Address must be less than 200 characters' };
+  }
+  
+  // Reject suspicious patterns that could indicate injection attempts
+  const suspiciousPatterns = [
+    /<script/i,           // XSS attempts
+    /javascript:/i,       // JavaScript protocol
+    /on\w+\s*=/i,        // Event handlers
+    /\$\{/,              // Template literals
+    /\x00/,              // Null bytes
+  ];
+  
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(address)) {
+      return { valid: false, error: 'Address contains invalid characters' };
+    }
+  }
+  
+  return { valid: true };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -13,18 +52,24 @@ serve(async (req) => {
   try {
     const { address } = await req.json();
     
-    if (!address) {
+    // 🛡️ SECURITY: Validate address input
+    const validation = validateAddress(address);
+    if (!validation.valid) {
+      console.warn('⚠️ Invalid address input:', validation.error);
       return new Response(
-        JSON.stringify({ error: 'Address is required' }),
+        JSON.stringify({ error: validation.error }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('[QUICK-CHECK] Generating QuickCheck for address:', address);
+    // Trim and sanitize
+    const sanitizedAddress = address.trim();
+
+    console.log('[QUICK-CHECK] Generating QuickCheck for address:', sanitizedAddress);
 
     // Geocode the address using Google Places API
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_PLACES_API_KEY');
-    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
+    const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(sanitizedAddress)}&key=${GOOGLE_API_KEY}`;
     
     const geocodeResponse = await fetch(geocodeUrl);
     const geocodeData = await geocodeResponse.json();
