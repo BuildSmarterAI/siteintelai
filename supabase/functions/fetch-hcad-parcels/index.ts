@@ -5,6 +5,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Validates parcel ID to prevent SQL injection
+ * Harris County parcel IDs are typically alphanumeric with hyphens
+ * Example formats: "0123456789", "012-345-678-9"
+ */
+function validateParcelId(parcelId: string): boolean {
+  if (!parcelId || typeof parcelId !== 'string') return false;
+  
+  // Max length: 50 characters (generous for various formats)
+  if (parcelId.length > 50) return false;
+  
+  // Only allow alphanumeric characters, hyphens, and spaces
+  const validPattern = /^[A-Za-z0-9\s\-]+$/;
+  if (!validPattern.test(parcelId)) return false;
+  
+  return true;
+}
+
+/**
+ * Validates bbox array to prevent injection
+ * bbox should be [minLng, minLat, maxLng, maxLat]
+ */
+function validateBbox(bbox: any): boolean {
+  if (!Array.isArray(bbox) || bbox.length !== 4) return false;
+  
+  // All values must be valid numbers
+  if (!bbox.every(val => typeof val === 'number' && !isNaN(val))) return false;
+  
+  const [minLng, minLat, maxLng, maxLat] = bbox;
+  
+  // Validate latitude range (-90 to 90)
+  if (minLat < -90 || minLat > 90 || maxLat < -90 || maxLat > 90) return false;
+  
+  // Validate longitude range (-180 to 180)
+  if (minLng < -180 || minLng > 180 || maxLng < -180 || maxLng > 180) return false;
+  
+  // Ensure min < max
+  if (minLng >= maxLng || minLat >= maxLat) return false;
+  
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -21,7 +63,24 @@ Deno.serve(async (req) => {
 
     // If searching by parcel ID
     if (parcelId) {
+      // 🛡️ SECURITY: Validate parcel ID to prevent SQL injection
+      if (!validateParcelId(parcelId)) {
+        console.warn('⚠️ Invalid parcel ID format:', parcelId);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Invalid parcel ID format. Only alphanumeric characters, hyphens, and spaces are allowed.',
+            type: 'FeatureCollection', 
+            features: [] 
+          }), 
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
       try {
+        // ✅ SAFE: Input validated above
         const parcelQuery = `${HCAD_URL}?` +
           `where=acct_num='${parcelId}'&` +
           `outFields=${HCAD_FIELDS}&` +
@@ -65,6 +124,22 @@ Deno.serve(async (req) => {
     }
 
     // Build spatial query for parcels in viewport
+    // 🛡️ SECURITY: Validate bbox to prevent injection
+    if (!validateBbox(bbox)) {
+      console.warn('⚠️ Invalid bbox format:', bbox);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid bbox format. Must be [minLng, minLat, maxLng, maxLat] with valid coordinates.',
+          type: 'FeatureCollection', 
+          features: [] 
+        }), 
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const [minLng, minLat, maxLng, maxLat] = bbox;
     const bboxGeometry = `${minLng},${minLat},${maxLng},${maxLat}`;
     

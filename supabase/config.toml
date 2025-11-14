@@ -114,7 +114,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.fetch-hcad-parcels]
-verify_jwt = false
+verify_jwt = true
 
 [functions.geocode-intersection]
 verify_jwt = false
