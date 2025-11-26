@@ -71,20 +71,30 @@ serve(async (req) => {
     const tier = subscription.tier;
     const reportsLimit = tier?.reports_per_month || 0;
     const reportsUsed = subscription.reports_used || 0;
-    const reportsRemaining = Math.max(0, reportsLimit - reportsUsed);
+    
+    // Calculate remaining credits:
+    // - For subscription tiers (Pro): reportsLimit - reportsUsed (e.g., 10 - 3 = 7 remaining)
+    // - For pay-per-use: negative reportsUsed means purchased credits (e.g., reportsUsed = -2 means 2 credits)
+    // - Combined formula: reportsLimit - reportsUsed works for both
+    const reportsRemaining = reportsLimit - reportsUsed;
+    
+    // Track purchased credits separately for display
+    const purchasedCredits = reportsUsed < 0 ? Math.abs(reportsUsed) : 0;
 
     logStep("Credits calculated", { 
       tier: tier?.name, 
       reportsLimit, 
       reportsUsed, 
-      reportsRemaining 
+      reportsRemaining,
+      purchasedCredits
     });
 
     return new Response(JSON.stringify({
       tier: tier?.name || "Unknown",
       reports_limit: reportsLimit,
-      reports_used: reportsUsed,
+      reports_used: Math.max(0, reportsUsed), // Display as 0 if negative (purchased credits)
       reports_remaining: reportsRemaining,
+      purchased_credits: purchasedCredits,
       quickchecks_unlimited: tier?.quickchecks_unlimited || false,
       quickchecks_used: subscription.quickchecks_used || 0,
       has_subscription: true,
