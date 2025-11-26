@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
-import siteintelBetaLogo from "@/assets/siteintel-beta-logo.png";
+import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 const Beta = () => {
   const heroRef = useRef(null);
   const [mousePosition, setMousePosition] = useState({
@@ -205,7 +205,7 @@ const Beta = () => {
           delay: 0.2
         }} className="absolute top-4 left-4 md:top-8 md:left-8 z-20">
             <Link to="/" className="block">
-              <img src={siteintelBetaLogo} alt="SiteIntel AI™" className="h-14 md:h-18 lg:h-24 w-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.4)] hover:drop-shadow-[0_0_20px_rgba(255,122,0,0.6)] transition-all duration-300" />
+              <img src={siteintelLogo} alt="SiteIntel AI™" className="h-10 md:h-12 lg:h-16 w-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.4)] hover:drop-shadow-[0_0_20px_rgba(255,122,0,0.6)] transition-all duration-300" />
             </Link>
           </motion.div>
 

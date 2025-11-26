@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useCounter } from "@/hooks/useCounter";
-import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
+import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 import { 
   Building2, 
   TrendingUp, 
@@ -183,9 +183,9 @@ const Developers = () => {
                     transition={{ delay: 0.4, duration: 0.3 }}
                   >
                     <img 
-                      src={siteintelIconLogo} 
+                      src={siteintelLogo} 
                       alt="SiteIntel AI Logo" 
-                      className="h-20 w-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]"
+                      className="h-14 w-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]"
                     />
                   </motion.div>
 

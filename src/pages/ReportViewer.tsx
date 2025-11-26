@@ -24,7 +24,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useReEnrichApplication } from "@/hooks/useReEnrichApplication";
 import { ReportChatAssistant } from "@/components/ReportChatAssistant";
-import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
+import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 interface Report {
   id: string;
   application_id: string;
@@ -656,7 +656,7 @@ export default function ReportViewer() {
         <div className="container mx-auto px-4 md:px-6 py-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center gap-3 md:gap-4">
-              <img src={siteintelIconLogo} alt="SiteIntel AI" className="h-10 md:h-12 drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+              <img src={siteintelLogo} alt="SiteIntel AI" className="h-8 md:h-10 drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
               <div>
                 <h1 className="text-lg md:text-2xl font-headline">Feasibility Report</h1>
                 <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">

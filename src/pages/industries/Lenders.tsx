@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DataSourceBadge } from "@/components/DataSourceBadge";
 import { useCounter } from "@/hooks/useCounter";
-import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
+import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 import { 
   Building2, 
   TrendingUp, 
@@ -166,9 +166,9 @@ const Lenders = () => {
             {/* Logo */}
             <motion.div variants={itemVariants} className="mb-8">
               <img 
-                src={siteintelIconLogo} 
+                src={siteintelLogo} 
                 alt="SiteIntel AI Logo" 
-                className="h-16 mx-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]"
+                className="h-12 mx-auto drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]"
               />
             </motion.div>
 
