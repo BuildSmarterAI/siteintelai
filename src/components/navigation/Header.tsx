@@ -92,7 +92,7 @@ export const Header = () => {
           <img 
             src={siteintelLogo} 
             alt="SiteIntel AI" 
-            className="h-8 md:h-10 w-auto drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]"
+            className="h-12 md:h-16 w-auto drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]"
           />
         </Link>
 
