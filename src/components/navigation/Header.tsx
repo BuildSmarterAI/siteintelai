@@ -52,6 +52,7 @@ export const Header = () => {
 
   const products = [
     { name: "Feasibility Intelligence", href: "/products/feasibility", description: "Zoning, flood, utilities" },
+    { name: "Survey Upload", href: "/survey-upload", description: "Extract buildable envelope", highlight: true },
     { name: "Cost Intelligence", href: "/products/cost-intelligence", description: "Real-time construction costs" },
     { name: "Schedule Intelligence", href: "/products/schedule-intelligence", description: "Timeline risk & permits", comingSoon: true },
   ];
@@ -146,9 +147,12 @@ export const Header = () => {
                   <Link to={product.href} className="cursor-pointer">
                     <div className="flex flex-col py-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-white">{product.name}</span>
+                        <span className={`font-medium ${product.highlight ? 'text-[#06B6D4]' : 'text-white'}`}>{product.name}</span>
                         {product.comingSoon && (
                           <span className="text-[10px] bg-[#8B5CF6] text-white px-2 py-0.5 rounded-full font-semibold">Soon</span>
+                        )}
+                        {product.highlight && (
+                          <span className="text-[10px] bg-[#06B6D4] text-white px-2 py-0.5 rounded-full font-semibold">NEW</span>
                         )}
                       </div>
                       <span className="text-xs text-white/60">{product.description}</span>
@@ -264,10 +268,13 @@ export const Header = () => {
                   All Products
                 </Link>
                 {products.map((product) => (
-                  <Link key={product.href} to={product.href} className="block pl-4 text-white/80 hover:text-[#06B6D4] text-sm flex items-center gap-2">
+                  <Link key={product.href} to={product.href} className={`block pl-4 text-sm flex items-center gap-2 ${product.highlight ? 'text-[#06B6D4]' : 'text-white/80 hover:text-[#06B6D4]'}`}>
                     {product.name}
                     {product.comingSoon && (
                       <span className="text-[10px] bg-[#8B5CF6] text-white px-2 py-0.5 rounded-full font-semibold">Soon</span>
+                    )}
+                    {product.highlight && (
+                      <span className="text-[10px] bg-[#06B6D4] text-white px-2 py-0.5 rounded-full font-semibold">NEW</span>
                     )}
                   </Link>
                 ))}
