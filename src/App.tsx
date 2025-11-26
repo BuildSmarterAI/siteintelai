@@ -27,6 +27,7 @@ import Contact from "./pages/Contact";
 import Developers from "./pages/industries/Developers";
 import Lenders from "./pages/industries/Lenders";
 import TexasDevelopers from "./pages/industries/TexasDevelopers";
+import SurveyUpload from "./pages/SurveyUpload";
 import Blog from "./pages/resources/Blog";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
               <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
               <Route path="/hospitality-intelligence" element={<HospitalityIntelligence />} />
+              <Route path="/survey-upload" element={<SurveyUpload />} />
               <Route path="/feasibility/:parcelId/hospitality" element={<HospitalityIntelligence />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/pricing" element={<Pricing />} />
