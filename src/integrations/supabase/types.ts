@@ -1202,6 +1202,7 @@ export type Database = {
           price_monthly: number
           quickchecks_unlimited: boolean | null
           reports_per_month: number | null
+          stripe_price_id: string | null
         }
         Insert: {
           api_access?: boolean | null
@@ -1212,6 +1213,7 @@ export type Database = {
           price_monthly: number
           quickchecks_unlimited?: boolean | null
           reports_per_month?: number | null
+          stripe_price_id?: string | null
         }
         Update: {
           api_access?: boolean | null
@@ -1222,6 +1224,7 @@ export type Database = {
           price_monthly?: number
           quickchecks_unlimited?: boolean | null
           reports_per_month?: number | null
+          stripe_price_id?: string | null
         }
         Relationships: []
       }
