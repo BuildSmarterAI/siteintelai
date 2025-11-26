@@ -36,6 +36,7 @@ import BetaSignup from "./pages/BetaSignup";
 import BetaThankYou from "./pages/BetaThankYou";
 import HospitalityIntelligence from "./pages/HospitalityIntelligence";
 import UtilitiesDiagnostic from "./pages/UtilitiesDiagnostic";
+import PaymentHistory from "./pages/PaymentHistory";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,7 @@ const App = () => (
               <Route path="/thank-you" element={<ThankYou />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/payment-history" element={<PaymentHistory />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/report/:reportId" element={<ReportViewer />} />
               <Route path="/products" element={<Products />} />

@@ -130,3 +130,18 @@ verify_jwt = false
 
 [functions.submit-beta-signup]
 verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = true
+
+[functions.get-credits]
+verify_jwt = true
+
+[functions.use-credit]
+verify_jwt = true
+
+[functions.bulk-re-enrich]
+verify_jwt = true
