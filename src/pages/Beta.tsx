@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { MapPin, Cpu, FileText, Building2, ShieldCheck, Lock, ChevronDown, LineChart, CheckCircle } from "lucide-react";
+import { MapPin, Cpu, FileText, Building2, ShieldCheck, Lock, ChevronDown, LineChart, CheckCircle, Gavel, Droplets, Zap } from "lucide-react";
 import { BetaBadge } from "@/components/beta/BetaBadge";
 import { SeatsCounter } from "@/components/beta/SeatsCounter";
 import { BetaSignupForm } from "@/components/beta/BetaSignupForm";
@@ -358,6 +358,83 @@ const Beta = () => {
             <span className="text-xs text-white/40 uppercase tracking-wider">Scroll to explore</span>
             <ChevronDown className="w-6 h-6 text-white/40 animate-bounce" aria-hidden="true" />
           </motion.div>
+        </section>
+
+        {/* Category Pain Section */}
+        <section className="py-20 md:py-28 relative bg-gradient-to-b from-slate-950 to-slate-900">
+          <div className="container mx-auto px-6 lg:px-8 max-w-[1120px]">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-12 md:mb-16"
+            >
+              <h2 className="font-headline text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                Texas CRE Has a Feasibility Problem.
+              </h2>
+              <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto">
+                Hidden risks cost developers millions. Know before you close.
+              </p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mb-12">
+              {[
+                {
+                  icon: Gavel,
+                  title: "Zoning Confusion",
+                  description: "Houston's no-zoning myth hides deed restrictions, MUDs, and overlay districts that kill deals."
+                },
+                {
+                  icon: Droplets,
+                  title: "Flood Surprises",
+                  description: "FEMA maps update constantly—yesterday's buildable lot is today's Special Flood Hazard Area."
+                },
+                {
+                  icon: Zap,
+                  title: "Utility Blindspots",
+                  description: "That \"shovel-ready\" site? Might need $500K in utility extensions you didn't budget for."
+                }
+              ].map((pain, index) => (
+                <motion.div
+                  key={pain.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group relative bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8 hover:bg-white/10 hover:border-primary/30 transition-all duration-300"
+                >
+                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-5 group-hover:from-primary/30 group-hover:to-primary/10 transition-all duration-300">
+                    <pain.icon className="w-7 h-7 text-primary" />
+                  </div>
+                  <h3 className="font-headline text-xl md:text-2xl font-semibold text-white mb-3">
+                    {pain.title}
+                  </h3>
+                  <p className="text-white/60 leading-relaxed">
+                    {pain.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center"
+            >
+              <Link to="/beta-signup">
+                <Button
+                  variant="expandIcon"
+                  Icon={ArrowRight}
+                  iconPlacement="right"
+                  size="lg"
+                  className="font-body text-base md:text-lg font-semibold uppercase tracking-widest shadow-2xl px-8 py-6"
+                >
+                  Get Early Access
+                </Button>
+              </Link>
+            </motion.div>
+          </div>
         </section>
 
         {/* Globe Feature Section */}
