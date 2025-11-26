@@ -10,6 +10,7 @@ interface CreditsData {
   reports_limit: number;
   reports_used: number;
   reports_remaining: number;
+  purchased_credits?: number;
   quickchecks_unlimited: boolean;
   quickchecks_used: number;
   has_subscription: boolean;
@@ -108,10 +109,17 @@ export const CreditsDisplay = () => {
               <span>Reports</span>
             </div>
             <span className="font-medium">
-              {credits.reports_remaining} / {credits.reports_limit}
+              {credits.reports_remaining} available
+              {credits.purchased_credits && credits.purchased_credits > 0 && (
+                <span className="text-xs text-muted-foreground ml-1">
+                  ({credits.purchased_credits} purchased)
+                </span>
+              )}
             </span>
           </div>
-          <Progress value={100 - progressValue} className="h-2" />
+          {credits.reports_limit > 0 && (
+            <Progress value={100 - progressValue} className="h-2" />
+          )}
         </div>
 
         {credits.quickchecks_unlimited && (

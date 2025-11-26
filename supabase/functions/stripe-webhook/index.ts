@@ -59,6 +59,9 @@ serve(async (req) => {
         }
 
         // Record payment
+        const paymentType = session.mode === "subscription" ? "subscription" : "one_time";
+        const productName = session.mode === "subscription" ? "SiteIntel Pro Subscription" : "SiteIntel Professional Report";
+        
         await supabaseAdmin.from("payment_history").insert({
           user_id: user.id,
           stripe_session_id: session.id,
@@ -66,9 +69,53 @@ serve(async (req) => {
           amount_cents: session.amount_total || 0,
           currency: session.currency || "usd",
           status: "completed",
-          payment_type: session.mode === "subscription" ? "subscription" : "one_time",
-          product_name: "SiteIntel Report",
+          payment_type: paymentType,
+          product_name: productName,
         });
+
+        // Handle one-time report purchase - credit user with 1 report
+        if (session.mode === "payment") {
+          // Get Pay-Per-Use tier for one-time purchases
+          const { data: payPerUseTier } = await supabaseAdmin
+            .from("subscription_tiers")
+            .select("id")
+            .eq("name", "Pay-Per-Use")
+            .single();
+
+          if (payPerUseTier) {
+            // Check if user has existing subscription
+            const { data: existingSub } = await supabaseAdmin
+              .from("user_subscriptions")
+              .select("id, tier_id, reports_used")
+              .eq("user_id", user.id)
+              .eq("status", "active")
+              .single();
+
+            if (existingSub) {
+              // User has active subscription - add 1 report credit by decreasing reports_used
+              // Negative reports_used means purchased credits available
+              const newReportsUsed = (existingSub.reports_used || 0) - 1;
+              await supabaseAdmin
+                .from("user_subscriptions")
+                .update({ reports_used: newReportsUsed })
+                .eq("id", existingSub.id);
+              logStep("Added 1 report credit to existing subscription", { newReportsUsed });
+            } else {
+              // Create a pay-per-use subscription entry with 1 available report credit
+              // reports_used = -1 means 1 credit available
+              await supabaseAdmin.from("user_subscriptions").insert({
+                user_id: user.id,
+                tier_id: payPerUseTier.id,
+                status: "active",
+                period_start: new Date().toISOString(),
+                period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year expiry
+                reports_used: -1,
+                quickchecks_used: 0,
+              });
+              logStep("Created pay-per-use subscription with 1 report credit");
+            }
+          }
+        }
 
         // If subscription, create/update user_subscription
         if (session.mode === "subscription" && session.subscription) {

@@ -72,24 +72,32 @@ serve(async (req) => {
       const reportsLimit = tier?.reports_per_month || 0;
       const reportsUsed = subscription.reports_used || 0;
 
-      if (reportsUsed >= reportsLimit) {
-        logStep("Report credits exhausted", { reportsUsed, reportsLimit });
+      // Calculate available credits:
+      // - For subscription tiers: reportsLimit - reportsUsed
+      // - For pay-per-use: negative reportsUsed means purchased credits (e.g., -3 means 3 credits)
+      // - Combined: reportsLimit - reportsUsed (works for both cases)
+      const availableReports = reportsLimit - reportsUsed;
+
+      if (availableReports <= 0) {
+        logStep("Report credits exhausted", { reportsUsed, reportsLimit, availableReports });
         return new Response(JSON.stringify({
           success: false,
-          error: "Monthly report credits exhausted. Please upgrade or wait until next billing cycle.",
+          error: "No report credits available. Please purchase a report or upgrade your subscription.",
           can_use: false,
-          reports_used: reportsUsed,
+          reports_used: Math.max(0, reportsUsed),
           reports_limit: reportsLimit,
+          purchased_credits: reportsUsed < 0 ? Math.abs(reportsUsed) : 0,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 403,
         });
       }
 
-      // Increment reports_used
+      // Increment reports_used to consume a credit
+      const newReportsUsed = reportsUsed + 1;
       await supabaseAdmin
         .from("user_subscriptions")
-        .update({ reports_used: reportsUsed + 1 })
+        .update({ reports_used: newReportsUsed })
         .eq("id", subscription.id);
 
       // Record usage
@@ -100,13 +108,14 @@ serve(async (req) => {
         cost: 1,
       });
 
-      logStep("Report credit used", { newTotal: reportsUsed + 1 });
+      logStep("Report credit used", { newReportsUsed, remainingCredits: availableReports - 1 });
 
       return new Response(JSON.stringify({
         success: true,
         can_use: true,
-        reports_used: reportsUsed + 1,
-        reports_remaining: reportsLimit - reportsUsed - 1,
+        reports_used: Math.max(0, newReportsUsed),
+        reports_remaining: availableReports - 1,
+        purchased_credits: newReportsUsed < 0 ? Math.abs(newReportsUsed) : 0,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
