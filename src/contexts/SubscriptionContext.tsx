@@ -1,13 +1,23 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+
+interface CreditsInfo {
+  tier: string;
+  reports_limit: number;
+  reports_used: number;
+  reports_remaining: number;
+  quickchecks_unlimited: boolean;
+  has_subscription: boolean;
+}
 
 interface SubscriptionContextType {
   subscribed: boolean;
   productId: string | null;
   subscriptionEnd: string | null;
   loading: boolean;
+  credits: CreditsInfo | null;
   refreshSubscription: () => Promise<void>;
+  openCustomerPortal: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -24,6 +34,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [subscribed, setSubscribed] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+  const [credits, setCredits] = useState<CreditsInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshSubscription = async () => {
@@ -35,9 +46,11 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setSubscribed(false);
         setProductId(null);
         setSubscriptionEnd(null);
+        setCredits(null);
         return;
       }
 
+      // Fetch subscription status
       const { data, error } = await supabase.functions.invoke('check-subscription', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -52,10 +65,48 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setSubscribed(data.subscribed || false);
       setProductId(data.product_id || null);
       setSubscriptionEnd(data.subscription_end || null);
+
+      // Fetch credits info
+      const { data: creditsData } = await supabase.functions.invoke('get-credits', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (creditsData) {
+        setCredits(creditsData);
+      }
     } catch (error) {
       console.error('Error refreshing subscription:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openCustomerPortal = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('customer-portal', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error opening customer portal:', error);
+        return;
+      }
+
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+    } catch (error) {
+      console.error('Error opening customer portal:', error);
     }
   };
 
@@ -89,7 +140,9 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         productId,
         subscriptionEnd,
         loading,
+        credits,
         refreshSubscription,
+        openCustomerPortal,
       }}
     >
       {children}

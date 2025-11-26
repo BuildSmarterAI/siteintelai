@@ -20,7 +20,7 @@ const PRODUCT_TIERS = {
 };
 
 export const SubscriptionStatus = () => {
-  const { subscribed, productId, subscriptionEnd, loading, refreshSubscription } = useSubscription();
+  const { subscribed, productId, subscriptionEnd, loading, refreshSubscription, openCustomerPortal, credits } = useSubscription();
 
   if (loading) {
     return (
@@ -81,6 +81,17 @@ export const SubscriptionStatus = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {credits && (
+          <div className="bg-muted/50 rounded-lg p-3 space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Reports used this month</span>
+              <span className="font-medium">{credits.reports_used} / {credits.reports_limit}</span>
+            </div>
+            {credits.quickchecks_unlimited && (
+              <div className="text-xs text-muted-foreground">Unlimited QuickChecks included</div>
+            )}
+          </div>
+        )}
         {tierInfo && (
           <div className="space-y-2">
             <h4 className="font-semibold">Your benefits:</h4>
@@ -94,13 +105,22 @@ export const SubscriptionStatus = () => {
             </ul>
           </div>
         )}
-        <Button 
-          onClick={refreshSubscription} 
-          variant="outline" 
-          className="w-full"
-        >
-          Refresh Status
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={openCustomerPortal} 
+            variant="default" 
+            className="flex-1"
+          >
+            Manage Subscription
+          </Button>
+          <Button 
+            onClick={refreshSubscription} 
+            variant="outline" 
+            size="icon"
+          >
+            ↻
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

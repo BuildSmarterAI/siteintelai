@@ -1001,6 +1001,51 @@ export type Database = {
           },
         ]
       }
+      payment_history: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          id: string
+          payment_type: string
+          product_name: string | null
+          receipt_url: string | null
+          status: string
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_type: string
+          product_name?: string | null
+          receipt_url?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          payment_type?: string
+          product_name?: string | null
+          receipt_url?: string | null
+          status?: string
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1010,6 +1055,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          stripe_customer_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1020,6 +1066,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          stripe_customer_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1030,6 +1077,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          stripe_customer_id?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -1273,6 +1321,7 @@ export type Database = {
           quickchecks_used: number | null
           reports_used: number | null
           status: string
+          stripe_subscription_id: string | null
           tier_id: string
           updated_at: string
           user_id: string
@@ -1285,6 +1334,7 @@ export type Database = {
           quickchecks_used?: number | null
           reports_used?: number | null
           status?: string
+          stripe_subscription_id?: string | null
           tier_id: string
           updated_at?: string
           user_id: string
@@ -1297,6 +1347,7 @@ export type Database = {
           quickchecks_used?: number | null
           reports_used?: number | null
           status?: string
+          stripe_subscription_id?: string | null
           tier_id?: string
           updated_at?: string
           user_id?: string
