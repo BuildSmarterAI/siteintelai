@@ -18,6 +18,7 @@ import ReportViewer from "./pages/ReportViewer";
 import Products from "./pages/Products";
 import Pricing from "./pages/Pricing";
 import Feasibility from "./pages/Feasibility";
+import FeasibilityAsAService from "./pages/FeasibilityAsAService";
 import CostIntelligence from "./pages/CostIntelligence";
 import ScheduleIntelligence from "./pages/ScheduleIntelligence";
 import AdminGeospatial from "./pages/AdminGeospatial";
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/products/feasibility" element={<Feasibility />} />
               <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
               <Route path="/products/schedule-intelligence" element={<ScheduleIntelligence />} />
+              <Route path="/feasibility-as-a-service" element={<FeasibilityAsAService />} />
               <Route path="/hospitality-intelligence" element={<HospitalityIntelligence />} />
               <Route path="/survey-upload" element={<SurveyUpload />} />
               <Route path="/demo" element={<Demo />} />
