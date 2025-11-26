@@ -979,8 +979,8 @@ export default function InvestorDeck() {
         onClick={() => paginate(-1)}
         disabled={page === 0}
         className={cn(
-          "absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white transition-all z-40",
-          page === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-white/20"
+          "absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#06B6D4] flex items-center justify-center text-white transition-all z-40 shadow-lg",
+          page === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-[#0891B2]"
         )}
       >
         <ChevronLeft className="w-6 h-6" />
@@ -990,8 +990,8 @@ export default function InvestorDeck() {
         onClick={() => paginate(1)}
         disabled={page === TOTAL_SLIDES - 1}
         className={cn(
-          "absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white transition-all z-40",
-          page === TOTAL_SLIDES - 1 ? "opacity-30 cursor-not-allowed" : "hover:bg-white/20"
+          "absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#06B6D4] flex items-center justify-center text-white transition-all z-40 shadow-lg",
+          page === TOTAL_SLIDES - 1 ? "opacity-30 cursor-not-allowed" : "hover:bg-[#0891B2]"
         )}
       >
         <ChevronRight className="w-6 h-6" />
