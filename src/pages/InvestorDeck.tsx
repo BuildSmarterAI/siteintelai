@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import siteintelLogo from "@/assets/siteintel-logo.png";
+import siteintelLogo from "@/assets/siteintel-ai-logo-new.png";
 
 const TOTAL_SLIDES = 13;
 
