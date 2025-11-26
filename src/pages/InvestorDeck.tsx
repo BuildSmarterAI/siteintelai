@@ -57,7 +57,7 @@ const swipePower = (offset: number, velocity: number) => {
 
 // Slide 1: Title
 const TitleSlide = () => (
-  <div className="relative h-full w-full bg-gradient-to-br from-[#0A0F2C] via-[#0A0F2C] to-[#1a1f3c] flex flex-col items-center justify-center p-12 overflow-hidden">
+  <div className="relative h-full w-full bg-gradient-to-br from-[#0A0F2C] via-[#0A0F2C] to-[#1a1f3c] flex flex-col items-center justify-center p-6 md:p-12 overflow-hidden">
     {/* Blueprint grid overlay */}
     <div 
       className="absolute inset-0 opacity-[0.04]"
@@ -73,14 +73,14 @@ const TitleSlide = () => (
     <motion.img 
       src={siteintelLogo} 
       alt="SiteIntel" 
-      className="h-16 mb-8"
+      className="h-10 md:h-16 mb-4 md:mb-8"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
     />
     
     <motion.h1 
-      className="text-5xl md:text-7xl font-bold text-white mb-6 text-center"
+      className="text-3xl sm:text-4xl md:text-7xl font-bold text-white mb-4 md:mb-6 text-center px-4"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
@@ -89,7 +89,7 @@ const TitleSlide = () => (
     </motion.h1>
     
     <motion.p 
-      className="text-xl md:text-2xl text-white/70 max-w-3xl text-center mb-12"
+      className="text-base sm:text-lg md:text-2xl text-white/70 max-w-3xl text-center mb-8 md:mb-12 px-4"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.5 }}
@@ -98,7 +98,7 @@ const TitleSlide = () => (
     </motion.p>
     
     <motion.div 
-      className="flex gap-3 text-[#FF7A00] text-lg font-semibold tracking-wide"
+      className="flex gap-2 md:gap-3 text-[#FF7A00] text-sm md:text-lg font-semibold tracking-wide"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.7 }}
@@ -114,13 +114,13 @@ const TitleSlide = () => (
 
 // Slide 2: The Problem
 const ProblemSlide = () => (
-  <div className="h-full w-full bg-[#0A0F2C] p-12 flex flex-col">
-    <h2 className="text-4xl font-bold text-white mb-4">The Problem</h2>
-    <p className="text-xl text-[#FF7A00] mb-8 max-w-4xl">
+  <div className="h-full w-full bg-[#0A0F2C] p-4 md:p-12 flex flex-col overflow-y-auto">
+    <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4">The Problem</h2>
+    <p className="text-sm md:text-xl text-[#FF7A00] mb-4 md:mb-8 max-w-4xl">
       Pre-development feasibility is the most critical decision in real estate — and the least efficient.
     </p>
     
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6 flex-1">
       {[
         { icon: Layers, title: "Fragmented Data", desc: "Zoning, utilities, constraints, and cost data live across disconnected systems with no unified workflow." },
         { icon: Clock, title: "Slow & Costly", desc: "Feasibility takes 2–6 weeks and costs $15k–$50k — limiting how many opportunities teams can validate." },
@@ -128,19 +128,19 @@ const ProblemSlide = () => (
       ].map((item, i) => (
         <motion.div 
           key={i}
-          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 flex flex-col"
+          className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 flex flex-col"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 + i * 0.1 }}
         >
-          <item.icon className="w-10 h-10 text-[#FF7A00] mb-4" />
-          <h3 className="text-xl font-semibold text-white mb-2">{item.title}</h3>
-          <p className="text-white/60 text-sm flex-1">{item.desc}</p>
+          <item.icon className="w-8 h-8 md:w-10 md:h-10 text-[#FF7A00] mb-2 md:mb-4" />
+          <h3 className="text-base md:text-xl font-semibold text-white mb-1 md:mb-2">{item.title}</h3>
+          <p className="text-white/60 text-xs md:text-sm flex-1">{item.desc}</p>
         </motion.div>
       ))}
     </div>
     
-    <p className="text-white/40 text-sm mt-6">
+    <p className="text-white/40 text-xs md:text-sm mt-4 md:mt-6">
       The industry still relies on PDFs, consultants, manual zoning lookup, and spreadsheets.
     </p>
   </div>
@@ -148,47 +148,47 @@ const ProblemSlide = () => (
 
 // Slide 3: The Opportunity
 const OpportunitySlide = () => (
-  <div className="h-full w-full bg-gradient-to-br from-[#F9FAFB] to-white p-12 flex flex-col">
-    <h2 className="text-4xl font-bold text-[#0A0F2C] mb-4">The Opportunity</h2>
-    <p className="text-xl text-[#FF7A00] mb-8">
+  <div className="h-full w-full bg-gradient-to-br from-[#F9FAFB] to-white p-4 md:p-12 flex flex-col overflow-y-auto">
+    <h2 className="text-2xl md:text-4xl font-bold text-[#0A0F2C] mb-2 md:mb-4">The Opportunity</h2>
+    <p className="text-sm md:text-xl text-[#FF7A00] mb-4 md:mb-8">
       The world needs a standardized feasibility engine — and none exists.
     </p>
     
-    <div className="grid grid-cols-2 gap-8 flex-1">
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-[#374151] uppercase tracking-wide">Before</h3>
+    <div className="grid grid-cols-2 gap-4 md:gap-8 flex-1">
+      <div className="space-y-3 md:space-y-6">
+        <h3 className="text-xs md:text-lg font-semibold text-[#374151] uppercase tracking-wide">Before</h3>
         {["Manual zoning lookup", "Spreadsheet cost models", "2-6 week timelines", "Consultant dependency", "Fragmented data sources"].map((item, i) => (
           <motion.div 
             key={i} 
-            className="flex items-center gap-3 text-[#374151]"
+            className="flex items-center gap-2 md:gap-3 text-[#374151] text-xs md:text-base"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 + i * 0.05 }}
           >
-            <div className="w-2 h-2 rounded-full bg-red-400" />
+            <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-red-400 shrink-0" />
             <span>{item}</span>
           </motion.div>
         ))}
       </div>
       
-      <div className="space-y-6">
-        <h3 className="text-lg font-semibold text-[#374151] uppercase tracking-wide">After (FaaS)</h3>
+      <div className="space-y-3 md:space-y-6">
+        <h3 className="text-xs md:text-lg font-semibold text-[#374151] uppercase tracking-wide">After (FaaS)</h3>
         {["AI zoning interpretation", "Automated cost engine", "60-second reports", "Self-service platform", "Unified data layer"].map((item, i) => (
           <motion.div 
             key={i} 
-            className="flex items-center gap-3 text-[#374151]"
+            className="flex items-center gap-2 md:gap-3 text-[#374151] text-xs md:text-base"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.1 + i * 0.05 }}
           >
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-emerald-500 shrink-0" />
             <span>{item}</span>
           </motion.div>
         ))}
       </div>
     </div>
     
-    <div className="grid grid-cols-3 gap-6 mt-8 pt-8 border-t border-[#374151]/10">
+    <div className="grid grid-cols-3 gap-3 md:gap-6 mt-4 md:mt-8 pt-4 md:pt-8 border-t border-[#374151]/10">
       {[
         { value: "$21.6B", label: "U.S. TAM" },
         { value: "$110B", label: "Global TAM" },
@@ -201,8 +201,8 @@ const OpportunitySlide = () => (
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 + i * 0.1 }}
         >
-          <p className="text-3xl font-bold text-[#FF7A00]">{stat.value}</p>
-          <p className="text-sm text-[#374151]">{stat.label}</p>
+          <p className="text-xl md:text-3xl font-bold text-[#FF7A00]">{stat.value}</p>
+          <p className="text-xs md:text-sm text-[#374151]">{stat.label}</p>
         </motion.div>
       ))}
     </div>
@@ -211,11 +211,11 @@ const OpportunitySlide = () => (
 
 // Slide 4: Our Solution
 const SolutionSlide = () => (
-  <div className="h-full w-full bg-[#0A0F2C] p-12 flex flex-col">
-    <h2 className="text-4xl font-bold text-white mb-2">Our Solution</h2>
-    <p className="text-2xl text-[#FF7A00] mb-8">A new layer in CRE intelligence.</p>
+  <div className="h-full w-full bg-[#0A0F2C] p-4 md:p-12 flex flex-col overflow-y-auto">
+    <h2 className="text-2xl md:text-4xl font-bold text-white mb-1 md:mb-2">Our Solution</h2>
+    <p className="text-base md:text-2xl text-[#FF7A00] mb-4 md:mb-8">A new layer in CRE intelligence.</p>
     
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-6 flex-1">
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6 flex-1">
       {[
         { icon: Scale, title: "AI Zoning Interpretation", desc: "Parse codes, land-use tables, dimensional standards, overlays" },
         { icon: MapPin, title: "Constraints Mapping", desc: "Floodplain, utilities, easements, parcels, adjacencies" },
@@ -226,14 +226,14 @@ const SolutionSlide = () => (
       ].map((item, i) => (
         <motion.div 
           key={i}
-          className="bg-white/5 border border-white/10 rounded-xl p-5 hover:bg-white/10 transition-colors"
+          className="bg-white/5 border border-white/10 rounded-lg md:rounded-xl p-3 md:p-5 hover:bg-white/10 transition-colors"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 + i * 0.05 }}
         >
-          <item.icon className="w-8 h-8 text-[#06B6D4] mb-3" />
-          <h3 className="text-lg font-semibold text-white mb-1">{item.title}</h3>
-          <p className="text-white/50 text-sm">{item.desc}</p>
+          <item.icon className="w-6 h-6 md:w-8 md:h-8 text-[#06B6D4] mb-2 md:mb-3" />
+          <h3 className="text-sm md:text-lg font-semibold text-white mb-0.5 md:mb-1">{item.title}</h3>
+          <p className="text-white/50 text-xs md:text-sm hidden md:block">{item.desc}</p>
         </motion.div>
       ))}
     </div>
@@ -242,12 +242,12 @@ const SolutionSlide = () => (
 
 // Slide 5: Product Demo
 const ProductDemoSlide = () => (
-  <div className="h-full w-full bg-gradient-to-br from-[#F9FAFB] to-white p-12 flex flex-col">
-    <h2 className="text-4xl font-bold text-[#0A0F2C] mb-2">How It Works</h2>
-    <p className="text-xl text-[#374151] mb-8">Clarity in six steps.</p>
+  <div className="h-full w-full bg-gradient-to-br from-[#F9FAFB] to-white p-4 md:p-12 flex flex-col overflow-y-auto">
+    <h2 className="text-2xl md:text-4xl font-bold text-[#0A0F2C] mb-1 md:mb-2">How It Works</h2>
+    <p className="text-sm md:text-xl text-[#374151] mb-4 md:mb-8">Clarity in six steps.</p>
     
     <div className="flex-1 flex items-center">
-      <div className="grid grid-cols-6 gap-4 w-full">
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4 w-full">
         {[
           { num: "01", title: "Input", desc: "Address or Parcel" },
           { num: "02", title: "Zoning", desc: "AI Interpretation" },
@@ -263,21 +263,21 @@ const ProductDemoSlide = () => (
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + i * 0.1 }}
           >
-            <div className="bg-white border-2 border-[#06B6D4] rounded-xl p-4 text-center shadow-lg">
-              <span className="text-xs font-mono text-[#06B6D4]">{step.num}</span>
-              <h3 className="text-lg font-bold text-[#0A0F2C] mt-1">{step.title}</h3>
-              <p className="text-xs text-[#374151] mt-1">{step.desc}</p>
+            <div className="bg-white border-2 border-[#06B6D4] rounded-lg md:rounded-xl p-2 md:p-4 text-center shadow-lg">
+              <span className="text-[10px] md:text-xs font-mono text-[#06B6D4]">{step.num}</span>
+              <h3 className="text-sm md:text-lg font-bold text-[#0A0F2C] mt-0.5 md:mt-1">{step.title}</h3>
+              <p className="text-[10px] md:text-xs text-[#374151] mt-0.5 md:mt-1 hidden md:block">{step.desc}</p>
             </div>
-            {i < 5 && (
-              <ArrowRight className="absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-[#06B6D4] z-10" />
+            {i < 5 && i !== 2 && (
+              <ArrowRight className="hidden md:block absolute -right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-[#06B6D4] z-10" />
             )}
           </motion.div>
         ))}
       </div>
     </div>
     
-    <div className="bg-[#0A0F2C] rounded-2xl p-6 mt-8">
-      <p className="text-white/60 text-center">
+    <div className="bg-[#0A0F2C] rounded-xl md:rounded-2xl p-4 md:p-6 mt-4 md:mt-8">
+      <p className="text-white/60 text-center text-sm md:text-base">
         <span className="text-[#FF7A00] font-semibold">Result:</span> Lender-ready feasibility report in under 60 seconds
       </p>
     </div>
@@ -907,13 +907,13 @@ export default function InvestorDeck() {
   return (
     <div className="h-screen w-screen bg-[#0A0F2C] flex flex-col overflow-hidden">
       {/* Navigation bar */}
-      <div className="flex items-center justify-between px-6 py-3 bg-black/20 backdrop-blur-sm border-b border-white/10 z-50">
-        <div className="flex items-center gap-4">
-          <img src={siteintelLogo} alt="SiteIntel" className="h-6" />
-          <span className="text-white/40 text-sm">Investor Deck</span>
+      <div className="flex items-center justify-between px-3 md:px-6 py-2 md:py-3 bg-black/20 backdrop-blur-sm border-b border-white/10 z-50">
+        <div className="flex items-center gap-2 md:gap-4">
+          <img src={siteintelLogo} alt="SiteIntel" className="h-5 md:h-6" />
+          <span className="text-white/40 text-xs md:text-sm hidden sm:inline">Investor Deck</span>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2">
           {slideNames.map((name, i) => (
             <button
               key={i}
@@ -927,17 +927,17 @@ export default function InvestorDeck() {
           ))}
         </div>
         
-        <div className="flex items-center gap-3">
-          <span className="text-white/40 text-sm font-mono">
+        <div className="flex items-center gap-2 md:gap-3">
+          <span className="text-white/40 text-xs md:text-sm font-mono">
             {String(page + 1).padStart(2, "0")} / {TOTAL_SLIDES}
           </span>
           <Button
             size="sm"
             onClick={handleExportPDF}
-            className="bg-[#FF7A00] hover:bg-[#FF9240] text-white border-none shadow-lg"
+            className="bg-[#FF7A00] hover:bg-[#FF9240] text-white border-none shadow-lg text-xs md:text-sm px-2 md:px-3"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Export PDF
+            <Download className="w-3 h-3 md:w-4 md:h-4 md:mr-2" />
+            <span className="hidden md:inline">Export PDF</span>
           </Button>
         </div>
       </div>
@@ -979,26 +979,26 @@ export default function InvestorDeck() {
         onClick={() => paginate(-1)}
         disabled={page === 0}
         className={cn(
-          "absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#06B6D4] flex items-center justify-center text-white transition-all z-40 shadow-lg",
+          "absolute left-2 md:left-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#06B6D4] flex items-center justify-center text-white transition-all z-40 shadow-lg",
           page === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-[#0891B2]"
         )}
       >
-        <ChevronLeft className="w-6 h-6" />
+        <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
       </button>
       
       <button
         onClick={() => paginate(1)}
         disabled={page === TOTAL_SLIDES - 1}
         className={cn(
-          "absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#06B6D4] flex items-center justify-center text-white transition-all z-40 shadow-lg",
+          "absolute right-2 md:right-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#06B6D4] flex items-center justify-center text-white transition-all z-40 shadow-lg",
           page === TOTAL_SLIDES - 1 ? "opacity-30 cursor-not-allowed" : "hover:bg-[#0891B2]"
         )}
       >
-        <ChevronRight className="w-6 h-6" />
+        <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
       </button>
       
-      {/* Keyboard hint */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs flex items-center gap-4">
+      {/* Keyboard hint - hidden on mobile */}
+      <div className="hidden md:flex absolute bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs items-center gap-4">
         <span>← → Arrow keys to navigate</span>
         <span>•</span>
         <span>Space for next</span>
