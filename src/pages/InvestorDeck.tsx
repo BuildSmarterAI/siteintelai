@@ -932,10 +932,9 @@ export default function InvestorDeck() {
             {String(page + 1).padStart(2, "0")} / {TOTAL_SLIDES}
           </span>
           <Button
-            variant="outline"
             size="sm"
             onClick={handleExportPDF}
-            className="text-white border-white/20 hover:bg-white/10"
+            className="bg-[#FF7A00] hover:bg-[#FF9240] text-white border-none shadow-lg"
           >
             <Download className="w-4 h-4 mr-2" />
             Export PDF
