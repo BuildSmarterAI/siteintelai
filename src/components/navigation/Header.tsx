@@ -70,6 +70,7 @@ export const Header = () => {
     { label: "Case Studies", href: "/resources/case-studies" },
     { label: "Documentation", href: "/resources/documentation" },
     { label: "API Access", href: "/resources/api" },
+    { label: "Book a Demo", href: "/demo", highlight: true },
   ];
 
   return (
@@ -209,9 +210,16 @@ export const Header = () => {
                 <DropdownMenuItem key={item.href} asChild>
                   <Link
                     to={item.href}
-                    className="text-white/90 hover:text-[#06B6D4] hover:bg-white/5 cursor-pointer"
+                    className={`cursor-pointer ${
+                      item.highlight 
+                        ? "text-[#FF7A00] hover:text-[#FF9240] font-semibold hover:bg-[#FF7A00]/10" 
+                        : "text-white/90 hover:text-[#06B6D4] hover:bg-white/5"
+                    }`}
                   >
                     {item.label}
+                    {item.highlight && (
+                      <span className="ml-2 text-[10px] bg-[#FF7A00] text-white px-2 py-0.5 rounded-full font-semibold">NEW</span>
+                    )}
                   </Link>
                 </DropdownMenuItem>
               ))}
@@ -314,9 +322,16 @@ export const Header = () => {
                   <Link
                     key={item.href}
                     to={item.href}
-                    className="block pl-4 text-white/80 hover:text-[#06B6D4] text-sm"
+                    className={`block pl-4 text-sm ${
+                      item.highlight 
+                        ? "text-[#FF7A00] hover:text-[#FF9240] font-semibold flex items-center gap-2" 
+                        : "text-white/80 hover:text-[#06B6D4]"
+                    }`}
                   >
                     {item.label}
+                    {item.highlight && (
+                      <span className="text-[10px] bg-[#FF7A00] text-white px-2 py-0.5 rounded-full font-semibold">NEW</span>
+                    )}
                   </Link>
                 ))}
               </div>
