@@ -19,6 +19,7 @@ import Products from "./pages/Products";
 import Pricing from "./pages/Pricing";
 import Feasibility from "./pages/Feasibility";
 import FeasibilityAsAService from "./pages/FeasibilityAsAService";
+import InvestorDeck from "./pages/InvestorDeck";
 import CostIntelligence from "./pages/CostIntelligence";
 import ScheduleIntelligence from "./pages/ScheduleIntelligence";
 import AdminGeospatial from "./pages/AdminGeospatial";
@@ -48,6 +49,12 @@ const queryClient = new QueryClient();
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isBetaPage = location.pathname === '/beta' || location.pathname === '/beta-signup' || location.pathname === '/beta-thank-you';
+  const isFullscreenPage = location.pathname === '/investor-deck';
+
+  // Fullscreen pages render without any layout wrapper
+  if (isFullscreenPage) {
+    return <>{children}</>;
+  }
 
   return (
     <>
@@ -110,6 +117,7 @@ const App = () => (
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
               <Route path="/beta-thank-you" element={<BetaThankYou />} />
+              <Route path="/investor-deck" element={<InvestorDeck />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
