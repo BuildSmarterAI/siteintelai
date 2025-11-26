@@ -51,8 +51,9 @@ export const Header = () => {
     }`;
 
   const products = [
+    { name: "Feasibility-as-a-Service™", href: "/feasibility-as-a-service", description: "Full-stack feasibility platform", highlight: true },
     { name: "Feasibility Intelligence", href: "/products/feasibility", description: "Zoning, flood, utilities" },
-    { name: "Survey Upload", href: "/survey-upload", description: "Extract buildable envelope", highlight: true },
+    { name: "Survey Upload", href: "/survey-upload", description: "Extract buildable envelope" },
     { name: "Cost Intelligence", href: "/products/cost-intelligence", description: "Real-time construction costs" },
     { name: "Schedule Intelligence", href: "/products/schedule-intelligence", description: "Timeline risk & permits", comingSoon: true },
   ];
