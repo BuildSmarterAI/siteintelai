@@ -26,6 +26,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Developers from "./pages/industries/Developers";
 import Lenders from "./pages/industries/Lenders";
+import TexasDevelopers from "./pages/industries/TexasDevelopers";
 import Blog from "./pages/resources/Blog";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/industries/developers" element={<Developers />} />
               <Route path="/industries/lenders" element={<Lenders />} />
+              <Route path="/industries/texas-developers" element={<TexasDevelopers />} />
               <Route path="/industries/design-build" element={<Developers />} />
               <Route path="/industries/municipalities" element={<Developers />} />
               <Route path="/resources/blog" element={<Blog />} />
