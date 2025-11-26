@@ -162,6 +162,10 @@ export const Header = () => {
             How It Works
           </NavLink>
 
+          <NavLink to="/pricing" className={navLinkClass}>
+            Pricing
+          </NavLink>
+
           {/* Industries Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-white/90 hover:text-[#06B6D4] transition-colors">
@@ -263,6 +267,10 @@ export const Header = () => {
 
               <Link to="/how-it-works" className="text-white hover:text-[#06B6D4] font-medium">
                 How It Works
+              </Link>
+              
+              <Link to="/pricing" className="text-white hover:text-[#06B6D4] font-medium">
+                Pricing
               </Link>
               
               <div className="space-y-2">

@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ReportViewer from "./pages/ReportViewer";
 import Products from "./pages/Products";
+import Pricing from "./pages/Pricing";
 import Feasibility from "./pages/Feasibility";
 import CostIntelligence from "./pages/CostIntelligence";
 import ScheduleIntelligence from "./pages/ScheduleIntelligence";
@@ -81,6 +82,7 @@ const App = () => (
               <Route path="/hospitality-intelligence" element={<HospitalityIntelligence />} />
               <Route path="/feasibility/:parcelId/hospitality" element={<HospitalityIntelligence />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/pricing" element={<Pricing />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/industries/developers" element={<Developers />} />
