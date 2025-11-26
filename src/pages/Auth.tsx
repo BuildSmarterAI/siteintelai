@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2, CheckCircle } from "lucide-react";
-import siteintelIconLogo from "@/assets/siteintel-icon-logo.png";
+import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -118,9 +118,9 @@ export default function Auth() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <img 
-            src={siteintelIconLogo} 
+            src={siteintelLogo} 
             alt="SiteIntel AI" 
-            className="h-16 mx-auto mb-4 drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]"
+            className="h-12 mx-auto mb-4 drop-shadow-[0_0_12px_rgba(255,122,0,0.6)]"
           />
           <CardTitle className="text-3xl font-headline">SiteIntel™ Feasibility</CardTitle>
           <CardDescription>
