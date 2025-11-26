@@ -4,8 +4,9 @@ import { motion } from "framer-motion";
 import { Helmet } from "react-helmet";
 import { 
   Layers, Clock, AlertTriangle, Brain, MapPin, DollarSign, 
-  TrendingUp, FileText, Building2, Briefcase, Landmark, HardHat,
-  Compass, Users, CheckCircle2, Shield, Zap, Target, ArrowRight
+  TrendingUp, FileText, Building2, Briefcase, Landmark, 
+  Users, CheckCircle2, Shield, Zap, Target, ArrowRight,
+  ShoppingCart, Store, Building, Stethoscope, Factory, Hotel
 } from "lucide-react";
 
 const FeasibilityAsAService = () => {
@@ -81,9 +82,13 @@ const FeasibilityAsAService = () => {
     { icon: Building2, title: "Developers", description: "Validate sites faster, reduce due diligence costs" },
     { icon: Briefcase, title: "Private Equity & Investment Groups", description: "Scale deal screening with precision" },
     { icon: Landmark, title: "Lenders & Credit Committees", description: "Trust feasibility data for underwriting" },
-    { icon: HardHat, title: "General Contractors", description: "Pre-construction intelligence at your fingertips" },
-    { icon: Compass, title: "Architects & Engineers", description: "Design within validated constraints" },
-    { icon: Users, title: "Brokers & Land Specialists", description: "Win more deals with instant feasibility" }
+    { icon: ShoppingCart, title: "Retail Chains", description: "Store site selection with zoning and traffic validation" },
+    { icon: Store, title: "Franchise Brands", description: "Scale expansion with pre-validated site intelligence" },
+    { icon: Building, title: "REITs", description: "Portfolio-wide feasibility screening for acquisitions" },
+    { icon: Users, title: "Brokers & Land Specialists", description: "Win more deals with instant feasibility" },
+    { icon: Stethoscope, title: "Medical", description: "Evaluate specialized sites with unique constraints" },
+    { icon: Factory, title: "Industrial", description: "Evaluate specialized sites with unique constraints" },
+    { icon: Hotel, title: "Hospitality Developers", description: "Evaluate specialized sites with unique constraints" }
   ];
 
   const proofPoints = [
