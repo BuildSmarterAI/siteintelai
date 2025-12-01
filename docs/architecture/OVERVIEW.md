@@ -13,10 +13,10 @@ BuildSmarter™ Feasibility is an AI/GIS SaaS platform that ingests authoritativ
 
 ### Layers
 
-1. **Front-end** (Vercel/React + shadcn/ui)
+1. **Front-end** (Lovable Cloud/React + shadcn/ui)
    - Auth, intake form, job progress, report viewer (PDF/JSON downloads)
 
-2. **Edge/API** (Vercel Functions + Supabase Edge Functions)
+2. **Edge/API** (Supabase Edge Functions)
    - `/intake` (enqueue job)
    - `/reports/:id` (signed downloads)
    - `/odata/*` (read-only OData facade)
@@ -44,8 +44,7 @@ BuildSmarter™ Feasibility is an AI/GIS SaaS platform that ingests authoritativ
 ## 3. Physical Architecture / Deployment Topology
 
 ### Infrastructure
-- **Vercel**: Static assets + Edge Functions (/intake, /generate/:appId, /reports/:id, /odata/*)
-- **Supabase**: 
+- **Lovable Cloud (Supabase)**: 
   - Postgres (RLS)
   - Storage (PDF/JSON)
   - Edge Functions (enqueue/consume jobs, cron refresh, retry/backoff)
