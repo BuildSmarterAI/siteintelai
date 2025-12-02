@@ -219,7 +219,7 @@ const Demo = () => {
                 <Play className="w-3 h-3 mr-1" />
                 Live demo with real Texas site data
               </Badge>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-6 leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-foreground mb-6 leading-tight">
                 See Feasibility Generated in{" "}
                 <span className="text-primary">60 Seconds</span>.
               </h1>
@@ -278,7 +278,7 @@ const Demo = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
               Still Evaluating Sites the{" "}
               <span className="text-destructive">Old Way</span>?
             </h2>
@@ -390,7 +390,7 @@ const Demo = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
               What You'll See in the Demo
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -410,7 +410,7 @@ const Demo = () => {
                 <Card className="h-full border-border/50 hover:border-primary/30 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="text-4xl font-display font-bold text-primary/20">{step.step}</span>
+                      <span className="text-4xl font-heading font-bold text-primary/20">{step.step}</span>
                       <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                         <step.icon className="w-6 h-6 text-primary" />
                       </div>
@@ -434,7 +434,7 @@ const Demo = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
               Your Demo Covers Every Feasibility Layer
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -466,18 +466,6 @@ const Demo = () => {
               </motion.div>
             ))}
           </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mt-12"
-          >
-            <Button size="lg" className="bg-primary hover:bg-primary/90">
-              Book Demo Now
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          </motion.div>
         </div>
       </section>
 
@@ -490,13 +478,12 @@ const Demo = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
               Why Developers, Brokers, and Investors Book Demos
             </h2>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            {/* Developers */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -505,15 +492,13 @@ const Demo = () => {
             >
               <Card className="h-full border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4">
-                    <Building2 className="w-6 h-6 text-primary-foreground" />
-                  </div>
+                  <Building2 className="w-10 h-10 text-primary mb-4" />
                   <h3 className="text-xl font-semibold text-foreground mb-4">Developers</h3>
                   <ul className="space-y-3">
                     {developerBenefits.map((benefit, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                        <span className="text-muted-foreground">{benefit}</span>
+                      <li key={index} className="flex items-center gap-2 text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                        {benefit}
                       </li>
                     ))}
                   </ul>
@@ -521,24 +506,21 @@ const Demo = () => {
               </Card>
             </motion.div>
 
-            {/* Brokers */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
             >
-              <Card className="h-full border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
+              <Card className="h-full border-accent/20 bg-gradient-to-b from-accent/5 to-transparent">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4">
-                    <Briefcase className="w-6 h-6 text-primary-foreground" />
-                  </div>
+                  <Briefcase className="w-10 h-10 text-accent mb-4" />
                   <h3 className="text-xl font-semibold text-foreground mb-4">Brokers</h3>
                   <ul className="space-y-3">
                     {brokerBenefits.map((benefit, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                        <span className="text-muted-foreground">{benefit}</span>
+                      <li key={index} className="flex items-center gap-2 text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
+                        {benefit}
                       </li>
                     ))}
                   </ul>
@@ -546,24 +528,21 @@ const Demo = () => {
               </Card>
             </motion.div>
 
-            {/* Investors */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3 }}
             >
-              <Card className="h-full border-primary/20 bg-gradient-to-b from-primary/5 to-transparent">
+              <Card className="h-full border-green-500/20 bg-gradient-to-b from-green-500/5 to-transparent">
                 <CardContent className="p-6">
-                  <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-4">
-                    <LineChart className="w-6 h-6 text-primary-foreground" />
-                  </div>
+                  <LineChart className="w-10 h-10 text-green-500 mb-4" />
                   <h3 className="text-xl font-semibold text-foreground mb-4">Investors</h3>
                   <ul className="space-y-3">
                     {investorBenefits.map((benefit, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                        <span className="text-muted-foreground">{benefit}</span>
+                      <li key={index} className="flex items-center gap-2 text-muted-foreground">
+                        <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+                        {benefit}
                       </li>
                     ))}
                   </ul>
@@ -574,7 +553,7 @@ const Demo = () => {
         </div>
       </section>
 
-      {/* Social Proof */}
+      {/* Testimonials */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6 lg:px-8">
           <motion.div 
@@ -583,7 +562,7 @@ const Demo = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
               Trusted Across The Texas CRE Market
             </h2>
           </motion.div>
@@ -597,15 +576,13 @@ const Demo = () => {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className="h-full border-border/50">
+                <Card className="h-full">
                   <CardContent className="p-6">
                     <Quote className="w-8 h-8 text-primary/30 mb-4" />
                     <p className="text-foreground mb-6 italic">"{testimonial.quote}"</p>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-primary font-semibold">
-                          {testimonial.author.split(' ').map(n => n[0]).join('')}
-                        </span>
+                        <Users className="w-5 h-5 text-primary" />
                       </div>
                       <div>
                         <p className="font-semibold text-foreground">{testimonial.author}</p>
@@ -617,41 +594,20 @@ const Demo = () => {
               </motion.div>
             ))}
           </div>
-
-          {/* Trust badges placeholder */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mt-12 flex flex-wrap justify-center gap-8 items-center opacity-50"
-          >
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Award className="w-5 h-5" />
-              <span className="text-sm">Early Testers</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Users className="w-5 h-5" />
-              <span className="text-sm">50+ Developers</span>
-            </div>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Star className="w-5 h-5" />
-              <span className="text-sm">Texas-Focused</span>
-            </div>
-          </motion.div>
         </div>
       </section>
 
-      {/* Demo Booking Section */}
-      <section className="py-20">
+      {/* Booking Section */}
+      <section className="py-20 bg-gradient-to-b from-background to-primary/5">
         <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
                 Ready to See Instant Feasibility?
               </h2>
               <p className="text-xl text-muted-foreground">
@@ -660,82 +616,73 @@ const Demo = () => {
             </motion.div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
             >
-              <Card className="border-primary/20 shadow-xl">
+              <Card className="border-primary/20">
                 <CardContent className="p-8">
-                  <form className="space-y-6">
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name">Name</Label>
-                        <Input id="name" placeholder="Your full name" />
+                  <div className="flex items-center gap-2 mb-6">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="font-semibold text-foreground">Book Your Demo</span>
+                  </div>
+                  
+                  <form className="space-y-4">
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName">First Name</Label>
+                        <Input id="firstName" placeholder="John" />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input id="email" type="email" placeholder="you@company.com" />
-                      </div>
-                    </div>
-
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="developer">Developer</SelectItem>
-                            <SelectItem value="broker">Broker</SelectItem>
-                            <SelectItem value="investor">Investor</SelectItem>
-                            <SelectItem value="architect">Architect</SelectItem>
-                            <SelectItem value="engineer">Civil Engineer</SelectItem>
-                            <SelectItem value="planner">City Planner</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City</Label>
-                        <Select>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select your city" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="houston">Houston</SelectItem>
-                            <SelectItem value="dallas">Dallas</SelectItem>
-                            <SelectItem value="austin">Austin</SelectItem>
-                            <SelectItem value="san-antonio">San Antonio</SelectItem>
-                            <SelectItem value="fort-worth">Fort Worth</SelectItem>
-                            <SelectItem value="other">Other Texas City</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div>
+                        <Label htmlFor="lastName">Last Name</Label>
+                        <Input id="lastName" placeholder="Smith" />
                       </div>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="project">Project or site you want us to demo (optional)</Label>
-                      <Textarea 
-                        id="project" 
-                        placeholder="Enter an address, parcel ID, or describe your project..."
-                        rows={3}
-                      />
+                    
+                    <div>
+                      <Label htmlFor="email">Work Email</Label>
+                      <Input id="email" type="email" placeholder="john@company.com" />
                     </div>
-
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Button type="submit" size="lg" className="flex-1 bg-primary hover:bg-primary/90">
-                        <Calendar className="w-5 h-5 mr-2" />
-                        Book Instant Demo
-                      </Button>
-                      <Button type="button" size="lg" variant="outline" asChild>
-                        <Link to="/beta-signup">
-                          Get Early Access Instead
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Link>
-                      </Button>
+                    
+                    <div>
+                      <Label htmlFor="company">Company</Label>
+                      <Input id="company" placeholder="Your Company" />
                     </div>
+                    
+                    <div>
+                      <Label htmlFor="role">Role</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="developer">Developer</SelectItem>
+                          <SelectItem value="broker">Broker</SelectItem>
+                          <SelectItem value="investor">Investor</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="address">Property Address (Optional)</Label>
+                      <Input id="address" placeholder="123 Main St, Houston, TX" />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="notes">What would you like to see in the demo?</Label>
+                      <Textarea id="notes" placeholder="Tell us about your projects or questions..." rows={3} />
+                    </div>
+                    
+                    <Button size="lg" className="w-full bg-primary hover:bg-primary/90">
+                      Book My Demo
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
                   </form>
+
+                  <p className="text-xs text-muted-foreground text-center mt-4">
+                    Usually responds within 24 hours. No spam, ever.
+                  </p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -744,68 +691,58 @@ const Demo = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-20 bg-muted/30">
-        <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-3xl mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
-                FAQ: Before You Book Your Demo…
-              </h2>
-            </motion.div>
+      <section className="py-20">
+        <div className="container mx-auto px-6 lg:px-8 max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
+              FAQ: Before You Book Your Demo…
+            </h2>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <Accordion type="single" collapsible className="space-y-4">
-                {faqs.map((faq, index) => (
-                  <AccordionItem 
-                    key={index} 
-                    value={`item-${index}`}
-                    className="bg-card border border-border/50 rounded-lg px-6"
-                  >
-                    <AccordionTrigger className="text-left font-semibold text-foreground hover:no-underline">
-                      {faq.question}
-                    </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground">
-                      {faq.answer}
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </motion.div>
-          </div>
+          <Accordion type="single" collapsible className="w-full">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={index} value={`item-${index}`}>
+                <AccordionTrigger className="text-left font-semibold">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </div>
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      <section className="py-20 bg-primary/5">
         <div className="container mx-auto px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-4">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-foreground mb-4">
               Get Feasibility Clarity in Minutes — Not Weeks.
             </h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join the Texas developers, brokers, and investors who are making faster, smarter land decisions.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button size="lg" className="bg-primary hover:bg-primary/90">
                 <Calendar className="w-5 h-5 mr-2" />
-                Book Demo Now
+                Book Your Demo Now
               </Button>
-              <Button size="lg" variant="outline">
-                See Sample Report
-                <ArrowRight className="w-4 h-4 ml-2" />
+              <Button size="lg" variant="outline" asChild>
+                <Link to="/application">
+                  Try Free QuickCheck
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
               </Button>
             </div>
           </motion.div>

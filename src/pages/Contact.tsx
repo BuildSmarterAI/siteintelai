@@ -8,7 +8,7 @@ const Contact = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold text-white mb-6 text-center">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-white mb-6 text-center">
             Get in <span className="text-[#FF7A00]">Touch</span>
           </h1>
           <p className="text-xl text-white/80 mb-12 text-center">
@@ -20,19 +20,19 @@ const Contact = () => {
             <div className="space-y-6">
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
                 <Mail className="h-8 w-8 text-[#06B6D4] mb-3" />
-                <h3 className="text-lg font-semibold text-white mb-2">Email Us</h3>
+                <h3 className="text-lg font-heading font-semibold text-white mb-2">Email Us</h3>
                 <p className="text-white/70">support@siteintel.ai</p>
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
                 <Phone className="h-8 w-8 text-[#FF7A00] mb-3" />
-                <h3 className="text-lg font-semibold text-white mb-2">Call Us</h3>
+                <h3 className="text-lg font-heading font-semibold text-white mb-2">Call Us</h3>
                 <p className="text-white/70">1-800-BUILD-AI</p>
               </div>
 
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
                 <MessageSquare className="h-8 w-8 text-[#06B6D4] mb-3" />
-                <h3 className="text-lg font-semibold text-white mb-2">Live Chat</h3>
+                <h3 className="text-lg font-heading font-semibold text-white mb-2">Live Chat</h3>
                 <p className="text-white/70">Available Mon-Fri, 9am-6pm EST</p>
               </div>
             </div>

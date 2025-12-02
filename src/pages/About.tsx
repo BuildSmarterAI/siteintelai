@@ -7,7 +7,7 @@ const About = () => {
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold text-white mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-white mb-6">
             About <span className="text-[#FF7A00]">SiteIntel™</span>
           </h1>
           <p className="text-xl text-white/80 mb-16 leading-relaxed">
@@ -19,7 +19,7 @@ const About = () => {
           <section className="mb-16">
             <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
               <Target className="h-12 w-12 text-[#06B6D4] mb-4" />
-              <h2 className="text-3xl font-bold text-white mb-4">Our Mission</h2>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-white mb-4">Our Mission</h2>
               <p className="text-white/80 text-lg leading-relaxed">
                 To eliminate uncertainty in development decisions by fusing public, municipal, and
                 construction data into a single verified source of truth. Every site. Every cost.
@@ -30,7 +30,7 @@ const About = () => {
 
           {/* Leadership */}
           <section className="mb-16" id="team">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-white mb-8 flex items-center gap-3">
               <Users className="h-8 w-8 text-[#FF7A00]" />
               Leadership Team
             </h2>
@@ -44,7 +44,7 @@ const About = () => {
 
           {/* Data Ethics */}
           <section className="mb-16" id="ethics">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-white mb-8 flex items-center gap-3">
               <Heart className="h-8 w-8 text-[#06B6D4]" />
               Data Ethics & Transparency
             </h2>
@@ -72,7 +72,7 @@ const About = () => {
 
           {/* Careers */}
           <section className="mb-16" id="careers">
-            <h2 className="text-3xl font-bold text-white mb-8 flex items-center gap-3">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-white mb-8 flex items-center gap-3">
               <Briefcase className="h-8 w-8 text-[#FF7A00]" />
               Careers
             </h2>
@@ -93,7 +93,7 @@ const About = () => {
 
           {/* CTA */}
           <div className="text-center bg-gradient-to-r from-[#FF7A00]/10 to-[#06B6D4]/10 rounded-2xl p-8 border border-[#FF7A00]/20">
-            <h3 className="text-2xl font-bold text-white mb-4">
+            <h3 className="text-2xl font-heading font-bold text-white mb-4">
               Ready to Experience Verified Intelligence?
             </h3>
             <Button

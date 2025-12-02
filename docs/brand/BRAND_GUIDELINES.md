@@ -89,10 +89,10 @@ The palette communicates technical confidence and clarity under pressure—mirro
 
 | Tailwind Class | Font Family | Use Case | Weights Loaded |
 |----------------|-------------|----------|----------------|
-| `font-heading` | Inter | Headlines, titles, section headers | 400, 500, 600, 700 |
-| `font-body` | Inter | Body text, paragraphs, descriptions | 400, 500, 600, 700 |
+| `font-heading` | Space Grotesk | Headlines, titles, section headers | 500, 600, 700 |
+| `font-body` | Inter | Body text, paragraphs, descriptions | 400, 500, 600 |
 | `font-mono` | JetBrains Mono | Code, numbers, technical data | 500, 600 |
-| `font-sans` | Inter | Default sans-serif (fallback to body) | 400, 500, 600, 700 |
+| `font-sans` | Inter | Default sans-serif (fallback to body) | 400, 500, 600 |
 
 ### Typography Classes Quick Reference
 

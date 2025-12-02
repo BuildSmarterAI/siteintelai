@@ -37,7 +37,7 @@ export const KeyAdvantages = () => {
         >
           <motion.h2
             variants={itemVariants}
-            className="text-2xl sm:text-[28px] md:text-h2 font-headline text-cloud-white mb-6 md:mb-8 text-center"
+            className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-cloud-white mb-6 md:mb-8 text-center"
           >
             Why Texas Developers Trust SiteIntel™
           </motion.h2>
@@ -57,7 +57,7 @@ export const KeyAdvantages = () => {
                   <Shield className="w-6 h-6 text-data-cyan" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange mb-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-heading text-feasibility-orange mb-2">
                     Lender-Ready Reports
                   </h3>
                   <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7]">
@@ -81,7 +81,7 @@ export const KeyAdvantages = () => {
                   <Zap className="w-6 h-6 text-data-cyan" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange mb-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-heading text-feasibility-orange mb-2">
                     10-Minute Delivery
                   </h3>
                   <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7]">
@@ -105,7 +105,7 @@ export const KeyAdvantages = () => {
                   <FileCheck className="w-6 h-6 text-data-cyan" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange mb-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-heading text-feasibility-orange mb-2">
                     Zero Guesswork
                   </h3>
                   <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7]">
@@ -129,7 +129,7 @@ export const KeyAdvantages = () => {
                   <TrendingUp className="w-6 h-6 text-data-cyan" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-base sm:text-lg md:text-xl font-headline text-feasibility-orange mb-2">
+                  <h3 className="text-base sm:text-lg md:text-xl font-heading text-feasibility-orange mb-2">
                     $10K+ Saved Per Site
                   </h3>
                   <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7]">
