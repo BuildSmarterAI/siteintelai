@@ -504,10 +504,10 @@ export const Hero = () => {
               
 
               {/* Headline */}
-              <motion.h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.1] mb-6 md:mb-8" variants={headlineVariants}>
+              <motion.h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6 md:mb-8" variants={headlineVariants}>
                 <span className="text-white">Instant Feasibility Intelligence for</span>
                 <br />
-                <span className="bg-gradient-to-r from-[#06B6D4] to-[#FF7A00] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
                   Commercial Real Estate
                 </span>
               </motion.h1>
