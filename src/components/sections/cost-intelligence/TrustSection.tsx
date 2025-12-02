@@ -31,7 +31,7 @@ export const TrustSection = () => {
             <span className="font-cta text-sm font-semibold">Trusted Data Sources</span>
           </div>
 
-          <h2 className="font-headline text-4xl md:text-5xl text-foreground mb-4">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground mb-4">
             Built on Reliable, Verified Intelligence
           </h2>
           <p className="font-body text-xl text-muted-foreground max-w-3xl mx-auto">

@@ -35,7 +35,7 @@ const AuthorityBadges = () => {
           <p className="text-sm uppercase tracking-wider text-white/60 mb-2">
             Trusted by Lenders & Developers
           </p>
-          <h2 className="text-2xl font-bold text-white mb-2">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70 mb-2">
             Every Data Point Verified from Official Government Sources
           </h2>
           <p className="text-white/70">

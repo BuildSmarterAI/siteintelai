@@ -25,7 +25,7 @@ export const IntroChallengeSection = () => {
               <span className="font-cta text-sm font-semibold">Industry Challenge</span>
             </div>
 
-            <h2 className="font-headline text-4xl md:text-5xl text-foreground leading-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground">
               The Challenge: Costs Change Faster Than Plans
             </h2>
             
