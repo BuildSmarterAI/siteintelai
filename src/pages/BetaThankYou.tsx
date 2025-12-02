@@ -61,7 +61,7 @@ const BetaThankYou = () => {
               <CheckCircle2 className="w-12 h-12 text-green-500" />
             </motion.div>
             
-            <h1 className="text-h1 font-headline mb-4 text-secondary">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 text-secondary">
               Welcome to the <span className="text-white">Founding Cohort</span>
             </h1>
             
@@ -89,7 +89,7 @@ const BetaThankYou = () => {
             >
               <Card className="glass-card">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 font-headline">
+                  <CardTitle className="flex items-center gap-2 font-heading">
                     <Mail className="w-5 h-5 text-accent" />
                     Your Beta Access Details
                   </CardTitle>
@@ -119,7 +119,7 @@ const BetaThankYou = () => {
                   </div>
 
                   <div className="border-t border-border/50 pt-space-md mt-space-md">
-                    <p className="font-semibold mb-3 text-secondary font-headline">What You'll Receive:</p>
+                    <p className="font-semibold mb-3 text-secondary font-heading">What You'll Receive:</p>
                     <ul className="space-y-2 text-sm text-muted-foreground font-body">
                       <li className="flex items-start gap-2">
                         <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
@@ -151,7 +151,7 @@ const BetaThankYou = () => {
             transition={{ delay: 0.4, duration: 0.6 }}
             className="max-w-3xl mx-auto mb-space-lg"
           >
-            <h2 className="text-h2 font-headline text-center mb-8 text-secondary">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-center mb-8 text-secondary">
               What Happens Next
             </h2>
 
@@ -199,7 +199,7 @@ const BetaThankYou = () => {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-semibold text-secondary font-headline">{item.title}</h3>
+                          <h3 className="font-semibold text-secondary font-heading">{item.title}</h3>
                           <Badge variant="outline" className="text-xs">
                             {item.time}
                           </Badge>
@@ -220,7 +220,7 @@ const BetaThankYou = () => {
             transition={{ delay: 0.8, duration: 0.6 }}
             className="max-w-4xl mx-auto mb-space-lg"
           >
-            <h2 className="text-h2 font-headline text-center mb-8 text-secondary">
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-center mb-8 text-secondary">
               Get Started Right Away
             </h2>
 
@@ -228,7 +228,7 @@ const BetaThankYou = () => {
               <Card className="glass-card hover:border-accent/50 transition-colors">
                 <CardContent className="p-space-md text-center">
                   <Users className="w-12 h-12 text-accent mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2 text-secondary font-headline">Explore Beta Program</h3>
+                  <h3 className="font-semibold mb-2 text-secondary font-heading">Explore Beta Program</h3>
                   <p className="text-sm text-muted-foreground mb-4 font-body">
                     Learn about exclusive benefits
                   </p>
@@ -243,7 +243,7 @@ const BetaThankYou = () => {
               <Card className="glass-card hover:border-accent/50 transition-colors">
                 <CardContent className="p-space-md text-center">
                   <Calendar className="w-12 h-12 text-accent mx-auto mb-4" />
-                  <h3 className="font-semibold mb-2 text-secondary font-headline">Schedule Demo Call</h3>
+                  <h3 className="font-semibold mb-2 text-secondary font-heading">Schedule Demo Call</h3>
                   <p className="text-sm text-muted-foreground mb-4 font-body">
                     Book a personalized walkthrough
                   </p>

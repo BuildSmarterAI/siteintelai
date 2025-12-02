@@ -132,7 +132,7 @@ export default function BetaSignup() {
               </motion.div>
 
               {/* Headline */}
-              <h1 className="text-h1 font-headline text-white mb-6">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-white mb-6">
                 Know What's Buildable. What It'll Cost. What It's Worth.
               </h1>
 
@@ -206,7 +206,7 @@ export default function BetaSignup() {
               </div>
 
               {/* Header */}
-                <h2 className="text-h2 font-headline text-primary mb-3">
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold text-primary mb-3">
                   Join the Private Beta — Feasibility, Verified.
                 </h2>
               <p className="text-body text-slate-600 mb-8">

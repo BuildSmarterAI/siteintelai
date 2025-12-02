@@ -25,7 +25,7 @@ export default function BetaNDA() {
           </Button>
 
           <article className="prose prose-slate max-w-none">
-            <h1 className="text-h1 font-headline mb-8">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-8">
               SiteIntel™ Private Beta — Non-Disclosure Agreement & Terms
             </h1>
 
@@ -34,7 +34,7 @@ export default function BetaNDA() {
             </p>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 1. Beta Program Overview
               </h2>
               <p className="text-body mb-4">
@@ -45,7 +45,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 2. Confidentiality
               </h2>
               <p className="text-body mb-4">
@@ -61,7 +61,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 3. Data Usage & Privacy
               </h2>
               <p className="text-body mb-4">
@@ -89,7 +89,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 4. Beta Credits & Limitations
               </h2>
               <p className="text-body mb-4">
@@ -109,7 +109,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 5. No Warranty
               </h2>
               <p className="text-body mb-4">
@@ -130,7 +130,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 6. Feedback & Intellectual Property
               </h2>
               <p className="text-body mb-4">
@@ -141,7 +141,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 7. Termination
               </h2>
               <p className="text-body mb-4">
@@ -156,7 +156,7 @@ export default function BetaNDA() {
             </section>
 
             <section className="mb-12">
-              <h2 className="text-h2 font-headline mb-4">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-semibold mb-4">
                 8. Contact
               </h2>
               <p className="text-body mb-4">
