@@ -504,7 +504,7 @@ export const Hero = () => {
               
 
               {/* Headline */}
-              <motion.h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6 md:mb-8" variants={headlineVariants}>
+              <motion.h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6 md:mb-8" variants={headlineVariants} initial="hidden" animate="visible">
                 <span className="text-primary">Instant Feasibility Intelligence for</span>
                 <br />
                 <span className="font-heading text-primary">
@@ -515,7 +515,7 @@ export const Hero = () => {
               {/* Subheadline */}
               <motion.p className="text-sm sm:text-base md:text-xl lg:text-2xl text-white/90 leading-relaxed mb-8 md:mb-12 font-body" style={{
               textShadow: '0 2px 8px rgba(10, 15, 44, 0.8)'
-            }} variants={subheadVariants}>
+            }} variants={subheadVariants} initial="hidden" animate="visible">
                 SiteIntel AI™ streamlines site selection with instant insights on buildability, zoning, and compliance. Whether you're evaluating a new development or validating a project for financing, we provide the clarity and confidence to make smarter, faster decisions—so you can focus on building what's next.
               </motion.p>
 
