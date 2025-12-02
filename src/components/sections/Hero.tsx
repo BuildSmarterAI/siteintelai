@@ -504,8 +504,12 @@ export const Hero = () => {
               
 
               {/* Headline */}
-              <motion.h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-headline font-bold text-white leading-[1.1] mb-6 md:mb-8" variants={headlineVariants}>
-                Instant Feasibility Intelligence for <span className="text-[#FF7A00]">Commercial Real Estate</span>
+              <motion.h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter leading-[1.1] mb-6 md:mb-8" variants={headlineVariants}>
+                <span className="text-white">Instant Feasibility Intelligence for</span>
+                <br />
+                <span className="bg-gradient-to-r from-[#06B6D4] to-[#FF7A00] bg-clip-text text-transparent">
+                  Commercial Real Estate
+                </span>
               </motion.h1>
 
               {/* Subheadline */}
@@ -554,7 +558,7 @@ export const Hero = () => {
               }} whileTap={{
                 scale: 0.97
               }}>
-                  <Button ref={buttonRef} size="lg" aria-label="Start your free feasibility QuickCheck in 60 seconds - Opens application form" className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-semibold font-cta rounded-full px-8 py-6 md:py-7 text-lg min-h-[48px] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none w-full md:w-auto" onClick={handleCtaClick} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} disabled={isCtaLoading}>
+                  <Button ref={buttonRef} size="lg" aria-label="Start your free feasibility QuickCheck in 60 seconds - Opens application form" className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-heading font-semibold rounded-full px-8 py-6 md:py-7 text-lg min-h-[48px] md:min-h-[3.5rem] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none w-full md:w-auto" onClick={handleCtaClick} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave} disabled={isCtaLoading}>
                     {ripples.map(ripple => <motion.span key={ripple.id} className="absolute bg-white/30 rounded-full pointer-events-none" initial={{
                     width: 0,
                     height: 0,
