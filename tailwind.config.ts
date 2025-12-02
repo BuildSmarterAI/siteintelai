@@ -201,11 +201,10 @@ export default {
         "shimmer": "shimmer 2.5s ease-in-out infinite",
       },
       fontFamily: {
-        headline: ['IBM Plex Sans', 'system-ui', 'sans-serif'],     /* Headlines: Semi-Bold/Bold */
-        body: ['IBM Plex Sans', 'system-ui', 'sans-serif'],         /* Body: Regular/Medium */
-        serif: ['IBM Plex Serif', 'Georgia', 'serif'],              /* Optional: Subheads */
-        mono: ['IBM Plex Mono', 'Courier New', 'monospace'],        /* Data/Code */
-        cta: ['IBM Plex Sans', 'system-ui', 'sans-serif'],          /* CTAs: Bold */
+        heading: ['Space Grotesk', 'system-ui', 'sans-serif'],      /* Headlines, titles, section headers */
+        body: ['Inter', 'system-ui', 'sans-serif'],                 /* Body text, paragraphs */
+        mono: ['JetBrains Mono', 'Courier New', 'monospace'],       /* Code, numbers, technical data */
+        sans: ['Inter', 'system-ui', 'sans-serif'],                 /* Default sans-serif fallback */
       },
     },
   },

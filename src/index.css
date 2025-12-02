@@ -159,15 +159,45 @@ All colors MUST be HSL.
 }
 
 /* BuildSmarter™ Brand Typography */
-/* Satoshi from Fontshare, Inter from Google Fonts, IBM Plex Mono from Google Fonts */
+/* Space Grotesk (headings), Inter (body), JetBrains Mono (code) */
 
 @layer base {
+  :root {
+    /* Typography Scale CSS Variables */
+    --text-display: 80px;
+    --text-7xl: 72px;
+    --text-6xl: 60px;
+    --text-5xl: 48px;
+    --text-4xl: 36px;
+    --text-3xl: 30px;
+    --text-2xl: 24px;
+    --text-xl: 20px;
+    --text-lg: 18px;
+    --text-base: 16px;
+    --text-sm: 14px;
+    --text-xs: 12px;
+
+    /* Line Heights */
+    --leading-none: 1.0;
+    --leading-tight: 1.15;
+    --leading-snug: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+
+    /* Letter Spacing */
+    --tracking-tighter: -0.04em;
+    --tracking-tight: -0.02em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.02em;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground font-body;
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
@@ -184,81 +214,24 @@ All colors MUST be HSL.
     min-width: 44px;
   }
   
-  /* BuildSmarter™ Typography System */
-  .font-headline {
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    font-weight: 700; /* Satoshi Bold/Semibold */
+  /* Font Family Utility Classes */
+  .font-heading {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 600;
     letter-spacing: -0.02em;
-    line-height: 1.1;
+    line-height: 1.15;
   }
   
   .font-body {
-    font-family: 'Inter', sans-serif;
-    font-weight: 400; /* Inter Regular */
-    line-height: 1.6;
-  }
-  
-  .font-mono {
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 400; /* IBM Plex Mono Regular */
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
     line-height: 1.5;
   }
   
-  .font-cta {
-    font-family: 'Poppins', sans-serif;
-    font-weight: 600; /* Poppins SemiBold */
-    letter-spacing: -0.005em;
-  }
-  
-  /* Design System Typography Scale */
-  .text-h1 {
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    font-size: 48px;
-    line-height: 56px;
-    font-weight: 600; /* Satoshi SemiBold */
-    letter-spacing: -0.02em;
-  }
-
-  .text-h2 {
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    font-size: 32px;
-    line-height: 40px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-  }
-
-  .text-h3 {
-    font-family: 'Satoshi', 'Inter', sans-serif;
-    font-size: 24px;
-    line-height: 32px;
-    font-weight: 500; /* Satoshi Medium */
-    letter-spacing: -0.01em;
-  }
-
-  .text-body-l {
-    font-family: 'Inter', sans-serif;
-    font-size: 18px;
-    line-height: 28px;
-    font-weight: 400;
-  }
-
-  .text-body-s {
-    font-family: 'Inter', sans-serif;
-    font-size: 14px;
-    line-height: 22px;
-    font-weight: 400;
-  }
-  
-  /* Responsive Typography */
-  @media (max-width: 768px) {
-    .text-h1 {
-      font-size: 36px;
-      line-height: 44px;
-    }
-    .text-h2 {
-      font-size: 28px;
-      line-height: 36px;
-    }
+  .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+    line-height: 1.4;
   }
   
   /* Modern glassmorphism effects */

@@ -85,21 +85,108 @@ The palette communicates technical confidence and clarity under pressure—mirro
 
 ## 3. Typography System
 
-### Primary Typeface
-**IBM Plex Sans** — chosen for its engineering precision and accessibility across web and PDF systems.
+### Font Families
 
-### Typography Hierarchy
+| Tailwind Class | Font Family | Use Case | Weights Loaded |
+|----------------|-------------|----------|----------------|
+| `font-heading` | Space Grotesk | Headlines, titles, section headers | 500, 600, 700 |
+| `font-body` | Inter | Body text, paragraphs, descriptions | 400, 500, 600 |
+| `font-mono` | JetBrains Mono | Code, numbers, technical data | 500, 600 |
+| `font-sans` | Inter | Default sans-serif (fallback to body) | 400, 500, 600 |
 
-| Style | Size (px/line-height) | Weight | Usage |
-|-------|----------------------|--------|-------|
-| H1 | 48/56 | 600 (Semibold) | Hero headlines |
-| H2 | 32/40 | 600 (Semibold) | Section titles |
-| H3 | 24/32 | 500 (Medium) | Subheadings |
-| Body L | 18/28 | 400 (Regular) | Reports, UI text |
-| Body S | 14/22 | 400 (Regular) | Tables, labels, captions |
+### Type Scale
 
-### Monospace Option
-**IBM Plex Mono** — for dataset references, API endpoints, and code blocks.
+| CSS Variable | Size | Tailwind Class | Usage |
+|--------------|------|----------------|-------|
+| `--text-display` | 80px | Custom | Hero display (rare) |
+| `--text-7xl` | 72px | `text-7xl` | Hero headlines |
+| `--text-6xl` | 60px | `text-6xl` | Large hero headlines |
+| `--text-5xl` | 48px | `text-5xl` | Section H2s |
+| `--text-4xl` | 36px | `text-4xl` | Section headers |
+| `--text-3xl` | 30px | `text-3xl` | Card titles, H3s |
+| `--text-2xl` | 24px | `text-2xl` | Subheadings |
+| `--text-xl` | 20px | `text-xl` | H4, large body |
+| `--text-lg` | 18px | `text-lg` | Lead paragraphs |
+| `--text-base` | 16px | `text-base` | Body text |
+| `--text-sm` | 14px | `text-sm` | Secondary text, captions |
+| `--text-xs` | 12px | `text-xs` | Labels, badges |
+
+### Line Heights
+
+| CSS Variable | Value | Tailwind Class | Usage |
+|--------------|-------|----------------|-------|
+| `--leading-none` | 1.0 | `leading-none` | Display text only |
+| `--leading-tight` | 1.15 | `leading-tight` | Headlines (H1, H2) |
+| `--leading-snug` | 1.25 | `leading-snug` | Subheadings (H3, H4) |
+| `--leading-normal` | 1.5 | `leading-normal` | Body text |
+| `--leading-relaxed` | 1.625 | `leading-relaxed` | Long-form paragraphs |
+
+### Letter Spacing (Tracking)
+
+| CSS Variable | Value | Tailwind Class | Usage |
+|--------------|-------|----------------|-------|
+| `--tracking-tighter` | -0.04em | `tracking-tighter` | Hero headlines |
+| `--tracking-tight` | -0.02em | `tracking-tight` | Section headers |
+| `--tracking-normal` | 0 | `tracking-normal` | Body text |
+| `--tracking-wide` | 0.02em | `tracking-wide` | Uppercase labels |
+
+### Typography Patterns
+
+**Hero Headline (H1)**
+```jsx
+<h1 className="font-heading text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter text-foreground">
+  Hero Title Here
+</h1>
+```
+
+**Section Header (H2)**
+```jsx
+<h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+  Section Title
+</h2>
+```
+
+**Gradient Headline**
+```jsx
+<h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-balance bg-gradient-to-br from-[#2F6BFF] to-[#FF7A2F] bg-clip-text text-transparent">
+  Gradient Title
+</h2>
+```
+
+**Card Title (H3)**
+```jsx
+<h3 className="font-heading text-lg font-semibold text-foreground">
+  Card Title
+</h3>
+```
+
+**Body Text**
+```jsx
+<p className="font-body text-base text-muted-foreground leading-relaxed">
+  Body paragraph content...
+</p>
+```
+
+**Subheadline / Description**
+```jsx
+<p className="font-body text-muted-foreground mt-4 text-sm md:text-base text-balance">
+  Supporting description text...
+</p>
+```
+
+**Label / Badge**
+```jsx
+<span className="font-body text-xs font-medium tracking-wider uppercase">
+  Label Text
+</span>
+```
+
+**Monospace Numbers / Code**
+```jsx
+<span className="font-mono text-xl font-semibold tabular-nums">
+  $1,234,567
+</span>
+```
 
 ### Usage Guidelines
 
@@ -452,13 +539,15 @@ Error Red:          #EF4444 | hsl(0, 84%, 60%)
 ### Typography (Copy-Paste)
 
 ```
-Primary Font:   IBM Plex Sans
-Monospace Font: IBM Plex Mono
-H1: 48px/56px, Semibold (600)
-H2: 32px/40px, Semibold (600)
-H3: 24px/32px, Medium (500)
-Body L: 18px/28px, Regular (400)
-Body S: 14px/22px, Regular (400)
+Heading Font: Space Grotesk (500, 600, 700)
+Body Font:    Inter (400, 500, 600)
+Mono Font:    JetBrains Mono (500, 600)
+
+H1 Hero:      text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tighter
+H2 Section:   text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight
+H3 Card:      text-lg font-semibold
+Body:         text-base leading-relaxed
+Caption:      text-sm text-muted-foreground
 ```
 
 ### Spacing Scale (Copy-Paste)
