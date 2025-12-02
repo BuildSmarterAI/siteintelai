@@ -31,7 +31,7 @@ export const PlatformOverview = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12 lg:mb-16"
         >
-          <h2 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-4">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground mb-4">
             Comprehensive Feasibility & Due Diligence Platform
           </h2>
           <p className="font-body text-lg md:text-xl text-charcoal/80 max-w-3xl mx-auto leading-relaxed">

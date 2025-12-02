@@ -52,7 +52,7 @@ export const Solution = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12 lg:mb-16"
         >
-          <h2 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-4 relative inline-block">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground mb-4 relative inline-block">
             Traditional Feasibility vs. SiteIntel™ — A New Standard for Speed and Accuracy
             <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-maxx-red"></span>
           </h2>

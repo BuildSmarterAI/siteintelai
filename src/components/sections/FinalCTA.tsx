@@ -4,7 +4,7 @@ export const FinalCTA = () => {
   return (
     <section className="bg-maxx-red py-20">
       <div className="container mx-auto px-6 lg:px-8 text-center">
-        <h2 className="font-headline text-4xl md:text-6xl text-maxx-red-foreground mb-6">
+        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-maxx-red-foreground to-maxx-red-foreground/70 mb-6">
           STOP GUESSING. START BUILDING SMARTER.
         </h2>
         

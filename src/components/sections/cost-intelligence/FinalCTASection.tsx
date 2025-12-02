@@ -49,7 +49,7 @@ export const FinalCTASection = () => {
           className="text-center max-w-4xl mx-auto space-y-8"
         >
           
-          <h2 className="font-headline text-4xl md:text-6xl lg:text-7xl text-white leading-tight">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
             Know Your Costs.
             <br />
             Build With Confidence.

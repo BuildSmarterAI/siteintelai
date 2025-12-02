@@ -39,7 +39,7 @@ export const CostRangeVisual = () => {
               <span className="font-cta text-sm font-semibold">Market Intelligence</span>
             </div>
 
-            <h2 className="font-headline text-4xl md:text-5xl text-white leading-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-white to-white/70">
               Visualize Cost Scenarios Instantly
             </h2>
             

@@ -137,7 +137,7 @@ export default function GlobeFeatureSection() {
   return <section className="relative w-full mx-auto overflow-hidden rounded-3xl bg-gradient-to-br from-[hsl(var(--navy))] via-[hsl(var(--navy-light))] to-[hsl(var(--navy))] border border-border/20 shadow-2xl px-6 py-16 md:px-16 md:py-24 mt-16">
       <div className="flex flex-col-reverse items-center justify-between gap-10 md:flex-row">
         <div className="z-10 max-w-xl text-left">
-          <h2 className="text-h2 font-headline text-primary mb-4">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-[1.1] bg-clip-text text-transparent bg-gradient-to-b from-foreground to-muted-foreground mb-4">
             Know What's Buildable. What It Costs. And What It's Worth
           </h2>
           <p className="text-body-l mb-6 text-slate-950">Commercial development moves fast — but traditional due diligence doesn't. You're waiting weeks and spending thousands for consultants to confirm what your instincts already know. By the time the report lands on your desk, the opportunity's gone.</p>
