@@ -89,10 +89,34 @@ The palette communicates technical confidence and clarity under pressure—mirro
 
 | Tailwind Class | Font Family | Use Case | Weights Loaded |
 |----------------|-------------|----------|----------------|
-| `font-heading` | Space Grotesk | Headlines, titles, section headers | 500, 600, 700 |
-| `font-body` | Inter | Body text, paragraphs, descriptions | 400, 500, 600 |
+| `font-heading` | Inter | Headlines, titles, section headers | 400, 500, 600, 700 |
+| `font-body` | Inter | Body text, paragraphs, descriptions | 400, 500, 600, 700 |
 | `font-mono` | JetBrains Mono | Code, numbers, technical data | 500, 600 |
-| `font-sans` | Inter | Default sans-serif (fallback to body) | 400, 500, 600 |
+| `font-sans` | Inter | Default sans-serif (fallback to body) | 400, 500, 600, 700 |
+
+### Typography Classes Quick Reference
+
+| Style | Font | Size | Weight | Classes |
+|-------|------|------|--------|---------|
+| Display | Inter | 60-72px | 700 | `text-6xl lg:text-7xl font-bold tracking-tight` |
+| H1 | Inter | 36-60px | 700 | `text-4xl md:text-5xl lg:text-6xl font-bold` |
+| H2 | Inter | 24-40px | 700 | `text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight` |
+| H3 | Inter | 20-28px | 600 | `text-xl lg:text-2xl font-semibold` |
+| H4 | Inter | 18px | 600 | `text-lg font-semibold` |
+| Body Large | Inter | 18px | 400 | `text-lg text-muted-foreground` |
+| Body | Inter | 16px | 400 | `text-base text-muted-foreground` |
+| Body Small | Inter | 14px | 400 | `text-sm text-muted-foreground` |
+| Caption | Inter | 12px | 500 | `text-xs text-muted-foreground` |
+| Label/Badge | Inter | 12px | 500 | `text-xs font-medium tracking-wider uppercase` |
+| Numbers/Code | JetBrains Mono | varies | 500 | `font-mono tabular-nums` |
+
+### Special Styles
+
+| Style | Classes |
+|-------|---------|
+| Gradient Text | `bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent` |
+| Primary Accent | `text-primary` |
+| Muted | `text-muted-foreground` |
 
 ### Type Scale
 
