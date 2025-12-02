@@ -201,7 +201,7 @@ export default {
         "shimmer": "shimmer 2.5s ease-in-out infinite",
       },
       fontFamily: {
-        heading: ['Inter', 'system-ui', 'sans-serif'],              /* Headlines, titles, section headers - Inter per spec */
+        heading: ['Space Grotesk', 'system-ui', 'sans-serif'],      /* Headlines, titles, section headers */
         body: ['Inter', 'system-ui', 'sans-serif'],                 /* Body text, paragraphs */
         mono: ['JetBrains Mono', 'Courier New', 'monospace'],       /* Code, numbers, technical data */
         sans: ['Inter', 'system-ui', 'sans-serif'],                 /* Default sans-serif fallback */
