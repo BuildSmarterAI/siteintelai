@@ -507,9 +507,9 @@ export const Hero = () => {
               <motion.h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6 md:mb-8" variants={headlineVariants} initial="hidden" animate="visible">
                 <span className="text-white">Instant Feasibility Intelligence for</span>
                 <br />
-                <span className="font-heading text-primary">
-                  Commercial Real Estate
-                </span>
+              <span className="font-heading text-[#FF7A00]">
+                Commercial Real Estate
+              </span>
               </motion.h1>
 
               {/* Subheadline */}
