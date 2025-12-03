@@ -54,9 +54,9 @@ To make land-use, infrastructure, and environmental intelligence universally acc
 
 | Role | Color Name | HEX | HSL | Usage |
 |------|------------|-----|-----|-------|
-| Primary Action | Feasibility Orange | `#FF7A00` | `28 100% 50%` | Primary action, highlights, CTAs |
-| Primary Text/BG | Midnight Blue | `#0A0F2C` | `229 64% 11%` | Primary text, dark backgrounds |
-| Secondary Text | Slate Gray | `#374151` | `218 14% 27%` | Secondary text, labels |
+| Primary Action | Feasibility Orange | `#FF7A00` | `27 100% 50%` | Primary action, highlights, CTAs |
+| Primary Text/BG | Midnight Blue | `#0A0F2C` | `229 67% 11%` | Primary text, dark backgrounds |
+| Secondary Text | Slate Gray | `#374151` | `215 19% 27%` | Secondary text, labels |
 | Background | Cloud White | `#F9FAFB` | `210 20% 98%` | Light backgrounds |
 | Accent | Data Cyan | `#06B6D4` | `189 94% 43%` | Links, accents, data highlights |
 

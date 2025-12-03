@@ -18,35 +18,35 @@ All colors MUST be HSL.
     --foreground: 220 14% 11%;
     
     /* BuildSmarter Brand Colors - Official Brand Kit */
-    --feasibility-orange: 24 100% 50%;     /* #FF7A00 */
-    --midnight-blue: 226 63% 11%;           /* #0A0F2C */
-    --slate-gray: 217 11% 25%;              /* #374151 */
-    --cloud-white: 210 17% 98%;             /* #F9FAFB */
-    --data-cyan: 191 91% 43%;               /* #06B6D4 */
+    --feasibility-orange: 27 100% 50%;     /* #FF7A00 */
+    --midnight-blue: 229 67% 11%;           /* #0A0F2C */
+    --slate-gray: 215 19% 27%;              /* #374151 */
+    --cloud-white: 210 20% 98%;             /* #F9FAFB */
+    --data-cyan: 189 94% 43%;               /* #06B6D4 */
     
     /* Legacy color mappings for backward compatibility */
-    --charcoal: 217 11% 25%;
-    --charcoal-foreground: 210 17% 98%;
+    --charcoal: 215 19% 27%;
+    --charcoal-foreground: 210 20% 98%;
     
-    --navy: 226 63% 11%;
-    --navy-foreground: 210 17% 98%;
+    --navy: 229 67% 11%;
+    --navy-foreground: 210 20% 98%;
     
-    --maxx-red: 24 100% 50%;
-    --maxx-red-foreground: 210 17% 98%;
+    --maxx-red: 27 100% 50%;
+    --maxx-red-foreground: 210 20% 98%;
     
     /* Sophisticated neutral palette */
-    --light-gray: 210 17% 98%;
-    --mid-gray: 217 9% 45%;
+    --light-gray: 210 20% 98%;
+    --mid-gray: 215 19% 45%;
     
     /* Enhanced semantic tokens - BuildSmarter Design System */
-    --primary: 226 63% 11%;                 /* Midnight Blue */
-    --primary-foreground: 210 17% 98%;
+    --primary: 229 67% 11%;                 /* Midnight Blue */
+    --primary-foreground: 210 20% 98%;
     
-    --secondary: 210 17% 98%;               /* Cloud White */
-    --secondary-foreground: 217 11% 25%;
+    --secondary: 210 20% 98%;               /* Cloud White */
+    --secondary-foreground: 215 19% 27%;
     
-    --accent: 24 100% 50%;                  /* Feasibility Orange */
-    --accent-foreground: 210 17% 98%;
+    --accent: 27 100% 50%;                  /* Feasibility Orange */
+    --accent-foreground: 210 20% 98%;
     
     --card: 0 0% 100%;
     --card-foreground: 220 14% 11%;
@@ -76,20 +76,20 @@ All colors MUST be HSL.
     --sidebar-ring: 4 85% 48%;
     
     /* BuildSmarter Gradients - Brand System */
-    --gradient-primary: linear-gradient(135deg, hsl(226 63% 11%), hsl(226 63% 18%));
-    --gradient-accent: linear-gradient(135deg, hsl(24 100% 50%), hsl(24 100% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(226 63% 11% / 0.95), hsl(226 63% 18% / 0.90));
-    --gradient-data: linear-gradient(135deg, hsl(191 91% 43%), hsl(191 91% 53%));
-    --gradient-card: linear-gradient(145deg, hsl(210 17% 100% / 0.9), hsl(210 17% 98% / 0.6));
-    --gradient-glass: linear-gradient(145deg, hsl(210 17% 100% / 0.12), hsl(210 17% 100% / 0.06));
+    --gradient-primary: linear-gradient(135deg, hsl(229 67% 11%), hsl(229 67% 18%));
+    --gradient-accent: linear-gradient(135deg, hsl(27 100% 50%), hsl(27 100% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(229 67% 11% / 0.95), hsl(229 67% 18% / 0.90));
+    --gradient-data: linear-gradient(135deg, hsl(189 94% 43%), hsl(189 94% 53%));
+    --gradient-card: linear-gradient(145deg, hsl(210 20% 100% / 0.9), hsl(210 20% 98% / 0.6));
+    --gradient-glass: linear-gradient(145deg, hsl(210 20% 100% / 0.12), hsl(210 20% 100% / 0.06));
     
     /* BuildSmarter Shadows - Enterprise Grade */
-    --shadow-soft: 0 4px 20px -4px hsl(226 63% 11% / 0.08);
-    --shadow-medium: 0 10px 40px -8px hsl(226 63% 11% / 0.12);
-    --shadow-strong: 0 20px 60px -12px hsl(226 63% 11% / 0.16);
-    --shadow-glow: 0 0 40px hsl(24 100% 50% / 0.18);
-    --shadow-glass: 0 8px 32px 0 hsl(226 63% 11% / 0.04);
-    --shadow-data: 0 0 30px hsl(191 91% 43% / 0.12);
+    --shadow-soft: 0 4px 20px -4px hsl(229 67% 11% / 0.08);
+    --shadow-medium: 0 10px 40px -8px hsl(229 67% 11% / 0.12);
+    --shadow-strong: 0 20px 60px -12px hsl(229 67% 11% / 0.16);
+    --shadow-glow: 0 0 40px hsl(27 100% 50% / 0.18);
+    --shadow-glass: 0 8px 32px 0 hsl(229 67% 11% / 0.04);
+    --shadow-data: 0 0 30px hsl(189 94% 43% / 0.12);
     
     /* Smooth transitions */
     --transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -109,13 +109,13 @@ All colors MUST be HSL.
     --hii-low: 0 72% 51%;           /* #DC2626 - Red for low activity */
     
     /* Intent-specific theme extensions */
-    --intent-build-primary: 226 63% 11%;      /* Midnight Blue */
-    --intent-build-bg: 226 63% 11% / 0.08;
-    --intent-build-border: 226 63% 11% / 0.2;
+    --intent-build-primary: 229 67% 11%;      /* Midnight Blue */
+    --intent-build-bg: 229 67% 11% / 0.08;
+    --intent-build-border: 229 67% 11% / 0.2;
     
-    --intent-buy-primary: 191 91% 43%;        /* Data Cyan */
-    --intent-buy-bg: 191 91% 43% / 0.08;
-    --intent-buy-border: 191 91% 43% / 0.2;
+    --intent-buy-primary: 189 94% 43%;        /* Data Cyan */
+    --intent-buy-bg: 189 94% 43% / 0.08;
+    --intent-buy-border: 189 94% 43% / 0.2;
   }
   
   .dark {
@@ -251,9 +251,9 @@ All colors MUST be HSL.
   /* BuildSmarter Gradient Mesh - Data-Inspired Pattern */
   .gradient-mesh {
     background: 
-      radial-gradient(circle at 20% 80%, hsl(226 63% 11% / 0.12) 0%, transparent 50%),
-      radial-gradient(circle at 80% 20%, hsl(24 100% 50% / 0.10) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, hsl(191 91% 43% / 0.06) 0%, transparent 50%);
+      radial-gradient(circle at 20% 80%, hsl(229 67% 11% / 0.12) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, hsl(27 100% 50% / 0.10) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, hsl(189 94% 43% / 0.06) 0%, transparent 50%);
   }
   
   /* Enhanced animations */
