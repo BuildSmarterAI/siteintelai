@@ -43,6 +43,7 @@ import BetaThankYou from "./pages/BetaThankYou";
 import HospitalityIntelligence from "./pages/HospitalityIntelligence";
 import UtilitiesDiagnostic from "./pages/UtilitiesDiagnostic";
 import PaymentHistory from "./pages/PaymentHistory";
+import BrandKit from "./pages/BrandKit";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +119,7 @@ const App = () => (
               <Route path="/beta-signup" element={<BetaSignup />} />
               <Route path="/beta-thank-you" element={<BetaThankYou />} />
               <Route path="/investor-deck" element={<InvestorDeck />} />
+              <Route path="/brand-kit" element={<BrandKit />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
