@@ -1,5 +1,6 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Boxes } from "@/components/ui/background-boxes";
 import { Database, Calculator, ShieldAlert, FileCheck, Building2, DollarSign, ShieldCheck, TrendingUp } from "lucide-react";
 import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 import aerialPropertySite1920webp from "@/assets/aerial-property-site-1920w.webp";
@@ -238,8 +239,17 @@ export const Hero = () => {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,15,44,0.6)_70%,rgba(10,15,44,0.9)_100%)]" />
         </div>}
 
+      {/* Interactive Background Boxes - Performance guarded */}
+      {!shouldDisableAnimations && !isMobile && (
+        <div className="absolute inset-0 z-[1] overflow-hidden">
+          {/* Radial mask to fade edges and focus on center content */}
+          <div className="absolute inset-0 w-full h-full bg-[#0A0F2C] z-20 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)] pointer-events-none" />
+          <Boxes />
+        </div>
+      )}
+
       {/* Step 2: Enhanced Blueprint-Style Grid */}
-      <motion.div className="absolute inset-0 opacity-0 z-[1]" variants={gridVariants} style={{
+      <motion.div className="absolute inset-0 opacity-0 z-[2]" variants={gridVariants} style={{
       backgroundImage: `
             linear-gradient(to right, rgba(6, 182, 212, 0.12) 3px, transparent 3px),
             linear-gradient(to bottom, rgba(6, 182, 212, 0.12) 3px, transparent 3px),
