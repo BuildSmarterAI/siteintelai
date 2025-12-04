@@ -467,7 +467,7 @@ export const Hero = () => {
       {/* Content wrapper with glass card effect - Enhanced z-index & breathing */}
       <div className="relative z-20 flex w-full items-center">
         <div className="container relative mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24">
-          <motion.div className="rounded-3xl bg-[#0A0F2C]/90 backdrop-blur-2xl border border-[#06B6D4]/40 p-4 md:p-6 lg:p-8 xl:p-12 relative overflow-hidden" initial={{
+          <motion.div className="p-4 md:p-6 lg:p-8 xl:p-12 relative overflow-hidden" initial={{
           opacity: 0,
           scale: 0.95,
           y: 20
@@ -479,26 +479,7 @@ export const Hero = () => {
           duration: 0.6,
           delay: 0.3,
           ease: [0.22, 1, 0.36, 1]
-        }} style={{
-          boxShadow: '0 16px 48px rgba(10, 15, 44, 0.8), inset 0 0 60px rgba(6, 182, 212, 0.08)'
         }}>
-            <motion.div className="absolute inset-0 bg-gradient-to-br from-[#06B6D4]/8 via-transparent to-[#FF7A00]/5 pointer-events-none" animate={{
-            opacity: [0.3, 0.5, 0.3]
-          }} transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }} />
-            
-            <motion.div className="absolute inset-0 pointer-events-none" animate={{
-            boxShadow: ['0 16px 48px rgba(10, 15, 44, 0.8)', '0 20px 56px rgba(6, 182, 212, 0.15)', '0 16px 48px rgba(10, 15, 44, 0.8)']
-          }} transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2
-          }} />
 
             <div className="mx-auto max-w-3xl text-center md:text-left relative z-20">
               
