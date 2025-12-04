@@ -161,7 +161,7 @@ export const Hero = () => {
 
       {/* Interactive Background Boxes - Performance guarded */}
       {!shouldDisableAnimations && !isMobile && (
-        <div className="absolute inset-0 z-[1] overflow-hidden">
+        <div className="absolute inset-0 z-[5] overflow-hidden">
           {/* Radial mask to fade edges and focus on center content */}
           <div className="absolute inset-0 w-full h-full bg-[#0A0F2C] z-20 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)] pointer-events-none" />
           <Boxes />
@@ -173,8 +173,8 @@ export const Hero = () => {
         <div className="absolute inset-0 z-[1] bg-gradient-to-br from-[#0A0F2C] via-[#11224F]/50 to-[#0A0F2C]" />
       )}
 
-      {/* Content wrapper with glass card effect - Enhanced z-index & breathing */}
-      <div className="relative z-20 flex w-full items-center">
+      {/* Content wrapper - pointer-events-none allows hover on boxes, children opt back in */}
+      <div className="relative z-[10] flex w-full items-center pointer-events-none">
         <div className="container relative mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24">
           <motion.div className="p-4 md:p-6 lg:p-8 xl:p-12 relative overflow-hidden" initial={{
           opacity: 0,
@@ -219,7 +219,7 @@ export const Hero = () => {
             }} transition={{
               duration: 0.6,
               delay: 0.8
-            }} className="mb-8 md:mb-10">
+            }} className="mb-8 md:mb-10 pointer-events-auto">
                 <h2 className="sr-only">Get Instant Feasibility Reports</h2>
                 <QuickCheckWidget />
               </motion.div>
@@ -237,7 +237,7 @@ export const Hero = () => {
               </div>
 
               {/* CTA Group */}
-              <motion.div variants={ctaVariants} className="mb-6 md:mb-8 px-4">
+              <motion.div variants={ctaVariants} className="mb-6 md:mb-8 px-4 pointer-events-auto">
                 <motion.div animate={{
                 x: shouldDisableAnimations ? 0 : mousePosition.x,
                 y: shouldDisableAnimations ? 0 : mousePosition.y
