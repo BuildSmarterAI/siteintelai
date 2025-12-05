@@ -215,24 +215,46 @@ function normalizeProperties(
   };
 }
 
+// Timeout wrapper for fetch calls
+async function fetchWithTimeout(url: string, timeout = 10000): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { 
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' }
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
 async function fetchFromCounty(
   config: typeof COUNTY_CONFIG[string],
   countyKey: string,
   params: { bbox?: [number, number, number, number]; parcelId?: string; lat?: number; lng?: number }
-): Promise<{ type: string; features: Array<{ type: string; geometry: unknown; properties: NormalizedParcelProperties }> }> {
+): Promise<{ type: string; features: Array<{ type: string; geometry: unknown; properties: NormalizedParcelProperties }>; error?: string; errorCode?: string }> {
   const queryParams = new URLSearchParams();
   
+  // CRITICAL: Always add a where clause - many ArcGIS servers require it
   if (params.parcelId) {
     queryParams.set('where', `${config.idField}='${params.parcelId}'`);
     console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (params.lat !== undefined && params.lng !== undefined) {
+    queryParams.set('where', '1=1'); // Required for spatial-only queries
     queryParams.set('geometry', `${params.lng},${params.lat}`);
     queryParams.set('geometryType', 'esriGeometryPoint');
-    // Changed from esriSpatialRelWithin to esriSpatialRelIntersects for better results
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
     console.log(`[fetch-parcels] Query type: point-in-parcel (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
+    queryParams.set('where', '1=1'); // Required for spatial-only queries
     queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
     queryParams.set('geometryType', 'esriGeometryEnvelope');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
@@ -247,26 +269,35 @@ async function fetchFromCounty(
   queryParams.set('f', 'geojson');
   
   const url = `${config.apiUrl}?${queryParams.toString()}`;
-  console.log(`[fetch-parcels] Querying ${config.name}: ${url.substring(0, 200)}...`);
+  console.log(`[fetch-parcels] Querying ${config.name}: ${url.substring(0, 250)}...`);
   
   try {
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
+    const response = await fetchWithTimeout(url, 15000);
+    
+    console.log(`[fetch-parcels] ${config.name} response status: ${response.status}`);
     
     if (!response.ok) {
-      console.error(`[fetch-parcels] ${config.name} HTTP error: ${response.status} ${response.statusText}`);
-      return { type: 'FeatureCollection', features: [] };
+      const errorText = await response.text().catch(() => 'Unknown error');
+      console.error(`[fetch-parcels] ${config.name} HTTP error: ${response.status} - ${errorText.substring(0, 200)}`);
+      return { 
+        type: 'FeatureCollection', 
+        features: [],
+        error: `${config.name} service returned ${response.status}`,
+        errorCode: 'HTTP_ERROR'
+      };
     }
     
     const data = await response.json();
     
     // Check for ArcGIS error response
     if (data.error) {
-      console.error(`[fetch-parcels] ${config.name} API error:`, data.error);
-      return { type: 'FeatureCollection', features: [] };
+      console.error(`[fetch-parcels] ${config.name} ArcGIS error:`, JSON.stringify(data.error));
+      return { 
+        type: 'FeatureCollection', 
+        features: [],
+        error: `${config.name}: ${data.error.message || 'Query failed'}`,
+        errorCode: 'ARCGIS_ERROR'
+      };
     }
     
     // Normalize features
@@ -283,8 +314,13 @@ async function fetchFromCounty(
       features: normalizedFeatures,
     };
   } catch (error) {
-    console.error(`[fetch-parcels] ${config.name} fetch error:`, error);
-    return { type: 'FeatureCollection', features: [] };
+    console.error(`[fetch-parcels] ${config.name} fetch error:`, error.message);
+    return { 
+      type: 'FeatureCollection', 
+      features: [],
+      error: error.message || 'Network error',
+      errorCode: 'NETWORK_ERROR'
+    };
   }
 }
 
