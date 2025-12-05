@@ -154,3 +154,6 @@ verify_jwt = false
 
 [functions.search-parcels]
 verify_jwt = false
+
+[functions.geocode-with-cache]
+verify_jwt = false
