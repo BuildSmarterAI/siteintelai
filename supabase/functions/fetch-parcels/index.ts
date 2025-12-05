@@ -131,6 +131,9 @@ const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: nu
   fortbend: { minLng: -96.01, maxLng: -95.45, minLat: 29.35, maxLat: 29.82 },
 };
 
+// Texas bounding box for fallback detection
+const TEXAS_BOUNDS = { minLng: -106.65, maxLng: -93.51, minLat: 25.84, maxLat: 36.50 };
+
 function validateParcelId(parcelId: string): boolean {
   if (!parcelId || typeof parcelId !== 'string') return false;
   if (parcelId.length > 50) return false;
@@ -148,13 +151,31 @@ function validateBbox(bbox: unknown): bbox is [number, number, number, number] {
   return true;
 }
 
+function isInTexas(lat: number, lng: number): boolean {
+  return lng >= TEXAS_BOUNDS.minLng && lng <= TEXAS_BOUNDS.maxLng &&
+         lat >= TEXAS_BOUNDS.minLat && lat <= TEXAS_BOUNDS.maxLat;
+}
+
 function detectCounty(lat: number, lng: number): string | null {
+  console.log(`[detect-county] Checking lat=${lat}, lng=${lng}`);
+  
   for (const [county, bounds] of Object.entries(COUNTY_BOUNDS)) {
-    if (lng >= bounds.minLng && lng <= bounds.maxLng && 
-        lat >= bounds.minLat && lat <= bounds.maxLat) {
+    const inLng = lng >= bounds.minLng && lng <= bounds.maxLng;
+    const inLat = lat >= bounds.minLat && lat <= bounds.maxLat;
+    
+    if (inLng && inLat) {
+      console.log(`[detect-county] ✓ Matched: ${county}`);
       return county;
     }
   }
+  
+  // Fallback: if in Texas but no specific county match, default to harris
+  if (isInTexas(lat, lng)) {
+    console.log(`[detect-county] No exact match, but in Texas. Defaulting to harris`);
+    return 'harris';
+  }
+  
+  console.log(`[detect-county] ✗ No county matched for coordinates`);
   return null;
 }
 
@@ -162,6 +183,7 @@ function detectCountyFromBbox(bbox: [number, number, number, number]): string | 
   const [minLng, minLat, maxLng, maxLat] = bbox;
   const centerLng = (minLng + maxLng) / 2;
   const centerLat = (minLat + maxLat) / 2;
+  console.log(`[detect-county-bbox] Bbox center: lat=${centerLat}, lng=${centerLng}`);
   return detectCounty(centerLat, centerLng);
 }
 
@@ -202,15 +224,19 @@ async function fetchFromCounty(
   
   if (params.parcelId) {
     queryParams.set('where', `${config.idField}='${params.parcelId}'`);
+    console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (params.lat !== undefined && params.lng !== undefined) {
     queryParams.set('geometry', `${params.lng},${params.lat}`);
     queryParams.set('geometryType', 'esriGeometryPoint');
-    queryParams.set('spatialRel', 'esriSpatialRelWithin');
+    // Changed from esriSpatialRelWithin to esriSpatialRelIntersects for better results
+    queryParams.set('spatialRel', 'esriSpatialRelIntersects');
+    console.log(`[fetch-parcels] Query type: point-in-parcel (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
     queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
     queryParams.set('geometryType', 'esriGeometryEnvelope');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
+    console.log(`[fetch-parcels] Query type: bbox query`);
   }
   
   queryParams.set('outFields', config.fields.join(','));
@@ -221,30 +247,45 @@ async function fetchFromCounty(
   queryParams.set('f', 'geojson');
   
   const url = `${config.apiUrl}?${queryParams.toString()}`;
-  console.log(`[fetch-parcels] Querying ${config.name}:`, url);
+  console.log(`[fetch-parcels] Querying ${config.name}: ${url.substring(0, 200)}...`);
   
-  const response = await fetch(url);
-  
-  if (!response.ok) {
-    console.error(`[fetch-parcels] ${config.name} returned ${response.status}`);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`[fetch-parcels] ${config.name} HTTP error: ${response.status} ${response.statusText}`);
+      return { type: 'FeatureCollection', features: [] };
+    }
+    
+    const data = await response.json();
+    
+    // Check for ArcGIS error response
+    if (data.error) {
+      console.error(`[fetch-parcels] ${config.name} API error:`, data.error);
+      return { type: 'FeatureCollection', features: [] };
+    }
+    
+    // Normalize features
+    const normalizedFeatures = (data.features || []).map((feature: { type: string; geometry: unknown; properties: Record<string, unknown> }) => ({
+      type: 'Feature',
+      geometry: feature.geometry,
+      properties: normalizeProperties(feature.properties, config, countyKey),
+    }));
+    
+    console.log(`[fetch-parcels] ${config.name}: Found ${normalizedFeatures.length} parcels`);
+    
+    return {
+      type: 'FeatureCollection',
+      features: normalizedFeatures,
+    };
+  } catch (error) {
+    console.error(`[fetch-parcels] ${config.name} fetch error:`, error);
     return { type: 'FeatureCollection', features: [] };
   }
-  
-  const data = await response.json();
-  
-  // Normalize features
-  const normalizedFeatures = (data.features || []).map((feature: { type: string; geometry: unknown; properties: Record<string, unknown> }) => ({
-    type: 'Feature',
-    geometry: feature.geometry,
-    properties: normalizeProperties(feature.properties, config, countyKey),
-  }));
-  
-  console.log(`[fetch-parcels] ${config.name}: Found ${normalizedFeatures.length} parcels`);
-  
-  return {
-    type: 'FeatureCollection',
-    features: normalizedFeatures,
-  };
 }
 
 Deno.serve(async (req) => {
@@ -256,22 +297,28 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { bbox, zoom, parcelId, lat, lng, county } = body;
     
-    console.log('[fetch-parcels] Request:', { bbox, zoom, parcelId, lat, lng, county });
+    console.log('[fetch-parcels] === New Request ===');
+    console.log('[fetch-parcels] Input:', JSON.stringify({ bbox, zoom, parcelId, lat, lng, county }));
 
     // Determine which county to query
     let targetCounty = county?.toLowerCase();
     
     if (!targetCounty) {
       if (lat !== undefined && lng !== undefined) {
+        console.log('[fetch-parcels] Detecting county from lat/lng...');
         targetCounty = detectCounty(lat, lng);
       } else if (bbox && validateBbox(bbox)) {
+        console.log('[fetch-parcels] Detecting county from bbox...');
         targetCounty = detectCountyFromBbox(bbox);
       }
     }
+    
+    console.log(`[fetch-parcels] Target county: ${targetCounty || 'NONE'}`);
 
     // If searching by parcel ID
     if (parcelId) {
       if (!validateParcelId(parcelId)) {
+        console.log('[fetch-parcels] Invalid parcel ID format');
         return new Response(
           JSON.stringify({ 
             error: 'Invalid parcel ID format',
@@ -292,6 +339,7 @@ Deno.serve(async (req) => {
       }
 
       // Otherwise, try all counties (starting with Harris as most common)
+      console.log('[fetch-parcels] Searching all counties for parcel ID...');
       const countyOrder = ['harris', 'fortbend', 'montgomery', 'travis', 'dallas', 'tarrant', 'bexar', 'williamson'];
       for (const countyKey of countyOrder) {
         const config = COUNTY_CONFIG[countyKey];
@@ -303,6 +351,7 @@ Deno.serve(async (req) => {
         }
       }
 
+      console.log('[fetch-parcels] Parcel ID not found in any county');
       return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -311,9 +360,10 @@ Deno.serve(async (req) => {
     // Point-in-parcel query
     if (lat !== undefined && lng !== undefined) {
       if (!targetCounty || !COUNTY_CONFIG[targetCounty]) {
+        console.log(`[fetch-parcels] Could not determine county for point (${lat}, ${lng})`);
         return new Response(
           JSON.stringify({ 
-            error: 'Could not determine county for coordinates',
+            error: `Could not determine county for coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
             type: 'FeatureCollection', 
             features: [] 
           }), 
@@ -330,12 +380,18 @@ Deno.serve(async (req) => {
 
     // Bbox query - only at zoom 14+
     if (zoom !== undefined && zoom < 14) {
-      return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
+      console.log(`[fetch-parcels] Zoom ${zoom} < 14, returning empty (zoom in to see parcels)`);
+      return new Response(JSON.stringify({ 
+        type: 'FeatureCollection', 
+        features: [],
+        message: 'Zoom in to see parcels (zoom 14+)'
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!bbox || !validateBbox(bbox)) {
+      console.log('[fetch-parcels] Invalid or missing bbox');
       return new Response(
         JSON.stringify({ 
           error: 'Invalid or missing bbox',
@@ -347,14 +403,9 @@ Deno.serve(async (req) => {
     }
 
     if (!targetCounty || !COUNTY_CONFIG[targetCounty]) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Could not determine county for bbox',
-          type: 'FeatureCollection', 
-          features: [] 
-        }), 
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.log('[fetch-parcels] Could not determine county for bbox, trying harris as fallback');
+      // Last resort fallback for bbox queries
+      targetCounty = 'harris';
     }
 
     const config = COUNTY_CONFIG[targetCounty];
@@ -364,7 +415,7 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('[fetch-parcels] Error:', error);
+    console.error('[fetch-parcels] Fatal error:', error);
     return new Response(
       JSON.stringify({ error: error.message, type: 'FeatureCollection', features: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
