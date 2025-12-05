@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      address_points: {
+        Row: {
+          address_id: number
+          city: string | null
+          county_id: string | null
+          created_at: string | null
+          full_address: string | null
+          geometry: unknown
+          house_number: string | null
+          source: string | null
+          state: string | null
+          street_name: string | null
+          street_post_dir: string | null
+          street_prefix: string | null
+          street_suffix: string | null
+          unit_number: string | null
+          unit_type: string | null
+          updated_at: string | null
+          zip: string | null
+        }
+        Insert: {
+          address_id?: number
+          city?: string | null
+          county_id?: string | null
+          created_at?: string | null
+          full_address?: string | null
+          geometry: unknown
+          house_number?: string | null
+          source?: string | null
+          state?: string | null
+          street_name?: string | null
+          street_post_dir?: string | null
+          street_prefix?: string | null
+          street_suffix?: string | null
+          unit_number?: string | null
+          unit_type?: string | null
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Update: {
+          address_id?: number
+          city?: string | null
+          county_id?: string | null
+          created_at?: string | null
+          full_address?: string | null
+          geometry?: unknown
+          house_number?: string | null
+          source?: string | null
+          state?: string | null
+          street_name?: string | null
+          street_post_dir?: string | null
+          street_prefix?: string | null
+          street_suffix?: string | null
+          unit_number?: string | null
+          unit_type?: string | null
+          updated_at?: string | null
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "address_points_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["county_id"]
+          },
+        ]
+      }
       api_logs: {
         Row: {
           application_id: string | null
@@ -692,6 +760,63 @@ export type Database = {
         }
         Relationships: []
       }
+      counties: {
+        Row: {
+          cad_name: string
+          county_id: string
+          created_at: string | null
+          data_source_type: string | null
+          data_source_url: string | null
+          display_name: string
+          field_mappings: Json | null
+          fips_code: string | null
+          is_active: boolean | null
+          last_sync_at: string | null
+          max_record_count: number | null
+          native_srid: number | null
+          projection_srid: number | null
+          state_code: string
+          update_frequency: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          cad_name: string
+          county_id: string
+          created_at?: string | null
+          data_source_type?: string | null
+          data_source_url?: string | null
+          display_name: string
+          field_mappings?: Json | null
+          fips_code?: string | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          max_record_count?: number | null
+          native_srid?: number | null
+          projection_srid?: number | null
+          state_code?: string
+          update_frequency?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          cad_name?: string
+          county_id?: string
+          created_at?: string | null
+          data_source_type?: string | null
+          data_source_url?: string | null
+          display_name?: string
+          field_mappings?: Json | null
+          fips_code?: string | null
+          is_active?: boolean | null
+          last_sync_at?: string | null
+          max_record_count?: number | null
+          native_srid?: number | null
+          projection_srid?: number | null
+          state_code?: string
+          update_frequency?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       county_boundaries: {
         Row: {
           county_name: string
@@ -758,6 +883,50 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_parcels"
             referencedColumns: ["application_id"]
+          },
+        ]
+      }
+      cross_street_index: {
+        Row: {
+          city: string | null
+          county_id: string | null
+          created_at: string | null
+          geometry: unknown
+          id: number
+          intersection_type: string | null
+          source: string | null
+          street1_name: string
+          street2_name: string
+        }
+        Insert: {
+          city?: string | null
+          county_id?: string | null
+          created_at?: string | null
+          geometry: unknown
+          id?: number
+          intersection_type?: string | null
+          source?: string | null
+          street1_name: string
+          street2_name: string
+        }
+        Update: {
+          city?: string | null
+          county_id?: string | null
+          created_at?: string | null
+          geometry?: unknown
+          id?: number
+          intersection_type?: string | null
+          source?: string | null
+          street1_name?: string
+          street2_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_street_index_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["county_id"]
           },
         ]
       }
@@ -956,6 +1125,63 @@ export type Database = {
         }
         Relationships: []
       }
+      geocoder_cache: {
+        Row: {
+          confidence: number | null
+          county_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          geometry: unknown
+          input_hash: string
+          input_query: string
+          parcel_uuid: string | null
+          query_type: string
+          result_data: Json | null
+          source: string
+        }
+        Insert: {
+          confidence?: number | null
+          county_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          geometry?: unknown
+          input_hash: string
+          input_query: string
+          parcel_uuid?: string | null
+          query_type: string
+          result_data?: Json | null
+          source: string
+        }
+        Update: {
+          confidence?: number | null
+          county_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          geometry?: unknown
+          input_hash?: string
+          input_query?: string
+          parcel_uuid?: string | null
+          query_type?: string
+          result_data?: Json | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "geocoder_cache_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["county_id"]
+          },
+          {
+            foreignKeyName: "geocoder_cache_parcel_uuid_fkey"
+            columns: ["parcel_uuid"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
+          },
+        ]
+      }
       jobs_enrichment: {
         Row: {
           application_id: string
@@ -998,6 +1224,170 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_parcels"
             referencedColumns: ["application_id"]
+          },
+        ]
+      }
+      parcel_index: {
+        Row: {
+          county_id: string
+          created_at: string | null
+          id: number
+          id_type: string
+          identifier: string
+          identifier_normalized: string
+          parcel_uuid: string
+        }
+        Insert: {
+          county_id: string
+          created_at?: string | null
+          id?: number
+          id_type: string
+          identifier: string
+          identifier_normalized: string
+          parcel_uuid: string
+        }
+        Update: {
+          county_id?: string
+          created_at?: string | null
+          id?: number
+          id_type?: string
+          identifier?: string
+          identifier_normalized?: string
+          parcel_uuid?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcel_index_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["county_id"]
+          },
+          {
+            foreignKeyName: "parcel_index_parcel_uuid_fkey"
+            columns: ["parcel_uuid"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
+          },
+        ]
+      }
+      parcels: {
+        Row: {
+          acreage: number | null
+          assessed_value: number | null
+          bcad_prop_id: string | null
+          block: string | null
+          centroid: unknown
+          county_id: string
+          created_at: string | null
+          dcad_acct: string | null
+          fbcad_acct: string | null
+          geometry: unknown
+          hcad_num: string | null
+          improvement_value: number | null
+          land_use_code: string | null
+          land_use_description: string | null
+          land_value: number | null
+          legal_description: string | null
+          lot: string | null
+          mcad_parcel_id: string | null
+          owner_address: string | null
+          owner_name: string | null
+          parcel_uuid: string
+          situs_address: string | null
+          situs_city: string | null
+          situs_zip: string | null
+          source_updated_at: string | null
+          sqft: number | null
+          subdivision: string | null
+          tad_account: string | null
+          tcad_prop_id: string | null
+          total_value: number | null
+          updated_at: string | null
+          wcad_parcel_id: string | null
+          year_built: number | null
+          zoning_code: string | null
+        }
+        Insert: {
+          acreage?: number | null
+          assessed_value?: number | null
+          bcad_prop_id?: string | null
+          block?: string | null
+          centroid?: unknown
+          county_id: string
+          created_at?: string | null
+          dcad_acct?: string | null
+          fbcad_acct?: string | null
+          geometry: unknown
+          hcad_num?: string | null
+          improvement_value?: number | null
+          land_use_code?: string | null
+          land_use_description?: string | null
+          land_value?: number | null
+          legal_description?: string | null
+          lot?: string | null
+          mcad_parcel_id?: string | null
+          owner_address?: string | null
+          owner_name?: string | null
+          parcel_uuid?: string
+          situs_address?: string | null
+          situs_city?: string | null
+          situs_zip?: string | null
+          source_updated_at?: string | null
+          sqft?: number | null
+          subdivision?: string | null
+          tad_account?: string | null
+          tcad_prop_id?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          wcad_parcel_id?: string | null
+          year_built?: number | null
+          zoning_code?: string | null
+        }
+        Update: {
+          acreage?: number | null
+          assessed_value?: number | null
+          bcad_prop_id?: string | null
+          block?: string | null
+          centroid?: unknown
+          county_id?: string
+          created_at?: string | null
+          dcad_acct?: string | null
+          fbcad_acct?: string | null
+          geometry?: unknown
+          hcad_num?: string | null
+          improvement_value?: number | null
+          land_use_code?: string | null
+          land_use_description?: string | null
+          land_value?: number | null
+          legal_description?: string | null
+          lot?: string | null
+          mcad_parcel_id?: string | null
+          owner_address?: string | null
+          owner_name?: string | null
+          parcel_uuid?: string
+          situs_address?: string | null
+          situs_city?: string | null
+          situs_zip?: string | null
+          source_updated_at?: string | null
+          sqft?: number | null
+          subdivision?: string | null
+          tad_account?: string | null
+          tcad_prop_id?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          wcad_parcel_id?: string | null
+          year_built?: number | null
+          zoning_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcels_county_id_fkey"
+            columns: ["county_id"]
+            isOneToOne: false
+            referencedRelation: "counties"
+            referencedColumns: ["county_id"]
           },
         ]
       }
@@ -1955,6 +2345,10 @@ export type Database = {
         Returns: boolean
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      normalize_parcel_identifier: {
+        Args: { identifier: string }
+        Returns: string
+      }
       populate_geometry_columns:
         | { Args: { use_typmod?: boolean }; Returns: string }
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
