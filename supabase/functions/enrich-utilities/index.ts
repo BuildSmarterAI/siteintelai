@@ -539,14 +539,27 @@ serve(async (req) => {
   let application_id: string | undefined;
   let latitude: number | undefined;
   let longitude: number | undefined;
+  let traceId: string = 'no-trace';
 
   try {
     const requestBody = await req.json();
-    const parsedBody = requestBody as { application_id?: string; latitude?: number; longitude?: number; city?: string };
+    const parsedBody = requestBody as { application_id?: string; latitude?: number; longitude?: number; city?: string; trace_id?: string };
     application_id = parsedBody.application_id;
     latitude = parsedBody.latitude;
     longitude = parsedBody.longitude;
     const cityHint = parsedBody.city;
+    traceId = parsedBody.trace_id || crypto.randomUUID().slice(0, 8);
+    
+    // PHASE 0: Entry Point Logging
+    console.log(`🔌 [TRACE:${traceId}] [ENRICH-UTILITIES] ================== ENTRY ==================`);
+    console.log(`🔌 [TRACE:${traceId}] [ENRICH-UTILITIES] Input:`, JSON.stringify({
+      application_id: application_id || 'NOT PROVIDED',
+      has_direct_coords: !!(latitude && longitude),
+      latitude,
+      longitude,
+      city_hint: cityHint || 'not_provided',
+      timestamp: new Date().toISOString()
+    }, null, 2));
     
     let geo_lat: number;
     let geo_lng: number;
@@ -555,11 +568,11 @@ serve(async (req) => {
     
     // Support both direct coordinate calls and application_id lookups
     if (latitude !== undefined && longitude !== undefined) {
-      console.log('🎯 Direct coordinate enrichment:', { latitude, longitude, city: cityHint });
+      console.log(`🎯 [TRACE:${traceId}] Direct coordinate enrichment:`, { latitude, longitude, city: cityHint });
       geo_lat = latitude;
       geo_lng = longitude;
     } else if (application_id) {
-      console.log('📋 Enriching utilities for application:', application_id);
+      console.log(`📋 [TRACE:${traceId}] Enriching utilities for application:`, application_id);
       
       // 1. Get application info
       const { data: app, error: fetchErr } = await supabase
@@ -568,13 +581,24 @@ serve(async (req) => {
         .eq("id", application_id)
         .maybeSingle();
 
+      // Log the raw DB lookup result
+      console.log(`📍 [TRACE:${traceId}] [ENRICH-UTILITIES] DB Lookup Result:`, {
+        application_found: !!app,
+        geo_lat: app?.geo_lat,
+        geo_lng: app?.geo_lng,
+        has_coords: !!(app?.geo_lat && app?.geo_lng),
+        county: app?.county,
+        city: app?.city,
+        fetch_error: fetchErr?.message || null
+      });
+
       if (fetchErr) {
-        console.error('Fetch error:', fetchErr);
+        console.error(`❌ [TRACE:${traceId}] [ENRICH-UTILITIES] Fetch error:`, fetchErr);
         throw new Error("Error fetching application");
       }
 
       if (!app) {
-        console.error('Application not found:', application_id);
+        console.error(`❌ [TRACE:${traceId}] [ENRICH-UTILITIES] Application not found:`, application_id);
         throw new Error("Application not found");
       }
 
@@ -584,19 +608,25 @@ serve(async (req) => {
       city = app.city;
       
       if (!geo_lat || !geo_lng) {
-        console.error('Missing coordinates for application:', application_id);
-        throw new Error("Missing coordinates");
+        console.error(`❌ [TRACE:${traceId}] [ENRICH-UTILITIES] CRITICAL: Missing coordinates`, {
+          application_id,
+          app_data: app,
+          expected: 'geo_lat and geo_lng should be populated by enrich-feasibility'
+        });
+        throw new Error("Missing coordinates - enrich-feasibility may not have completed");
       }
     } else {
+      console.error(`❌ [TRACE:${traceId}] [ENRICH-UTILITIES] No application_id or coordinates provided`);
       throw new Error("Must provide either application_id or latitude/longitude");
     }
     
-    // PHASE 1: Entry Point Diagnostics
-    console.log('🚀 [enrich-utilities] Function invoked with:', {
-      application_id: application_id || 'not_provided',
-      direct_coords: latitude !== undefined && longitude !== undefined,
-      city_hint: cityHint || 'not_provided',
-      timestamp: new Date().toISOString()
+    // PHASE 1: Coordinates Resolved
+    console.log(`✅ [TRACE:${traceId}] [ENRICH-UTILITIES] Coordinates resolved:`, {
+      geo_lat,
+      geo_lng,
+      county: county || 'not_set',
+      city: city || 'not_set',
+      source: application_id ? 'database' : 'direct'
     });
     
     console.log('📍 [enrich-utilities] Coordinates resolved:', {
@@ -1869,6 +1899,19 @@ serve(async (req) => {
       failed_services: failedServices
     });
 
+    console.log(`✅ [TRACE:${traceId}] [ENRICH-UTILITIES] ================== EXIT ==================`);
+    console.log(`✅ [TRACE:${traceId}] [ENRICH-UTILITIES] Final Summary:`, JSON.stringify({
+      application_id: application_id || null,
+      water_count: water.length,
+      sewer_count: sewer.length,
+      storm_count: storm.length,
+      water_laterals_count: water_laterals.length,
+      water_fittings_count: water_fittings.length,
+      total_flags: flags.length,
+      flags,
+      enrichment_status: enrichmentStatus
+    }, null, 2));
+
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -1881,13 +1924,14 @@ serve(async (req) => {
           water_fittings: water_fittings.length
         },
         flags,
-        enrichment_status: enrichmentStatus
+        enrichment_status: enrichmentStatus,
+        trace_id: traceId
       }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
     // PHASE 5: Enhanced Error Handling
-    console.error('❌ [enrich-utilities] FATAL ERROR:', {
+    console.error(`❌ [TRACE:${traceId}] [ENRICH-UTILITIES] FATAL ERROR:`, {
       error_type: err instanceof Error ? err.constructor.name : typeof err,
       message: err instanceof Error ? err.message : String(err),
       stack: err instanceof Error ? err.stack : undefined,
@@ -1900,7 +1944,8 @@ serve(async (req) => {
       JSON.stringify({ 
         error: err instanceof Error ? err.message : String(err),
         application_id: application_id || null,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        trace_id: traceId
       }), 
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
