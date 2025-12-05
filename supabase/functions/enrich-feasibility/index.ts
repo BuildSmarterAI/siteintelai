@@ -1822,10 +1822,24 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Generate trace ID for logging
+  let traceId = 'no-trace';
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const googleApiKey = Deno.env.get('GOOGLE_PLACES_API_KEY')!;
+    
+    // Parse request and extract trace_id
+    const body = await req.clone().json();
+    traceId = body?.trace_id || crypto.randomUUID().slice(0, 8);
+    
+    console.log(`🗺️ [TRACE:${traceId}] [ENRICH-FEASIBILITY] ================== ENTRY ==================`);
+    console.log(`🗺️ [TRACE:${traceId}] [ENRICH-FEASIBILITY] Input:`, JSON.stringify({
+      application_id: body?.application_id || 'NOT PROVIDED',
+      address: body?.address?.substring(0, 50) + '...' || 'NOT PROVIDED',
+      timestamp: new Date().toISOString()
+    }, null, 2));
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -3684,21 +3698,29 @@ serve(async (req) => {
       }
       console.log('Enrichment saved to database');
       
-      // 🚨 CRITICAL DATA VALIDATION: Block report generation if critical data missing
+      // 🚨 DATA VALIDATION: Only geocode and parcel are truly critical
+      // Zoning and flood are OPTIONAL (Houston has no zoning, some areas lack FEMA data)
       const hasGeocode = enrichedData.geo_lat && enrichedData.geo_lng;
       const hasParcel = enrichedData.parcel_id || parcelGeometry;
-      const hasZoning = enrichedData.zoning_category || enrichedData.enrichment_metadata?.zoning;
+      const hasZoning = enrichedData.zoning_category || enrichedData.zoning_code || enrichedData.enrichment_metadata?.zoning;
       const hasFlood = enrichedData.floodplain_zone || enrichedData.enrichment_metadata?.flood_zone;
 
-      if (!hasGeocode || !hasParcel || !hasZoning || !hasFlood) {
-        const missing = [];
-        if (!hasGeocode) missing.push('geocode');
-        if (!hasParcel) missing.push('parcel');
-        if (!hasZoning) missing.push('zoning');
-        if (!hasFlood) missing.push('flood');
+      console.log(`🔍 [TRACE:${traceId}] [ENRICH-FEASIBILITY] Data Validation:`, {
+        hasGeocode,
+        hasParcel,
+        hasZoning,
+        hasFlood,
+        application_id
+      });
+
+      // Only fail on truly critical missing data (geocode and parcel)
+      if (!hasGeocode || !hasParcel) {
+        const missingCritical = [];
+        if (!hasGeocode) missingCritical.push('geocode');
+        if (!hasParcel) missingCritical.push('parcel');
         
-        console.error('❌ [enrich-feasibility] CRITICAL DATA MISSING:', {
-          missing,
+        console.error(`❌ [TRACE:${traceId}] [ENRICH-FEASIBILITY] CRITICAL DATA MISSING:`, {
+          missingCritical,
           application_id,
           has: { hasGeocode, hasParcel, hasZoning, hasFlood }
         });
@@ -3715,12 +3737,23 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           success: false,
           error: 'Critical feasibility data missing',
-          details: `Missing: ${missing.join(', ')}`,
-          application_id
+          details: `Missing: ${missingCritical.join(', ')}`,
+          application_id,
+          trace_id: traceId
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
+      }
+      
+      // Log warnings for optional missing data but continue
+      if (!hasZoning) {
+        console.warn(`⚠️ [TRACE:${traceId}] [ENRICH-FEASIBILITY] No zoning data (Houston has no zoning) - continuing...`);
+        dataFlags.push('zoning_not_available');
+      }
+      if (!hasFlood) {
+        console.warn(`⚠️ [TRACE:${traceId}] [ENRICH-FEASIBILITY] No flood data available - continuing...`);
+        dataFlags.push('flood_data_missing');
       }
       
       // 🚀 PHASE 3: Trigger geospatial scoring
@@ -3749,22 +3782,35 @@ serve(async (req) => {
     }
 
     // Return success response (Step 10 AI Generation would happen after this in a separate process)
+    console.log(`🗺️ [TRACE:${traceId}] [ENRICH-FEASIBILITY] ================== EXIT ==================`);
+    console.log(`🗺️ [TRACE:${traceId}] [ENRICH-FEASIBILITY] Final State:`, JSON.stringify({
+      application_id,
+      has_geocode: !!(enrichedData.geo_lat && enrichedData.geo_lng),
+      has_parcel: !!enrichedData.parcel_id,
+      has_zoning: !!(enrichedData.zoning_code || enrichedData.zoning_category),
+      has_flood: !!enrichedData.floodplain_zone,
+      data_flags_count: dataFlags.length,
+      data_flags: dataFlags
+    }, null, 2));
+    
     return new Response(JSON.stringify({
       success: true,
       county: countyName,
       data: enrichedData,
       api_meta: apiMeta,
-      data_flags: dataFlags
+      data_flags: dataFlags,
+      trace_id: traceId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in enrich-feasibility function:', error);
+    console.error(`❌ [TRACE:${traceId}] [ENRICH-FEASIBILITY] Fatal Error:`, error);
     return new Response(JSON.stringify({ 
       success: false,
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Unknown error',
+      trace_id: traceId
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

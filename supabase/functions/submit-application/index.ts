@@ -131,7 +131,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Generate trace ID for logging
+  const traceId = crypto.randomUUID().slice(0, 8);
+
   try {
+    console.log(`📥 [TRACE:${traceId}] [SUBMIT] ================== APPLICATION SUBMISSION ==================`);
+    console.log(`📥 [TRACE:${traceId}] [SUBMIT] Timestamp: ${new Date().toISOString()}`);
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
@@ -149,10 +155,11 @@ serve(async (req) => {
     
     // Require authentication for application submission
     if (!userId) {
-      console.error('Authentication required: No user ID found');
+      console.error(`❌ [TRACE:${traceId}] [SUBMIT] Authentication required: No user ID found`);
       return new Response(JSON.stringify({ 
         error: 'Authentication required',
-        message: 'You must be logged in to submit an application'
+        message: 'You must be logged in to submit an application',
+        trace_id: traceId
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -160,14 +167,27 @@ serve(async (req) => {
     }
 
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      return new Response(JSON.stringify({ error: 'Method not allowed', trace_id: traceId }), {
         status: 405,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const requestData = await req.json();
-    console.log('Received application submission:', requestData);
+    
+    // Log input data with coordinate details
+    console.log(`📥 [TRACE:${traceId}] [SUBMIT] Input Data:`, JSON.stringify({
+      hasAddress: !!requestData.propertyAddress,
+      hasCoords: !!(requestData.geoLat && requestData.geoLng),
+      geoLat: requestData.geoLat,
+      geoLng: requestData.geoLng,
+      city: requestData.city,
+      county: requestData.county,
+      state: requestData.state,
+      zipCode: requestData.zipCode,
+      userId: userId,
+      timestamp: new Date().toISOString()
+    }, null, 2));
     
     // Extract drawn parcel data
     const drawnParcelGeometry = requestData.drawnParcelGeometry || null;
@@ -439,17 +459,28 @@ serve(async (req) => {
       .single();
 
     if (error) {
-      console.error('Database insertion error:', error);
+      console.error(`❌ [TRACE:${traceId}] [SUBMIT] Database insertion error:`, error);
       return new Response(JSON.stringify({ 
         error: 'Failed to submit application',
-        details: error.message 
+        details: error.message,
+        trace_id: traceId
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Application submitted successfully:', data);
+    // Log successful application creation with coords verification
+    console.log(`✅ [TRACE:${traceId}] [SUBMIT] Application created:`, JSON.stringify({
+      application_id: data.id,
+      created_at: data.created_at,
+      geo_lat: geo_lat,
+      geo_lng: geo_lng,
+      has_coords: !!(geo_lat && geo_lng),
+      county: inferredCounty,
+      city: locality,
+      formatted_address: formatted_address?.substring(0, 50)
+    }, null, 2));
     
     // Save drawn parcel to drawn_parcels table if geometry provided
     if (drawnParcelGeometry && data.id) {
@@ -569,18 +600,27 @@ serve(async (req) => {
     }
 
     // Return success response
+    console.log(`📤 [TRACE:${traceId}] [SUBMIT] ================== SUBMISSION COMPLETE ==================`);
+    console.log(`📤 [TRACE:${traceId}] [SUBMIT] Final State:`, {
+      application_id: data.id,
+      status: 'success',
+      has_coords: !!(geo_lat && geo_lng),
+      orchestration_triggered: true
+    });
+    
     return new Response(JSON.stringify({
       id: data.id,
       created_at: data.created_at,
       status: 'success',
-      message: 'Application submitted successfully'
+      message: 'Application submitted successfully',
+      trace_id: traceId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Error in submit-application function:', error);
-    return new Response(JSON.stringify({ 
+    console.error(`❌ [TRACE:${traceId}] [SUBMIT] Fatal error in submit-application:`, error);
+    return new Response(JSON.stringify({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error occurred'
     }), {
