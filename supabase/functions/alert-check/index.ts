@@ -179,6 +179,138 @@ Deno.serve(async (req) => {
           };
         },
       },
+      // 7. API source failure spike (any single API drops below 80%)
+      {
+        name: 'api_source_failure_spike',
+        severity: 'warning',
+        threshold: 80,
+        check: async () => {
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+          
+          const { data: logs } = await supabase
+            .from('api_logs')
+            .select('source, success')
+            .gte('timestamp', oneHourAgo);
+          
+          if (!logs || logs.length === 0) {
+            return { triggered: false, value: 100, message: 'No API calls to analyze' };
+          }
+          
+          // Group by source
+          const bySource: Record<string, { total: number; success: number }> = {};
+          for (const log of logs) {
+            const src = log.source || 'unknown';
+            if (!bySource[src]) bySource[src] = { total: 0, success: 0 };
+            bySource[src].total++;
+            if (log.success) bySource[src].success++;
+          }
+          
+          // Find lowest success rate
+          let lowestRate = 100;
+          let lowestSource = '';
+          for (const [source, stats] of Object.entries(bySource)) {
+            if (stats.total >= 5) { // Only check sources with meaningful traffic
+              const rate = (stats.success / stats.total) * 100;
+              if (rate < lowestRate) {
+                lowestRate = rate;
+                lowestSource = source;
+              }
+            }
+          }
+          
+          return {
+            triggered: lowestRate < 80,
+            value: Math.round(lowestRate * 10) / 10,
+            message: lowestRate < 80 
+              ? `API source '${lowestSource}' has ${lowestRate.toFixed(1)}% success rate (below 80% threshold)`
+              : `All API sources above 80% success rate`,
+          };
+        },
+      },
+      // 8. Pipeline stuck (application in enriching state > 10 minutes)
+      {
+        name: 'pipeline_stuck',
+        severity: 'error',
+        threshold: 10,
+        check: async () => {
+          const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+          
+          const { count } = await supabase
+            .from('applications')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'enriching')
+            .lt('updated_at', tenMinAgo);
+          
+          const stuck = count || 0;
+          return {
+            triggered: stuck > 0,
+            value: stuck,
+            message: `${stuck} application(s) stuck in enriching state for more than 10 minutes`,
+          };
+        },
+      },
+      // 9. Queue backlog (more than 20 applications queued)
+      {
+        name: 'queue_backlog',
+        severity: 'warning',
+        threshold: 20,
+        check: async () => {
+          const { count } = await supabase
+            .from('applications')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'queued');
+          
+          const queued = count || 0;
+          return {
+            triggered: queued > 20,
+            value: queued,
+            message: `${queued} applications queued (threshold: 20)`,
+          };
+        },
+      },
+      // 10. Critical API down (Google or FEMA 0% for 30 minutes)
+      {
+        name: 'critical_api_down',
+        severity: 'critical',
+        check: async () => {
+          const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+          
+          const { data: logs } = await supabase
+            .from('api_logs')
+            .select('source, success')
+            .in('source', ['google_places', 'google_geocoding', 'fema_nfhl', 'fema_openfema'])
+            .gte('timestamp', thirtyMinAgo);
+          
+          if (!logs || logs.length === 0) {
+            return { triggered: false, value: 0, message: 'No critical API calls in last 30 minutes' };
+          }
+          
+          // Group by source
+          const bySource: Record<string, { total: number; success: number }> = {};
+          for (const log of logs) {
+            const src = log.source;
+            if (!bySource[src]) bySource[src] = { total: 0, success: 0 };
+            bySource[src].total++;
+            if (log.success) bySource[src].success++;
+          }
+          
+          // Check for any source at 0%
+          const downSources: string[] = [];
+          for (const [source, stats] of Object.entries(bySource)) {
+            if (stats.total >= 3 && stats.success === 0) {
+              downSources.push(source);
+            }
+          }
+          
+          return {
+            triggered: downSources.length > 0,
+            value: downSources.length,
+            message: downSources.length > 0 
+              ? `Critical API(s) down: ${downSources.join(', ')}`
+              : 'All critical APIs operational',
+          };
+        },
+      },
     ];
 
     // Run all checks

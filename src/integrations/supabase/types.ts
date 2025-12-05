@@ -82,6 +82,45 @@ export type Database = {
           },
         ]
       }
+      api_health_snapshots: {
+        Row: {
+          avg_duration_ms: number | null
+          created_at: string | null
+          error_count: number | null
+          hour: string
+          id: string
+          p95_duration_ms: number | null
+          source: string
+          successful_calls: number | null
+          top_errors: Json | null
+          total_calls: number | null
+        }
+        Insert: {
+          avg_duration_ms?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          hour: string
+          id?: string
+          p95_duration_ms?: number | null
+          source: string
+          successful_calls?: number | null
+          top_errors?: Json | null
+          total_calls?: number | null
+        }
+        Update: {
+          avg_duration_ms?: number | null
+          created_at?: string | null
+          error_count?: number | null
+          hour?: string
+          id?: string
+          p95_duration_ms?: number | null
+          source?: string
+          successful_calls?: number | null
+          top_errors?: Json | null
+          total_calls?: number | null
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
           created_at: string | null
@@ -1540,6 +1579,63 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      pipeline_phase_metrics: {
+        Row: {
+          application_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          data_sources: Json | null
+          duration_ms: number | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          phase: string
+          started_at: string
+          success: boolean | null
+        }
+        Insert: {
+          application_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          data_sources?: Json | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          phase: string
+          started_at?: string
+          success?: boolean | null
+        }
+        Update: {
+          application_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          data_sources?: Json | null
+          duration_ms?: number | null
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          phase?: string
+          started_at?: string
+          success?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_phase_metrics_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_phase_metrics_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
       }
       profiles: {
         Row: {
