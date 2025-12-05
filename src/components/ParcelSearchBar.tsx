@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Navigation, MapPin, Loader2, Clock, X, Hash, GitBranch, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface RecentSearch {
   address: string;
@@ -79,6 +80,13 @@ const COUNTY_LABELS: Record<string, string> = {
   fortbend: 'Fort Bend',
 };
 
+const PLACEHOLDER_EXAMPLES = [
+  "123 Main Street, Houston TX",
+  "1234567890 (Parcel ID)",
+  "Main St & Oak Ave",
+  "29.7604, -95.3698"
+];
+
 export function ParcelSearchBar({ 
   onAddressSelect, 
   onParcelSelect, 
@@ -91,6 +99,20 @@ export function ParcelSearchBar({
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
   const [selectedCounty, setSelectedCounty] = useState(initialCounty || 'all');
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Animated placeholder cycling
+  useEffect(() => {
+    if (isFocused || searchQuery.length > 0) return;
+    
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => (prev + 1) % PLACEHOLDER_EXAMPLES.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isFocused, searchQuery]);
 
   useEffect(() => {
     if (searchQuery.length < 3) {
@@ -266,24 +288,44 @@ export function ParcelSearchBar({
 
           <PopoverTrigger asChild>
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin" />
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin z-10" />
               )}
               <Input
+                ref={inputRef}
                 type="text"
-                placeholder="Address, cross street, or parcel ID..."
+                placeholder=""
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => {
+                  setIsFocused(true);
                   if (searchQuery.length === 0 && recentSearches.length > 0) {
                     setIsOpen(true);
                   }
                 }}
-                className="pl-10 pr-10 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
+                onBlur={() => setIsFocused(false)}
+                className="pl-10 pr-16 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
                 data-parcel-search-input
               />
-              <span className="absolute right-10 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hidden md:block">
+              {/* Animated placeholder */}
+              {!isFocused && searchQuery.length === 0 && (
+                <div className="absolute inset-0 flex items-center pointer-events-none pl-10">
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={placeholderIndex}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 0.5, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      transition={{ duration: 0.3 }}
+                      className="text-muted-foreground text-sm"
+                    >
+                      {PLACEHOLDER_EXAMPLES[placeholderIndex]}
+                    </motion.span>
+                  </AnimatePresence>
+                </div>
+              )}
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hidden md:block">
                 ⌘K
               </span>
             </div>
