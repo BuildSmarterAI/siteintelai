@@ -224,6 +224,7 @@ export function MapLibreCanvas({
   const [measurementResult, setMeasurementResult] = useState<any>(null);
   const [measurementPoints, setMeasurementPoints] = useState<[number, number][]>([]);
   const [parcelLoadError, setParcelLoadError] = useState<string | null>(null);
+  const [parcelLoading, setParcelLoading] = useState(false);
   const retryParcelLoad = useRef<(() => void) | null>(null);
   const measurementSourceId = 'measurement-source';
   
@@ -1980,13 +1981,42 @@ export function MapLibreCanvas({
     const lineLayerId = 'hcad-parcels-outline';
     const labelLayerId = 'hcad-parcels-labels';
 
+    // Retry helper with exponential backoff
+    const fetchWithRetry = async (bbox: number[], zoom: number, retries = 3, delay = 1000): Promise<any> => {
+      for (let attempt = 0; attempt < retries; attempt++) {
+        try {
+          console.log(`🗺️ Fetching parcels (attempt ${attempt + 1}/${retries}):`, { bbox, zoom });
+          
+          const { data, error } = await supabase.functions.invoke('fetch-parcels', {
+            body: { bbox, zoom }
+          });
+
+          if (error) {
+            throw error;
+          }
+          
+          return data;
+        } catch (err) {
+          console.warn(`⚠️ Parcel fetch attempt ${attempt + 1} failed:`, err);
+          if (attempt < retries - 1) {
+            const waitTime = delay * Math.pow(2, attempt); // Exponential backoff
+            console.log(`⏳ Retrying in ${waitTime}ms...`);
+            await new Promise(r => setTimeout(r, waitTime));
+          } else {
+            throw err;
+          }
+        }
+      }
+    };
+
     const updateParcels = async () => {
       const bounds = map.current!.getBounds();
       const zoom = map.current!.getZoom();
 
-      // Clear error when zoom is too low
+      // Clear error and show zoom hint when zoom is too low
       if (zoom < 14) {
         setParcelLoadError(null);
+        setParcelLoading(false);
         if (map.current!.getSource(sourceId)) {
           (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
             type: 'FeatureCollection',
@@ -2004,18 +2034,12 @@ export function MapLibreCanvas({
       ];
 
       try {
-        console.log('🗺️ Fetching parcels:', { bbox, zoom });
         setParcelLoadError(null);
+        setParcelLoading(true);
         
-        const { data, error } = await supabase.functions.invoke('fetch-parcels', {
-          body: { bbox, zoom }
-        });
-
-        if (error) {
-          console.error('❌ Parcel API Error:', error);
-          setParcelLoadError('Unable to load parcels. You can still search by address.');
-          return; // Don't throw - graceful degradation
-        }
+        const data = await fetchWithRetry(bbox, zoom);
+        
+        setParcelLoading(false);
         
         // Check for API-level errors in response
         if (data?.error) {
@@ -2102,8 +2126,9 @@ export function MapLibreCanvas({
           (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data || { type: 'FeatureCollection', features: [] });
         }
       } catch (err) {
-        console.error('Failed to load parcels:', err);
-        setParcelLoadError('Unable to load parcels. You can still search by address.');
+        console.error('Failed to load parcels after retries:', err);
+        setParcelLoading(false);
+        setParcelLoadError('Parcel service temporarily unavailable. Click retry or search by address.');
       }
     };
     
@@ -2141,22 +2166,38 @@ export function MapLibreCanvas({
         style={{ minHeight: '300px' }}
       />
 
-      {/* Parcel Load Error Overlay */}
-      {parcelLoadError && showParcels && (
+      {/* Parcel Loading/Error Overlay */}
+      {showParcels && (parcelLoading || parcelLoadError || (mapLoaded && map.current && map.current.getZoom() < 14)) && (
         <div className="absolute bottom-4 left-4 z-20 max-w-xs">
-          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 rounded-lg p-3 shadow-lg">
-            <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
-              {parcelLoadError}
-            </p>
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="text-amber-700 border-amber-400 hover:bg-amber-100"
-              onClick={() => retryParcelLoad.current?.()}
-            >
-              Retry
-            </Button>
-          </div>
+          {parcelLoading && !parcelLoadError && (
+            <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Loading parcels...</p>
+            </div>
+          )}
+          {parcelLoadError && (
+            <div className="bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 rounded-lg p-3 shadow-lg">
+              <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                {parcelLoadError}
+              </p>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="text-amber-700 border-amber-400 hover:bg-amber-100"
+                onClick={() => retryParcelLoad.current?.()}
+                disabled={parcelLoading}
+              >
+                {parcelLoading ? 'Retrying...' : 'Retry'}
+              </Button>
+            </div>
+          )}
+          {!parcelLoading && !parcelLoadError && mapLoaded && map.current && map.current.getZoom() < 14 && (
+            <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
+              <p className="text-sm text-muted-foreground">
+                Zoom in to see parcel boundaries (current: {Math.round(map.current.getZoom())}, need: 14+)
+              </p>
+            </div>
+          )}
         </div>
       )}
 
