@@ -922,6 +922,45 @@ export type Database = {
           },
         ]
       }
+      cron_job_history: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          execution_time_ms: number | null
+          finished_at: string | null
+          id: string
+          job_name: string
+          metadata: Json | null
+          records_processed: number | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          finished_at?: string | null
+          id?: string
+          job_name: string
+          metadata?: Json | null
+          records_processed?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          finished_at?: string | null
+          id?: string
+          job_name?: string
+          metadata?: Json | null
+          records_processed?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
       cross_street_index: {
         Row: {
           city: string | null
@@ -1651,6 +1690,75 @@ export type Database = {
           quickchecks_unlimited?: boolean | null
           reports_per_month?: number | null
           stripe_price_id?: string | null
+        }
+        Relationships: []
+      }
+      system_alerts: {
+        Row: {
+          acknowledged: boolean | null
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          created_at: string | null
+          id: string
+          message: string
+          metadata: Json | null
+          resolved_at: string | null
+          severity: string | null
+          source: string | null
+        }
+        Insert: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          created_at?: string | null
+          id?: string
+          message: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          severity?: string | null
+          source?: string | null
+        }
+        Update: {
+          acknowledged?: boolean | null
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          created_at?: string | null
+          id?: string
+          message?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          severity?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
+      system_metrics: {
+        Row: {
+          dimensions: Json | null
+          id: string
+          metric_name: string
+          metric_unit: string | null
+          metric_value: number | null
+          recorded_at: string | null
+        }
+        Insert: {
+          dimensions?: Json | null
+          id?: string
+          metric_name: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          recorded_at?: string | null
+        }
+        Update: {
+          dimensions?: Json | null
+          id?: string
+          metric_name?: string
+          metric_unit?: string | null
+          metric_value?: number | null
+          recorded_at?: string | null
         }
         Relationships: []
       }
@@ -2748,11 +2856,11 @@ export type Database = {
         Returns: unknown
       }
       st_generatepoints:
-        | { Args: { area: unknown; npoints: number }; Returns: unknown }
         | {
             Args: { area: unknown; npoints: number; seed: number }
             Returns: unknown
           }
+        | { Args: { area: unknown; npoints: number }; Returns: unknown }
       st_geogfromtext: { Args: { "": string }; Returns: unknown }
       st_geographyfromtext: { Args: { "": string }; Returns: unknown }
       st_geohash:

@@ -160,3 +160,12 @@ verify_jwt = false
 
 [functions.geocode-with-cache]
 verify_jwt = false
+
+[functions.credit-reset]
+verify_jwt = false
+
+[functions.cache-cleanup]
+verify_jwt = false
+
+[functions.alert-check]
+verify_jwt = false
