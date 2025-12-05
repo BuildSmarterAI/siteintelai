@@ -25,19 +25,28 @@ import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { IntentBadge } from "@/components/IntentBadge";
 import { OnboardingTour } from "@/components/OnboardingTour";
-
 export default function Application() {
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [hasCompleteProfile, setHasCompleteProfile] = useState(false);
   const [profileStatus, setProfileStatus] = useState<'complete' | 'partial' | 'none'>('none');
-  
+
   // Use form hook
-  const { formData, errors, updateField, validateStep: validateStepFromHook, setFormData, setErrors, updateMultipleFields } = useApplicationForm();
-  
+  const {
+    formData,
+    errors,
+    updateField,
+    validateStep: validateStepFromHook,
+    setFormData,
+    setErrors,
+    updateMultipleFields
+  } = useApplicationForm();
+
   // Authentication and profile loading
   const [authLoading, setAuthLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -55,47 +64,42 @@ export default function Application() {
       sessionStorage.setItem('application_in_progress', 'true');
       console.log('[New Application] Cleared previous intent data');
     }
-
     async function loadUserData() {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: {
+            session
+          }
+        } = await supabase.auth.getSession();
         setIsAuthenticated(!!session?.user);
-        
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
+          const {
+            data: profile
+          } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
           if (profile) {
             setUserProfile(profile);
-            
+
             // Auto-fill contact information from profile
             const updates: any = {};
             if (profile.full_name) updates.fullName = profile.full_name;
             if (profile.email) updates.email = profile.email;
             if (profile.company) updates.company = profile.company;
             if (profile.phone) updates.phone = profile.phone;
-            
             if (Object.keys(updates).length > 0) {
               updateMultipleFields(updates);
             }
 
             // Check if profile is COMPLETE (all 4 required fields)
             const profileComplete = profile.full_name && profile.email && profile.phone && profile.company;
-
             if (profileComplete) {
               // Profile is complete - skip Step 1 (Contact)
               setProfileStatus('complete');
               setHasCompleteProfile(true);
               setCompletedSteps(prev => new Set([...prev, 1]));
-              
+
               // Check if intent has been captured FOR THIS SESSION
               const intentCapturedThisSession = sessionStorage.getItem('intent_captured_this_session');
               const savedIntent = localStorage.getItem('user_intent_type') as 'build' | 'buy' | null;
-              
               if (intentCapturedThisSession && savedIntent) {
                 // Intent already captured this session - auto-advance
                 setCompletedSteps(prev => new Set([...prev, 0]));
@@ -105,19 +109,22 @@ export default function Application() {
                 // Always start at Step 0 for new applications
                 console.log('[Intent] New application - user must select intent');
               }
-              
+
               // Only auto-navigate to step 2 if user is on step 0 or 1
               const stepParam = new URLSearchParams(window.location.search).get('step');
               const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 0;
-              
               if (currentStepFromUrl <= 1) {
                 if (intentCapturedThisSession && savedIntent) {
                   // Both contact info and intent captured - skip to step 2
-                  navigate('/application?step=2', { replace: true });
+                  navigate('/application?step=2', {
+                    replace: true
+                  });
                   setCurrentStep(2);
                 } else {
                   // Intent not captured - ensure user starts at step 0
-                  navigate('/application?step=0', { replace: true });
+                  navigate('/application?step=0', {
+                    replace: true
+                  });
                   setCurrentStep(0);
                 }
               }
@@ -139,11 +146,14 @@ export default function Application() {
         setAuthLoading(false);
       }
     }
-    
     loadUserData();
 
     // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: {
+        subscription
+      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session?.user);
       if (session?.user) {
         loadUserData();
@@ -151,7 +161,6 @@ export default function Application() {
         setUserProfile(null);
       }
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -171,42 +180,46 @@ export default function Application() {
   // Helper to navigate to a step and sync URL
   const goToStep = (step: number) => {
     setCurrentStep(step);
-    navigate(`/application?step=${step}`, { replace: true });
+    navigate(`/application?step=${step}`, {
+      replace: true
+    });
   };
 
   // Set initial step based on URL parameter with relaxed enforcement
   useEffect(() => {
     const stepParam = searchParams.get('step');
     if (!stepParam) return;
-    
     const requestedStep = parseInt(stepParam, 10);
     if (requestedStep < 0 || requestedStep > 6) return;
-    
+
     // Check if all previous steps are completed
-    const canAccessStep = Array.from({ length: requestedStep }, (_, i) => i)
-      .every(step => completedSteps.has(step));
-    
+    const canAccessStep = Array.from({
+      length: requestedStep
+    }, (_, i) => i).every(step => completedSteps.has(step));
     if (canAccessStep) {
       setCurrentStep(requestedStep);
     } else if (requestedStep > currentStep) {
       // Only enforce when trying to jump forward via URL
-      const firstIncompleteStep = Array.from({ length: 6 }, (_, i) => i)
-        .find(step => !completedSteps.has(step)) || 0;
-      navigate(`/application?step=${firstIncompleteStep}`, { replace: true });
+      const firstIncompleteStep = Array.from({
+        length: 6
+      }, (_, i) => i).find(step => !completedSteps.has(step)) || 0;
+      navigate(`/application?step=${firstIncompleteStep}`, {
+        replace: true
+      });
       setCurrentStep(firstIncompleteStep);
     }
   }, [searchParams]); // Note: removed completedSteps to avoid fighting state updates
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [enrichedData, setEnrichedData] = useState<any>(null);
-  
+
   // Drawing tool state
   const [drawingMode, setDrawingMode] = useState(false);
   const [drawnGeometry, setDrawnGeometry] = useState<any>(null);
   const [isSavingParcel, setIsSavingParcel] = useState(false);
-  
+
   // Track enrichment timeout to cancel if user makes changes
   const enrichmentTimeoutRef = useRef<number | null>(null);
 
@@ -261,9 +274,7 @@ export default function Application() {
     lotSize?: string;
     zoning?: string;
   }>({});
-
   const totalSteps = 6;
-
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
     // Clear any pending enrichment timeout when user manually changes fields
     if (enrichmentTimeoutRef.current) {
@@ -285,39 +296,33 @@ export default function Application() {
     const rawValue = e.target.value.replace(/[^0-9]/g, '');
     handleInputChange('budget', rawValue);
   };
-
   const handleMultiSelectChange = (field: string, value: string, checked: boolean) => {
     const currentValues = formData[field as keyof typeof formData] as string[];
     let newValues: string[];
-    
     if (checked) {
       newValues = [...currentValues, value];
     } else {
       newValues = currentValues.filter(v => v !== value);
     }
-    
     handleInputChange(field, newValues);
   };
-
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setUploadedFiles(prev => [...prev, ...files]);
   };
-  
+
   // Drawing handlers
   const handleDrawingComplete = (geometry: any) => {
     setDrawnGeometry(geometry);
     setDrawingMode(false);
-    
+
     // Store geometry in formData for submission
     updateField('drawnParcelGeometry', geometry);
-    
     toast({
       title: "Parcel Boundary Drawn",
-      description: "Boundary will be included in your feasibility report.",
+      description: "Boundary will be included in your feasibility report."
     });
   };
-
   const handleSaveParcel = async (name: string) => {
     setIsSavingParcel(true);
     try {
@@ -325,13 +330,12 @@ export default function Application() {
       updateField('drawnParcelName', name);
       toast({
         title: "Parcel Saved",
-        description: `Parcel "${name}" will be submitted with your application.`,
+        description: `Parcel "${name}" will be submitted with your application.`
       });
     } finally {
       setIsSavingParcel(false);
     }
   };
-
   const handleCancelDrawing = () => {
     setDrawingMode(false);
     setDrawnGeometry(null);
@@ -340,25 +344,22 @@ export default function Application() {
 
   // Use validation from hook
   const validateStep = validateStepFromHook;
-
   const handleNext = async () => {
     console.log('[Next Button Clicked] Current Step:', currentStep, 'Form Data:', {
       propertyAddress: formData.propertyAddress
     });
-    
+
     // Auto-mark Step 1 as completed if we're past it and all fields are valid
     if (currentStep > 1) {
-      const step1Valid = formData.fullName && formData.company && 
-                        /^\S+@\S+\.\S+$/.test(formData.email) && formData.phone;
+      const step1Valid = formData.fullName && formData.company && /^\S+@\S+\.\S+$/.test(formData.email) && formData.phone;
       if (step1Valid && !completedSteps.has(1)) {
         setCompletedSteps(prev => new Set([...prev, 1]));
       }
     }
-    
+
     // Check if Step 1 needs to be completed first (for Step 2+)
     if (currentStep >= 2 && !completedSteps.has(1)) {
-      const step1Valid = formData.fullName && formData.company && 
-                        /^\S+@\S+\.\S+$/.test(formData.email) && formData.phone;
+      const step1Valid = formData.fullName && formData.company && /^\S+@\S+\.\S+$/.test(formData.email) && formData.phone;
       if (!step1Valid) {
         toast({
           title: "Complete Step 1 First",
@@ -369,7 +370,6 @@ export default function Application() {
         return;
       }
     }
-    
     if (validateStep(currentStep)) {
       // Save intent to sessionStorage and localStorage when Step 0 is completed
       if (currentStep === 0) {
@@ -377,25 +377,26 @@ export default function Application() {
         localStorage.setItem('user_intent_type', formData.intentType);
         console.log('[Intent] Saved to session and localStorage:', formData.intentType);
       }
-      
+
       // If completing Step 1 AND user is authenticated, update their profile
       if (currentStep === 1) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: {
+            session
+          }
+        } = await supabase.auth.getSession();
         if (session?.user) {
           try {
-            const { error } = await supabase
-              .from('profiles')
-              .update({
-                full_name: formData.fullName,
-                company: formData.company,
-                phone: formData.phone,
-                email: formData.email,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', session.user.id);
-            
+            const {
+              error
+            } = await supabase.from('profiles').update({
+              full_name: formData.fullName,
+              company: formData.company,
+              phone: formData.phone,
+              email: formData.email,
+              updated_at: new Date().toISOString()
+            }).eq('id', session.user.id);
             if (error) throw error;
-            
             console.log('Profile updated successfully');
             setProfileStatus('complete');
             setHasCompleteProfile(true);
@@ -405,10 +406,10 @@ export default function Application() {
           }
         }
       }
-      
+
       // Mark current step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep]));
-      
+
       // Move to next step with URL sync
       const nextStep = Math.min(currentStep + 1, totalSteps);
       goToStep(nextStep);
@@ -416,30 +417,27 @@ export default function Application() {
       console.log('[Validation Failed] Errors:', errors);
     }
   };
-
   const handlePrev = () => {
     // Don't allow going back from Step 2 to Step 1 (contact info is locked)
     if (currentStep === 2) {
       toast({
         title: "Contact Information Locked",
-        description: "Your contact details have been saved and cannot be modified during this session.",
+        description: "Your contact details have been saved and cannot be modified during this session."
       });
       return;
     }
-    
+
     // Allow going back to Step 0 from Step 1
     const prevStep = Math.max(currentStep - 1, 0);
     goToStep(prevStep);
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateStep(6)) {
       setIsLoading(true);
-      
+
       // Detect conflicts between user input and HCAD data
       const dataFlags = [];
-
       if (unlockedFields.parcelId && hcadValues.parcelId && formData.parcelId !== hcadValues.parcelId) {
         dataFlags.push({
           type: 'user_override',
@@ -450,12 +448,10 @@ export default function Application() {
           message: 'User manually overrode HCAD parcel ID'
         });
       }
-
       if (unlockedFields.lotSize && hcadValues.lotSize) {
         const userLotSize = parseFloat(formData.lotSize);
         const hcadLotSize = parseFloat(hcadValues.lotSize);
         const percentDiff = Math.abs((userLotSize - hcadLotSize) / hcadLotSize) * 100;
-        
         if (percentDiff > 10) {
           dataFlags.push({
             type: 'user_override',
@@ -468,7 +464,6 @@ export default function Application() {
           });
         }
       }
-
       if (unlockedFields.zoning && hcadValues.zoning && formData.zoning !== hcadValues.zoning) {
         dataFlags.push({
           type: 'user_override',
@@ -479,7 +474,7 @@ export default function Application() {
           message: 'User manually overrode HCAD zoning classification'
         });
       }
-      
+
       // Prepare data for Supabase submission
       const submissionData = {
         fullName: formData.fullName,
@@ -519,7 +514,11 @@ export default function Application() {
         preferredContact: formData.contactMethod,
         bestTime: formData.bestTime,
         additionalNotes: formData.additionalNotes,
-        attachments: uploadedFiles.length > 0 ? uploadedFiles.map(f => ({ name: f.name, size: f.size, type: f.type })) : null,
+        attachments: uploadedFiles.length > 0 ? uploadedFiles.map(f => ({
+          name: f.name,
+          size: f.size,
+          type: f.type
+        })) : null,
         ndaConfidentiality: formData.ndaConsent,
         consentContact: formData.contactConsent,
         consentTermsPrivacy: formData.privacyConsent,
@@ -529,11 +528,9 @@ export default function Application() {
         utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
         utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
         pageUrl: window.location.href,
-        
         // Add drawn parcel data
         drawnParcelGeometry: formData.drawnParcelGeometry,
         drawnParcelName: formData.drawnParcelName,
-        
         // Include enriched GIS data from formData state
         situsAddress: formData.situsAddress,
         administrativeAreaLevel2: formData.administrativeAreaLevel2,
@@ -543,36 +540,39 @@ export default function Application() {
         overlayDistrict: formData.overlayDistrict,
         floodplainZone: formData.floodplainZone,
         baseFloodElevation: formData.baseFloodElevation,
-        
         // Add conflict flags if any exist
         dataFlags: dataFlags.length > 0 ? dataFlags : null
       };
-
       try {
         // Get current session to pass auth token
-        const { data: { session } } = await supabase.auth.getSession();
-        
+        const {
+          data: {
+            session
+          }
+        } = await supabase.auth.getSession();
+
         // Verify user is authenticated
         if (!session?.user) {
           toast({
             title: "Authentication Required",
             description: "Please log in to submit an application.",
-            variant: "destructive",
+            variant: "destructive"
           });
           navigate("/auth");
           return;
         }
-        
         const headers = {
           'Authorization': `Bearer ${session.access_token}`
         };
 
         // Submit to Supabase via edge function
-        const { data: result, error } = await supabase.functions.invoke('submit-application', {
+        const {
+          data: result,
+          error
+        } = await supabase.functions.invoke('submit-application', {
           body: submissionData,
           headers
         });
-
         if (error) {
           throw error;
         }
@@ -582,16 +582,15 @@ export default function Application() {
           await fetch(webhookUrl, {
             method: "POST",
             headers: {
-              "Content-Type": "application/json",
+              "Content-Type": "application/json"
             },
             mode: "no-cors",
-            body: JSON.stringify(submissionData),
+            body: JSON.stringify(submissionData)
           });
         }
-
         toast({
           title: "Application Submitted Successfully!",
-          description: "Redirecting to next steps...",
+          description: "Redirecting to next steps..."
         });
 
         // Clear completed steps and session markers on successful submission
@@ -599,7 +598,7 @@ export default function Application() {
         sessionStorage.removeItem('application_in_progress');
         sessionStorage.removeItem('intent_captured_this_session');
         console.log('[Submission] Cleared session markers for next application');
-        
+
         // Redirect to thank you page with application ID
         setTimeout(() => {
           navigate(`/thank-you?applicationId=${result.id}`);
@@ -609,60 +608,34 @@ export default function Application() {
         toast({
           title: "Submission Error",
           description: "There was an issue submitting your application. Please try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
       } finally {
         setIsLoading(false);
       }
     }
   };
-
   const calculateLeadScore = (): number => {
     let score = 0;
-    
+
     // Budget scoring
     const budgetValue = parseInt(formData.budget.replace(/[^0-9]/g, ''));
-    if (budgetValue >= 50000000) score += 100;
-    else if (budgetValue >= 20000000) score += 80;
-    else if (budgetValue >= 5000000) score += 60;
-    else score += 40;
-    
+    if (budgetValue >= 50000000) score += 100;else if (budgetValue >= 20000000) score += 80;else if (budgetValue >= 5000000) score += 60;else score += 40;
+
     // Project type scoring
     if (formData.projectType.includes("Mixed-Use") || formData.projectType.includes("Healthcare")) score += 20;
-    
     return score;
   };
-
-  const getProgress = () => (currentStep / totalSteps) * 100;
-
-  const renderMultiSelectCheckboxes = (
-    field: string,
-    options: string[],
-    values: string[]
-  ) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {options.map((option) => (
-        <div key={option} className="flex items-center space-x-2">
-          <Checkbox
-            id={`${field}-${option}`}
-            checked={values.includes(option)}
-            onCheckedChange={(checked) => 
-              handleMultiSelectChange(field, option, checked as boolean)
-            }
-          />
-          <Label 
-            htmlFor={`${field}-${option}`}
-            className="text-sm font-body text-charcoal cursor-pointer"
-          >
+  const getProgress = () => currentStep / totalSteps * 100;
+  const renderMultiSelectCheckboxes = (field: string, options: string[], values: string[]) => <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {options.map(option => <div key={option} className="flex items-center space-x-2">
+          <Checkbox id={`${field}-${option}`} checked={values.includes(option)} onCheckedChange={checked => handleMultiSelectChange(field, option, checked as boolean)} />
+          <Label htmlFor={`${field}-${option}`} className="text-sm font-body text-charcoal cursor-pointer">
             {option}
           </Label>
-        </div>
-      ))}
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-white">
+        </div>)}
+    </div>;
+  return <div className="min-h-screen bg-white">
       {/* Mini Hero */}
       <section className="bg-gradient-to-br from-charcoal/5 to-navy/5 py-20">
         <div className="container mx-auto px-6 lg:px-8">
@@ -685,10 +658,9 @@ export default function Application() {
                 </span>
               </div>
               <div className="w-full bg-charcoal/20 rounded-full h-3">
-                <div 
-                  className="bg-navy h-3 rounded-full transition-all duration-500"
-                  style={{ width: `${getProgress()}%` }}
-                />
+                <div className="bg-navy h-3 rounded-full transition-all duration-500" style={{
+                width: `${getProgress()}%`
+              }} />
               </div>
             </div>
           </div>
@@ -726,46 +698,35 @@ export default function Application() {
                      <form onSubmit={handleSubmit}>
                       
                        {/* Step 0: Intent Selection */}
-                       {currentStep === 0 && (
-                         <div className="space-y-6 animate-fade-in">
+                       {currentStep === 0 && <div className="space-y-6 animate-fade-in">
                            {/* Validation Error Banner */}
-                           {errors.intentType && (
-                             <div className="mb-4 p-4 bg-destructive/10 border-l-4 border-destructive rounded-r">
+                           {errors.intentType && <div className="mb-4 p-4 bg-destructive/10 border-l-4 border-destructive rounded-r">
                                <div className="flex items-center gap-3">
                                  <AlertCircle className="w-5 h-5 text-destructive" />
                                  <p className="text-destructive font-medium">{errors.intentType}</p>
                                </div>
-                             </div>
-                           )}
-                           <IntentStep
-                             selectedIntent={formData.intentType}
-                             onSelect={(intent) => {
-                               updateField('intentType', intent);
-                               // Brief delay for visual feedback, then auto-advance
-                               setTimeout(() => {
-                                 setCompletedSteps(prev => new Set([...prev, 0]));
-                                 goToStep(1);
-                               }, 500);
-                             }}
-                           />
-                         </div>
-                       )}
+                             </div>}
+                           <IntentStep selectedIntent={formData.intentType} onSelect={intent => {
+                        updateField('intentType', intent);
+                        // Brief delay for visual feedback, then auto-advance
+                        setTimeout(() => {
+                          setCompletedSteps(prev => new Set([...prev, 0]));
+                          goToStep(1);
+                        }, 500);
+                      }} />
+                         </div>}
                        
                         {/* Step 1: Contact Information */}
-                        {currentStep === 1 && (
-                         <div className="space-y-6 animate-fade-in">
+                        {currentStep === 1 && <div className="space-y-6 animate-fade-in">
                            {/* Loading State */}
-                           {authLoading ? (
-                             <Card>
+                           {authLoading ? <Card>
                                <CardContent className="py-8 text-center">
                                  <div className="flex flex-col items-center gap-3">
                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                    <p className="text-muted-foreground">Loading your information...</p>
                                  </div>
                                </CardContent>
-                            </Card>
-                          ) : userProfile ? (
-                            <Card className="border-green-200 bg-green-50">
+                            </Card> : userProfile ? <Card className="border-green-200 bg-green-50">
                               <CardContent className="pt-6">
                                 <div className="flex items-center gap-3">
                                   <CheckCircle className="h-6 w-6 text-green-600" />
@@ -775,40 +736,31 @@ export default function Application() {
                                   </div>
                                 </div>
                               </CardContent>
-                            </Card>
-                          ) : !isAuthenticated ? (
-                            <AuthPrompt
-                               onAuthSuccess={(user, profile) => {
-                                 setUserProfile(profile);
-                                 // Auto-fill form with profile data
-                                 const updates: any = {};
-                                 if (profile.full_name) updates.fullName = profile.full_name;
-                                 if (profile.email) updates.email = profile.email;
-                                 if (profile.company) updates.company = profile.company;
-                                 if (profile.phone) updates.phone = profile.phone;
-                                 
-                                 if (Object.keys(updates).length > 0) {
-                                   updateMultipleFields(updates);
-                                   
-                                   // If all required contact fields are present, mark Step 1 as complete
-                                   if (profile.full_name && profile.email && profile.phone && profile.company) {
-                                     setCompletedSteps(prev => new Set([...prev, 1]));
-                                   }
-                                 }
-                                }}
-                              />
-                            ) : null}
+                            </Card> : !isAuthenticated ? <AuthPrompt onAuthSuccess={(user, profile) => {
+                        setUserProfile(profile);
+                        // Auto-fill form with profile data
+                        const updates: any = {};
+                        if (profile.full_name) updates.fullName = profile.full_name;
+                        if (profile.email) updates.email = profile.email;
+                        if (profile.company) updates.company = profile.company;
+                        if (profile.phone) updates.phone = profile.phone;
+                        if (Object.keys(updates).length > 0) {
+                          updateMultipleFields(updates);
+
+                          // If all required contact fields are present, mark Step 1 as complete
+                          if (profile.full_name && profile.email && profile.phone && profile.company) {
+                            setCompletedSteps(prev => new Set([...prev, 1]));
+                          }
+                        }
+                      }} /> : null}
 
                              {/* Contact Step - gated behind authLoading to prevent flash */}
-                             {authLoading ? (
-                               <div className="space-y-4">
+                             {authLoading ? <div className="space-y-4">
                                  <Skeleton className="h-12 w-full" />
                                  <Skeleton className="h-12 w-full" />
                                  <Skeleton className="h-12 w-full" />
                                  <Skeleton className="h-12 w-full" />
-                               </div>
-                             ) : hasCompleteProfile ? (
-                               <Card className="p-6 bg-primary/5 border-primary/20">
+                               </div> : hasCompleteProfile ? <Card className="p-6 bg-primary/5 border-primary/20">
                                  <div className="flex items-start gap-4">
                                    <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
                                    <div className="flex-1">
@@ -821,37 +773,25 @@ export default function Application() {
                                      </Button>
                                    </div>
                                  </div>
-                               </Card>
-                             ) : (
-                               <>
-                                 {profileStatus === 'partial' && (
-                                   <div className="bg-accent/10 border border-accent rounded-lg p-4 mb-6">
+                               </Card> : <>
+                                 {profileStatus === 'partial' && <div className="bg-accent/10 border border-accent rounded-lg p-4 mb-6">
                                      <p className="text-sm text-foreground">
                                        <strong>You're signed in!</strong> Just complete your phone and company details below to continue.
                                      </p>
-                                   </div>
-                                 )}
-                                 <ContactStep
-                                   formData={{
-                                  fullName: formData.fullName,
-                                  company: formData.company,
-                                  email: formData.email,
-                                  phone: formData.phone,
-                                 }}
-                                 onChange={handleInputChange}
-                                 errors={errors}
-                               />
-                             </>
-                             )}
-                          </div>
-                        )}
+                                   </div>}
+                                 <ContactStep formData={{
+                          fullName: formData.fullName,
+                          company: formData.company,
+                          email: formData.email,
+                          phone: formData.phone
+                        }} onChange={handleInputChange} errors={errors} />
+                             </>}
+                          </div>}
 
                        {/* Step 2: Property Information */}
-                       {currentStep === 2 && (
-                         <div className="space-y-6 animate-fade-in">
+                       {currentStep === 2 && <div className="space-y-6 animate-fade-in">
                            {/* Validation Summary Banner */}
-                           {Object.keys(errors).length > 0 && (
-                             <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
+                           {Object.keys(errors).length > 0 && <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
                                <div className="flex items-start gap-3">
                                   <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
                                   <div>
@@ -861,312 +801,293 @@ export default function Application() {
                                     </ul>
                                   </div>
                                 </div>
-                             </div>
-                            )}
+                             </div>}
                             
-                              <PropertyStep
-                                formData={{
-                                  propertyAddress: formData.propertyAddress,
-                                  geoLat: formData.geoLat,
-                                  geoLng: formData.geoLng,
-                                  parcelId: formData.parcelId,
-                                  lotSize: formData.lotSize,
-                                  lotSizeUnit: formData.lotSizeUnit,
-                                  parcelOwner: formData.parcelOwner,
-                                  zoning: formData.zoning,
-                                }}
-                                onChange={handleInputChange}
-                                onAddressSelect={async (lat: number, lng: number, address: string) => {
-                                  console.log('[Address Selected]', { lat, lng, address });
-                                  
-                                  // Update address and coordinates
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    propertyAddress: address,
-                                    geoLat: lat,
-                                    geoLng: lng,
-                                  }));
-                                  
-                                  setIsAddressLoading(true);
-                                  
-                                  toast({
-                                    title: "Location Selected",
-                                    description: "Fetching property details...",
-                                  });
+                              <PropertyStep formData={{
+                        propertyAddress: formData.propertyAddress,
+                        geoLat: formData.geoLat,
+                        geoLng: formData.geoLng,
+                        parcelId: formData.parcelId,
+                        lotSize: formData.lotSize,
+                        lotSizeUnit: formData.lotSizeUnit,
+                        parcelOwner: formData.parcelOwner,
+                        zoning: formData.zoning
+                      }} onChange={handleInputChange} onAddressSelect={async (lat: number, lng: number, address: string) => {
+                        console.log('[Address Selected]', {
+                          lat,
+                          lng,
+                          address
+                        });
 
-                                  try {
-                                    // Call enrichment API
-                                    const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
-                                      body: {
-                                        lat,
-                                        lng,
-                                        formatted_address: address,
-                                        mode: 'geocode_only'
-                                      }
-                                    });
+                        // Update address and coordinates
+                        setFormData(prev => ({
+                          ...prev,
+                          propertyAddress: address,
+                          geoLat: lat,
+                          geoLng: lng
+                        }));
+                        setIsAddressLoading(true);
+                        toast({
+                          title: "Location Selected",
+                          description: "Fetching property details..."
+                        });
+                        try {
+                          // Call enrichment API
+                          const {
+                            data,
+                            error
+                          } = await supabase.functions.invoke('enrich-feasibility', {
+                            body: {
+                              lat,
+                              lng,
+                              formatted_address: address,
+                              mode: 'geocode_only'
+                            }
+                          });
+                          if (error) {
+                            console.error('[Enrichment Error]', error);
+                            toast({
+                              title: "Enrichment Failed",
+                              description: "Could not load property details. Please enter them manually.",
+                              variant: "destructive"
+                            });
+                            return;
+                          }
+                          if (data?.success && data?.data) {
+                            const enrichedData = data.data;
 
-                                    if (error) {
-                                      console.error('[Enrichment Error]', error);
-                                      toast({
-                                        title: "Enrichment Failed",
-                                        description: "Could not load property details. Please enter them manually.",
-                                        variant: "destructive"
-                                      });
-                                      return;
-                                    }
+                            // Extract fields from enrichment response
+                            const county = enrichedData.county || enrichedData.administrative_area_level_2 || '';
+                            const city = enrichedData.city || enrichedData.locality || '';
+                            const state = enrichedData.administrative_area_level_1 || enrichedData.state || 'TX';
+                            const zipCode = enrichedData.postal_code || enrichedData.zipCode || '';
+                            const neighborhood = enrichedData.neighborhood || enrichedData.sublocality || '';
+                            const parcelId = enrichedData.parcel_id || '';
+                            const lotSizeValue = enrichedData.acreage_cad || enrichedData.lot_size_value || '';
+                            const zoning = enrichedData.zoning_code || '';
+                            const parcelOwner = enrichedData.parcel_owner || '';
 
-                                    if (data?.success && data?.data) {
-                                      const enrichedData = data.data;
-                                      
-                                      // Extract fields from enrichment response
-                                      const county = enrichedData.county || enrichedData.administrative_area_level_2 || '';
-                                      const city = enrichedData.city || enrichedData.locality || '';
-                                      const state = enrichedData.administrative_area_level_1 || enrichedData.state || 'TX';
-                                      const zipCode = enrichedData.postal_code || enrichedData.zipCode || '';
-                                      const neighborhood = enrichedData.neighborhood || enrichedData.sublocality || '';
-                                      const parcelId = enrichedData.parcel_id || '';
-                                      const lotSizeValue = enrichedData.acreage_cad || enrichedData.lot_size_value || '';
-                                      const zoning = enrichedData.zoning_code || '';
-                                      const parcelOwner = enrichedData.parcel_owner || '';
+                            // Update form data with enriched fields
+                            setFormData(prev => ({
+                              ...prev,
+                              county,
+                              city,
+                              state,
+                              zipCode,
+                              neighborhood,
+                              parcelId: parcelId || prev.parcelId,
+                              lotSize: lotSizeValue ? String(lotSizeValue) : prev.lotSize,
+                              zoning: zoning || prev.zoning,
+                              parcelOwner: parcelOwner || prev.parcelOwner,
+                              // Hidden enriched fields
+                              situsAddress: enrichedData.situs_address || prev.situsAddress,
+                              administrativeAreaLevel2: enrichedData.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                              acreageCad: enrichedData.acreage_cad || prev.acreageCad,
+                              zoningCode: enrichedData.zoning_code || prev.zoningCode,
+                              overlayDistrict: enrichedData.overlay_district || prev.overlayDistrict,
+                              floodplainZone: enrichedData.floodplain_zone || prev.floodplainZone,
+                              baseFloodElevation: enrichedData.base_flood_elevation || prev.baseFloodElevation
+                            }));
 
-                                      // Update form data with enriched fields
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        county,
-                                        city,
-                                        state,
-                                        zipCode,
-                                        neighborhood,
-                                        parcelId: parcelId || prev.parcelId,
-                                        lotSize: lotSizeValue ? String(lotSizeValue) : prev.lotSize,
-                                        zoning: zoning || prev.zoning,
-                                        parcelOwner: parcelOwner || prev.parcelOwner,
-                                        // Hidden enriched fields
-                                        situsAddress: enrichedData.situs_address || prev.situsAddress,
-                                        administrativeAreaLevel2: enrichedData.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                                        acreageCad: enrichedData.acreage_cad || prev.acreageCad,
-                                        zoningCode: enrichedData.zoning_code || prev.zoningCode,
-                                        overlayDistrict: enrichedData.overlay_district || prev.overlayDistrict,
-                                        floodplainZone: enrichedData.floodplain_zone || prev.floodplainZone,
-                                        baseFloodElevation: enrichedData.base_flood_elevation || prev.baseFloodElevation,
-                                      }));
+                            // Mark fields as enriched
+                            setEnrichedFields(prev => ({
+                              ...prev,
+                              county: !!county,
+                              city: !!city,
+                              state: !!state,
+                              zipCode: !!zipCode,
+                              neighborhood: !!neighborhood,
+                              parcelId: !!parcelId,
+                              lotSize: !!lotSizeValue,
+                              zoning: !!zoning
+                            }));
 
-                                      // Mark fields as enriched
-                                      setEnrichedFields(prev => ({
-                                        ...prev,
-                                        county: !!county,
-                                        city: !!city,
-                                        state: !!state,
-                                        zipCode: !!zipCode,
-                                        neighborhood: !!neighborhood,
-                                        parcelId: !!parcelId,
-                                        lotSize: !!lotSizeValue,
-                                        zoning: !!zoning,
-                                      }));
+                            // Store HCAD values for conflict detection
+                            setHcadValues({
+                              parcelId: parcelId || undefined,
+                              lotSize: lotSizeValue ? String(lotSizeValue) : undefined,
+                              zoning: zoning || undefined
+                            });
 
-                                      // Store HCAD values for conflict detection
-                                      setHcadValues({
-                                        parcelId: parcelId || undefined,
-                                        lotSize: lotSizeValue ? String(lotSizeValue) : undefined,
-                                        zoning: zoning || undefined,
-                                      });
+                            // Show success or partial toast
+                            const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
+                            if (hasFlags) {
+                              toast({
+                                title: "Property Data Partially Loaded",
+                                description: "Some fields could not be auto-filled. Please complete them manually."
+                              });
+                            } else {
+                              toast({
+                                title: "Property Details Loaded ✅",
+                                description: "Fields have been auto-filled from public records."
+                              });
+                            }
+                          } else {
+                            toast({
+                              title: "Auto-fill Unavailable",
+                              description: "Unable to load property data. Please enter details manually."
+                            });
+                          }
+                        } catch (err) {
+                          console.error('[Enrichment Exception]', err);
+                          toast({
+                            title: "Error Loading Data",
+                            description: "An unexpected error occurred. Please try again.",
+                            variant: "destructive"
+                          });
+                        } finally {
+                          // Always unlock fields
+                          setIsAddressLoading(false);
+                        }
+                      }} onParcelSelect={(parcel: any) => {
+                        console.log('[Parcel Selected]', parcel);
+                        if (!parcel?.properties || !parcel?.geometry) {
+                          console.error('Invalid parcel data');
+                          return;
+                        }
+                        const props = parcel.properties;
 
-                                      // Show success or partial toast
-                                      const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
-                                      if (hasFlags) {
-                                        toast({
-                                          title: "Property Data Partially Loaded",
-                                          description: "Some fields could not be auto-filled. Please complete them manually.",
-                                        });
-                                      } else {
-                                        toast({
-                                          title: "Property Details Loaded ✅",
-                                          description: "Fields have been auto-filled from public records.",
-                                        });
-                                      }
-                                    } else {
-                                      toast({
-                                        title: "Auto-fill Unavailable",
-                                        description: "Unable to load property data. Please enter details manually.",
-                                      });
-                                    }
-                                  } catch (err) {
-                                    console.error('[Enrichment Exception]', err);
-                                    toast({
-                                      title: "Error Loading Data",
-                                      description: "An unexpected error occurred. Please try again.",
-                                      variant: "destructive"
-                                    });
-                                  } finally {
-                                    // Always unlock fields
-                                    setIsAddressLoading(false);
-                                  }
-                                }}
-                                onParcelSelect={(parcel: any) => {
-                                  console.log('[Parcel Selected]', parcel);
-                                  
-                                  if (!parcel?.properties || !parcel?.geometry) {
-                                    console.error('Invalid parcel data');
-                                    return;
-                                  }
-                                  
-                                  const props = parcel.properties;
-                                  
-                                  // Calculate parcel centroid from geometry
-                                  let centroidLat: number | null = null;
-                                  let centroidLng: number | null = null;
-                                  
-                                  if (parcel.geometry.type === 'Polygon' && parcel.geometry.coordinates?.[0]?.[0]) {
-                                    const [lng, lat] = parcel.geometry.coordinates[0][0];
-                                    centroidLat = lat;
-                                    centroidLng = lng;
-                                  }
-                                  
-                                  // Extract parcel data
-                                  const parcelId = props.ACCOUNT || props.HCAD_NUM || props.GEO_ID || '';
-                                  const situsAddress = props.SITUS_ADDRESS || props.SITE_ADDR_1 || props.PROP_ADDR || '';
-                                  const ownerName = props.OWNER_NAME || props.OWNER || '';
-                                  const acreage = props.ACREAGE || props.CALC_ACRE || props.LAND_ACRES || null;
-                                  const county = props.COUNTY || props.SITE_COUNTY || 'Harris';
-                                  const city = props.SITE_CITY || props.SITUS_CITY || '';
-                                  const zipCode = props.SITE_ZIP || props.SITUS_ZIP || '';
-                                  const zoning = props.ZONING || props.ZONE_CLASS || '';
-                                  
-                                  // Display address: prefer situs, fallback to "Parcel #ID"
-                                  const displayAddress = situsAddress || `Parcel #${parcelId}`;
-                                  
-                                  // Update form with parcel data
-                                  setFormData(prev => ({
-                                    ...prev,
-                                    propertyAddress: displayAddress,
-                                    parcelId: parcelId,
-                                    geoLat: centroidLat,
-                                    geoLng: centroidLng,
-                                    lotSize: acreage ? String(acreage) : prev.lotSize,
-                                    lotSizeUnit: acreage ? 'acres' : prev.lotSizeUnit,
-                                    county: county,
-                                    city: city,
-                                    zipCode: zipCode,
-                                    zoning: zoning || prev.zoning,
-                                    parcelOwner: ownerName,
-                                    situsAddress: situsAddress,
-                                  }));
-                                  
-                                  // Mark parcel-sourced fields as enriched
-                                  setEnrichedFields(prev => ({
-                                    ...prev,
-                                    parcelId: !!parcelId,
-                                    lotSize: !!acreage,
-                                    county: !!county,
-                                    city: !!city,
-                                    zipCode: !!zipCode,
-                                    zoning: !!zoning,
-                                  }));
-                                  
-                                  // Store HCAD values for conflict detection
-                                  setHcadValues({
-                                    parcelId: parcelId,
-                                    lotSize: acreage ? String(acreage) : undefined,
-                                    zoning: zoning,
-                                  });
-                                  
-                                  toast({
-                                    title: "Parcel Selected ✅",
-                                    description: `${displayAddress} (${acreage || '?'} acres)`,
-                                  });
-                                  
-                                  // Auto-unlock parcel fields after brief delay
-                                  setTimeout(() => {
-                                    setUnlockedFields(prev => ({
-                                      ...prev,
-                                      parcelId: true,
-                                      lotSize: true,
-                                      county: true,
-                                      city: true,
-                                      zipCode: true,
-                                      zoning: true,
-                                    }));
-                                  }, 1500);
-                                }}
-                  onEnrichmentComplete={(data) => {
-                                if (data?.success && data?.data) {
-                                  setEnrichedData(data.data);
-                                  // Resolve lot size from multiple possible sources
-                                  const lotSizeFromApiMetaSqft = data?.api_meta?.hcad_parcel?.parcel_data?.land_sqft;
-                                  const resolvedLotSize =
-                                    (typeof data.data.lot_size_value === 'number' && data.data.lot_size_value)
-                                      || (typeof data.data.acreage_cad === 'number' && data.data.acreage_cad)
-                                      || (typeof lotSizeFromApiMetaSqft === 'number' ? +(lotSizeFromApiMetaSqft / 43560).toFixed(4) : undefined);
+                        // Calculate parcel centroid from geometry
+                        let centroidLat: number | null = null;
+                        let centroidLng: number | null = null;
+                        if (parcel.geometry.type === 'Polygon' && parcel.geometry.coordinates?.[0]?.[0]) {
+                          const [lng, lat] = parcel.geometry.coordinates[0][0];
+                          centroidLat = lat;
+                          centroidLng = lng;
+                        }
 
-                                  console.log('[Enrichment] Lot size candidates:', {
-                                    lot_size_value: data.data.lot_size_value,
-                                    acreage_cad: data.data.acreage_cad,
-                                    land_sqft: lotSizeFromApiMetaSqft,
-                                    resolvedLotSize
-                                  });
+                        // Extract parcel data
+                        const parcelId = props.ACCOUNT || props.HCAD_NUM || props.GEO_ID || '';
+                        const situsAddress = props.SITUS_ADDRESS || props.SITE_ADDR_1 || props.PROP_ADDR || '';
+                        const ownerName = props.OWNER_NAME || props.OWNER || '';
+                        const acreage = props.ACREAGE || props.CALC_ACRE || props.LAND_ACRES || null;
+                        const county = props.COUNTY || props.SITE_COUNTY || 'Harris';
+                        const city = props.SITE_CITY || props.SITUS_CITY || '';
+                        const zipCode = props.SITE_ZIP || props.SITUS_ZIP || '';
+                        const zoning = props.ZONING || props.ZONE_CLASS || '';
 
-                                   // Auto-fill both visible and hidden enriched fields
-                                   setFormData(prev => {
-                                     return {
-                                       ...prev,
-                                       // Visible fields
-                                       parcelId: data.data.parcel_id || prev.parcelId,
-                                       zoning: data.data.zoning_code || prev.zoning,
-                                       lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
-                                       lotSizeUnit: (data.data.lot_size_unit as string) || prev.lotSizeUnit,
-                                       // Hidden enriched fields
-                                       situsAddress: data.data.situs_address || prev.situsAddress,
-                                       administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                                       parcelOwner: data.data.parcel_owner || prev.parcelOwner,
-                                       acreageCad: data.data.acreage_cad || prev.acreageCad,
-                                       zoningCode: data.data.zoning_code || prev.zoningCode,
-                                       overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
-                                       floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
-                                       baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation,
-                                     };
-                                   });
+                        // Display address: prefer situs, fallback to "Parcel #ID"
+                        const displayAddress = situsAddress || `Parcel #${parcelId}`;
 
-                                  // Mark which fields were successfully enriched
-                                  setEnrichedFields(prev => ({
-                                    ...prev, // Preserve Google-populated field flags
-                                    parcelId: !!data.data.parcel_id,
-                                    lotSize: !!resolvedLotSize,
-                                    zoning: !!data.data.zoning_code
-                                  }));
+                        // Update form with parcel data
+                        setFormData(prev => ({
+                          ...prev,
+                          propertyAddress: displayAddress,
+                          parcelId: parcelId,
+                          geoLat: centroidLat,
+                          geoLng: centroidLng,
+                          lotSize: acreage ? String(acreage) : prev.lotSize,
+                          lotSizeUnit: acreage ? 'acres' : prev.lotSizeUnit,
+                          county: county,
+                          city: city,
+                          zipCode: zipCode,
+                          zoning: zoning || prev.zoning,
+                          parcelOwner: ownerName,
+                          situsAddress: situsAddress
+                        }));
 
-                                  // Store HCAD values for conflict detection
-                                  setHcadValues({
-                                    parcelId: data.data.parcel_id,
-                                    lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : undefined,
-                                    zoning: data.data.zoning_code
-                                  });
+                        // Mark parcel-sourced fields as enriched
+                        setEnrichedFields(prev => ({
+                          ...prev,
+                          parcelId: !!parcelId,
+                          lotSize: !!acreage,
+                          county: !!county,
+                          city: !!city,
+                          zipCode: !!zipCode,
+                          zoning: !!zoning
+                        }));
 
-                                  const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
-                                  if (hasFlags) {
-                                    toast({
-                                      title: "GIS Data Partially Loaded",
-                                      description: "Some fields could not be auto-filled. You can proceed with manual entry.",
-                                    });
-                                  } else {
-                                    toast({
-                                      title: "GIS Data Loaded ✅",
-                                      description: "Property information has been automatically filled from public records.",
-                                    });
-                                  }
-                                } else if (!data?.success) {
-                                  toast({
-                                    title: "Auto-fill unavailable",
-                                    description: data?.error || "Unable to load GIS data for this location.",
-                                  });
-                                }
-                              }}
-                              placeholder="123 Main Street, City, State, ZIP"
-                              label="Property Address"
-                              error={errors.propertyAddress}
-                              errors={errors}
-                              isAddressLoading={isAddressLoading}
-                              required={true}
-                            />
+                        // Store HCAD values for conflict detection
+                        setHcadValues({
+                          parcelId: parcelId,
+                          lotSize: acreage ? String(acreage) : undefined,
+                          zoning: zoning
+                        });
+                        toast({
+                          title: "Parcel Selected ✅",
+                          description: `${displayAddress} (${acreage || '?'} acres)`
+                        });
+
+                        // Auto-unlock parcel fields after brief delay
+                        setTimeout(() => {
+                          setUnlockedFields(prev => ({
+                            ...prev,
+                            parcelId: true,
+                            lotSize: true,
+                            county: true,
+                            city: true,
+                            zipCode: true,
+                            zoning: true
+                          }));
+                        }, 1500);
+                      }} onEnrichmentComplete={data => {
+                        if (data?.success && data?.data) {
+                          setEnrichedData(data.data);
+                          // Resolve lot size from multiple possible sources
+                          const lotSizeFromApiMetaSqft = data?.api_meta?.hcad_parcel?.parcel_data?.land_sqft;
+                          const resolvedLotSize = typeof data.data.lot_size_value === 'number' && data.data.lot_size_value || typeof data.data.acreage_cad === 'number' && data.data.acreage_cad || (typeof lotSizeFromApiMetaSqft === 'number' ? +(lotSizeFromApiMetaSqft / 43560).toFixed(4) : undefined);
+                          console.log('[Enrichment] Lot size candidates:', {
+                            lot_size_value: data.data.lot_size_value,
+                            acreage_cad: data.data.acreage_cad,
+                            land_sqft: lotSizeFromApiMetaSqft,
+                            resolvedLotSize
+                          });
+
+                          // Auto-fill both visible and hidden enriched fields
+                          setFormData(prev => {
+                            return {
+                              ...prev,
+                              // Visible fields
+                              parcelId: data.data.parcel_id || prev.parcelId,
+                              zoning: data.data.zoning_code || prev.zoning,
+                              lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
+                              lotSizeUnit: data.data.lot_size_unit as string || prev.lotSizeUnit,
+                              // Hidden enriched fields
+                              situsAddress: data.data.situs_address || prev.situsAddress,
+                              administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
+                              parcelOwner: data.data.parcel_owner || prev.parcelOwner,
+                              acreageCad: data.data.acreage_cad || prev.acreageCad,
+                              zoningCode: data.data.zoning_code || prev.zoningCode,
+                              overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
+                              floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
+                              baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
+                            };
+                          });
+
+                          // Mark which fields were successfully enriched
+                          setEnrichedFields(prev => ({
+                            ...prev,
+                            // Preserve Google-populated field flags
+                            parcelId: !!data.data.parcel_id,
+                            lotSize: !!resolvedLotSize,
+                            zoning: !!data.data.zoning_code
+                          }));
+
+                          // Store HCAD values for conflict detection
+                          setHcadValues({
+                            parcelId: data.data.parcel_id,
+                            lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : undefined,
+                            zoning: data.data.zoning_code
+                          });
+                          const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
+                          if (hasFlags) {
+                            toast({
+                              title: "GIS Data Partially Loaded",
+                              description: "Some fields could not be auto-filled. You can proceed with manual entry."
+                            });
+                          } else {
+                            toast({
+                              title: "GIS Data Loaded ✅",
+                              description: "Property information has been automatically filled from public records."
+                            });
+                          }
+                        } else if (!data?.success) {
+                          toast({
+                            title: "Auto-fill unavailable",
+                            description: data?.error || "Unable to load GIS data for this location."
+                          });
+                        }
+                      }} placeholder="123 Main Street, City, State, ZIP" label="Property Address" error={errors.propertyAddress} errors={errors} isAddressLoading={isAddressLoading} required={true} />
                            
                            {/* Hidden GIS Enriched Fields (auto-populated from enrich-feasibility API)
                                These fields are stored in formData state and submitted automatically:
@@ -1178,7 +1099,7 @@ export default function Application() {
                                - overlayDistrict: Zoning overlay district
                                - floodplainZone: FEMA flood zone designation
                                - baseFloodElevation: Base flood elevation from FEMA
-                           */}
+                            */}
 
                           {/* Google-Populated Fields (Auto-locked during loading) */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
@@ -1187,25 +1108,14 @@ export default function Application() {
                                 County
                               </Label>
                               <div className="relative">
-                                <Input
-                                  id="county"
-                                  value={formData.county}
-                                  onChange={(e) => handleInputChange('county', e.target.value)}
-                                  placeholder="Enter county"
-                                  className="mt-2"
-                                  readOnly={isAddressLoading || (enrichedFields.county && !unlockedFields.county)}
-                                />
-                                {isAddressLoading && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Input id="county" value={formData.county} onChange={e => handleInputChange('county', e.target.value)} placeholder="Enter county" className="mt-2" readOnly={isAddressLoading || enrichedFields.county && !unlockedFields.county} />
+                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>
-                                )}
+                                  </div>}
                               </div>
-                {enrichedFields.county && !isAddressLoading && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                {enrichedFields.county && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
                     ✓ Auto-filled
-                  </Badge>
-                )}
+                  </Badge>}
                             </div>
 
                             <div>
@@ -1213,25 +1123,14 @@ export default function Application() {
                                 City
                               </Label>
                               <div className="relative">
-                                <Input
-                                  id="city"
-                                  value={formData.city}
-                                  onChange={(e) => handleInputChange('city', e.target.value)}
-                                  placeholder="Enter city"
-                                  className="mt-2"
-                                  readOnly={isAddressLoading || (enrichedFields.city && !unlockedFields.city)}
-                                />
-                                {isAddressLoading && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Input id="city" value={formData.city} onChange={e => handleInputChange('city', e.target.value)} placeholder="Enter city" className="mt-2" readOnly={isAddressLoading || enrichedFields.city && !unlockedFields.city} />
+                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>
-                                )}
+                                  </div>}
                               </div>
-                {enrichedFields.city && !isAddressLoading && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                {enrichedFields.city && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
                     ✓ Auto-filled
-                  </Badge>
-                )}
+                  </Badge>}
                             </div>
                           </div>
 
@@ -1241,25 +1140,14 @@ export default function Application() {
                                 State
                               </Label>
                               <div className="relative">
-                                <Input
-                                  id="state"
-                                  value={formData.state}
-                                  onChange={(e) => handleInputChange('state', e.target.value)}
-                                  placeholder="TX"
-                                  className="mt-2"
-                                  readOnly={isAddressLoading || (enrichedFields.state && !unlockedFields.state)}
-                                />
-                                {isAddressLoading && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Input id="state" value={formData.state} onChange={e => handleInputChange('state', e.target.value)} placeholder="TX" className="mt-2" readOnly={isAddressLoading || enrichedFields.state && !unlockedFields.state} />
+                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>
-                                )}
+                                  </div>}
                               </div>
-                {enrichedFields.state && !isAddressLoading && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                {enrichedFields.state && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
                     ✓ Auto-filled
-                  </Badge>
-                )}
+                  </Badge>}
                             </div>
 
                             <div>
@@ -1267,25 +1155,14 @@ export default function Application() {
                                 ZIP Code
                               </Label>
                               <div className="relative">
-                                <Input
-                                  id="zipCode"
-                                  value={formData.zipCode}
-                                  onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                                  placeholder="77069"
-                                  className="mt-2"
-                                  readOnly={isAddressLoading || (enrichedFields.zipCode && !unlockedFields.zipCode)}
-                                />
-                                {isAddressLoading && (
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                <Input id="zipCode" value={formData.zipCode} onChange={e => handleInputChange('zipCode', e.target.value)} placeholder="77069" className="mt-2" readOnly={isAddressLoading || enrichedFields.zipCode && !unlockedFields.zipCode} />
+                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>
-                                )}
+                                  </div>}
                               </div>
-                {enrichedFields.zipCode && !isAddressLoading && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                {enrichedFields.zipCode && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
                     ✓ Auto-filled
-                  </Badge>
-                )}
+                  </Badge>}
                             </div>
                           </div>
 
@@ -1294,25 +1171,14 @@ export default function Application() {
                               Neighborhood / Area
                             </Label>
                             <div className="relative">
-                              <Input
-                                id="neighborhood"
-                                value={formData.neighborhood}
-                                onChange={(e) => handleInputChange('neighborhood', e.target.value)}
-                                placeholder="Enter neighborhood"
-                                className="mt-2"
-                                readOnly={isAddressLoading || (enrichedFields.neighborhood && !unlockedFields.neighborhood)}
-                              />
-                              {isAddressLoading && (
-                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Input id="neighborhood" value={formData.neighborhood} onChange={e => handleInputChange('neighborhood', e.target.value)} placeholder="Enter neighborhood" className="mt-2" readOnly={isAddressLoading || enrichedFields.neighborhood && !unlockedFields.neighborhood} />
+                              {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                </div>
-                              )}
+                                </div>}
                             </div>
-                {enrichedFields.neighborhood && !isAddressLoading && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
+                {enrichedFields.neighborhood && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
                     ✓ Auto-filled
-                  </Badge>
-                )}
+                  </Badge>}
                             <p className="text-sm text-charcoal/60 mt-1">
                               Helps determine local market conditions and comparable properties.
                             </p>
@@ -1323,45 +1189,29 @@ export default function Application() {
                               <Label htmlFor="parcelId" className="font-body font-semibold text-charcoal">
                                 Parcel ID / APN
                               </Label>
-                              <Input
-                                id="parcelId"
-                                value={formData.parcelId}
-                  onChange={(e) => handleInputChange('parcelId', e.target.value)}
-                  placeholder={enrichedFields.parcelId && !unlockedFields.parcelId ? "Auto-filled" : "123-456-789"}
-                  className="mt-2"
-                  readOnly={enrichedFields.parcelId && !unlockedFields.parcelId}
-                />
-                {enrichedFields.parcelId && (
-                  <div className="flex items-center gap-2 mt-1">
-                    {!unlockedFields.parcelId ? (
-                      <>
+                              <Input id="parcelId" value={formData.parcelId} onChange={e => handleInputChange('parcelId', e.target.value)} placeholder={enrichedFields.parcelId && !unlockedFields.parcelId ? "Auto-filled" : "123-456-789"} className="mt-2" readOnly={enrichedFields.parcelId && !unlockedFields.parcelId} />
+                {enrichedFields.parcelId && <div className="flex items-center gap-2 mt-1">
+                    {!unlockedFields.parcelId ? <>
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
                           ✓ Auto-filled
                         </Badge>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setUnlockedFields(prev => ({ ...prev, parcelId: true }));
-                            toast({
-                              title: "Manual Override Enabled",
-                              description: "You can now edit the Parcel ID.",
-                            });
-                          }}
-                          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={() => {
+                                setUnlockedFields(prev => ({
+                                  ...prev,
+                                  parcelId: true
+                                }));
+                                toast({
+                                  title: "Manual Override Enabled",
+                                  description: "You can now edit the Parcel ID."
+                                });
+                              }} className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
                           <Edit className="h-3 w-3 mr-1" />
                           Edit
                         </Button>
-                                    </>
-                                  ) : (
-                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                    </> : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
                                       ⚠️ Manual Override
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
+                                    </Badge>}
+                                </div>}
                               <p className="text-sm text-charcoal/60 mt-1">
                                 Official parcel identifier helps verify property boundaries and records.
                               </p>
@@ -1372,18 +1222,8 @@ export default function Application() {
                                 Lot Size / Acreage
                               </Label>
                               <div className="flex gap-2 mt-2">
-                                <Input
-                                  value={formData.lotSize}
-                  onChange={(e) => handleInputChange('lotSize', e.target.value)}
-                  placeholder={enrichedFields.lotSize && !unlockedFields.lotSize ? "Auto-filled" : "5.2"}
-                  className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}
-                  readOnly={enrichedFields.lotSize && !unlockedFields.lotSize}
-                />
-                <Select 
-                  value={formData.lotSizeUnit} 
-                  onValueChange={(value) => handleInputChange('lotSizeUnit', value)}
-                  disabled={enrichedFields.lotSize && !unlockedFields.lotSize}
-                >
+                                <Input value={formData.lotSize} onChange={e => handleInputChange('lotSize', e.target.value)} placeholder={enrichedFields.lotSize && !unlockedFields.lotSize ? "Auto-filled" : "5.2"} className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`} readOnly={enrichedFields.lotSize && !unlockedFields.lotSize} />
+                <Select value={formData.lotSizeUnit} onValueChange={value => handleInputChange('lotSizeUnit', value)} disabled={enrichedFields.lotSize && !unlockedFields.lotSize}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -1394,37 +1234,28 @@ export default function Application() {
                   </SelectContent>
                 </Select>
               </div>
-              {enrichedFields.lotSize && (
-                <div className="flex items-center gap-2 mt-1">
-                  {!unlockedFields.lotSize ? (
-                    <>
+              {enrichedFields.lotSize && <div className="flex items-center gap-2 mt-1">
+                  {!unlockedFields.lotSize ? <>
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
                         ✓ Auto-filled
                       </Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setUnlockedFields(prev => ({ ...prev, lotSize: true }));
-                          toast({
-                            title: "Manual Override Enabled",
-                            description: "You can now edit the Lot Size.",
-                          });
-                        }}
-                        className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      >
+                      <Button type="button" variant="ghost" size="sm" onClick={() => {
+                                setUnlockedFields(prev => ({
+                                  ...prev,
+                                  lotSize: true
+                                }));
+                                toast({
+                                  title: "Manual Override Enabled",
+                                  description: "You can now edit the Lot Size."
+                                });
+                              }} className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
                         <Edit className="h-3 w-3 mr-1" />
                         Edit
                       </Button>
-                                    </>
-                                  ) : (
-                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                    </> : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
                                       ⚠️ Manual Override
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
+                                    </Badge>}
+                                </div>}
                               <p className="text-sm text-charcoal/60 mt-1">
                                 Property size determines development capacity and zoning requirements.
                               </p>
@@ -1436,7 +1267,7 @@ export default function Application() {
                              <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal">
                                Current Use / Existing Improvements
                              </Label>
-                            <Select value={formData.currentUse} onValueChange={(value) => handleInputChange('currentUse', value)}>
+                            <Select value={formData.currentUse} onValueChange={value => handleInputChange('currentUse', value)}>
                               <SelectTrigger className={`mt-2 ${errors.currentUse ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                 <SelectValue placeholder="Select current use" />
                               </SelectTrigger>
@@ -1465,45 +1296,29 @@ export default function Application() {
                               <Label htmlFor="zoning" className="font-body font-semibold text-charcoal">
                                 Current Zoning Classification
                               </Label>
-                              <Input
-                                id="zoning"
-                                value={formData.zoning}
-                  onChange={(e) => handleInputChange('zoning', e.target.value)}
-                  placeholder={enrichedFields.zoning && !unlockedFields.zoning ? "Auto-filled" : "C-2, R-3, M-1, etc."}
-                  className="mt-2"
-                  readOnly={enrichedFields.zoning && !unlockedFields.zoning}
-                />
-                {enrichedFields.zoning && (
-                  <div className="flex items-center gap-2 mt-1">
-                    {!unlockedFields.zoning ? (
-                      <>
+                              <Input id="zoning" value={formData.zoning} onChange={e => handleInputChange('zoning', e.target.value)} placeholder={enrichedFields.zoning && !unlockedFields.zoning ? "Auto-filled" : "C-2, R-3, M-1, etc."} className="mt-2" readOnly={enrichedFields.zoning && !unlockedFields.zoning} />
+                {enrichedFields.zoning && <div className="flex items-center gap-2 mt-1">
+                    {!unlockedFields.zoning ? <>
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
                           ✓ Auto-filled
                         </Badge>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setUnlockedFields(prev => ({ ...prev, zoning: true }));
-                            toast({
-                              title: "Manual Override Enabled",
-                              description: "You can now edit the Zoning.",
-                            });
-                          }}
-                          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={() => {
+                                setUnlockedFields(prev => ({
+                                  ...prev,
+                                  zoning: true
+                                }));
+                                toast({
+                                  title: "Manual Override Enabled",
+                                  description: "You can now edit the Zoning."
+                                });
+                              }} className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
                           <Edit className="h-3 w-3 mr-1" />
                           Edit
                         </Button>
-                                    </>
-                                  ) : (
-                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                    </> : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
                                       ⚠️ Manual Override
-                                    </Badge>
-                                  )}
-                                </div>
-                              )}
+                                    </Badge>}
+                                </div>}
                               <p className="text-sm text-charcoal/60 mt-1">
                                 Zoning determines allowed uses and development requirements.
                               </p>
@@ -1511,8 +1326,7 @@ export default function Application() {
                            </div>
                            
                            {/* Interactive Map for Parcel Drawing */}
-                          {formData.geoLat && formData.geoLng && (
-                            <Card className="mt-6">
+                          {formData.geoLat && formData.geoLng && <Card className="mt-6">
                               <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                   <MapPin className="h-5 w-5 text-primary" />
@@ -1523,46 +1337,28 @@ export default function Application() {
                                 </p>
                               </CardHeader>
                               <CardContent className="space-y-4">
-                                <MapLibreCanvas
-                                  center={[formData.geoLat, formData.geoLng]}
-                                  zoom={17}
-                                  drawingEnabled={drawingMode}
-                                  onParcelDrawn={handleDrawingComplete}
-                                  drawnParcels={drawnGeometry ? [{
-                                    id: 'temp',
-                                    name: formData.drawnParcelName || 'Your Parcel',
-                                    geometry: drawnGeometry,
-                                    acreage_calc: 0
-                                  }] : []}
-                                  className="h-[500px] w-full rounded-lg"
-                                />
+                                <MapLibreCanvas center={[formData.geoLat, formData.geoLng]} zoom={17} drawingEnabled={drawingMode} onParcelDrawn={handleDrawingComplete} drawnParcels={drawnGeometry ? [{
+                            id: 'temp',
+                            name: formData.drawnParcelName || 'Your Parcel',
+                            geometry: drawnGeometry,
+                            acreage_calc: 0
+                          }] : []} className="h-[500px] w-full rounded-lg" />
                                 
-                                <DrawParcelControl
-                                  drawingActive={drawingMode}
-                                  onToggleDrawing={() => setDrawingMode(!drawingMode)}
-                                  onSaveParcel={handleSaveParcel}
-                                  onCancelDrawing={handleCancelDrawing}
-                                  isSaving={isSavingParcel}
-                                />
+                                <DrawParcelControl drawingActive={drawingMode} onToggleDrawing={() => setDrawingMode(!drawingMode)} onSaveParcel={handleSaveParcel} onCancelDrawing={handleCancelDrawing} isSaving={isSavingParcel} />
                                 
-                                {drawnGeometry && (
-                                  <Alert className="bg-green-50 border-green-200">
+                                {drawnGeometry && <Alert className="bg-green-50 border-green-200">
                                     <CheckCircle className="h-4 w-4 text-green-600" />
                                     <AlertTitle>Parcel Boundary Saved</AlertTitle>
                                     <AlertDescription>
                                       Your parcel boundary will be included in the site visualization.
                                     </AlertDescription>
-                                  </Alert>
-                                )}
+                                  </Alert>}
                               </CardContent>
-                            </Card>
-                          )}
-                        </div>
-                      )}
+                            </Card>}
+                        </div>}
 
                       {/* Step 3: Project Intent & Building Parameters */}
-                      {currentStep === 3 && (
-                        <div className="space-y-6 animate-fade-in">
+                      {currentStep === 3 && <div className="space-y-6 animate-fade-in">
                            <div>
                              <Label className="font-body font-semibold text-charcoal">
                                Desired Project Type
@@ -1577,34 +1373,33 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🛍 Retail
-                                    {formData.projectType.some(type => ['shopping_center', 'strip_mall', 'big_box', 'grocery_specialty'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['shopping_center', 'strip_mall', 'big_box', 'grocery_specialty'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['shopping_center', 'strip_mall', 'big_box', 'grocery_specialty'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'shopping_center', label: 'Shopping Center' },
-                                      { value: 'strip_mall', label: 'Strip Mall' },
-                                      { value: 'big_box', label: 'Big Box / Anchor Store' },
-                                      { value: 'grocery_specialty', label: 'Grocery / Specialty Retail' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'shopping_center',
+                                  label: 'Shopping Center'
+                                }, {
+                                  value: 'strip_mall',
+                                  label: 'Strip Mall'
+                                }, {
+                                  value: 'big_box',
+                                  label: 'Big Box / Anchor Store'
+                                }, {
+                                  value: 'grocery_specialty',
+                                  label: 'Grocery / Specialty Retail'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1614,35 +1409,36 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🏨 Hospitality
-                                    {formData.projectType.some(type => ['hotel', 'resort', 'restaurant_qsr', 'entertainment_venue', 'casino_gaming'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['hotel', 'resort', 'restaurant_qsr', 'entertainment_venue', 'casino_gaming'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['hotel', 'resort', 'restaurant_qsr', 'entertainment_venue', 'casino_gaming'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'hotel', label: 'Hotel' },
-                                      { value: 'resort', label: 'Resort' },
-                                      { value: 'restaurant_qsr', label: 'Restaurant / QSR' },
-                                      { value: 'entertainment_venue', label: 'Entertainment Venue / Theater' },
-                                      { value: 'casino_gaming', label: 'Casino / Gaming Facility' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'hotel',
+                                  label: 'Hotel'
+                                }, {
+                                  value: 'resort',
+                                  label: 'Resort'
+                                }, {
+                                  value: 'restaurant_qsr',
+                                  label: 'Restaurant / QSR'
+                                }, {
+                                  value: 'entertainment_venue',
+                                  label: 'Entertainment Venue / Theater'
+                                }, {
+                                  value: 'casino_gaming',
+                                  label: 'Casino / Gaming Facility'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1652,36 +1448,39 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🏥 Healthcare
-                                    {formData.projectType.some(type => ['medical_office_building', 'hospital', 'urgent_care_clinic', 'specialty_clinic', 'ambulatory_surgery_center', 'rehabilitation_center'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['medical_office_building', 'hospital', 'urgent_care_clinic', 'specialty_clinic', 'ambulatory_surgery_center', 'rehabilitation_center'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['medical_office_building', 'hospital', 'urgent_care_clinic', 'specialty_clinic', 'ambulatory_surgery_center', 'rehabilitation_center'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'medical_office_building', label: 'Medical Office Building (MOB)' },
-                                      { value: 'hospital', label: 'Hospital' },
-                                      { value: 'urgent_care_clinic', label: 'Urgent Care / Clinic' },
-                                      { value: 'specialty_clinic', label: 'Specialty Clinic (Dental, Dialysis, Surgery Center)' },
-                                      { value: 'ambulatory_surgery_center', label: 'Ambulatory Surgery Center' },
-                                      { value: 'rehabilitation_center', label: 'Rehabilitation Center' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'medical_office_building',
+                                  label: 'Medical Office Building (MOB)'
+                                }, {
+                                  value: 'hospital',
+                                  label: 'Hospital'
+                                }, {
+                                  value: 'urgent_care_clinic',
+                                  label: 'Urgent Care / Clinic'
+                                }, {
+                                  value: 'specialty_clinic',
+                                  label: 'Specialty Clinic (Dental, Dialysis, Surgery Center)'
+                                }, {
+                                  value: 'ambulatory_surgery_center',
+                                  label: 'Ambulatory Surgery Center'
+                                }, {
+                                  value: 'rehabilitation_center',
+                                  label: 'Rehabilitation Center'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1691,34 +1490,33 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🏭 Industrial
-                                    {formData.projectType.some(type => ['warehouse', 'manufacturing_facility', 'flex_industrial', 'rd_facility'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['warehouse', 'manufacturing_facility', 'flex_industrial', 'rd_facility'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['warehouse', 'manufacturing_facility', 'flex_industrial', 'rd_facility'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'warehouse', label: 'Warehouse' },
-                                      { value: 'manufacturing_facility', label: 'Manufacturing Facility' },
-                                      { value: 'flex_industrial', label: 'Flex Industrial' },
-                                      { value: 'rd_facility', label: 'R&D Facility' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'warehouse',
+                                  label: 'Warehouse'
+                                }, {
+                                  value: 'manufacturing_facility',
+                                  label: 'Manufacturing Facility'
+                                }, {
+                                  value: 'flex_industrial',
+                                  label: 'Flex Industrial'
+                                }, {
+                                  value: 'rd_facility',
+                                  label: 'R&D Facility'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1728,35 +1526,36 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🚚 Logistics
-                                    {formData.projectType.some(type => ['distribution_center', 'last_mile_facility', 'cold_storage_facility', 'data_center', 'trucking_terminal'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['distribution_center', 'last_mile_facility', 'cold_storage_facility', 'data_center', 'trucking_terminal'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['distribution_center', 'last_mile_facility', 'cold_storage_facility', 'data_center', 'trucking_terminal'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'distribution_center', label: 'Distribution Center' },
-                                      { value: 'last_mile_facility', label: 'Last-Mile Facility' },
-                                      { value: 'cold_storage_facility', label: 'Cold Storage Facility' },
-                                      { value: 'data_center', label: 'Data Center' },
-                                      { value: 'trucking_terminal', label: 'Trucking Terminal' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'distribution_center',
+                                  label: 'Distribution Center'
+                                }, {
+                                  value: 'last_mile_facility',
+                                  label: 'Last-Mile Facility'
+                                }, {
+                                  value: 'cold_storage_facility',
+                                  label: 'Cold Storage Facility'
+                                }, {
+                                  value: 'data_center',
+                                  label: 'Data Center'
+                                }, {
+                                  value: 'trucking_terminal',
+                                  label: 'Trucking Terminal'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1766,36 +1565,39 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🏢 Office
-                                    {formData.projectType.some(type => ['office_class_a', 'office_class_b', 'office_class_c', 'corporate_headquarters', 'coworking_flex_office', 'call_center_operations'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['office_class_a', 'office_class_b', 'office_class_c', 'corporate_headquarters', 'coworking_flex_office', 'call_center_operations'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['office_class_a', 'office_class_b', 'office_class_c', 'corporate_headquarters', 'coworking_flex_office', 'call_center_operations'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'office_class_a', label: 'Office Class A' },
-                                      { value: 'office_class_b', label: 'Office Class B' },
-                                      { value: 'office_class_c', label: 'Office Class C' },
-                                      { value: 'corporate_headquarters', label: 'Corporate Headquarters / Campus' },
-                                      { value: 'coworking_flex_office', label: 'Coworking / Flex Office' },
-                                      { value: 'call_center_operations', label: 'Call Center / Operations' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'office_class_a',
+                                  label: 'Office Class A'
+                                }, {
+                                  value: 'office_class_b',
+                                  label: 'Office Class B'
+                                }, {
+                                  value: 'office_class_c',
+                                  label: 'Office Class C'
+                                }, {
+                                  value: 'corporate_headquarters',
+                                  label: 'Corporate Headquarters / Campus'
+                                }, {
+                                  value: 'coworking_flex_office',
+                                  label: 'Coworking / Flex Office'
+                                }, {
+                                  value: 'call_center_operations',
+                                  label: 'Call Center / Operations'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1805,33 +1607,30 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🏗 Mixed-Use
-                                    {formData.projectType.some(type => ['mixed_use_retail_residential', 'mixed_use_office_residential', 'mixed_use_retail_office'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['mixed_use_retail_residential', 'mixed_use_office_residential', 'mixed_use_retail_office'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['mixed_use_retail_residential', 'mixed_use_office_residential', 'mixed_use_retail_office'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'mixed_use_retail_residential', label: 'Mixed-Use (Retail + Residential)' },
-                                      { value: 'mixed_use_office_residential', label: 'Mixed-Use (Office + Residential)' },
-                                      { value: 'mixed_use_retail_office', label: 'Mixed-Use (Retail + Office)' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'mixed_use_retail_residential',
+                                  label: 'Mixed-Use (Retail + Residential)'
+                                }, {
+                                  value: 'mixed_use_office_residential',
+                                  label: 'Mixed-Use (Office + Residential)'
+                                }, {
+                                  value: 'mixed_use_retail_office',
+                                  label: 'Mixed-Use (Retail + Office)'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1841,42 +1640,57 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🎯 Specialty
-                                    {formData.projectType.some(type => ['self_storage', 'automotive_dealership', 'car_wash', 'gas_station_convenience', 'educational_facility', 'religious_institutional', 'civic_community_recreational', 'research_lab_life_sciences', 'sports_facility_arena', 'agricultural_agri_tech', 'performing_arts_center', 'stadium_arena'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['self_storage', 'automotive_dealership', 'car_wash', 'gas_station_convenience', 'educational_facility', 'religious_institutional', 'civic_community_recreational', 'research_lab_life_sciences', 'sports_facility_arena', 'agricultural_agri_tech', 'performing_arts_center', 'stadium_arena'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['self_storage', 'automotive_dealership', 'car_wash', 'gas_station_convenience', 'educational_facility', 'religious_institutional', 'civic_community_recreational', 'research_lab_life_sciences', 'sports_facility_arena', 'agricultural_agri_tech', 'performing_arts_center', 'stadium_arena'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                    {[
-                                      { value: 'self_storage', label: 'Self Storage' },
-                                      { value: 'automotive_dealership', label: 'Automotive Dealership' },
-                                      { value: 'car_wash', label: 'Car Wash' },
-                                      { value: 'gas_station_convenience', label: 'Gas Station / Convenience Store' },
-                                      { value: 'educational_facility', label: 'Educational / School / Training Facility' },
-                                      { value: 'religious_institutional', label: 'Religious / Institutional Facility' },
-                                      { value: 'civic_community_recreational', label: 'Civic / Community / Recreational Center' },
-                                      { value: 'research_lab_life_sciences', label: 'Research / Lab / Life Sciences' },
-                                      { value: 'sports_facility_arena', label: 'Sports Facility / Arena' },
-                                      { value: 'agricultural_agri_tech', label: 'Agricultural / Agri-Tech Facility' },
-                                      { value: 'performing_arts_center', label: 'Performing Arts Center' },
-                                      { value: 'stadium_arena', label: 'Stadium / Arena' }
-                                    ].map((option) => (
-                                      <div key={option.value} className="flex items-center space-x-2">
-                                        <Checkbox
-                                          id={`projectType-${option.value}`}
-                                          checked={formData.projectType.includes(option.value)}
-                                          onCheckedChange={(checked) => {
-                                            handleMultiSelectChange('projectType', option.value, !!checked);
-                                          }}
-                                        />
+                                    {[{
+                                  value: 'self_storage',
+                                  label: 'Self Storage'
+                                }, {
+                                  value: 'automotive_dealership',
+                                  label: 'Automotive Dealership'
+                                }, {
+                                  value: 'car_wash',
+                                  label: 'Car Wash'
+                                }, {
+                                  value: 'gas_station_convenience',
+                                  label: 'Gas Station / Convenience Store'
+                                }, {
+                                  value: 'educational_facility',
+                                  label: 'Educational / School / Training Facility'
+                                }, {
+                                  value: 'religious_institutional',
+                                  label: 'Religious / Institutional Facility'
+                                }, {
+                                  value: 'civic_community_recreational',
+                                  label: 'Civic / Community / Recreational Center'
+                                }, {
+                                  value: 'research_lab_life_sciences',
+                                  label: 'Research / Lab / Life Sciences'
+                                }, {
+                                  value: 'sports_facility_arena',
+                                  label: 'Sports Facility / Arena'
+                                }, {
+                                  value: 'agricultural_agri_tech',
+                                  label: 'Agricultural / Agri-Tech Facility'
+                                }, {
+                                  value: 'performing_arts_center',
+                                  label: 'Performing Arts Center'
+                                }, {
+                                  value: 'stadium_arena',
+                                  label: 'Stadium / Arena'
+                                }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                        <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                    handleMultiSelectChange('projectType', option.value, !!checked);
+                                  }} />
                                         <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                           {option.label}
                                         </Label>
-                                      </div>
-                                    ))}
+                                      </div>)}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1886,47 +1700,37 @@ export default function Application() {
                                 <AccordionTrigger className="hover:no-underline">
                                   <div className="flex items-center gap-2 font-medium">
                                     🏷 Other
-                                    {formData.projectType.some(type => ['franchise_prototype', 'custom_build_to_suit', 'other'].includes(type)) && (
-                                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                    {formData.projectType.some(type => ['franchise_prototype', 'custom_build_to_suit', 'other'].includes(type)) && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
                                         {formData.projectType.filter(type => ['franchise_prototype', 'custom_build_to_suit', 'other'].includes(type)).length} selected
-                                      </span>
-                                    )}
+                                      </span>}
                                   </div>
                                 </AccordionTrigger>
                                 <AccordionContent className="pb-4">
                                   <div className="space-y-3">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                      {[
-                                        { value: 'franchise_prototype', label: 'Franchise Prototype (Custom)' },
-                                        { value: 'custom_build_to_suit', label: 'Custom Build-to-Suit' },
-                                        { value: 'other', label: 'Other' }
-                                      ].map((option) => (
-                                        <div key={option.value} className="flex items-center space-x-2">
-                                          <Checkbox
-                                            id={`projectType-${option.value}`}
-                                            checked={formData.projectType.includes(option.value)}
-                                            onCheckedChange={(checked) => {
-                                              handleMultiSelectChange('projectType', option.value, !!checked);
-                                            }}
-                                          />
+                                      {[{
+                                    value: 'franchise_prototype',
+                                    label: 'Franchise Prototype (Custom)'
+                                  }, {
+                                    value: 'custom_build_to_suit',
+                                    label: 'Custom Build-to-Suit'
+                                  }, {
+                                    value: 'other',
+                                    label: 'Other'
+                                  }].map(option => <div key={option.value} className="flex items-center space-x-2">
+                                          <Checkbox id={`projectType-${option.value}`} checked={formData.projectType.includes(option.value)} onCheckedChange={checked => {
+                                      handleMultiSelectChange('projectType', option.value, !!checked);
+                                    }} />
                                           <Label htmlFor={`projectType-${option.value}`} className="text-sm cursor-pointer">
                                             {option.label}
                                           </Label>
-                                        </div>
-                                      ))}
+                                        </div>)}
                                     </div>
                                     
                                     {/* Other text input */}
-                                    {formData.projectType.includes('other') && (
-                                      <div className="mt-3">
-                                        <Input
-                                          placeholder="Please specify other project type..."
-                                          value={formData.projectTypeOther || ''}
-                                          onChange={(e) => handleInputChange('projectTypeOther', e.target.value)}
-                                          className="max-w-md"
-                                        />
-                                      </div>
-                                    )}
+                                    {formData.projectType.includes('other') && <div className="mt-3">
+                                        <Input placeholder="Please specify other project type..." value={formData.projectTypeOther || ''} onChange={e => handleInputChange('projectTypeOther', e.target.value)} className="max-w-md" />
+                                      </div>}
                                   </div>
                                 </AccordionContent>
                               </AccordionItem>
@@ -1941,13 +1745,8 @@ export default function Application() {
                                Desired Building Size
                              </Label>
                             <div className="flex gap-2 mt-2">
-                              <Input
-                                value={formData.buildingSize}
-                                onChange={(e) => handleInputChange('buildingSize', e.target.value)}
-                                placeholder="e.g., 50000 or 'Maximum Possible' or 'Don't Know'"
-                                className="border-charcoal/20"
-                              />
-                               <Select value={formData.buildingSizeUnit} onValueChange={(value) => handleInputChange('buildingSizeUnit', value)}>
+                              <Input value={formData.buildingSize} onChange={e => handleInputChange('buildingSize', e.target.value)} placeholder="e.g., 50000 or 'Maximum Possible' or 'Don't Know'" className="border-charcoal/20" />
+                               <Select value={formData.buildingSizeUnit} onValueChange={value => handleInputChange('buildingSizeUnit', value)}>
                                  <SelectTrigger className="w-24">
                                    <SelectValue />
                                  </SelectTrigger>
@@ -1965,7 +1764,7 @@ export default function Application() {
                                <Label htmlFor="stories" className="font-body font-semibold text-charcoal">
                                  Desired Stories
                                </Label>
-                              <Select value={formData.stories} onValueChange={(value) => handleInputChange('stories', value)}>
+                              <Select value={formData.stories} onValueChange={value => handleInputChange('stories', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.stories ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select number of stories" />
                                 </SelectTrigger>
@@ -1989,13 +1788,7 @@ export default function Application() {
                             <Label htmlFor="buildingHeight" className="font-body font-semibold text-charcoal">
                               Desired Overall Building Height
                             </Label>
-                            <Input
-                              id="buildingHeight"
-                              value={formData.buildingHeight}
-                              onChange={(e) => handleInputChange('buildingHeight', e.target.value)}
-                              placeholder="e.g., 120 feet or 'Don't Know'"
-                              className="mt-2 border-charcoal/20"
-                            />
+                            <Input id="buildingHeight" value={formData.buildingHeight} onChange={e => handleInputChange('buildingHeight', e.target.value)} placeholder="e.g., 120 feet or 'Don't Know'" className="mt-2 border-charcoal/20" />
                             <p className="text-sm text-charcoal/60 mt-1">
                               Total building height including roofing and mechanical equipment.
                             </p>
@@ -2005,14 +1798,7 @@ export default function Application() {
                             <Label htmlFor="prototypeRequirements" className="font-body font-semibold text-charcoal">
                               Prototype Requirements
                             </Label>
-                            <Textarea
-                              id="prototypeRequirements"
-                              value={formData.prototypeRequirements}
-                              onChange={(e) => handleInputChange('prototypeRequirements', e.target.value)}
-                              placeholder="Describe any specific prototype or franchise requirements..."
-                              className="mt-2"
-                               rows={3}
-                             />
+                            <Textarea id="prototypeRequirements" value={formData.prototypeRequirements} onChange={e => handleInputChange('prototypeRequirements', e.target.value)} placeholder="Describe any specific prototype or franchise requirements..." className="mt-2" rows={3} />
                              <p className="text-sm text-charcoal/60 mt-1">
                                Prototype requirements affect design flexibility and approval process.
                              </p>
@@ -2023,7 +1809,7 @@ export default function Application() {
                                <Label htmlFor="qualityLevel" className="font-body font-semibold text-charcoal">
                                  Quality Level
                                </Label>
-                              <Select value={formData.qualityLevel} onValueChange={(value) => handleInputChange('qualityLevel', value)}>
+                              <Select value={formData.qualityLevel} onValueChange={value => handleInputChange('qualityLevel', value)}>
                                 <SelectTrigger className="mt-2 border-charcoal/20">
                                   <SelectValue placeholder="Select quality level" />
                                 </SelectTrigger>
@@ -2048,45 +1834,24 @@ export default function Application() {
                              </Label>
                             <div className="relative mt-2">
                               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-charcoal/60">$</span>
-                              <Input
-                                id="budget"
-                                value={formData.budget ? formatCurrency(formData.budget) : ''}
-                                onChange={handleBudgetChange}
-                                placeholder="25,000,000"
-                                className="pl-7 border-charcoal/20"
-                              />
+                              <Input id="budget" value={formData.budget ? formatCurrency(formData.budget) : ''} onChange={handleBudgetChange} placeholder="25,000,000" className="pl-7 border-charcoal/20" />
                             </div>
                             <p className="text-sm text-charcoal/60 mt-1">
                               Approximate total project budget (land + construction + soft costs). Leave blank if unknown.
                             </p>
                           </div>
                           </div>
-                        </div>
-                      )}
+                        </div>}
 
                       {/* Step 4: Market & Risks */}
-                      {currentStep === 4 && (
-                        <div className="space-y-6 animate-fade-in">
+                      {currentStep === 4 && <div className="space-y-6 animate-fade-in">
 
                           <div>
                             <Label className="font-body font-semibold text-charcoal">
                               Access Priorities
                             </Label>
                             <p className="text-sm text-charcoal/60 mb-3">Select all that are important for your project</p>
-                            {renderMultiSelectCheckboxes('accessPriorities', [
-                              'Highway',
-                              'Transit',
-                              'Airport',
-                              'Hospital',
-                              'University',
-                              'Population Density',
-                              'Employment Center',
-                              'Retail Corridor',
-                              'Tourism',
-                              'Port/Logistics',
-                              'Other',
-                              'Not Sure'
-                             ], formData.accessPriorities)}
+                            {renderMultiSelectCheckboxes('accessPriorities', ['Highway', 'Transit', 'Airport', 'Hospital', 'University', 'Population Density', 'Employment Center', 'Retail Corridor', 'Tourism', 'Port/Logistics', 'Other', 'Not Sure'], formData.accessPriorities)}
                              <p className="text-sm text-charcoal/60 mt-1">
                                Access priorities help evaluate location advantages and tenant appeal.
                              </p>
@@ -2097,17 +1862,7 @@ export default function Application() {
                               Known Risks
                             </Label>
                             <p className="text-sm text-charcoal/60 mb-3">Select any known or potential risks</p>
-                            {renderMultiSelectCheckboxes('knownRisks', [
-                              'Floodplain',
-                              'Easements',
-                              'Soil/Geotech',
-                              'Legal/Title',
-                              'Topography',
-                              'Drainage',
-                              'Political Opposition',
-                              'Other',
-                              'Not Sure'
-                             ], formData.knownRisks)}
+                            {renderMultiSelectCheckboxes('knownRisks', ['Floodplain', 'Easements', 'Soil/Geotech', 'Legal/Title', 'Topography', 'Drainage', 'Political Opposition', 'Other', 'Not Sure'], formData.knownRisks)}
                              <p className="text-sm text-charcoal/60 mt-1">
                                Known risks help prioritize due diligence and budget contingencies.
                              </p>
@@ -2118,15 +1873,7 @@ export default function Application() {
                               Utility Access
                             </Label>
                             <p className="text-sm text-charcoal/60 mb-3">Select available utilities</p>
-                            {renderMultiSelectCheckboxes('utilityAccess', [
-                              'Water',
-                              'Sewer',
-                              'Power',
-                              'Gas',
-                              'Fiber',
-                              'Stormwater',
-                              'Not Sure'
-                             ], formData.utilityAccess)}
+                            {renderMultiSelectCheckboxes('utilityAccess', ['Water', 'Sewer', 'Power', 'Gas', 'Fiber', 'Stormwater', 'Not Sure'], formData.utilityAccess)}
                              <p className="text-sm text-charcoal/60 mt-1">
                                Utility availability affects infrastructure costs and development timeline.
                              </p>
@@ -2137,17 +1884,7 @@ export default function Application() {
                               Environmental Constraints
                             </Label>
                             <p className="text-sm text-charcoal/60 mb-3">Select any environmental concerns</p>
-                            {renderMultiSelectCheckboxes('environmentalConstraints', [
-                              'Wetlands',
-                              'Brownfield',
-                              'Protected Land',
-                              'Endangered Species',
-                              'Historic Site',
-                              'Air Quality',
-                              'Noise',
-                              'Other',
-                              'Not Sure'
-                             ], formData.environmentalConstraints)}
+                            {renderMultiSelectCheckboxes('environmentalConstraints', ['Wetlands', 'Brownfield', 'Protected Land', 'Endangered Species', 'Historic Site', 'Air Quality', 'Noise', 'Other', 'Not Sure'], formData.environmentalConstraints)}
                              <p className="text-sm text-charcoal/60 mt-1">
                                Environmental factors impact permitting requirements and project costs.
                              </p>
@@ -2157,30 +1894,21 @@ export default function Application() {
                             <Label htmlFor="tenantRequirements" className="font-body font-semibold text-charcoal">
                               Tenant / Prototype Requirements
                             </Label>
-                            <Textarea
-                              id="tenantRequirements"
-                              value={formData.tenantRequirements}
-                              onChange={(e) => handleInputChange('tenantRequirements', e.target.value)}
-                              placeholder="Describe any specific tenant requirements, franchise standards, or operational needs..."
-                              className="mt-2"
-                               rows={3}
-                             />
+                            <Textarea id="tenantRequirements" value={formData.tenantRequirements} onChange={e => handleInputChange('tenantRequirements', e.target.value)} placeholder="Describe any specific tenant requirements, franchise standards, or operational needs..." className="mt-2" rows={3} />
                              <p className="text-sm text-charcoal/60 mt-1">
                                Tenant requirements guide space planning and operational considerations.
                              </p>
                           </div>
-                        </div>
-                      )}
+                        </div>}
 
                       {/* Step 5: Final Questions */}
-                      {currentStep === 5 && (
-                        <div className="space-y-6 animate-fade-in">
+                      {currentStep === 5 && <div className="space-y-6 animate-fade-in">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div>
                                <Label htmlFor="hearAboutUs" className="font-body font-semibold text-charcoal flex items-center gap-1">
                                   How Did You Hear About Us?
                                 </Label>
-                              <Select value={formData.hearAboutUs} onValueChange={(value) => handleInputChange('hearAboutUs', value)}>
+                              <Select value={formData.hearAboutUs} onValueChange={value => handleInputChange('hearAboutUs', value)}>
                                 <SelectTrigger className={`mt-2 ${errors.hearAboutUs ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
                                   <SelectValue placeholder="Select source" />
                                 </SelectTrigger>
@@ -2206,7 +1934,7 @@ export default function Application() {
                               <Label htmlFor="contactMethod" className="font-body font-semibold text-charcoal">
                                 Preferred Contact Method
                               </Label>
-                              <Select value={formData.contactMethod} onValueChange={(value) => handleInputChange('contactMethod', value)}>
+                              <Select value={formData.contactMethod} onValueChange={value => handleInputChange('contactMethod', value)}>
                                 <SelectTrigger className="mt-2">
                                   <SelectValue placeholder="Select method" />
                                 </SelectTrigger>
@@ -2227,7 +1955,7 @@ export default function Application() {
                             <Label htmlFor="bestTime" className="font-body font-semibold text-charcoal">
                               Best Time to Reach You
                             </Label>
-                            <Select value={formData.bestTime} onValueChange={(value) => handleInputChange('bestTime', value)}>
+                            <Select value={formData.bestTime} onValueChange={value => handleInputChange('bestTime', value)}>
                               <SelectTrigger className="mt-2">
                                 <SelectValue placeholder="Select time" />
                               </SelectTrigger>
@@ -2247,14 +1975,7 @@ export default function Application() {
                             <Label htmlFor="additionalNotes" className="font-body font-semibold text-charcoal">
                               Additional Notes
                             </Label>
-                            <Textarea
-                              id="additionalNotes"
-                              value={formData.additionalNotes}
-                              onChange={(e) => handleInputChange('additionalNotes', e.target.value)}
-                              placeholder="Any additional information that would help us better understand your project..."
-                              className="mt-2"
-                               rows={4}
-                             />
+                            <Textarea id="additionalNotes" value={formData.additionalNotes} onChange={e => handleInputChange('additionalNotes', e.target.value)} placeholder="Any additional information that would help us better understand your project..." className="mt-2" rows={4} />
                              <p className="text-sm text-charcoal/60 mt-1">
                                Additional context helps us provide more accurate feasibility analysis.
                              </p>
@@ -2270,43 +1991,24 @@ export default function Application() {
                             <div className="border-2 border-dashed border-charcoal/20 rounded-lg p-6">
                               <div className="text-center">
                                 <Upload className="w-8 h-8 mx-auto text-charcoal/40 mb-2" />
-                                <Input
-                                  type="file"
-                                  multiple
-                                  accept=".pdf,.docx,.xlsx,.csv,.jpg,.jpeg,.png,.dwg,.zip"
-                                  onChange={handleFileUpload}
-                                  className="hidden"
-                                  id="file-upload"
-                                />
-                                <Label 
-                                  htmlFor="file-upload"
-                                  className="cursor-pointer text-navy hover:text-navy/80 font-semibold"
-                                >
+                                <Input type="file" multiple accept=".pdf,.docx,.xlsx,.csv,.jpg,.jpeg,.png,.dwg,.zip" onChange={handleFileUpload} className="hidden" id="file-upload" />
+                                <Label htmlFor="file-upload" className="cursor-pointer text-navy hover:text-navy/80 font-semibold">
                                   Click to upload files
                                 </Label>
                               </div>
-                              {uploadedFiles.length > 0 && (
-                                <div className="mt-4 space-y-2">
-                                  {uploadedFiles.map((file, index) => (
-                                    <div key={index} className="flex items-center gap-2 text-sm">
+                              {uploadedFiles.length > 0 && <div className="mt-4 space-y-2">
+                                  {uploadedFiles.map((file, index) => <div key={index} className="flex items-center gap-2 text-sm">
                                       <CheckCircle className="w-4 h-4 text-green-500" />
                                       <span>{file.name}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
+                                    </div>)}
+                                </div>}
                             </div>
                           </div>
 
                           {/* Consent Checkboxes */}
                           <div className="space-y-4 pt-6 border-t border-charcoal/20">
                             <div className="flex items-start space-x-3">
-                              <Checkbox
-                                id="nda-consent"
-                                checked={formData.ndaConsent}
-                                onCheckedChange={(checked) => handleInputChange('ndaConsent', checked as boolean)}
-                                className={errors.ndaConsent ? 'border-maxx-red' : ''}
-                              />
+                              <Checkbox id="nda-consent" checked={formData.ndaConsent} onCheckedChange={checked => handleInputChange('ndaConsent', checked as boolean)} className={errors.ndaConsent ? 'border-maxx-red' : ''} />
                                <Label htmlFor="nda-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
                                  I agree to maintain confidentiality and acknowledge that an NDA may be required for detailed project discussions. <span className="text-maxx-red text-lg">*</span>
                                </Label>
@@ -2314,12 +2016,7 @@ export default function Application() {
                             {errors.ndaConsent && <p className="text-maxx-red text-sm">{errors.ndaConsent}</p>}
 
                             <div className="flex items-start space-x-3">
-                              <Checkbox
-                                id="contact-consent"
-                                checked={formData.contactConsent}
-                                onCheckedChange={(checked) => handleInputChange('contactConsent', checked as boolean)}
-                                className={errors.contactConsent ? 'border-maxx-red' : ''}
-                              />
+                              <Checkbox id="contact-consent" checked={formData.contactConsent} onCheckedChange={checked => handleInputChange('contactConsent', checked as boolean)} className={errors.contactConsent ? 'border-maxx-red' : ''} />
                                <Label htmlFor="contact-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
                                  I consent to be contacted by SiteIntel™ regarding my feasibility application and project. <span className="text-maxx-red text-lg">*</span>
                                </Label>
@@ -2327,12 +2024,7 @@ export default function Application() {
                             {errors.contactConsent && <p className="text-maxx-red text-sm">{errors.contactConsent}</p>}
 
                             <div className="flex items-start space-x-3">
-                              <Checkbox
-                                id="privacy-consent"
-                                checked={formData.privacyConsent}
-                                onCheckedChange={(checked) => handleInputChange('privacyConsent', checked as boolean)}
-                                className={errors.privacyConsent ? 'border-maxx-red' : ''}
-                              />
+                              <Checkbox id="privacy-consent" checked={formData.privacyConsent} onCheckedChange={checked => handleInputChange('privacyConsent', checked as boolean)} className={errors.privacyConsent ? 'border-maxx-red' : ''} />
                                <Label htmlFor="privacy-consent" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
                                  I agree to the Privacy Policy and Terms of Service. <span className="text-maxx-red text-lg">*</span>
                                </Label>
@@ -2340,66 +2032,36 @@ export default function Application() {
                             {errors.privacyConsent && <p className="text-maxx-red text-sm">{errors.privacyConsent}</p>}
 
                             <div className="flex items-start space-x-3">
-                              <Checkbox
-                                id="marketing-opt-in"
-                                checked={formData.marketingOptIn}
-                                onCheckedChange={(checked) => handleInputChange('marketingOptIn', checked as boolean)}
-                              />
+                              <Checkbox id="marketing-opt-in" checked={formData.marketingOptIn} onCheckedChange={checked => handleInputChange('marketingOptIn', checked as boolean)} />
                               <Label htmlFor="marketing-opt-in" className="text-sm font-body text-charcoal leading-relaxed cursor-pointer">
                                 I would like to receive marketing communications and industry insights from SiteIntel™.
                               </Label>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        </div>}
 
                       {/* Navigation Buttons */}
                       <div className="flex justify-between items-center mt-12 pt-8 border-t border-charcoal/20">
-                        {currentStep > 1 && currentStep !== 2 ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handlePrev}
-                            className="flex items-center gap-2"
-                          >
+                        {currentStep > 1 && currentStep !== 2 ? <Button type="button" variant="outline" onClick={handlePrev} className="flex items-center gap-2">
                             <ArrowLeft className="w-4 h-4" />
                             Previous
-                          </Button>
-                        ) : currentStep === 2 ? (
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          </Button> : currentStep === 2 ? <div className="text-sm text-muted-foreground flex items-center gap-2">
                             <Shield className="w-4 h-4" />
                             Contact information secured
-                          </div>
-                        ) : (
-                          <div />
-                        )}
+                          </div> : <div />}
 
-                        {currentStep < totalSteps ? (
-                          <div className="flex flex-col items-end gap-2">
-                            <Button
-                              type="button"
-                              onClick={handleNext}
-                              className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2"
-                            >
+                        {currentStep < totalSteps ? <div className="flex flex-col items-end gap-2">
+                            <Button type="button" onClick={handleNext} className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2">
                               Next
                               <ArrowRight className="w-4 h-4" />
                             </Button>
-                            {currentStep === 2 && !formData.propertyAddress && (
-                              <p className="text-xs text-charcoal/60">
+                            {currentStep === 2 && !formData.propertyAddress && <p className="text-xs text-charcoal/60">
                                 Complete all required fields to continue
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <Button
-                            type="submit"
-                            disabled={isLoading}
-                            className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2"
-                          >
+                              </p>}
+                          </div> : <Button type="submit" disabled={isLoading} className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2">
                             {isLoading ? "Submitting..." : "Submit My Application"}
                             <ArrowRight className="w-4 h-4" />
-                          </Button>
-                        )}
+                          </Button>}
                       </div>
                     </form>
                   </CardContent>
@@ -2407,65 +2069,7 @@ export default function Application() {
               </div>
 
               {/* Trust & Risk Reversal Sidebar */}
-              <div className="lg:col-span-1">
-                <Card className="sticky top-8 shadow-xl border-2 border-navy/20">
-                  <CardHeader className="bg-navy/5">
-                    <CardTitle className="flex items-center gap-3 text-navy">
-                      <Shield className="w-6 h-6" />
-                      Trust & Confidence
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-6">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle className="w-6 h-6 text-green-500 flex-shrink-0 mt-1" />
-                      <div>
-                        <p className="font-body font-semibold text-charcoal mb-1">
-                          100% Fee Credit
-                        </p>
-                        <p className="font-body text-sm text-charcoal/70">
-                          Your feasibility fee is fully credited toward Preconstruction or Design-Build.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Shield className="w-6 h-6 text-maxx-red flex-shrink-0 mt-1" />
-                      <div>
-                        <p className="font-body font-semibold text-charcoal mb-1">
-                          Confidential Reporting
-                        </p>
-                        <p className="font-body text-sm text-charcoal/70">
-                          All applications treated as confidential. NDA-ready reporting.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Award className="w-6 h-6 text-navy flex-shrink-0 mt-1" />
-                      <div>
-                        <p className="font-body font-semibold text-charcoal mb-1">
-                          Proven Track Record
-                        </p>
-                        <p className="font-body text-sm text-charcoal/70">
-                          Trusted by developers managing $500M+ in Texas CRE projects.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                      <Clock className="w-6 h-6 text-maxx-red flex-shrink-0 mt-1" />
-                      <div>
-                        <p className="font-body font-semibold text-charcoal mb-1">
-                          Limited Availability
-                        </p>
-                        <p className="font-body text-sm text-charcoal/70">
-                          Only 5 projects accepted monthly to ensure quality service.
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              
             </div>
           </div>
         </div>
@@ -2479,24 +2083,12 @@ export default function Application() {
             <span className="text-charcoal/60 ml-2">({Math.round(getProgress())}% complete)</span>
           </div>
           
-          {currentStep < totalSteps ? (
-            <Button
-              onClick={handleNext}
-              className="bg-maxx-red hover:bg-maxx-red/90 text-white"
-            >
+          {currentStep < totalSteps ? <Button onClick={handleNext} className="bg-maxx-red hover:bg-maxx-red/90 text-white">
               Next
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading}
-              className="bg-maxx-red hover:bg-maxx-red/90 text-white"
-            >
+            </Button> : <Button onClick={handleSubmit} disabled={isLoading} className="bg-maxx-red hover:bg-maxx-red/90 text-white">
               {isLoading ? "Submitting..." : "Submit"}
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
