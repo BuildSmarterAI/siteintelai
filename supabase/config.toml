@@ -3,6 +3,9 @@ project_id = "mcmfwlgovubpdcfiqfvk"
 [functions.api-v1]
 verify_jwt = false
 
+[functions.odata]
+verify_jwt = false
+
 [functions.gis-fetch-with-versioning]
 verify_jwt = false
 
