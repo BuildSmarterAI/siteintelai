@@ -223,6 +223,8 @@ export function MapLibreCanvas({
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<MeasurementMode>(null);
   const [measurementResult, setMeasurementResult] = useState<any>(null);
   const [measurementPoints, setMeasurementPoints] = useState<[number, number][]>([]);
+  const [parcelLoadError, setParcelLoadError] = useState<string | null>(null);
+  const retryParcelLoad = useRef<(() => void) | null>(null);
   const measurementSourceId = 'measurement-source';
   
   // Basemap style state (persisted in localStorage)
@@ -1982,8 +1984,9 @@ export function MapLibreCanvas({
       const bounds = map.current!.getBounds();
       const zoom = map.current!.getZoom();
 
-      // Only load at zoom 14+
+      // Clear error when zoom is too low
       if (zoom < 14) {
+        setParcelLoadError(null);
         if (map.current!.getSource(sourceId)) {
           (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
             type: 'FeatureCollection',
@@ -2000,19 +2003,31 @@ export function MapLibreCanvas({
         bounds.getNorth()
       ];
 
-        try {
-          console.log('🗺️ Fetching parcels:', { bbox, zoom });
-          
-          const { data, error } = await supabase.functions.invoke('fetch-parcels', {
-            body: { bbox, zoom }
-          });
+      try {
+        console.log('🗺️ Fetching parcels:', { bbox, zoom });
+        setParcelLoadError(null);
+        
+        const { data, error } = await supabase.functions.invoke('fetch-parcels', {
+          body: { bbox, zoom }
+        });
 
-          if (error) {
-            console.error('❌ Parcel API Error:', error);
-            throw error;
-          }
-          
-          console.log('✅ Parcels loaded:', data?.features?.length || 0, 'County:', data?.features?.[0]?.properties?.county || 'unknown');
+        if (error) {
+          console.error('❌ Parcel API Error:', error);
+          setParcelLoadError('Unable to load parcels. You can still search by address.');
+          return; // Don't throw - graceful degradation
+        }
+        
+        // Check for API-level errors in response
+        if (data?.error) {
+          console.warn('⚠️ Parcel API returned error:', data.error);
+          setParcelLoadError(data.error);
+          // Still try to render any features that came back
+        } else {
+          setParcelLoadError(null);
+        }
+        
+        const featureCount = data?.features?.length || 0;
+        console.log('✅ Parcels loaded:', featureCount, 'County:', data?.features?.[0]?.properties?.county || 'unknown');
 
         // Initialize source if doesn't exist
         if (!map.current!.getSource(sourceId)) {
@@ -2084,12 +2099,16 @@ export function MapLibreCanvas({
           });
         } else {
           // Update existing source
-          (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data);
+          (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data || { type: 'FeatureCollection', features: [] });
         }
       } catch (err) {
         console.error('Failed to load parcels:', err);
+        setParcelLoadError('Unable to load parcels. You can still search by address.');
       }
     };
+    
+    // Store reference for retry button
+    retryParcelLoad.current = updateParcels;
 
     // Initial load
     updateParcels();
@@ -2121,6 +2140,25 @@ export function MapLibreCanvas({
         tabIndex={0}
         style={{ minHeight: '300px' }}
       />
+
+      {/* Parcel Load Error Overlay */}
+      {parcelLoadError && showParcels && (
+        <div className="absolute bottom-4 left-4 z-20 max-w-xs">
+          <div className="bg-amber-50 dark:bg-amber-950 border border-amber-300 dark:border-amber-700 rounded-lg p-3 shadow-lg">
+            <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+              {parcelLoadError}
+            </p>
+            <Button 
+              size="sm" 
+              variant="outline"
+              className="text-amber-700 border-amber-400 hover:bg-amber-100"
+              onClick={() => retryParcelLoad.current?.()}
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Map Legend */}
       <MapLegend
