@@ -172,3 +172,6 @@ verify_jwt = false
 
 [functions.alert-check]
 verify_jwt = false
+
+[functions.aggregate-api-health]
+verify_jwt = false

@@ -21,8 +21,14 @@ import {
   Play,
   Bell,
   TrendingUp,
-  Zap
+  Zap,
+  BarChart3,
+  Radio,
+  GitBranch
 } from "lucide-react";
+import { ApiPerformanceTab } from "@/components/admin/ApiPerformanceTab";
+import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
+import { RealTimeMonitorTab } from "@/components/admin/RealTimeMonitorTab";
 
 interface CronJob {
   id: string;
@@ -292,8 +298,20 @@ export default function SystemHealth() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="jobs" className="space-y-4">
-          <TabsList className="bg-muted/50">
+        <Tabs defaultValue="api" className="space-y-4">
+          <TabsList className="bg-muted/50 flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="api" className="flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              API Performance
+            </TabsTrigger>
+            <TabsTrigger value="pipeline" className="flex items-center gap-2">
+              <GitBranch className="w-4 h-4" />
+              Pipeline
+            </TabsTrigger>
+            <TabsTrigger value="live" className="flex items-center gap-2">
+              <Radio className="w-4 h-4" />
+              Live
+            </TabsTrigger>
             <TabsTrigger value="jobs" className="flex items-center gap-2">
               <Server className="w-4 h-4" />
               Cron Jobs
@@ -309,9 +327,24 @@ export default function SystemHealth() {
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <Database className="w-4 h-4" />
-              Job History
+              History
             </TabsTrigger>
           </TabsList>
+
+          {/* API Performance Tab */}
+          <TabsContent value="api">
+            <ApiPerformanceTab />
+          </TabsContent>
+
+          {/* Pipeline Health Tab */}
+          <TabsContent value="pipeline">
+            <PipelineHealthTab />
+          </TabsContent>
+
+          {/* Real-time Monitor Tab */}
+          <TabsContent value="live">
+            <RealTimeMonitorTab />
+          </TabsContent>
 
           {/* Cron Jobs Tab */}
           <TabsContent value="jobs">
