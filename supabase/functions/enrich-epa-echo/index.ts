@@ -7,7 +7,8 @@ const corsHeaders = {
 
 // EPA ECHO All-Programs Facility Search API
 // Research doc: Section 2.8 - EPA ECHO Facility Proximity (1-Mile Radius)
-const EPA_ECHO_URL = "https://echo.epa.gov/tools/web-services/facility_search";
+// Updated 2024: New endpoint URL per EPA ECHO API migration
+const EPA_ECHO_URL = "https://echodata.epa.gov/echo/echo_rest_services.get_facilities";
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
