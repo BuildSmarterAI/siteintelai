@@ -1,49 +1,498 @@
-
-openapi: 3.0.3
+openapi: 3.1.0
 info:
-  title: BuildSmarter Feasibility API
+  title: SiteIntel™ Feasibility API
   version: 1.0.0
-  description: API contract for the applications table in BuildSmarter Feasibility (Supabase/Postgres)
+  description: |
+    REST API for SiteIntel™ commercial real estate feasibility platform.
+    
+    ## Authentication
+    All authenticated endpoints require a Bearer token in the Authorization header.
+    Obtain tokens via Supabase Auth.
+    
+    ## Base URL
+    Production: `https://mcmfwlgovubpdcfiqfvk.supabase.co/functions/v1`
+  contact:
+    name: SiteIntel API Support
+    url: https://siteintel.ai
+  license:
+    name: Proprietary
+    url: https://siteintel.ai/terms
+
+servers:
+  - url: https://mcmfwlgovubpdcfiqfvk.supabase.co/functions/v1
+    description: Production
+
+tags:
+  - name: Applications
+    description: Feasibility application CRUD operations
+  - name: Reports
+    description: Report generation and retrieval
+  - name: Enrichment
+    description: Data enrichment endpoints
 
 paths:
-  /applications:
+  /api-v1/applications:
     get:
-      summary: Retrieve applications
+      summary: List applications
+      description: Retrieve a paginated list of applications for the authenticated user.
+      operationId: listApplications
+      tags:
+        - Applications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/limitParam'
+        - $ref: '#/components/parameters/offsetParam'
+        - $ref: '#/components/parameters/selectParam'
+        - $ref: '#/components/parameters/sortByParam'
+        - $ref: '#/components/parameters/sortOrderParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, submitted, processing, completed, failed]
+          description: Filter by application status
+        - name: enrichment_status
+          in: query
+          schema:
+            type: string
+            enum: [pending, in_progress, completed, failed]
+          description: Filter by enrichment status
+        - name: city
+          in: query
+          schema:
+            type: string
+          description: Filter by city name
+        - name: county
+          in: query
+          schema:
+            type: string
+          description: Filter by county name
+        - name: created_after
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter applications created after this date
+        - name: created_before
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter applications created before this date
       responses:
         '200':
-          description: A list of applications
+          description: Successful response with paginated applications
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Application'
+                $ref: '#/components/schemas/ApplicationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
     post:
-      summary: Create a new application
+      summary: Create application
+      description: Create a new feasibility application.
+      operationId: createApplication
+      tags:
+        - Applications
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Application'
+              $ref: '#/components/schemas/ApplicationCreate'
       responses:
         '201':
-          description: Application created
+          description: Application created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api-v1/applications/{id}:
+    get:
+      summary: Get application
+      description: Retrieve a single application by ID.
+      operationId: getApplication
+      tags:
+        - Applications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/applicationIdParam'
+      responses:
+        '200':
+          description: Application details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      summary: Update application
+      description: Update an existing application.
+      operationId: updateApplication
+      tags:
+        - Applications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/applicationIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationUpdate'
+      responses:
+        '200':
+          description: Application updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: Delete application
+      description: Delete an application by ID.
+      operationId: deleteApplication
+      tags:
+        - Applications
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/applicationIdParam'
+      responses:
+        '200':
+          description: Application deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      deleted:
+                        type: boolean
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase JWT token
+
+  parameters:
+    applicationIdParam:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Application UUID
+
+    limitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Maximum number of records to return (max 100)
+
+    offsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Number of records to skip for pagination
+
+    selectParam:
+      name: select
+      in: query
+      schema:
+        type: string
+        default: '*'
+      description: Comma-separated list of fields to return
+      example: id,formatted_address,status,created_at
+
+    sortByParam:
+      name: sort_by
+      in: query
+      schema:
+        type: string
+        default: created_at
+      description: Field to sort by
+      example: created_at
+
+    sortOrderParam:
+      name: sort_order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      description: Sort order (ascending or descending)
+
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error:
+              code: UNAUTHORIZED
+              message: Authentication required
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error:
+              code: NOT_FOUND
+              message: Application not found
+
+    ValidationError:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            data: null
+            error:
+              code: VALIDATION_ERROR
+              message: Missing required fields
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
   schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        data:
+          type: 'null'
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: Missing required fields
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of records
+        limit:
+          type: integer
+          description: Requested limit
+        offset:
+          type: integer
+          description: Current offset
+        has_more:
+          type: boolean
+          description: Whether more records exist
+
+    ApplicationListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Application'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
+    ApplicationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/Application'
+
+    ApplicationCreate:
+      type: object
+      required:
+        - full_name
+        - email
+        - phone
+        - company
+        - ownership_status
+        - existing_improvements
+        - stories_height
+        - project_type
+        - quality_level
+        - heard_about
+      properties:
+        full_name:
+          type: string
+          example: John Developer
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        phone:
+          type: string
+          example: '+1-555-555-5555'
+        company:
+          type: string
+          example: Acme Development LLC
+        ownership_status:
+          type: string
+          enum: [own, under_contract, exploring]
+        existing_improvements:
+          type: string
+          example: Vacant land
+        stories_height:
+          type: string
+          example: '3'
+        project_type:
+          type: array
+          items:
+            type: string
+          example: [retail, mixed_use]
+        quality_level:
+          type: string
+          enum: [standard, premium, luxury]
+        heard_about:
+          type: string
+          example: referral
+        property_address:
+          type: object
+          description: Google Places address components
+        formatted_address:
+          type: string
+          example: 123 Main St, Houston, TX 77001
+        geo_lat:
+          type: number
+          example: 29.7604
+        geo_lng:
+          type: number
+          example: -95.3698
+        lot_size_value:
+          type: number
+          example: 2.5
+        lot_size_unit:
+          type: string
+          enum: [acres, sqft]
+        intent_type:
+          type: string
+          enum: [build, buy, sell, invest]
+
+    ApplicationUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+        formatted_address:
+          type: string
+        property_address:
+          type: object
+        geo_lat:
+          type: number
+        geo_lng:
+          type: number
+        zoning_code:
+          type: string
+        floodplain_zone:
+          type: string
+        additional_notes:
+          type: string
+
     Application:
       type: object
       properties:
         id:
           type: string
+          format: uuid
         created_at:
           type: string
           format: date-time
         updated_at:
           type: string
           format: date-time
-
+        user_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [draft, submitted, processing, completed, failed]
+        enrichment_status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+        
+        # Contact Info
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        company:
+          type: string
+        
         # Property / Parcel
         parcel_id:
           type: string
@@ -52,7 +501,7 @@ components:
         acreage_cad:
           type: number
         property_address:
-          type: string
+          type: object
         formatted_address:
           type: string
         situs_address:
@@ -63,7 +512,11 @@ components:
           type: number
         place_id:
           type: string
-
+        city:
+          type: string
+        county:
+          type: string
+        
         # Zoning
         zoning_code:
           type: string
@@ -71,7 +524,7 @@ components:
           type: string
         entitlement_notes:
           type: string
-
+        
         # Floodplain / Environmental
         floodplain_zone:
           type: string
@@ -81,127 +534,48 @@ components:
           type: number
         wetlands_type:
           type: string
-        soil_series:
-          type: string
-        soil_slope_percent:
-          type: number
-        soil_drainage_class:
-          type: string
         environmental_sites:
           type: array
           items:
             type: object
             properties:
-              site_name: { type: string }
-              program: { type: string }
-              status: { type: string }
-        historical_flood_events:
-          type: integer
-
-        # Utilities / Infrastructure
+              site_name:
+                type: string
+              program:
+                type: string
+              status:
+                type: string
+        
+        # Utilities
         utility_access:
           type: array
-          items: { type: string }
+          items:
+            type: string
         water_lines:
           type: array
           items:
             type: object
-            properties:
-              diameter: { type: string }
-              distance_ft: { type: number }
-              status: { type: string }
         sewer_lines:
           type: array
           items:
             type: object
-            properties:
-              diameter: { type: string }
-              distance_ft: { type: number }
-              status: { type: string }
-        storm_lines:
-          type: array
-          items:
-            type: object
-            properties:
-              diameter: { type: string }
-              distance_ft: { type: number }
-              status: { type: string }
-        water_capacity_mgd:
-          type: number
-        sewer_capacity_mgd:
-          type: number
-        power_kv_nearby:
-          type: number
         fiber_available:
           type: boolean
-        broadband_providers:
-          type: array
-          items: { type: string }
-
-        # Traffic / Mobility
+        
+        # Traffic
         traffic_aadt:
-          type: number
-        traffic_year:
-          type: integer
-        traffic_segment_id:
-          type: string
-        traffic_distance_ft:
           type: number
         traffic_road_name:
           type: string
-        traffic_direction:
-          type: string
-        traffic_map_url:
-          type: string
-        nearest_highway:
-          type: string
-        distance_highway_ft:
-          type: number
-        nearest_transit_stop:
-          type: string
-        distance_transit_ft:
-          type: number
-        drive_time_15min_population:
-          type: number
-        drive_time_30min_population:
-          type: number
-
-        # Demographics / Market
+        
+        # Demographics
         population_1mi:
           type: number
         population_3mi:
           type: number
-        population_5mi:
-          type: number
-        growth_rate_5yr:
-          type: number
         median_income:
           type: number
-        households_5mi:
-          type: number
-        employment_clusters:
-          type: array
-          items:
-            type: object
-            properties:
-              sector: { type: string }
-              jobs: { type: number }
-
-        # Financial / Jurisdictional
-        tax_rate_total:
-          type: number
-        taxing_jurisdictions:
-          type: array
-          items: { type: string }
-        opportunity_zone:
-          type: boolean
-        enterprise_zone:
-          type: boolean
-        foreign_trade_zone:
-          type: boolean
-        average_permit_time_months:
-          type: number
-
+        
         # AI Outputs
         executive_summary_output:
           type: string
@@ -212,12 +586,6 @@ components:
         utilities_output:
           type: string
         market_output:
-          type: string
-        costs_output:
-          type: string
-        schedule_output:
-          type: string
-        highest_best_use_output:
           type: string
         traffic_output:
           type: string
