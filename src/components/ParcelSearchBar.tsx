@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Navigation, MapPin, Loader2, Clock, X } from 'lucide-react';
+import { Search, Navigation, MapPin, Loader2, Clock, X, Hash, GitBranch } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -12,29 +13,73 @@ interface RecentSearch {
   lat: number;
   lng: number;
   timestamp: number;
+  type?: 'address' | 'cad' | 'intersection' | 'point';
+  county?: string;
+}
+
+interface SearchResult {
+  type: 'address' | 'cad' | 'intersection' | 'point';
+  confidence: number;
+  lat: number;
+  lng: number;
+  formatted_address: string;
+  county?: string;
+  parcel?: {
+    parcel_id: string;
+    owner_name: string | null;
+    acreage: number | null;
+    situs_address: string | null;
+    market_value: number | null;
+    geometry?: unknown;
+  };
 }
 
 interface ParcelSearchBarProps {
   onAddressSelect: (lat: number, lng: number, address: string) => void;
-  onParcelSelect?: (parcel: any) => void;
+  onParcelSelect?: (parcel: unknown) => void;
   containerClassName?: string;
 }
 
+const TYPE_ICONS = {
+  address: MapPin,
+  cad: Hash,
+  intersection: GitBranch,
+  point: Navigation,
+};
+
+const TYPE_LABELS = {
+  address: 'Address',
+  cad: 'CAD #',
+  intersection: 'Cross St',
+  point: 'Coords',
+};
+
+const COUNTY_LABELS: Record<string, string> = {
+  harris: 'Harris',
+  montgomery: 'Montgomery',
+  travis: 'Travis',
+  bexar: 'Bexar',
+  dallas: 'Dallas',
+  tarrant: 'Tarrant',
+  williamson: 'Williamson',
+  fortbend: 'Fort Bend',
+};
+
 export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClassName }: ParcelSearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
 
   useEffect(() => {
     if (searchQuery.length < 3) {
-      setSuggestions([]);
+      setSearchResults([]);
       return;
     }
 
     const timer = setTimeout(async () => {
-      await fetchSuggestions(searchQuery);
+      await fetchSearchResults(searchQuery);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -53,91 +98,23 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     }
   }, []);
 
-  const fetchSuggestions = async (query: string) => {
+  const fetchSearchResults = async (query: string) => {
     setIsSearching(true);
     try {
-      // Check if cross-street format (contains "&" or "and")
-      if (query.match(/(&|and)/i)) {
-        await handleCrossStreetSearch(query);
-        return;
-      }
-
-      // Check if parcel ID format (10+ digits)
-      if (/^\d{10,}$/.test(query)) {
-        await searchByParcelId(query);
-        return;
-      }
-
-      // Check if coordinate format (lat,lng)
-      if (/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(query)) {
-        const [lat, lng] = query.split(',').map(s => parseFloat(s.trim()));
-        const address = `Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        saveToHistory(lat, lng, address);
-        onAddressSelect(lat, lng, address);
-        setIsOpen(false);
-        return;
-      }
-
-      // Address autocomplete
-      const { data, error } = await supabase.functions.invoke('google-places', {
-        body: { input: query }
+      const { data, error } = await supabase.functions.invoke('search-parcels', {
+        body: { query }
       });
 
       if (error) throw error;
 
-      setSuggestions(data.predictions || []);
+      setSearchResults(data.results || []);
       setIsOpen(true);
     } catch (err) {
       console.error('Search error:', err);
       toast.error('Search failed');
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
-    }
-  };
-
-  const searchByParcelId = async (parcelId: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('fetch-hcad-parcels', {
-        body: { parcelId }
-      });
-
-      if (error) throw error;
-
-      if (data.features && data.features.length > 0) {
-        const parcel = data.features[0];
-        const coords = parcel.geometry.coordinates[0][0];
-        const [lng, lat] = coords;
-        const address = parcel.properties.SITUS_ADDRESS || 'Parcel Found';
-        
-        saveToHistory(lat, lng, address);
-        onParcelSelect?.(parcel);
-        onAddressSelect(lat, lng, address);
-        setIsOpen(false);
-        toast.success('Parcel found');
-      } else {
-        toast.error('Parcel not found');
-      }
-    } catch (err) {
-      console.error('Parcel search error:', err);
-      toast.error('Failed to find parcel');
-    }
-  };
-
-  const handleCrossStreetSearch = async (intersection: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('geocode-intersection', {
-        body: { intersection }
-      });
-
-      if (error) throw error;
-
-      saveToHistory(data.lat, data.lng, data.formatted_address);
-      onAddressSelect(data.lat, data.lng, data.formatted_address);
-      setIsOpen(false);
-      toast.success('Location found');
-    } catch (err) {
-      console.error('Intersection search error:', err);
-      toast.error('Intersection not found');
     }
   };
 
@@ -149,10 +126,12 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const address = 'Current Location';
+        saveToHistory(position.coords.latitude, position.coords.longitude, address, 'point');
         onAddressSelect(
           position.coords.latitude,
           position.coords.longitude,
-          'Current Location'
+          address
         );
         toast.success('Centered on your location');
       },
@@ -163,12 +142,20 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     );
   };
 
-  const saveToHistory = (lat: number, lng: number, address: string) => {
+  const saveToHistory = (
+    lat: number, 
+    lng: number, 
+    address: string, 
+    type?: 'address' | 'cad' | 'intersection' | 'point',
+    county?: string
+  ) => {
     const newSearch: RecentSearch = {
       address,
       lat,
       lng,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      type,
+      county,
     };
 
     // Remove duplicates (same address)
@@ -189,6 +176,28 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     setRecentSearches(updated);
     localStorage.setItem('parcelSearchHistory', JSON.stringify(updated));
     toast.success('Removed from history');
+  };
+
+  const handleResultSelect = (result: SearchResult) => {
+    saveToHistory(result.lat, result.lng, result.formatted_address, result.type, result.county);
+    
+    if (result.parcel && onParcelSelect) {
+      onParcelSelect({
+        type: 'Feature',
+        geometry: result.parcel.geometry,
+        properties: result.parcel,
+      });
+    }
+    
+    onAddressSelect(result.lat, result.lng, result.formatted_address);
+    setIsOpen(false);
+    setSearchQuery('');
+    toast.success('Location selected');
+  };
+
+  const TypeIcon = ({ type }: { type: 'address' | 'cad' | 'intersection' | 'point' }) => {
+    const Icon = TYPE_ICONS[type];
+    return <Icon className="h-4 w-4" />;
   };
 
   return (
@@ -248,11 +257,21 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
                       className="group"
                     >
                       <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="flex-1">{search.address}</span>
+                      <span className="flex-1 truncate">{search.address}</span>
+                      {search.type && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          {TYPE_LABELS[search.type]}
+                        </Badge>
+                      )}
+                      {search.county && (
+                        <Badge variant="outline" className="ml-1 text-xs">
+                          {COUNTY_LABELS[search.county] || search.county}
+                        </Badge>
+                      )}
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
                         onClick={(e) => removeFromHistory(search.timestamp, e)}
                       >
                         <X className="h-3 w-3" />
@@ -262,42 +281,75 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
                 </CommandGroup>
               )}
 
-              {/* Search Suggestions Section */}
-              {suggestions.length > 0 && (
+              {/* Search Results Section */}
+              {searchResults.length > 0 && (
                 <>
                   <CommandEmpty>No results found</CommandEmpty>
-                  <CommandGroup heading={searchQuery.length > 0 ? "Suggestions" : undefined}>
-                    {suggestions.map((suggestion) => (
+                  <CommandGroup heading="Search Results">
+                    {searchResults.map((result, index) => (
                       <CommandItem
-                        key={suggestion.place_id}
-                        onSelect={async () => {
-                          try {
-                            const { data } = await supabase.functions.invoke('google-place-details', {
-                              body: { placeId: suggestion.place_id }
-                            });
-
-                            const { lat, lng } = data.result.geometry.location;
-                            saveToHistory(lat, lng, suggestion.description);
-                            onAddressSelect(lat, lng, suggestion.description);
-                            setIsOpen(false);
-                            setSearchQuery('');
-                          } catch (err) {
-                            console.error('Place details error:', err);
-                            toast.error('Failed to get location details');
-                          }
-                        }}
+                        key={`${result.type}-${result.lat}-${result.lng}-${index}`}
+                        onSelect={() => handleResultSelect(result)}
+                        className="flex items-center"
                       >
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {suggestion.description}
+                        <TypeIcon type={result.type} />
+                        <span className="flex-1 ml-2 truncate">{result.formatted_address}</span>
+                        <div className="flex items-center gap-1 ml-2">
+                          <Badge variant="secondary" className="text-xs">
+                            {TYPE_LABELS[result.type]}
+                          </Badge>
+                          {result.county && (
+                            <Badge variant="outline" className="text-xs">
+                              {COUNTY_LABELS[result.county] || result.county}
+                            </Badge>
+                          )}
+                        </div>
                       </CommandItem>
                     ))}
                   </CommandGroup>
                 </>
               )}
 
+              {/* Parcel Details Preview */}
+              {searchResults.length > 0 && searchResults[0].parcel && (
+                <CommandGroup heading="Parcel Preview">
+                  <div className="px-3 py-2 text-sm">
+                    <div className="grid grid-cols-2 gap-1 text-muted-foreground">
+                      <span>Parcel ID:</span>
+                      <span className="font-mono">{searchResults[0].parcel.parcel_id}</span>
+                      {searchResults[0].parcel.owner_name && (
+                        <>
+                          <span>Owner:</span>
+                          <span className="truncate">{searchResults[0].parcel.owner_name}</span>
+                        </>
+                      )}
+                      {searchResults[0].parcel.acreage && (
+                        <>
+                          <span>Acreage:</span>
+                          <span>{searchResults[0].parcel.acreage.toFixed(2)} ac</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </CommandGroup>
+              )}
+
               {/* Empty State */}
               {searchQuery.length === 0 && recentSearches.length === 0 && (
-                <CommandEmpty>Start typing to search for an address</CommandEmpty>
+                <CommandEmpty>
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    <p>Search by:</p>
+                    <p className="mt-1">• Address (123 Main St)</p>
+                    <p>• Cross street (Main & Oak)</p>
+                    <p>• Parcel ID (1234567890)</p>
+                    <p>• Coordinates (29.76,-95.36)</p>
+                  </div>
+                </CommandEmpty>
+              )}
+
+              {/* No Results State */}
+              {searchQuery.length >= 3 && searchResults.length === 0 && !isSearching && (
+                <CommandEmpty>No results found for "{searchQuery}"</CommandEmpty>
               )}
             </CommandList>
           </Command>
