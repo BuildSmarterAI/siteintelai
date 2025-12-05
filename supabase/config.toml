@@ -148,3 +148,9 @@ verify_jwt = true
 
 [functions.bulk-re-enrich]
 verify_jwt = true
+
+[functions.fetch-parcels]
+verify_jwt = false
+
+[functions.search-parcels]
+verify_jwt = false
