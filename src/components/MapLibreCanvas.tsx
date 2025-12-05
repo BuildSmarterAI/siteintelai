@@ -15,10 +15,10 @@ import * as turf from '@turf/turf';
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
-  hcadParcels: {
-    id: 'hcad-parcels',
-    title: 'HCAD Parcels',
-    source: 'Harris County Appraisal District',
+  countyParcels: {
+    id: 'county-parcels',
+    title: 'County Parcels',
+    source: 'Multi-County Appraisal Districts',
     color: '#6366F1',
     opacity: 0.3,
     intentRelevance: { build: true, buy: true },
@@ -2001,18 +2001,18 @@ export function MapLibreCanvas({
       ];
 
         try {
-          console.log('🗺️ Fetching HCAD parcels:', { bbox, zoom });
+          console.log('🗺️ Fetching parcels:', { bbox, zoom });
           
-          const { data, error } = await supabase.functions.invoke('fetch-hcad-parcels', {
+          const { data, error } = await supabase.functions.invoke('fetch-parcels', {
             body: { bbox, zoom }
           });
 
           if (error) {
-            console.error('❌ HCAD API Error:', error);
+            console.error('❌ Parcel API Error:', error);
             throw error;
           }
           
-          console.log('✅ HCAD parcels loaded:', data?.features?.length || 0);
+          console.log('✅ Parcels loaded:', data?.features?.length || 0, 'County:', data?.features?.[0]?.properties?.county || 'unknown');
 
         // Initialize source if doesn't exist
         if (!map.current!.getSource(sourceId)) {
@@ -2050,14 +2050,14 @@ export function MapLibreCanvas({
             }
           });
 
-          // Add label layer (zoom 16+)
+          // Add label layer (zoom 16+) - use normalized owner_name field
           map.current!.addLayer({
             id: labelLayerId,
             type: 'symbol',
             source: sourceId,
             minzoom: 16,
             layout: {
-              'text-field': ['get', 'OWNER_NAME'],
+              'text-field': ['coalesce', ['get', 'owner_name'], ['get', 'OWNER_NAME']],
               'text-size': 10,
               'text-anchor': 'center',
             },
@@ -2087,7 +2087,7 @@ export function MapLibreCanvas({
           (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data);
         }
       } catch (err) {
-        console.error('Failed to load HCAD parcels:', err);
+        console.error('Failed to load parcels:', err);
       }
     };
 

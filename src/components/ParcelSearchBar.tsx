@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Search, Navigation, MapPin, Loader2, Clock, X, Hash, GitBranch } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Navigation, MapPin, Loader2, Clock, X, Hash, GitBranch, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -38,6 +39,7 @@ interface ParcelSearchBarProps {
   onAddressSelect: (lat: number, lng: number, address: string) => void;
   onParcelSelect?: (parcel: unknown) => void;
   containerClassName?: string;
+  initialCounty?: string;
 }
 
 const TYPE_ICONS = {
@@ -54,6 +56,18 @@ const TYPE_LABELS = {
   point: 'Coords',
 };
 
+const COUNTY_OPTIONS = [
+  { value: 'all', label: 'All Counties' },
+  { value: 'harris', label: 'Harris County' },
+  { value: 'fortbend', label: 'Fort Bend County' },
+  { value: 'montgomery', label: 'Montgomery County' },
+  { value: 'travis', label: 'Travis County' },
+  { value: 'dallas', label: 'Dallas County' },
+  { value: 'tarrant', label: 'Tarrant County' },
+  { value: 'bexar', label: 'Bexar County' },
+  { value: 'williamson', label: 'Williamson County' },
+];
+
 const COUNTY_LABELS: Record<string, string> = {
   harris: 'Harris',
   montgomery: 'Montgomery',
@@ -65,12 +79,18 @@ const COUNTY_LABELS: Record<string, string> = {
   fortbend: 'Fort Bend',
 };
 
-export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClassName }: ParcelSearchBarProps) {
+export function ParcelSearchBar({ 
+  onAddressSelect, 
+  onParcelSelect, 
+  containerClassName,
+  initialCounty 
+}: ParcelSearchBarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([]);
+  const [selectedCounty, setSelectedCounty] = useState(initialCounty || 'all');
 
   useEffect(() => {
     if (searchQuery.length < 3) {
@@ -83,7 +103,7 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, selectedCounty]);
 
   // Load recent searches from localStorage on mount
   useEffect(() => {
@@ -98,12 +118,33 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     }
   }, []);
 
+  // Keyboard shortcut: Ctrl+K / Cmd+K to focus search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const input = document.querySelector<HTMLInputElement>('[data-parcel-search-input]');
+        input?.focus();
+        setIsOpen(true);
+      }
+      if (e.key === 'Escape') {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const fetchSearchResults = async (query: string) => {
     setIsSearching(true);
     try {
-      const { data, error } = await supabase.functions.invoke('search-parcels', {
-        body: { query }
-      });
+      const body: { query: string; county?: string } = { query };
+      if (selectedCounty !== 'all') {
+        body.county = selectedCounty;
+      }
+
+      const { data, error } = await supabase.functions.invoke('search-parcels', { body });
 
       if (error) throw error;
 
@@ -142,7 +183,7 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
     );
   };
 
-  const saveToHistory = (
+  const saveToHistory = useCallback((
     lat: number, 
     lng: number, 
     address: string, 
@@ -158,17 +199,18 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
       county,
     };
 
-    // Remove duplicates (same address)
-    const filtered = recentSearches.filter(
-      search => search.address.toLowerCase() !== address.toLowerCase()
-    );
+    setRecentSearches(prev => {
+      // Remove duplicates (same address)
+      const filtered = prev.filter(
+        search => search.address.toLowerCase() !== address.toLowerCase()
+      );
 
-    // Add to beginning, limit to 5
-    const updated = [newSearch, ...filtered].slice(0, 5);
-    
-    setRecentSearches(updated);
-    localStorage.setItem('parcelSearchHistory', JSON.stringify(updated));
-  };
+      // Add to beginning, limit to 5
+      const updated = [newSearch, ...filtered].slice(0, 5);
+      localStorage.setItem('parcelSearchHistory', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
 
   const removeFromHistory = (timestamp: number, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -185,7 +227,10 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
       onParcelSelect({
         type: 'Feature',
         geometry: result.parcel.geometry,
-        properties: result.parcel,
+        properties: {
+          ...result.parcel,
+          county: result.county,
+        },
       });
     }
     
@@ -201,9 +246,24 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
   };
 
   return (
-    <div className={`absolute left-4 z-20 w-96 ${containerClassName ?? 'top-4'}`}>
+    <div className={`absolute left-4 z-20 w-[420px] ${containerClassName ?? 'top-4'}`}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex gap-2">
+          {/* County Filter */}
+          <Select value={selectedCounty} onValueChange={setSelectedCounty}>
+            <SelectTrigger className="w-[140px] bg-background/95 backdrop-blur-sm shadow-lg border-primary/20">
+              <Filter className="h-4 w-4 mr-1 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COUNTY_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <PopoverTrigger asChild>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -221,7 +281,11 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
                   }
                 }}
                 className="pl-10 pr-10 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
+                data-parcel-search-input
               />
+              <span className="absolute right-10 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hidden md:block">
+                ⌘K
+              </span>
             </div>
           </PopoverTrigger>
 
@@ -237,7 +301,7 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
         </div>
 
         <PopoverContent
-          className="w-96 p-0"
+          className="w-[420px] p-0"
           align="start"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
@@ -327,6 +391,12 @@ export function ParcelSearchBar({ onAddressSelect, onParcelSelect, containerClas
                         <>
                           <span>Acreage:</span>
                           <span>{searchResults[0].parcel.acreage.toFixed(2)} ac</span>
+                        </>
+                      )}
+                      {searchResults[0].parcel.market_value && (
+                        <>
+                          <span>Market Value:</span>
+                          <span>${searchResults[0].parcel.market_value.toLocaleString()}</span>
                         </>
                       )}
                     </div>
