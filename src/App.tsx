@@ -44,6 +44,7 @@ import HospitalityIntelligence from "./pages/HospitalityIntelligence";
 import UtilitiesDiagnostic from "./pages/UtilitiesDiagnostic";
 import PaymentHistory from "./pages/PaymentHistory";
 import BrandKit from "./pages/BrandKit";
+import ApiDocs from "./pages/ApiDocs";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,7 @@ const App = () => (
               <Route path="/beta-thank-you" element={<BetaThankYou />} />
               <Route path="/investor-deck" element={<InvestorDeck />} />
               <Route path="/brand-kit" element={<BrandKit />} />
+              <Route path="/api-docs" element={<ApiDocs />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
