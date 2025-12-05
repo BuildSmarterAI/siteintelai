@@ -1972,6 +1972,93 @@ export function MapLibreCanvas({
     }
   }, [layerVisibility.drawnParcels, mapLoaded]);
 
+  // Multi-county direct API fallback configurations
+  const DIRECT_API_FALLBACKS: Record<string, { url: string; fields: Record<string, string> }> = {
+    harris: {
+      url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query',
+      fields: { id: 'acct_num', owner: 'owner_name_1', acreage: 'Acreage', address: 'SITUS_ADDRESS' }
+    },
+    fortbend: {
+      url: 'https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query',
+      fields: { id: 'propnumber', owner: 'ownername', acreage: 'acres', address: 'situs' }
+    },
+    montgomery: {
+      url: 'https://gis.mctx.org/arcgis/rest/services/Parcels/MapServer/0/query',
+      fields: { id: 'PROP_ID', owner: 'OWNER_NAME', acreage: 'ACRES', address: 'SITUS_ADDR' }
+    }
+  };
+
+  // County detection from map center
+  const detectCountyFromCenter = (lng: number, lat: number): string => {
+    // Harris County bounds
+    if (lng >= -95.91 && lng <= -94.91 && lat >= 29.49 && lat <= 30.17) return 'harris';
+    // Fort Bend
+    if (lng >= -96.01 && lng <= -95.45 && lat >= 29.35 && lat <= 29.82) return 'fortbend';
+    // Montgomery
+    if (lng >= -95.86 && lng <= -95.07 && lat >= 30.07 && lat <= 30.67) return 'montgomery';
+    // Default to harris
+    return 'harris';
+  };
+
+  // Direct county API fallback when edge function fails
+  const fetchDirectFromCounty = async (bbox: number[], county: string): Promise<any> => {
+    const config = DIRECT_API_FALLBACKS[county] || DIRECT_API_FALLBACKS.harris;
+    const [minLng, minLat, maxLng, maxLat] = bbox;
+    
+    const params = new URLSearchParams({
+      where: '1=1',
+      geometry: `${minLng},${minLat},${maxLng},${maxLat}`,
+      geometryType: 'esriGeometryEnvelope',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: Object.values(config.fields).join(','),
+      inSR: '4326',
+      outSR: '4326',
+      returnGeometry: 'true',
+      resultRecordCount: '500',
+      f: 'geojson'
+    });
+    
+    console.log(`🔄 Trying direct ${county.toUpperCase()} API fallback...`);
+    
+    const response = await fetch(`${config.url}?${params.toString()}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`${county.toUpperCase()} API returned ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || `${county} query failed`);
+    }
+    
+    // Normalize response to match expected format
+    const fields = config.fields;
+    const normalizedFeatures = (data.features || []).map((f: any) => ({
+      type: 'Feature',
+      geometry: f.geometry,
+      properties: {
+        parcel_id: f.properties[fields.id] || '',
+        owner_name: f.properties[fields.owner] || null,
+        acreage: f.properties[fields.acreage] || null,
+        situs_address: f.properties[fields.address] || null,
+        county: county,
+        source: `${county.charAt(0).toUpperCase() + county.slice(1)} County (Direct)`,
+        raw_properties: f.properties
+      }
+    }));
+    
+    console.log(`✅ Direct ${county} fallback: ${normalizedFeatures.length} parcels`);
+    
+    return {
+      type: 'FeatureCollection',
+      features: normalizedFeatures,
+      source: `${county.toUpperCase()}_DIRECT_FALLBACK`
+    };
+  };
+
   // Dynamic HCAD Parcels Loading (Parcel Explorer mode)
   useEffect(() => {
     if (!map.current || !mapLoaded || !showParcels) return;
@@ -2126,9 +2213,78 @@ export function MapLibreCanvas({
           (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data || { type: 'FeatureCollection', features: [] });
         }
       } catch (err) {
-        console.error('Failed to load parcels after retries:', err);
+        console.error('❌ Edge function failed after retries:', err);
+        
+        // Try direct county API fallback before giving up
+        try {
+          const mapCenter = map.current!.getCenter();
+          const detectedCounty = detectCountyFromCenter(mapCenter.lng, mapCenter.lat);
+          console.log(`🔄 Attempting direct ${detectedCounty} API fallback...`);
+          
+          const fallbackData = await fetchDirectFromCounty(bbox, detectedCounty);
+          
+          setParcelLoading(false);
+          
+          if (fallbackData.features.length > 0) {
+            console.log('✅ Direct fallback succeeded with', fallbackData.features.length, 'parcels');
+            setParcelLoadError(null);
+            
+            // Update map source with fallback data
+            if (!map.current!.getSource(sourceId)) {
+              map.current!.addSource(sourceId, {
+                type: 'geojson',
+                data: fallbackData
+              });
+
+              // Add fill layer
+              map.current!.addLayer({
+                id: fillLayerId,
+                type: 'fill',
+                source: sourceId,
+                paint: {
+                  'fill-color': '#F5F3E8',
+                  'fill-opacity': 0.6,
+                }
+              });
+
+              // Add outline layer
+              map.current!.addLayer({
+                id: lineLayerId,
+                type: 'line',
+                source: sourceId,
+                paint: {
+                  'line-color': '#6B5D9C',
+                  'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2, 18, 3]
+                }
+              });
+
+              // Add click handler
+              map.current!.on('click', fillLayerId, (e) => {
+                if (e.features && e.features.length > 0 && onParcelSelect) {
+                  onParcelSelect(e.features[0]);
+                }
+              });
+
+              map.current!.on('mouseenter', fillLayerId, () => {
+                if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+              });
+              map.current!.on('mouseleave', fillLayerId, () => {
+                if (map.current) map.current.getCanvas().style.cursor = '';
+              });
+            } else {
+              (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(fallbackData);
+            }
+            
+            // Show subtle indicator that we're using fallback
+            toast.info(`Using direct ${detectedCounty.charAt(0).toUpperCase() + detectedCounty.slice(1)} County data`, { duration: 3000 });
+            return;
+          }
+        } catch (fallbackErr) {
+          console.error('❌ Direct county fallback also failed:', fallbackErr);
+        }
+        
         setParcelLoading(false);
-        setParcelLoadError('Parcel service temporarily unavailable. Click retry or search by address.');
+        setParcelLoadError('Parcel service temporarily unavailable. Try searching by address instead.');
       }
     };
     
