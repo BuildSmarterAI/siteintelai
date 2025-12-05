@@ -147,10 +147,30 @@ serve(async (req) => {
     const authHeader = req.headers.get('authorization');
     let userId: string | null = null;
     
+    console.log(`🔐 [TRACE:${traceId}] [AUTH] Authorization header present: ${!!authHeader}`);
+    
     if (authHeader) {
       const token = authHeader.replace('Bearer ', '');
-      const { data: { user } } = await supabase.auth.getUser(token);
-      userId = user?.id || null;
+      console.log(`🔐 [TRACE:${traceId}] [AUTH] Token length: ${token?.length || 0}`);
+      
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        
+        if (authError) {
+          console.error(`🔐 [TRACE:${traceId}] [AUTH] getUser error:`, authError.message);
+        }
+        
+        if (user) {
+          userId = user.id;
+          console.log(`✅ [TRACE:${traceId}] [AUTH] User authenticated: ${user.id} (${user.email})`);
+        } else {
+          console.warn(`⚠️ [TRACE:${traceId}] [AUTH] No user returned from getUser (token may be invalid/expired)`);
+        }
+      } catch (e) {
+        console.error(`❌ [TRACE:${traceId}] [AUTH] Exception during getUser:`, e);
+      }
+    } else {
+      console.warn(`⚠️ [TRACE:${traceId}] [AUTH] No authorization header provided`);
     }
     
     // Require authentication for application submission
