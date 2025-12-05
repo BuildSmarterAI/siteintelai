@@ -45,6 +45,7 @@ import UtilitiesDiagnostic from "./pages/UtilitiesDiagnostic";
 import PaymentHistory from "./pages/PaymentHistory";
 import BrandKit from "./pages/BrandKit";
 import ApiDocs from "./pages/ApiDocs";
+import SystemHealth from "./pages/admin/SystemHealth";
 
 const queryClient = new QueryClient();
 
@@ -115,6 +116,7 @@ const App = () => (
               <Route path="/legal/beta-nda" element={<BetaNDA />} />
               <Route path="/admin/geospatial" element={<AdminGeospatial />} />
               <Route path="/admin/utilities-diagnostic" element={<UtilitiesDiagnostic />} />
+              <Route path="/admin/system-health" element={<SystemHealth />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
