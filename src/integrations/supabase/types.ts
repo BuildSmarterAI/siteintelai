@@ -1302,6 +1302,36 @@ export type Database = {
           },
         ]
       }
+      kill_factors: {
+        Row: {
+          category: string
+          code: string
+          created_at: string | null
+          description: string
+          severity: string | null
+          threshold: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string | null
+          description: string
+          severity?: string | null
+          threshold?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string | null
+          description?: string
+          severity?: string | null
+          threshold?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       parcel_index: {
         Row: {
           county_id: string
