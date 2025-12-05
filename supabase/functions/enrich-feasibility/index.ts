@@ -3016,7 +3016,7 @@ serve(async (req) => {
           
           // Store in cache
           if (femaData) {
-            await setCacheData(supabase, femaCacheKey, femaData, CACHE_TTL.FEMA, appId);
+            await setCacheData(supabase, femaCacheKey, femaData, CACHE_TTL.FEMA, application_id);
           }
         } else {
           apiMeta.fema_nfhl = { status: 200, layer: 0, coords: `${geoLng},${geoLat}`, cached: true };
