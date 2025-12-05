@@ -194,10 +194,6 @@ export default function Application() {
         .find(step => !completedSteps.has(step)) || 0;
       navigate(`/application?step=${firstIncompleteStep}`, { replace: true });
       setCurrentStep(firstIncompleteStep);
-      toast({
-        title: "Complete prior steps",
-        description: "Please complete the earlier steps before continuing.",
-      });
     }
   }, [searchParams]); // Note: removed completedSteps to avoid fighting state updates
   
@@ -732,6 +728,15 @@ export default function Application() {
                        {/* Step 0: Intent Selection */}
                        {currentStep === 0 && (
                          <div className="space-y-6 animate-fade-in">
+                           {/* Validation Error Banner */}
+                           {errors.intentType && (
+                             <div className="mb-4 p-4 bg-destructive/10 border-l-4 border-destructive rounded-r">
+                               <div className="flex items-center gap-3">
+                                 <AlertCircle className="w-5 h-5 text-destructive" />
+                                 <p className="text-destructive font-medium">{errors.intentType}</p>
+                               </div>
+                             </div>
+                           )}
                            <IntentStep
                              selectedIntent={formData.intentType}
                              onSelect={(intent) => {
