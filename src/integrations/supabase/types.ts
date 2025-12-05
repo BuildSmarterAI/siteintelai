@@ -82,6 +82,42 @@ export type Database = {
           },
         ]
       }
+      api_keys: {
+        Row: {
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          key_hash: string
+          last_used_at: string | null
+          name: string
+          rate_limit_per_hour: number | null
+          scopes: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash: string
+          last_used_at?: string | null
+          name: string
+          rate_limit_per_hour?: number | null
+          scopes?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          key_hash?: string
+          last_used_at?: string | null
+          name?: string
+          rate_limit_per_hour?: number | null
+          scopes?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       api_logs: {
         Row: {
           application_id: string | null
