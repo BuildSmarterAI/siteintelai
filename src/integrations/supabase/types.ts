@@ -245,8 +245,10 @@ export type Database = {
           consent_terms_privacy: boolean
           costs_output: string | null
           county: string | null
+          coverage_flags: string[] | null
           created_at: string
           data_flags: Json | null
+          dataset_version: string | null
           desired_budget: number | null
           disaster_declarations: string | null
           distance_highway_ft: number | null
@@ -281,6 +283,7 @@ export type Database = {
           full_name: string
           geo_lat: number | null
           geo_lng: number | null
+          gis_provenance: Json | null
           growth_rate_5yr: number | null
           heard_about: string
           highest_best_use_output: string | null
@@ -296,6 +299,7 @@ export type Database = {
           land_use_description: string | null
           land_val: number | null
           last_api_refresh: Json | null
+          layer_ids: string[] | null
           legal_dscr_1: string | null
           legal_dscr_2: string | null
           legal_dscr_3: string | null
@@ -303,6 +307,7 @@ export type Database = {
           lot: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
+          mapserver_key: string | null
           market_context: Json | null
           market_output: string | null
           marketing_opt_in: boolean
@@ -325,6 +330,7 @@ export type Database = {
           page_url: string | null
           parcel_id: string | null
           parcel_owner: string | null
+          parcel_source: string | null
           phone: string
           place_id: string | null
           population_1mi: number | null
@@ -363,6 +369,7 @@ export type Database = {
           taxable_value: number | null
           taxing_jurisdictions: Json | null
           tenant_requirements: string | null
+          tile_cache_hit: boolean | null
           topography_map_url: string | null
           tot_appr_val: number | null
           tot_market_val: number | null
@@ -427,8 +434,10 @@ export type Database = {
           consent_terms_privacy?: boolean
           costs_output?: string | null
           county?: string | null
+          coverage_flags?: string[] | null
           created_at?: string
           data_flags?: Json | null
+          dataset_version?: string | null
           desired_budget?: number | null
           disaster_declarations?: string | null
           distance_highway_ft?: number | null
@@ -463,6 +472,7 @@ export type Database = {
           full_name: string
           geo_lat?: number | null
           geo_lng?: number | null
+          gis_provenance?: Json | null
           growth_rate_5yr?: number | null
           heard_about: string
           highest_best_use_output?: string | null
@@ -478,6 +488,7 @@ export type Database = {
           land_use_description?: string | null
           land_val?: number | null
           last_api_refresh?: Json | null
+          layer_ids?: string[] | null
           legal_dscr_1?: string | null
           legal_dscr_2?: string | null
           legal_dscr_3?: string | null
@@ -485,6 +496,7 @@ export type Database = {
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
+          mapserver_key?: string | null
           market_context?: Json | null
           market_output?: string | null
           marketing_opt_in?: boolean
@@ -507,6 +519,7 @@ export type Database = {
           page_url?: string | null
           parcel_id?: string | null
           parcel_owner?: string | null
+          parcel_source?: string | null
           phone: string
           place_id?: string | null
           population_1mi?: number | null
@@ -545,6 +558,7 @@ export type Database = {
           taxable_value?: number | null
           taxing_jurisdictions?: Json | null
           tenant_requirements?: string | null
+          tile_cache_hit?: boolean | null
           topography_map_url?: string | null
           tot_appr_val?: number | null
           tot_market_val?: number | null
@@ -609,8 +623,10 @@ export type Database = {
           consent_terms_privacy?: boolean
           costs_output?: string | null
           county?: string | null
+          coverage_flags?: string[] | null
           created_at?: string
           data_flags?: Json | null
+          dataset_version?: string | null
           desired_budget?: number | null
           disaster_declarations?: string | null
           distance_highway_ft?: number | null
@@ -645,6 +661,7 @@ export type Database = {
           full_name?: string
           geo_lat?: number | null
           geo_lng?: number | null
+          gis_provenance?: Json | null
           growth_rate_5yr?: number | null
           heard_about?: string
           highest_best_use_output?: string | null
@@ -660,6 +677,7 @@ export type Database = {
           land_use_description?: string | null
           land_val?: number | null
           last_api_refresh?: Json | null
+          layer_ids?: string[] | null
           legal_dscr_1?: string | null
           legal_dscr_2?: string | null
           legal_dscr_3?: string | null
@@ -667,6 +685,7 @@ export type Database = {
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
+          mapserver_key?: string | null
           market_context?: Json | null
           market_output?: string | null
           marketing_opt_in?: boolean
@@ -689,6 +708,7 @@ export type Database = {
           page_url?: string | null
           parcel_id?: string | null
           parcel_owner?: string | null
+          parcel_source?: string | null
           phone?: string
           place_id?: string | null
           population_1mi?: number | null
@@ -727,6 +747,7 @@ export type Database = {
           taxable_value?: number | null
           taxing_jurisdictions?: Json | null
           tenant_requirements?: string | null
+          tile_cache_hit?: boolean | null
           topography_map_url?: string | null
           tot_appr_val?: number | null
           tot_market_val?: number | null
@@ -1302,6 +1323,78 @@ export type Database = {
           },
         ]
       }
+      gis_coverage_events: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          jurisdiction: string
+          location: unknown
+          location_context: Json | null
+          metadata: Json | null
+          missing_layer_type: string | null
+          priority: number | null
+          requested_canonical_type: string | null
+          resolution_notes: string | null
+          resolution_status: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          user_id: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          jurisdiction: string
+          location?: unknown
+          location_context?: Json | null
+          metadata?: Json | null
+          missing_layer_type?: string | null
+          priority?: number | null
+          requested_canonical_type?: string | null
+          resolution_notes?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          jurisdiction?: string
+          location?: unknown
+          location_context?: Json | null
+          metadata?: Json | null
+          missing_layer_type?: string | null
+          priority?: number | null
+          requested_canonical_type?: string | null
+          resolution_notes?: string | null
+          resolution_status?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gis_coverage_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gis_coverage_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
       jobs_enrichment: {
         Row: {
           application_id: string
@@ -1374,6 +1467,173 @@ export type Database = {
           severity?: string | null
           threshold?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      map_server_layers: {
+        Row: {
+          canonical_type: string
+          coverage_geometry: unknown
+          created_at: string
+          dataset_version: string | null
+          description: string | null
+          display_field: string | null
+          field_mappings: Json
+          geometry_type: string | null
+          id: string
+          is_active: boolean | null
+          last_data_update: string | null
+          layer_id: number
+          layer_key: string
+          layer_name: string
+          layer_type: string
+          map_server_id: string
+          max_scale: number | null
+          metadata: Json | null
+          min_scale: number | null
+          priority: number | null
+          query_fields: string[] | null
+          record_count: number | null
+          supports_query: boolean | null
+          supports_statistics: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          canonical_type: string
+          coverage_geometry?: unknown
+          created_at?: string
+          dataset_version?: string | null
+          description?: string | null
+          display_field?: string | null
+          field_mappings?: Json
+          geometry_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_data_update?: string | null
+          layer_id: number
+          layer_key: string
+          layer_name: string
+          layer_type?: string
+          map_server_id: string
+          max_scale?: number | null
+          metadata?: Json | null
+          min_scale?: number | null
+          priority?: number | null
+          query_fields?: string[] | null
+          record_count?: number | null
+          supports_query?: boolean | null
+          supports_statistics?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          canonical_type?: string
+          coverage_geometry?: unknown
+          created_at?: string
+          dataset_version?: string | null
+          description?: string | null
+          display_field?: string | null
+          field_mappings?: Json
+          geometry_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_data_update?: string | null
+          layer_id?: number
+          layer_key?: string
+          layer_name?: string
+          layer_type?: string
+          map_server_id?: string
+          max_scale?: number | null
+          metadata?: Json | null
+          min_scale?: number | null
+          priority?: number | null
+          query_fields?: string[] | null
+          record_count?: number | null
+          supports_query?: boolean | null
+          supports_statistics?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "map_server_layers_map_server_id_fkey"
+            columns: ["map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      map_servers: {
+        Row: {
+          auth_config: Json | null
+          auth_required: boolean | null
+          base_url: string
+          created_at: string
+          health_status: string | null
+          id: string
+          is_active: boolean | null
+          jurisdiction: string
+          last_health_check: string | null
+          last_sync_at: string | null
+          max_record_count: number | null
+          metadata: Json | null
+          priority: number | null
+          provider: string
+          server_key: string
+          service_type: string
+          spatial_reference: number | null
+          supports_geojson: boolean | null
+          supports_pagination: boolean | null
+          sync_frequency_hours: number | null
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          auth_config?: Json | null
+          auth_required?: boolean | null
+          base_url: string
+          created_at?: string
+          health_status?: string | null
+          id?: string
+          is_active?: boolean | null
+          jurisdiction: string
+          last_health_check?: string | null
+          last_sync_at?: string | null
+          max_record_count?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          provider: string
+          server_key: string
+          service_type?: string
+          spatial_reference?: number | null
+          supports_geojson?: boolean | null
+          supports_pagination?: boolean | null
+          sync_frequency_hours?: number | null
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          auth_config?: Json | null
+          auth_required?: boolean | null
+          base_url?: string
+          created_at?: string
+          health_status?: string | null
+          id?: string
+          is_active?: boolean | null
+          jurisdiction?: string
+          last_health_check?: string | null
+          last_sync_at?: string | null
+          max_record_count?: number | null
+          metadata?: Json | null
+          priority?: number | null
+          provider?: string
+          server_key?: string
+          service_type?: string
+          spatial_reference?: number | null
+          supports_geojson?: boolean | null
+          supports_pagination?: boolean | null
+          sync_frequency_hours?: number | null
+          updated_at?: string
+          version?: string | null
         }
         Relationships: []
       }
