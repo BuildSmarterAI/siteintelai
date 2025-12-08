@@ -6,6 +6,7 @@ import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 import { useCounter } from "@/hooks/useCounter";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { QuickCheckWidget } from "@/components/QuickCheckWidget";
+import { Globe } from "@/components/ui/globe-feature-section";
 export const Hero = () => {
   // Phase 1: Magnetic CTA - Mouse tracking
   const [mousePosition, setMousePosition] = useState({
@@ -192,6 +193,10 @@ export const Hero = () => {
 
             <div className="mx-auto max-w-3xl text-center md:text-left relative z-20">
               
+              {/* Globe Background Layer - Behind Text */}
+              <div className="absolute -right-32 md:-right-64 lg:-right-80 top-1/2 -translate-y-1/2 w-[400px] h-[400px] md:w-[600px] md:h-[600px] lg:w-[800px] lg:h-[800px] opacity-30 pointer-events-none z-0">
+                <Globe />
+              </div>
 
               {/* Headline */}
               <motion.h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] mb-6 md:mb-8" variants={headlineVariants} initial="hidden" animate="visible">
