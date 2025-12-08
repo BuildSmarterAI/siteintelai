@@ -3,14 +3,14 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "This isn't GIS. This is a proprietary feasibility intelligence system engineered for institutional underwriting.",
+    quote: "This isn't another GIS tool — it's a proprietary feasibility intelligence system engineered for institutional underwriting.",
     author: "Managing Partner",
     company: "National CRE Development Fund",
   },
   {
-    quote: "It computes feasibility the way no consultant or platform can. The underlying models are genuinely proprietary.",
+    quote: "SiteIntel evaluates zoning, flood, utilities, and constraints with a precision we've never seen. It is genuinely proprietary.",
     author: "Chief Credit Officer",
-    company: "Regional Lender",
+    company: "Regional Commercial Lender",
   },
 ];
 

@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
-import { Shield, Brain, BarChart3, Lock } from "lucide-react";
+import { Brain, Map, Droplets, Zap, Mountain, BarChart3 } from "lucide-react";
 
 const trustItems = [
-  { icon: Shield, label: "Protected Computation Models" },
-  { icon: Brain, label: "Neural Reasoning Stack" },
+  { icon: Brain, label: "Proprietary AI Feasibility Engine" },
+  { icon: Map, label: "Automated Zoning & Land-Use Analysis" },
+  { icon: Droplets, label: "Floodplain & Wetlands Intelligence" },
+  { icon: Zap, label: "Utility & Infrastructure Feasibility" },
+  { icon: Mountain, label: "Topographic & Access Constraints" },
   { icon: BarChart3, label: "Composite Feasibility Index™" },
-  { icon: Lock, label: "Restricted Prelaunch Access" },
 ];
 
 export const ProprietaryTrustBar = () => {

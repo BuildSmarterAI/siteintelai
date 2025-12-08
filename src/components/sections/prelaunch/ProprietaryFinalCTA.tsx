@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Lock } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export const ProprietaryFinalCTA = () => {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-[#0A0F2C]">
       <div className="max-w-4xl mx-auto px-6 md:px-12 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -11,17 +11,14 @@ export const ProprietaryFinalCTA = () => {
           viewport={{ once: true }}
           className="space-y-8"
         >
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-            This is the future of feasibility.
+          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-tight">
+            <span className="text-white">Feasibility, Reimagined.</span>
+            <br />
+            <span className="text-[#FF7A00]">Powered by Proprietary Intelligence.</span>
           </h2>
-          
-          <p className="text-xl md:text-2xl text-muted-foreground flex items-center justify-center gap-3">
-            <Lock className="w-5 h-5" />
-            It is not available to everyone.
-          </p>
 
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Join the private waitlist to access the proprietary engine shaping the next generation of CRE due diligence.
+          <p className="text-lg text-white/80 max-w-2xl mx-auto">
+            Request access to the platform redefining how CRE feasibility is computed.
           </p>
 
           <motion.div
@@ -33,7 +30,7 @@ export const ProprietaryFinalCTA = () => {
           >
             <a
               href="#request-access"
-              className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02] shadow-lg shadow-primary/20"
+              className="inline-flex items-center justify-center gap-2 bg-[#FF7A00] hover:bg-[#FF9240] text-white px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02] shadow-lg"
             >
               Request Access
               <ArrowRight className="w-5 h-5" />

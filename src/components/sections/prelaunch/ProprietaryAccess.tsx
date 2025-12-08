@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
-import { Building2, Landmark, Store, Briefcase, Factory, Users, ShieldCheck } from "lucide-react";
+import { Building2, Landmark, Store, Briefcase, Factory, TrendingUp } from "lucide-react";
 
 const audiences = [
-  { icon: Building2, label: "Developers & Acquisition Teams" },
-  { icon: Landmark, label: "Commercial Lenders & Credit Committees" },
-  { icon: Briefcase, label: "Institutional Investment Groups" },
-  { icon: Store, label: "Franchise & Multi-Site Expansion Teams" },
-  { icon: Factory, label: "Industrial & Logistics Site Selectors" },
-  { icon: Users, label: "Brokerage & Advisory Teams" },
+  { icon: Building2, label: "Commercial developers & site acquisition teams" },
+  { icon: TrendingUp, label: "Real estate investment firms" },
+  { icon: Landmark, label: "CRE lenders & underwriting teams" },
+  { icon: Store, label: "Franchise operators & multi-site retailers" },
+  { icon: Factory, label: "Industrial/logistics site selectors" },
+  { icon: Briefcase, label: "Brokers & advisory groups" },
 ];
 
 export const ProprietaryAccess = () => {
@@ -21,9 +21,9 @@ export const ProprietaryAccess = () => {
           className="space-y-12"
         >
           {/* Header */}
-          <div className="space-y-4">
+          <div className="text-center space-y-4">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-              Built for high-volume, high-stakes CRE operators:
+              Who Should Apply for Access?
             </h2>
           </div>
 
@@ -46,18 +46,10 @@ export const ProprietaryAccess = () => {
             ))}
           </div>
 
-          {/* Disclaimer */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg"
-          >
-            <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0" />
-            <p className="text-foreground font-medium">
-              Only serious operators will be approved.
-            </p>
-          </motion.div>
+          {/* SEO Focus */}
+          <p className="text-center text-sm text-muted-foreground italic">
+            CRE developers · real estate lenders · franchise site selection · logistics site analysis
+          </p>
         </motion.div>
       </div>
     </section>

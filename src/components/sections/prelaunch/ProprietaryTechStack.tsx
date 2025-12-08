@@ -1,43 +1,54 @@
 import { motion } from "framer-motion";
-import { Layers, Network, Brain, BarChart3, Mountain, Droplets, Lock } from "lucide-react";
+import { Layers, Network, Brain, BarChart3, Mountain, Zap, Lock } from "lucide-react";
 
 const engines = [
   {
     icon: Layers,
     name: "Geospatial Inference Stack™",
-    description: "The foundation of SiteIntel's IP. A multi-layer inference system that standardizes zoning statutes, FEMA NFHL geometry, wetlands hydric indicators, sewer networks, traffic access rules, and elevation geometry into a coherent regulatory map.",
+    subtitle: "Automated CRE Feasibility Engine",
+    description: "A proprietary, multi-layer inference system that unifies zoning laws, FEMA flood maps, wetlands layers, sewer networks, parcels, elevation models, and access geometry into a single regulatory intelligence map.",
     whyProprietary: "No competitor has this normalization or deduction logic.",
+    seoFocus: "AI zoning analysis · geospatial zoning engine · CRE feasibility automation",
   },
   {
     icon: Network,
-    name: "Structured Geospatial Orchestration Layer™ (SGOL)",
-    description: "A regulatory AI fabric that unifies thousands of disparate datasets into deterministic feasibility constraints.",
+    name: "Structured Geospatial Orchestration Layer™",
+    subtitle: "Zoning, Flood, Wetland Normalization",
+    description: "Transforms chaotic city/state data into consistent feasibility datasets for commercial zoning, land-use permissions, overlays & setbacks, floodplain boundaries, and wetlands & hydric soil indicators.",
     whyProprietary: "SGOL's data structures, schemas, and spatial ontology are internally designed and protected.",
+    seoFocus: "zoning analysis software · commercial zoning engine · land-use feasibility",
   },
   {
     icon: Brain,
-    name: "Neural Constraint Resolution Engine™ (NCRE)",
-    description: "A frontier multi-pass reasoning engine that resolves zoning conflicts, environmental constraints, access restrictions, and utility availability through neural logic sequencing.",
+    name: "Neural Constraint Resolution Engine™",
+    subtitle: "AI Feasibility Analyst",
+    description: "A multi-pass AI model that resolves zoning conflicts, environmental constraints, utility availability, traffic restrictions, and constructability risks with underwriting-grade clarity.",
     whyProprietary: "NCRE is a black-box, multi-pass regulatory reasoning model not available outside SiteIntel.",
+    seoFocus: "AI feasibility platform · commercial real estate due diligence automation",
   },
   {
     icon: BarChart3,
     name: "Composite Feasibility Index (CFI™)",
-    description: "A lender-calibrated feasibility score derived from thousands of weighted constraint evaluations.",
-    inputs: ["Zoning", "Flood", "Wetlands", "Utilities", "Access", "Topography", "Drainage", "ROM cost premiums"],
+    subtitle: "Lender-Calibrated Scoring",
+    description: "The industry's first lender-calibrated commercial feasibility score, evaluating zoning compliance, floodplain & BFE exposure, wetlands & environmental impact, utility serviceability, driveway & access conflicts, topographic constraints, and ROM cost impacts.",
     whyProprietary: "The weightings, confidence scoring, and constraint sequencing are protected IP.",
+    seoFocus: "feasibility scoring software · commercial site feasibility score",
   },
   {
     icon: Mountain,
-    name: "Topographic Intelligence Model™ (TIM)",
-    description: "A precision terrain model computing pad viability, slope segmentation, cut-fill prediction, and terrain constructability.",
+    name: "Topographic Intelligence Model™",
+    subtitle: "Slope & Pad Feasibility",
+    description: "Proprietary elevation modeling that analyzes slope segments, cut-fill volumes, pad viability, grade-adjustment constraints, and constructability scoring.",
     whyProprietary: "TIM derives pad viability through a unique slope grid, convex hull, and earthwork inference pipeline.",
+    seoFocus: "topography feasibility analysis · slope site evaluation · pad readiness software",
   },
   {
-    icon: Droplets,
-    name: "Infrastructure Serviceability Model™ (ISM)",
-    description: "Determines water/sewer availability, gravity feasibility, pressure-zone compliance, and off-site improvement exposure.",
+    icon: Zap,
+    name: "Infrastructure Serviceability Model™",
+    subtitle: "Water, Sewer, Utilities, Capacity",
+    description: "Automated water/sewer feasibility, gravity viability, pressure zones, lift-station requirements, and capacity risks.",
     whyProprietary: "ISM blends hydraulic logic with SiteIntel's internal serviceability heuristics.",
+    seoFocus: "utility feasibility analysis · sewer serviceability modeling · water capacity evaluation",
   },
 ];
 
@@ -52,7 +63,7 @@ export const ProprietaryTechStack = () => {
           className="text-center mb-16"
         >
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-            Inside the proprietary SiteIntel computation engine
+            Inside the Proprietary SiteIntel™ Feasibility Engine
           </h2>
         </motion.div>
 
@@ -77,31 +88,23 @@ export const ProprietaryTechStack = () => {
                   <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
                     {engine.name}
                   </h3>
+                  <p className="text-sm text-primary font-medium mt-1">{engine.subtitle}</p>
                 </div>
               </div>
 
               <p className="text-muted-foreground mb-4 leading-relaxed">{engine.description}</p>
 
-              {'inputs' in engine && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {engine.inputs.map((input) => (
-                    <span
-                      key={input}
-                      className="px-2 py-1 bg-muted/50 text-xs font-medium text-foreground/70 rounded"
-                    >
-                      {input}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex items-start gap-2 pt-4 border-t border-border/50">
+              <div className="flex items-start gap-2 pt-4 border-t border-border/50 mb-3">
                 <Lock className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <div>
                   <span className="text-sm font-medium text-primary">Why it's proprietary: </span>
                   <span className="text-sm text-muted-foreground">{engine.whyProprietary}</span>
                 </div>
               </div>
+
+              <p className="text-xs text-muted-foreground italic">
+                {engine.seoFocus}
+              </p>
             </motion.div>
           ))}
         </div>
