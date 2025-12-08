@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export const ProprietaryHero = () => {
   const scrollToForm = () => {
-    document.getElementById('request-access-form')?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('request-access')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
