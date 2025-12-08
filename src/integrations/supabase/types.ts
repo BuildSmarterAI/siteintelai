@@ -323,6 +323,7 @@ export type Database = {
           created_at: string
           data_flags: Json | null
           dataset_version: string | null
+          dataset_version_summary: Json | null
           desired_budget: number | null
           disaster_declarations: string | null
           distance_highway_ft: number | null
@@ -400,11 +401,13 @@ export type Database = {
           num_stories: number | null
           opportunity_zone: boolean | null
           overlay_district: string | null
+          override_stats: Json | null
           ownership_status: string
           page_url: string | null
           parcel_id: string | null
           parcel_owner: string | null
           parcel_source: string | null
+          parcel_source_id: string | null
           phone: string
           place_id: string | null
           population_1mi: number | null
@@ -512,6 +515,7 @@ export type Database = {
           created_at?: string
           data_flags?: Json | null
           dataset_version?: string | null
+          dataset_version_summary?: Json | null
           desired_budget?: number | null
           disaster_declarations?: string | null
           distance_highway_ft?: number | null
@@ -589,11 +593,13 @@ export type Database = {
           num_stories?: number | null
           opportunity_zone?: boolean | null
           overlay_district?: string | null
+          override_stats?: Json | null
           ownership_status: string
           page_url?: string | null
           parcel_id?: string | null
           parcel_owner?: string | null
           parcel_source?: string | null
+          parcel_source_id?: string | null
           phone: string
           place_id?: string | null
           population_1mi?: number | null
@@ -701,6 +707,7 @@ export type Database = {
           created_at?: string
           data_flags?: Json | null
           dataset_version?: string | null
+          dataset_version_summary?: Json | null
           desired_budget?: number | null
           disaster_declarations?: string | null
           distance_highway_ft?: number | null
@@ -778,11 +785,13 @@ export type Database = {
           num_stories?: number | null
           opportunity_zone?: boolean | null
           overlay_district?: string | null
+          override_stats?: Json | null
           ownership_status?: string
           page_url?: string | null
           parcel_id?: string | null
           parcel_owner?: string | null
           parcel_source?: string | null
+          parcel_source_id?: string | null
           phone?: string
           place_id?: string | null
           population_1mi?: number | null
@@ -853,7 +862,15 @@ export type Database = {
           zoning_code?: string | null
           zoning_output?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "applications_parcel_source_id_fkey"
+            columns: ["parcel_source_id"]
+            isOneToOne: false
+            referencedRelation: "parcel_sources"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       applications_draft: {
         Row: {
@@ -1585,6 +1602,7 @@ export type Database = {
       }
       gis_coverage_events: {
         Row: {
+          application_draft_id: string | null
           application_id: string | null
           created_at: string
           event_type: string
@@ -1603,6 +1621,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          application_draft_id?: string | null
           application_id?: string | null
           created_at?: string
           event_type: string
@@ -1621,6 +1640,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          application_draft_id?: string | null
           application_id?: string | null
           created_at?: string
           event_type?: string
@@ -1639,6 +1659,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "gis_coverage_events_application_draft_id_fkey"
+            columns: ["application_draft_id"]
+            isOneToOne: false
+            referencedRelation: "applications_draft"
+            referencedColumns: ["draft_id"]
+          },
           {
             foreignKeyName: "gis_coverage_events_application_id_fkey"
             columns: ["application_id"]
