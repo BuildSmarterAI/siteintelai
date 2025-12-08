@@ -16,17 +16,17 @@ export const ProprietaryHero = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] md:max-w-[800px] md:max-h-[800px] lg:max-w-[1000px] lg:max-h-[1000px] opacity-60 aspect-square"
+          className="w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[600px] md:h-[600px] lg:w-[800px] lg:h-[800px] opacity-40 md:opacity-60"
           style={{
             filter: "drop-shadow(0 0 80px rgba(6, 182, 212, 0.3))"
           }}
         >
-          <Globe className="w-full h-full" />
+          <Globe className="!w-full !h-full !max-w-none" />
         </motion.div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 text-center">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-8 md:py-0 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
