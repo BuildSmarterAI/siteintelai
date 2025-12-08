@@ -1,5 +1,5 @@
 import { motion, type Variants } from "framer-motion";
-import { X, AlertTriangle, FileText, Map, Droplets, Leaf, Zap, Sheet, Users, Clock, ArrowDown, Quote } from "lucide-react";
+import { AlertTriangle, FileText, Map, Droplets, Leaf, Zap, Sheet, Users, Clock, ArrowDown, Quote } from "lucide-react";
 
 const legacyMethods = [
   { text: "Outdated zoning PDFs", icon: FileText },
@@ -10,14 +10,6 @@ const legacyMethods = [
   { text: "Offline spreadsheets", icon: Sheet },
   { text: "Multiple consultants", icon: Users },
   { text: "Weeks of friction", icon: Clock },
-];
-
-const consequences = [
-  { text: "Slow site selection", stat: "2-4 weeks lost" },
-  { text: "Inconsistent underwriting", stat: "15-20% cost variance" },
-  { text: "Late-stage deal failures", stat: "$500K+ exposure" },
-  { text: "High due-diligence costs", stat: "$10K-25K per site" },
-  { text: "Missed infrastructure risks", stat: "project-killing surprises" },
 ];
 
 const containerVariants: Variants = {
@@ -33,16 +25,6 @@ const itemVariants: Variants = {
   visible: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.4, ease: "easeOut" },
-  },
-};
-
-const consequenceVariants: Variants = {
-  hidden: { opacity: 0, x: -20, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
     transition: { duration: 0.4, ease: "easeOut" },
   },
 };
@@ -118,49 +100,6 @@ export const ProprietaryProblem = () => {
               })}
             </motion.ul>
           </div>
-
-          {/* Consequences with stats and glowing border */}
-          <motion.div 
-            className="space-y-4 p-6 bg-destructive/10 border border-destructive/30 rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.15)]"
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-            whileHover={{ 
-              boxShadow: "0 0 40px rgba(239,68,68,0.25)",
-              borderColor: "rgba(239,68,68,0.5)"
-            }}
-          >
-            <p className="text-lg font-medium text-white">This creates:</p>
-            <motion.ul 
-              variants={containerVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              className="grid sm:grid-cols-2 gap-4"
-            >
-              {consequences.map((consequence) => (
-                <motion.li
-                  key={consequence.text}
-                  variants={consequenceVariants}
-                  whileHover={{ x: 5 }}
-                  className="flex items-start gap-3"
-                >
-                  <motion.div
-                    whileHover={{ rotate: 90, scale: 1.2 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                    className="mt-0.5"
-                  >
-                    <X className="w-4 h-4 flex-shrink-0 text-destructive" />
-                  </motion.div>
-                  <div>
-                    <span className="text-white/90">{consequence.text}</span>
-                    <span className="text-destructive/80 text-sm ml-1">({consequence.stat})</span>
-                  </div>
-                </motion.li>
-              ))}
-            </motion.ul>
-          </motion.div>
 
           {/* Before/After Teaser */}
           <motion.div
