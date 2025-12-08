@@ -1,37 +1,39 @@
 import { Helmet } from "react-helmet";
-import { PrelaunchHero } from "@/components/sections/prelaunch/PrelaunchHero";
-import { InlineMetrics } from "@/components/sections/prelaunch/InlineMetrics";
-import { TwoColumnSection } from "@/components/sections/prelaunch/TwoColumnSection";
-import { FeatureGrid } from "@/components/sections/prelaunch/FeatureGrid";
-import { StepsTimeline } from "@/components/sections/prelaunch/StepsTimeline";
-import { ReportShowcase } from "@/components/sections/prelaunch/ReportShowcase";
-import { PersonaStrip } from "@/components/sections/prelaunch/PersonaStrip";
-import { TestimonialsStrip } from "@/components/sections/prelaunch/TestimonialsStrip";
-import { WaitlistSection } from "@/components/sections/prelaunch/WaitlistSection";
+import { ProprietaryHero } from "@/components/sections/prelaunch/ProprietaryHero";
+import { ProprietarySocialProof } from "@/components/sections/prelaunch/ProprietarySocialProof";
+import { ProprietaryProblem } from "@/components/sections/prelaunch/ProprietaryProblem";
+import { ProprietaryParadigm } from "@/components/sections/prelaunch/ProprietaryParadigm";
+import { ProprietaryTechStack } from "@/components/sections/prelaunch/ProprietaryTechStack";
+import { ProprietaryOutcome } from "@/components/sections/prelaunch/ProprietaryOutcome";
+import { ProprietaryAccess } from "@/components/sections/prelaunch/ProprietaryAccess";
+import { ProprietaryRequestForm } from "@/components/sections/prelaunch/ProprietaryRequestForm";
+import { ProprietaryFAQ } from "@/components/sections/prelaunch/ProprietaryFAQ";
+import { ProprietaryFinalCTA } from "@/components/sections/prelaunch/ProprietaryFinalCTA";
 import { PrelaunchFooter } from "@/components/sections/prelaunch/PrelaunchFooter";
 
 const Beta = () => {
   return (
     <>
       <Helmet>
-        <title>SiteIntel™ | Feasibility-as-a-Service™ for Commercial Real Estate</title>
+        <title>SiteIntel™ | Proprietary Feasibility Intelligence Engine</title>
         <meta 
           name="description" 
-          content="AI-powered feasibility reports that combine zoning, floodplain, wetlands, utilities, topography, traffic, and costs into a lender-ready package in 24 hours." 
+          content="The world's first proprietary feasibility computation engine. AI-powered, underwriting-grade precision for commercial real estate. Private access only." 
         />
-        <link rel="canonical" href="https://siteintel.ai/" />
+        <link rel="canonical" href="https://siteintel.ai/beta" />
       </Helmet>
 
       <div className="min-h-screen bg-background">
-        <PrelaunchHero />
-        <InlineMetrics />
-        <TwoColumnSection />
-        <FeatureGrid />
-        <StepsTimeline />
-        <ReportShowcase />
-        <PersonaStrip />
-        <TestimonialsStrip />
-        <WaitlistSection />
+        <ProprietaryHero />
+        <ProprietarySocialProof />
+        <ProprietaryProblem />
+        <ProprietaryParadigm />
+        <ProprietaryTechStack />
+        <ProprietaryOutcome />
+        <ProprietaryAccess />
+        <ProprietaryRequestForm />
+        <ProprietaryFAQ />
+        <ProprietaryFinalCTA />
         <PrelaunchFooter />
       </div>
     </>
