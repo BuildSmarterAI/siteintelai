@@ -2154,6 +2154,214 @@ export type Database = {
         }
         Relationships: []
       }
+      tile_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          duration_ms: number | null
+          error_details: Json | null
+          error_message: string | null
+          fetch_bbox: Json | null
+          fetch_completed_at: string | null
+          fetch_where: string | null
+          id: string
+          input_records: number | null
+          job_type: Database["public"]["Enums"]["tile_job_type"]
+          max_retries: number | null
+          mbtiles_path: string | null
+          normalize_completed_at: string | null
+          normalized_file_path: string | null
+          output_tiles: number | null
+          raw_file_path: string | null
+          retry_count: number | null
+          s3_prefix: string | null
+          source_layer_ids: string[] | null
+          source_map_server_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["tile_job_status"]
+          tile_completed_at: string | null
+          tileset_key: string
+          tippecanoe_options: Json | null
+          trigger_type: string | null
+          triggered_by: string | null
+          updated_at: string
+          upload_completed_at: string | null
+          worker_id: string | null
+          worker_type: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          fetch_bbox?: Json | null
+          fetch_completed_at?: string | null
+          fetch_where?: string | null
+          id?: string
+          input_records?: number | null
+          job_type?: Database["public"]["Enums"]["tile_job_type"]
+          max_retries?: number | null
+          mbtiles_path?: string | null
+          normalize_completed_at?: string | null
+          normalized_file_path?: string | null
+          output_tiles?: number | null
+          raw_file_path?: string | null
+          retry_count?: number | null
+          s3_prefix?: string | null
+          source_layer_ids?: string[] | null
+          source_map_server_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["tile_job_status"]
+          tile_completed_at?: string | null
+          tileset_key: string
+          tippecanoe_options?: Json | null
+          trigger_type?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+          upload_completed_at?: string | null
+          worker_id?: string | null
+          worker_type?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          fetch_bbox?: Json | null
+          fetch_completed_at?: string | null
+          fetch_where?: string | null
+          id?: string
+          input_records?: number | null
+          job_type?: Database["public"]["Enums"]["tile_job_type"]
+          max_retries?: number | null
+          mbtiles_path?: string | null
+          normalize_completed_at?: string | null
+          normalized_file_path?: string | null
+          output_tiles?: number | null
+          raw_file_path?: string | null
+          retry_count?: number | null
+          s3_prefix?: string | null
+          source_layer_ids?: string[] | null
+          source_map_server_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["tile_job_status"]
+          tile_completed_at?: string | null
+          tileset_key?: string
+          tippecanoe_options?: Json | null
+          trigger_type?: string | null
+          triggered_by?: string | null
+          updated_at?: string
+          upload_completed_at?: string | null
+          worker_id?: string | null
+          worker_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tile_jobs_source_map_server_id_fkey"
+            columns: ["source_map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tilesets: {
+        Row: {
+          attribution: string | null
+          bounds: Json | null
+          category: Database["public"]["Enums"]["tileset_category"]
+          center: Json | null
+          created_at: string
+          description: string | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          is_active: boolean
+          jurisdiction: string
+          max_zoom: number
+          min_zoom: number
+          name: string
+          record_count: number | null
+          refresh_frequency_hours: number | null
+          size_bytes: number | null
+          source_layer_ids: string[] | null
+          source_map_server_id: string | null
+          source_version: string | null
+          tile_count: number | null
+          tile_url_template: string
+          tileset_key: string
+          tippecanoe_options: Json | null
+          updated_at: string
+          vector_layers: Json | null
+        }
+        Insert: {
+          attribution?: string | null
+          bounds?: Json | null
+          category?: Database["public"]["Enums"]["tileset_category"]
+          center?: Json | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction: string
+          max_zoom?: number
+          min_zoom?: number
+          name: string
+          record_count?: number | null
+          refresh_frequency_hours?: number | null
+          size_bytes?: number | null
+          source_layer_ids?: string[] | null
+          source_map_server_id?: string | null
+          source_version?: string | null
+          tile_count?: number | null
+          tile_url_template: string
+          tileset_key: string
+          tippecanoe_options?: Json | null
+          updated_at?: string
+          vector_layers?: Json | null
+        }
+        Update: {
+          attribution?: string | null
+          bounds?: Json | null
+          category?: Database["public"]["Enums"]["tileset_category"]
+          center?: Json | null
+          created_at?: string
+          description?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          is_active?: boolean
+          jurisdiction?: string
+          max_zoom?: number
+          min_zoom?: number
+          name?: string
+          record_count?: number | null
+          refresh_frequency_hours?: number | null
+          size_bytes?: number | null
+          source_layer_ids?: string[] | null
+          source_map_server_id?: string | null
+          source_version?: string | null
+          tile_count?: number | null
+          tile_url_template?: string
+          tileset_key?: string
+          tippecanoe_options?: Json | null
+          updated_at?: string
+          vector_layers?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tilesets_source_map_server_id_fkey"
+            columns: ["source_map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       txdot_traffic_segments: {
         Row: {
           aadt: number | null
@@ -2872,6 +3080,26 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_active_tile_jobs: {
+        Args: never
+        Returns: {
+          duration_minutes: number
+          id: string
+          started_at: string
+          status: Database["public"]["Enums"]["tile_job_status"]
+          tileset_key: string
+        }[]
+      }
+      get_stale_tilesets: {
+        Args: never
+        Returns: {
+          hours_since_refresh: number
+          jurisdiction: string
+          name: string
+          refresh_frequency_hours: number
+          tileset_key: string
+        }[]
+      }
       gettransactionid: { Args: never; Returns: unknown }
       has_role: {
         Args: {
@@ -3555,6 +3783,29 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "enterprise"
+      tile_job_status:
+        | "queued"
+        | "fetching"
+        | "normalizing"
+        | "tiling"
+        | "uploading"
+        | "registering"
+        | "complete"
+        | "error"
+        | "cancelled"
+      tile_job_type: "full" | "incremental" | "repair"
+      tileset_category:
+        | "parcels"
+        | "zoning"
+        | "flood"
+        | "utilities"
+        | "environmental"
+        | "transportation"
+        | "jurisdiction"
+        | "topography"
+        | "addressing"
+        | "demographics"
+        | "other"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -3691,6 +3942,31 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "enterprise"],
+      tile_job_status: [
+        "queued",
+        "fetching",
+        "normalizing",
+        "tiling",
+        "uploading",
+        "registering",
+        "complete",
+        "error",
+        "cancelled",
+      ],
+      tile_job_type: ["full", "incremental", "repair"],
+      tileset_category: [
+        "parcels",
+        "zoning",
+        "flood",
+        "utilities",
+        "environmental",
+        "transportation",
+        "jurisdiction",
+        "topography",
+        "addressing",
+        "demographics",
+        "other",
+      ],
     },
   },
 } as const
