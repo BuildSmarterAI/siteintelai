@@ -3,12 +3,12 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "This isn't GIS. This is a proprietary feasibility intelligence system built for institutional underwriting.",
+    quote: "This isn't GIS. This is a proprietary feasibility intelligence system engineered for institutional underwriting.",
     author: "Managing Partner",
     company: "National CRE Development Fund",
   },
   {
-    quote: "It computes feasibility the way no consultant or platform can. The underlying models are truly proprietary.",
+    quote: "It computes feasibility the way no consultant or platform can. The underlying models are genuinely proprietary.",
     author: "Chief Credit Officer",
     company: "Regional Lender",
   },
@@ -16,7 +16,7 @@ const testimonials = [
 
 export const ProprietarySocialProof = () => {
   return (
-    <section className="py-20 bg-muted/30">
+    <section className="py-20 bg-background">
       <div className="max-w-5xl mx-auto px-6 md:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -25,7 +25,7 @@ export const ProprietarySocialProof = () => {
           className="text-center mb-12"
         >
           <h2 className="font-heading text-2xl md:text-3xl font-semibold text-foreground">
-            Used by operators where feasibility failure is not an option.
+            Used by teams where feasibility failure is not an option.
           </h2>
         </motion.div>
 
@@ -37,14 +37,14 @@ export const ProprietarySocialProof = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.15 }}
-              className="relative p-8 bg-background border border-border rounded-xl"
+              className="relative p-8 bg-muted/30 border border-border rounded-xl"
             >
-              <Quote className="absolute top-6 left-6 w-8 h-8 text-primary/20" />
-              <div className="relative z-10 pl-6">
-                <p className="text-lg text-foreground/90 italic mb-6">
+              <Quote className="absolute top-6 left-6 w-10 h-10 text-primary/10" />
+              <div className="relative z-10 pl-4">
+                <p className="text-lg text-foreground/90 italic mb-6 leading-relaxed">
                   "{testimonial.quote}"
                 </p>
-                <div>
+                <div className="border-t border-border/50 pt-4">
                   <p className="font-medium text-foreground">{testimonial.author}</p>
                   <p className="text-sm text-muted-foreground">{testimonial.company}</p>
                 </div>

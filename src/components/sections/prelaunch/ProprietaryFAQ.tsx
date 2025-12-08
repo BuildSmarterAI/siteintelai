@@ -4,25 +4,25 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const faqs = [
   {
     question: "Why is SiteIntel proprietary?",
-    answer: "Because the core models, normalization layers, inference graphs, and scoring engines are internally built, internally calibrated, and legally protected.",
+    answer: "The inference stack, normalization layers, reasoning engine, and scoring logic are internally developed, legally protected, and non-replicable.",
   },
   {
-    question: "Is this public software?",
-    answer: "No. Early access is private, controlled, and approved on a rolling basis.",
-  },
-  {
-    question: "What makes it irreplicable?",
-    answer: "Your structural IP: Proprietary models, multi-pass reasoning systems, calibration schemas, inference engines, data normalization pipelines, weighting logic, and kill-factor detectors.",
+    question: "Why is access restricted?",
+    answer: "Early users help calibrate the CFI™ and validate inference models. To protect engine integrity, we limit access to qualified teams.",
   },
   {
     question: "Do I need GIS or engineering expertise?",
-    answer: "No. The intelligence engine abstracts everything into a unified feasibility narrative.",
+    answer: "No. SiteIntel abstracts complexity into a single feasibility output.",
+  },
+  {
+    question: "Is the product publicly available?",
+    answer: "No. This is a private prelaunch with controlled onboarding.",
   },
 ];
 
 export const ProprietaryFAQ = () => {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-muted/30">
       <div className="max-w-3xl mx-auto px-6 md:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -41,17 +41,17 @@ export const ProprietaryFAQ = () => {
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
         >
-          <Accordion type="single" collapsible className="space-y-4">
+          <Accordion type="single" collapsible className="space-y-3">
             {faqs.map((faq, index) => (
               <AccordionItem
                 key={index}
                 value={`item-${index}`}
-                className="bg-muted/30 border border-border rounded-lg px-6"
+                className="bg-background border border-border rounded-lg px-6 data-[state=open]:border-primary/30"
               >
-                <AccordionTrigger className="text-left font-medium text-foreground hover:no-underline">
+                <AccordionTrigger className="text-left font-medium text-foreground hover:no-underline py-5">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
+                <AccordionContent className="text-muted-foreground pb-5">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
