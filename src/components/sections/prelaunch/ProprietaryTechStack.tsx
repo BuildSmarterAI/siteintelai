@@ -1,36 +1,54 @@
 import { motion, type Variants } from "framer-motion";
-import { Layers, Network, Brain, BarChart3, Mountain, Zap } from "lucide-react";
 
-const engines = [
+const layers = [
   {
-    icon: Layers,
-    name: "Geospatial Inference Stack™",
-    description: "A unified regulatory intelligence system that merges zoning codes, flood data, wetlands, utilities, parcels, driveways, and elevation models into a single interpreted feasibility layer. It automatically identifies conflicts, risks, and buildability constraints without requiring consultant review.",
+    label: "Layer 1",
+    title: "Raw Data Intake",
+    description: "Parcels, zoning text and maps, FEMA flood and BFE data, wetlands and hydric soils, water and sewer networks, TxDOT access geometry and elevation models ingested into the SiteIntel pipeline.",
+    accentColor: "#4B5563",
+    elevation: "flat" as const,
   },
   {
-    icon: Network,
-    name: "Structured Geospatial Orchestration Layer™ (SGOL™)",
-    description: "A normalization engine that converts messy, inconsistent municipal datasets into a standardized regulatory model. SGOL™ ensures zoning, floodplain, environmental, and land-use information flows into a clean, consistent feasibility dataset across all jurisdictions.",
+    label: "Engine 2",
+    title: "Structured Geospatial Orchestration Layer™ (SGOL™)",
+    description: "Normalization layer that converts noisy, inconsistent city, county and state GIS feeds into a clean, standardized regulatory dataset ready for automated feasibility.",
+    accentColor: "#0EA5E9",
+    elevation: "low" as const,
   },
   {
-    icon: Brain,
-    name: "Neural Constraint Resolution Engine™ (NCRE™)",
-    description: "A multi-pass AI reasoning system that evaluates zoning rules, environmental constraints, utilities, access geometry, and topography as a unified regulatory problem. It resolves conflicts, interprets edge cases, and produces a definitive feasibility determination.",
+    label: "Engine 1",
+    title: "Geospatial Inference Stack™",
+    description: "Cross-layer regulatory intelligence that merges zoning codes, FEMA flood data, wetlands, parcels, utilities, driveways and elevation models to detect conflicts and compute buildability.",
+    accentColor: "#6366F1",
+    elevation: "low" as const,
   },
   {
-    icon: BarChart3,
-    name: "Composite Feasibility Index™ (CFI™)",
-    description: "A lender-calibrated scoring model that quantifies site viability using zoning compliance, environmental exposure, utility readiness, access restrictions, topographic constraints, and ROM cost impacts. It delivers one consistent feasibility score across markets and asset types.",
+    label: "Engine 3",
+    title: "Neural Constraint Resolution Engine™ (NCRE™)",
+    description: "Multi-pass AI feasibility reasoning that reconciles zoning, flood, environmental, utility, access and topographic constraints into a single, defensible feasibility determination for the site.",
+    accentColor: "#EAB308",
+    elevation: "low" as const,
   },
   {
-    icon: Mountain,
-    name: "Topographic Intelligence Model™ (TIM™)",
-    description: "A terrain and constructability engine that analyzes slope, grading requirements, cut-fill volumes, pad suitability, drainage pathways, and driveway grade feasibility. TIM™ determines whether a site can physically support a commercial building.",
+    label: "Engines 5–6",
+    title: "Specialized Feasibility Modules",
+    description: "TIM™ evaluates slope, grading, drainage and pad viability. ISM™ determines water, sewer and electric serviceability based on real engineering logic, not GIS proximity, and ties both into overall feasibility.",
+    accentColor: "#22C55E",
+    elevation: "low" as const,
   },
   {
-    icon: Zap,
-    name: "Infrastructure Serviceability Model™ (ISM™)",
-    description: "A utility readiness engine that evaluates gravity sewer feasibility, water pressure zones, basin capacity, lift-station needs, and electric service availability. ISM™ determines whether a site can be economically and realistically served by existing infrastructure.",
+    label: "Engine 4",
+    title: "Composite Feasibility Index™ (CFI™)",
+    description: "Lender-calibrated feasibility scoring that consolidates zoning conformity, environmental risk, utility readiness, access constraints, topographic difficulty and ROM cost impact into one consistent site score.",
+    accentColor: "#F97316",
+    elevation: "medium" as const,
+  },
+  {
+    label: "Final Output",
+    title: "24-Hour Automated Feasibility Report",
+    description: "Zoning, floodplain, wetlands, utilities, access, topography, impervious cover, drainage, ROM cost premiums and a lender-ready narrative packaged in a single feasibility report.",
+    accentColor: "#06B6D4",
+    elevation: "high" as const,
   },
 ];
 
@@ -38,72 +56,118 @@ const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12 },
+    transition: { staggerChildren: 0.1 },
   },
 };
 
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 40, scale: 0.95 },
+  hidden: { opacity: 0, y: 20, scale: 0.98 },
   visible: {
     opacity: 1,
     y: 0,
     scale: 1,
-    transition: { duration: 0.5, ease: "easeOut" },
+    transition: { duration: 0.4, ease: "easeOut" },
   },
+};
+
+const getElevationStyles = (elevation: "flat" | "low" | "medium" | "high") => {
+  switch (elevation) {
+    case "high":
+      return "shadow-lg shadow-cyan-500/20";
+    case "medium":
+      return "shadow-md shadow-orange-500/15";
+    case "low":
+      return "shadow-sm";
+    default:
+      return "";
+  }
 };
 
 export const ProprietaryTechStack = () => {
   return (
-    <section className="py-24 bg-muted/30">
-      <div className="max-w-5xl mx-auto px-6 md:px-12">
+    <section className="py-[72px] px-6 bg-[#020617]">
+      <div className="max-w-[1120px] mx-auto">
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="text-center mb-16"
+          className="text-center mb-8 space-y-3"
         >
-          <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-            Inside the Proprietary SiteIntel™ Feasibility Engine
+          <p className="text-xs tracking-[0.18em] uppercase text-[#06B6D4] font-medium">
+            SiteIntel™ Regulatory Compute Stack
+          </p>
+          <h2 className="font-heading text-[28px] md:text-3xl lg:text-4xl font-bold text-[#F9FAFB]">
+            How the Feasibility Engine Computes a Site in 24 Hours
           </h2>
+          <p className="text-[15px] text-[#9CA3AF] max-w-[720px] mx-auto leading-relaxed">
+            From raw GIS feeds to a lender-calibrated feasibility score, each engine layer builds on the last to produce a defensible decision for any commercial site.
+          </p>
         </motion.div>
 
+        {/* Stack Diagram */}
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-50px" }}
-          className="space-y-6"
+          className="flex flex-col gap-2.5 max-w-[880px] mx-auto"
         >
-          {engines.map((engine, index) => (
+          {layers.map((layer, index) => (
             <motion.div
-              key={engine.name}
+              key={layer.title}
               variants={cardVariants}
               whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
-              className="p-6 md:p-8 bg-background border border-border rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/5"
+              className={`
+                relative p-5 md:p-6 rounded-xl border backdrop-blur-sm
+                bg-[rgba(15,23,42,0.9)] ${getElevationStyles(layer.elevation)}
+                transition-all duration-300 hover:bg-[rgba(15,23,42,0.95)]
+              `}
+              style={{ 
+                borderColor: layer.accentColor,
+                borderLeftWidth: '3px'
+              }}
             >
-              <div className="flex items-start gap-4 mb-4">
-                <motion.div 
-                  className="p-3 bg-primary/10 rounded-lg flex-shrink-0"
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  <engine.icon className="w-6 h-6 text-primary" />
-                </motion.div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs text-muted-foreground font-medium">Engine {index + 1}</span>
-                  </div>
-                  <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
-                    {engine.name}
-                  </h3>
-                </div>
+              {/* Label Badge */}
+              <div 
+                className="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-semibold uppercase tracking-wider mb-3"
+                style={{ 
+                  backgroundColor: `${layer.accentColor}20`,
+                  color: layer.accentColor
+                }}
+              >
+                {layer.label}
               </div>
+              
+              {/* Title */}
+              <h3 className="font-heading text-lg md:text-xl font-semibold text-[#F9FAFB] mb-2">
+                {layer.title}
+              </h3>
+              
+              {/* Description */}
+              <p className="text-sm md:text-[15px] text-[#9CA3AF] leading-relaxed">
+                {layer.description}
+              </p>
 
-              <p className="text-muted-foreground leading-relaxed">{engine.description}</p>
+              {/* Connection Line (except last) */}
+              {index < layers.length - 1 && (
+                <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-px h-2.5 bg-gradient-to-b from-[#4B5563] to-transparent" />
+              )}
             </motion.div>
           ))}
         </motion.div>
+
+        {/* Footer Note */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="text-[13px] text-[#9CA3AF] text-center max-w-[720px] mx-auto mt-6"
+        >
+          Every layer feeds the next, so by the time CFI™ is computed, every major constraint has been evaluated, reconciled and scored using the same engine for every site in the pipeline.
+        </motion.p>
       </div>
     </section>
   );
