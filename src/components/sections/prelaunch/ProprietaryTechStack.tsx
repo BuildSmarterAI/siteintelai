@@ -1,54 +1,36 @@
 import { motion, type Variants } from "framer-motion";
-import { Layers, Network, Brain, BarChart3, Mountain, Zap, Lock } from "lucide-react";
+import { Layers, Network, Brain, BarChart3, Mountain, Zap } from "lucide-react";
 
 const engines = [
   {
     icon: Layers,
     name: "Geospatial Inference Stack™",
-    subtitle: "Automated CRE Feasibility Engine",
-    description: "A proprietary, multi-layer inference system that unifies zoning laws, FEMA flood maps, wetlands layers, sewer networks, parcels, elevation models, and access geometry into a single regulatory intelligence map.",
-    whyProprietary: "No competitor has this normalization or deduction logic.",
-    seoFocus: "AI zoning analysis · geospatial zoning engine · CRE feasibility automation",
+    description: "A unified regulatory intelligence system that merges zoning codes, flood data, wetlands, utilities, parcels, driveways, and elevation models into a single interpreted feasibility layer. It automatically identifies conflicts, risks, and buildability constraints without requiring consultant review.",
   },
   {
     icon: Network,
-    name: "Structured Geospatial Orchestration Layer™",
-    subtitle: "Zoning, Flood, Wetland Normalization",
-    description: "Transforms chaotic city/state data into consistent feasibility datasets for commercial zoning, land-use permissions, overlays & setbacks, floodplain boundaries, and wetlands & hydric soil indicators.",
-    whyProprietary: "SGOL's data structures, schemas, and spatial ontology are internally designed and protected.",
-    seoFocus: "zoning analysis software · commercial zoning engine · land-use feasibility",
+    name: "Structured Geospatial Orchestration Layer™ (SGOL™)",
+    description: "A normalization engine that converts messy, inconsistent municipal datasets into a standardized regulatory model. SGOL™ ensures zoning, floodplain, environmental, and land-use information flows into a clean, consistent feasibility dataset across all jurisdictions.",
   },
   {
     icon: Brain,
-    name: "Neural Constraint Resolution Engine™",
-    subtitle: "AI Feasibility Analyst",
-    description: "A multi-pass AI model that resolves zoning conflicts, environmental constraints, utility availability, traffic restrictions, and constructability risks with underwriting-grade clarity.",
-    whyProprietary: "NCRE is a black-box, multi-pass regulatory reasoning model not available outside SiteIntel.",
-    seoFocus: "AI feasibility platform · commercial real estate due diligence automation",
+    name: "Neural Constraint Resolution Engine™ (NCRE™)",
+    description: "A multi-pass AI reasoning system that evaluates zoning rules, environmental constraints, utilities, access geometry, and topography as a unified regulatory problem. It resolves conflicts, interprets edge cases, and produces a definitive feasibility determination.",
   },
   {
     icon: BarChart3,
-    name: "Composite Feasibility Index (CFI™)",
-    subtitle: "Lender-Calibrated Scoring",
-    description: "The industry's first lender-calibrated commercial feasibility score, evaluating zoning compliance, floodplain & BFE exposure, wetlands & environmental impact, utility serviceability, driveway & access conflicts, topographic constraints, and ROM cost impacts.",
-    whyProprietary: "The weightings, confidence scoring, and constraint sequencing are protected IP.",
-    seoFocus: "feasibility scoring software · commercial site feasibility score",
+    name: "Composite Feasibility Index™ (CFI™)",
+    description: "A lender-calibrated scoring model that quantifies site viability using zoning compliance, environmental exposure, utility readiness, access restrictions, topographic constraints, and ROM cost impacts. It delivers one consistent feasibility score across markets and asset types.",
   },
   {
     icon: Mountain,
-    name: "Topographic Intelligence Model™",
-    subtitle: "Slope & Pad Feasibility",
-    description: "Proprietary elevation modeling that analyzes slope segments, cut-fill volumes, pad viability, grade-adjustment constraints, and constructability scoring.",
-    whyProprietary: "TIM derives pad viability through a unique slope grid, convex hull, and earthwork inference pipeline.",
-    seoFocus: "topography feasibility analysis · slope site evaluation · pad readiness software",
+    name: "Topographic Intelligence Model™ (TIM™)",
+    description: "A terrain and constructability engine that analyzes slope, grading requirements, cut-fill volumes, pad suitability, drainage pathways, and driveway grade feasibility. TIM™ determines whether a site can physically support a commercial building.",
   },
   {
     icon: Zap,
-    name: "Infrastructure Serviceability Model™",
-    subtitle: "Water, Sewer, Utilities, Capacity",
-    description: "Automated water/sewer feasibility, gravity viability, pressure zones, lift-station requirements, and capacity risks.",
-    whyProprietary: "ISM blends hydraulic logic with SiteIntel's internal serviceability heuristics.",
-    seoFocus: "utility feasibility analysis · sewer serviceability modeling · water capacity evaluation",
+    name: "Infrastructure Serviceability Model™ (ISM™)",
+    description: "A utility readiness engine that evaluates gravity sewer feasibility, water pressure zones, basin capacity, lift-station needs, and electric service availability. ISM™ determines whether a site can be economically and realistically served by existing infrastructure.",
   },
 ];
 
@@ -115,23 +97,10 @@ export const ProprietaryTechStack = () => {
                   <h3 className="font-heading text-xl md:text-2xl font-semibold text-foreground">
                     {engine.name}
                   </h3>
-                  <p className="text-sm text-primary font-medium mt-1">{engine.subtitle}</p>
                 </div>
               </div>
 
-              <p className="text-muted-foreground mb-4 leading-relaxed">{engine.description}</p>
-
-              <div className="flex items-start gap-2 pt-4 border-t border-border/50 mb-3">
-                <Lock className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <div>
-                  <span className="text-sm font-medium text-primary">Why it's proprietary: </span>
-                  <span className="text-sm text-muted-foreground">{engine.whyProprietary}</span>
-                </div>
-              </div>
-
-              <p className="text-xs text-muted-foreground italic">
-                {engine.seoFocus}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{engine.description}</p>
             </motion.div>
           ))}
         </motion.div>
