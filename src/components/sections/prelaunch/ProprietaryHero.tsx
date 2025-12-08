@@ -11,12 +11,12 @@ export const ProprietaryHero = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-[#0A0F2C]">
       {/* Globe Background */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="w-[600px] h-[600px] md:w-[800px] md:h-[800px] lg:w-[1000px] lg:h-[1000px] opacity-60"
+          className="w-[80vw] h-[80vw] max-w-[600px] max-h-[600px] md:max-w-[800px] md:max-h-[800px] lg:max-w-[1000px] lg:max-h-[1000px] opacity-60 aspect-square"
           style={{
             filter: "drop-shadow(0 0 80px rgba(6, 182, 212, 0.3))"
           }}
