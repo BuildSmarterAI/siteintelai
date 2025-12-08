@@ -149,46 +149,77 @@ export const ProprietaryTrustBar = () => {
             </div>
           </div>
 
-          {/* Desktop: flex wrap with connecting line */}
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="hidden md:flex flex-wrap justify-center items-center gap-6 lg:gap-8 relative"
-          >
-            {/* Subtle connecting line */}
-            <div className="absolute inset-x-[15%] top-1/2 h-px bg-gradient-to-r from-transparent via-[#06B6D4]/20 to-transparent -z-10" />
+          {/* Desktop: Continuous marquee with pause on hover */}
+          <div className="hidden md:block relative overflow-hidden">
+            {/* Left fade gradient */}
+            <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#0A0F2C] to-transparent z-10 pointer-events-none" />
+            {/* Right fade gradient */}
+            <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#0A0F2C] to-transparent z-10 pointer-events-none" />
             
-            {trustItems.map((item, index) => (
-              <Tooltip key={item.label}>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    variants={itemVariants}
-                    onClick={scrollToTechStack}
-                    whileHover={{ scale: 1.05, y: -2 }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 cursor-pointer ${
-                      item.isFlagship
-                        ? 'bg-[#FF7A00]/15 border border-[#FF7A00]/40 shadow-[0_0_16px_rgba(255,122,0,0.25)]'
-                        : 'bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/40'
-                    }`}
-                  >
-                    <item.icon className={`w-4 h-4 ${item.isFlagship ? 'text-[#FF7A00]' : 'text-[#06B6D4]'}`} />
-                    <span className={`text-sm font-medium ${item.isFlagship ? 'text-[#FF7A00]' : 'text-white/90'}`}>
-                      {item.isFlagship && <span className="mr-1">★</span>}
-                      {item.label}
-                    </span>
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent 
-                  side="bottom" 
-                  className="bg-[#0A0F2C] border-[#06B6D4]/30 text-white"
-                >
-                  <p className="text-sm">{item.description}</p>
-                </TooltipContent>
-              </Tooltip>
-            ))}
-          </motion.div>
+            <div className="group">
+              {/* Marquee track - duplicated for seamless loop */}
+              <div className="flex items-center gap-8 animate-marquee group-hover:[animation-play-state:paused]">
+                {/* First set of items */}
+                {trustItems.map((item) => (
+                  <Tooltip key={`first-${item.label}`}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={scrollToTechStack}
+                        className={`relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all cursor-pointer whitespace-nowrap hover:scale-105 ${
+                          item.isFlagship 
+                            ? 'bg-[#FF7A00]/10 border-[#FF7A00]/40 hover:bg-[#FF7A00]/20 hover:border-[#FF7A00]/60 shadow-[0_0_16px_rgba(255,122,0,0.2)]' 
+                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/40'
+                        }`}
+                      >
+                        {item.isFlagship && (
+                          <span className="absolute -top-1 -right-1 text-[#FF7A00] text-xs">★</span>
+                        )}
+                        <item.icon className={`w-4 h-4 ${item.isFlagship ? 'text-[#FF7A00]' : 'text-[#06B6D4]'}`} />
+                        <span className={`text-sm font-medium ${item.isFlagship ? 'text-[#FF7A00]' : 'text-white'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="bottom" 
+                      className="bg-[#0A0F2C] border-[#06B6D4]/30 text-white"
+                    >
+                      <p className="text-xs">{item.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+                {/* Duplicate set for seamless loop */}
+                {trustItems.map((item) => (
+                  <Tooltip key={`second-${item.label}`}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={scrollToTechStack}
+                        className={`relative flex items-center gap-2.5 px-4 py-2.5 rounded-full border transition-all cursor-pointer whitespace-nowrap hover:scale-105 ${
+                          item.isFlagship 
+                            ? 'bg-[#FF7A00]/10 border-[#FF7A00]/40 hover:bg-[#FF7A00]/20 hover:border-[#FF7A00]/60 shadow-[0_0_16px_rgba(255,122,0,0.2)]' 
+                            : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-[#06B6D4]/40'
+                        }`}
+                      >
+                        {item.isFlagship && (
+                          <span className="absolute -top-1 -right-1 text-[#FF7A00] text-xs">★</span>
+                        )}
+                        <item.icon className={`w-4 h-4 ${item.isFlagship ? 'text-[#FF7A00]' : 'text-[#06B6D4]'}`} />
+                        <span className={`text-sm font-medium ${item.isFlagship ? 'text-[#FF7A00]' : 'text-white'}`}>
+                          {item.label}
+                        </span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent 
+                      side="bottom" 
+                      className="bg-[#0A0F2C] border-[#06B6D4]/30 text-white"
+                    >
+                      <p className="text-xs">{item.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </TooltipProvider>
