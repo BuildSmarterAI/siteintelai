@@ -12,6 +12,7 @@ import { ProprietaryFAQ } from "@/components/sections/prelaunch/ProprietaryFAQ";
 import { ProprietaryFinalCTA } from "@/components/sections/prelaunch/ProprietaryFinalCTA";
 import { PrelaunchFooter } from "@/components/sections/prelaunch/PrelaunchFooter";
 import { BetaStickyHeader } from "@/components/sections/prelaunch/BetaStickyHeader";
+import { BetaMobileCTA } from "@/components/sections/prelaunch/BetaMobileCTA";
 
 const Beta = () => {
   return (
@@ -40,6 +41,7 @@ const Beta = () => {
         <ProprietaryFinalCTA />
         <PrelaunchFooter />
       </div>
+      <BetaMobileCTA />
     </>
   );
 };
