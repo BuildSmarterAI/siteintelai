@@ -76,10 +76,7 @@ export const ProprietaryHero = () => {
       <div className="relative z-10 max-w-5xl mx-auto px-6 md:px-12 py-8 md:py-0 text-center">
         <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col items-center">
           {/* Eyebrow */}
-          <motion.div variants={badgeVariants} className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 rounded-full mb-5">
-            <Lock className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Private Access</span>
-          </motion.div>
+          
 
           {/* H1 - with text shadow for readability */}
           <motion.h1 variants={itemVariants} className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.15] md:leading-[1.1] max-w-[90%] md:max-w-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
