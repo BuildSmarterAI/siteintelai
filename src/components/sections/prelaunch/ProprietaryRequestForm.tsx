@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Send, Check, Loader2, Lock, Sparkles } from "lucide-react";
+import { Send, Check, Loader2, Lock, Sparkles, AlertCircle, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { z } from "zod";
 
 const roleOptions = [
   "Developer / Acquisition",
@@ -28,6 +29,18 @@ const benefits = [
   "Direct feedback channel with engineering team",
 ];
 
+// Validation schema
+const formSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+  email: z.string().trim().email("Please enter a valid email address").max(255),
+  company: z.string().trim().min(2, "Company name is required").max(100),
+  role: z.string().min(1, "Please select your role"),
+  markets: z.string().max(200).optional(),
+  useCase: z.string().max(1000).optional(),
+});
+
+type FormErrors = Partial<Record<keyof z.infer<typeof formSchema>, string>>;
+
 export const ProprietaryRequestForm = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -37,14 +50,44 @@ export const ProprietaryRequestForm = () => {
     markets: "",
     useCase: "",
   });
+  const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const validateField = (field: keyof typeof formData, value: string) => {
+    try {
+      formSchema.shape[field].parse(value);
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+      return true;
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        setErrors(prev => ({ ...prev, [field]: err.errors[0]?.message }));
+      }
+      return false;
+    }
+  };
+
+  const handleBlur = (field: keyof typeof formData) => {
+    if (formData[field]) {
+      validateField(field, formData[field]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.email || !formData.company || !formData.role) {
-      toast.error("Please fill in all required fields");
+    // Validate all fields
+    const result = formSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: FormErrors = {};
+      result.error.errors.forEach(err => {
+        const field = err.path[0] as keyof FormErrors;
+        if (!fieldErrors[field]) {
+          fieldErrors[field] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      toast.error("Please fix the errors below");
       return;
     }
 
@@ -73,6 +116,11 @@ export const ProprietaryRequestForm = () => {
     }
   };
 
+  // Calculate form progress
+  const requiredFields = ['name', 'email', 'company', 'role'] as const;
+  const filledRequired = requiredFields.filter(f => formData[f].trim() !== '').length;
+  const progress = Math.round((filledRequired / requiredFields.length) * 100);
+
   return (
     <section id="request-access" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-6 md:px-12">
@@ -82,6 +130,12 @@ export const ProprietaryRequestForm = () => {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
+          {/* Scarcity badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 rounded-full mb-6">
+            <Users className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">Limited seats available for Q1 2025</span>
+          </div>
+
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-4">
             Request Access to the Proprietary Feasibility Engine
           </h2>
@@ -110,51 +164,99 @@ export const ProprietaryRequestForm = () => {
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="John Smith"
-                      required
-                      className="bg-background"
-                    />
+                {/* Progress bar */}
+                <div className="mb-6">
+                  <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                    <span>Form progress</span>
+                    <span>{progress}%</span>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Work Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="john@company.com"
-                      required
-                      className="bg-background"
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <motion.div
+                      className="h-full bg-primary rounded-full"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progress}%` }}
+                      transition={{ duration: 0.3 }}
                     />
                   </div>
                 </div>
 
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="company">Company *</Label>
+                    <Label htmlFor="name" className="flex items-center gap-1">
+                      Full Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      onBlur={() => handleBlur('name')}
+                      placeholder="John Smith"
+                      required
+                      className={`bg-background ${errors.name ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                    />
+                    {errors.name && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.name}
+                      </p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="flex items-center gap-1">
+                      Work Email <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onBlur={() => handleBlur('email')}
+                      placeholder="john@company.com"
+                      required
+                      className={`bg-background ${errors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                    />
+                    {errors.email && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.email}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="company" className="flex items-center gap-1">
+                      Company <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="company"
                       value={formData.company}
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                      onBlur={() => handleBlur('company')}
                       placeholder="Acme Development"
                       required
-                      className="bg-background"
+                      className={`bg-background ${errors.company ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                     />
+                    {errors.company && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.company}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="role">Role *</Label>
+                    <Label htmlFor="role" className="flex items-center gap-1">
+                      Role <span className="text-destructive">*</span>
+                    </Label>
                     <Select
                       value={formData.role}
-                      onValueChange={(value) => setFormData({ ...formData, role: value })}
+                      onValueChange={(value) => {
+                        setFormData({ ...formData, role: value });
+                        setErrors(prev => ({ ...prev, role: undefined }));
+                      }}
                     >
-                      <SelectTrigger className="bg-background">
+                      <SelectTrigger className={`bg-background ${errors.role ? 'border-destructive focus:ring-destructive' : ''}`}>
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -165,6 +267,12 @@ export const ProprietaryRequestForm = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    {errors.role && (
+                      <p className="text-xs text-destructive flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        {errors.role}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -180,7 +288,10 @@ export const ProprietaryRequestForm = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="useCase">Intended Use Case <span className="text-muted-foreground text-xs">(increases acceptance likelihood)</span></Label>
+                  <Label htmlFor="useCase">
+                    Intended Use Case{" "}
+                    <span className="text-muted-foreground text-xs">(increases acceptance likelihood)</span>
+                  </Label>
                   <Textarea
                     id="useCase"
                     value={formData.useCase}
@@ -194,7 +305,7 @@ export const ProprietaryRequestForm = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-semibold transition-all hover:scale-[1.01] disabled:opacity-50 disabled:hover:scale-100"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-semibold transition-all hover:scale-[1.01] disabled:opacity-50 disabled:hover:scale-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 >
                   {isSubmitting ? (
                     <>
