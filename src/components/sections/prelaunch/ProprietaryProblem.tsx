@@ -1,23 +1,23 @@
 import { motion, type Variants } from "framer-motion";
-import { X, AlertTriangle } from "lucide-react";
+import { X, AlertTriangle, FileText, Map, Droplets, Leaf, Zap, Sheet, Users, Clock, ArrowDown, Quote } from "lucide-react";
 
 const legacyMethods = [
-  "Outdated zoning PDFs",
-  "Disconnected GIS maps",
-  "Manual floodplain checks",
-  "Wetlands guesswork",
-  "Utility emails & uncertainty",
-  "Offline spreadsheets",
-  "Multiple consultants",
-  "Weeks of friction and incomplete feasibility studies",
+  { text: "Outdated zoning PDFs", icon: FileText },
+  { text: "Disconnected GIS maps", icon: Map },
+  { text: "Manual floodplain checks", icon: Droplets },
+  { text: "Wetlands guesswork", icon: Leaf },
+  { text: "Utility emails & uncertainty", icon: Zap },
+  { text: "Offline spreadsheets", icon: Sheet },
+  { text: "Multiple consultants", icon: Users },
+  { text: "Weeks of friction", icon: Clock },
 ];
 
 const consequences = [
-  "Slow site selection & acquisitions",
-  "Inconsistent underwriting",
-  "Late-stage deal failures",
-  "High due-diligence costs",
-  "Missed zoning, flood, or infrastructure risks",
+  { text: "Slow site selection", stat: "2-4 weeks lost" },
+  { text: "Inconsistent underwriting", stat: "15-20% cost variance" },
+  { text: "Late-stage deal failures", stat: "$500K+ exposure" },
+  { text: "High due-diligence costs", stat: "$10K-25K per site" },
+  { text: "Missed infrastructure risks", stat: "project-killing surprises" },
 ];
 
 const containerVariants: Variants = {
@@ -48,8 +48,12 @@ const consequenceVariants: Variants = {
 };
 
 export const ProprietaryProblem = () => {
+  const scrollToTechStack = () => {
+    document.getElementById('tech-stack')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <section className="py-24 bg-muted/30">
+    <section className="py-24 bg-gradient-to-b from-[hsl(229,72%,11%)] via-[hsl(222,84%,5%)] to-[hsl(229,72%,11%)]">
       <div className="max-w-5xl mx-auto px-6 md:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -82,14 +86,14 @@ export const ProprietaryProblem = () => {
               </motion.div>
               <span className="text-sm font-medium text-destructive uppercase tracking-wider">The Problem</span>
             </div>
-            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+            <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white">
               The Commercial Real Estate Feasibility Process Is Broken
             </h2>
           </motion.div>
 
-          {/* Legacy methods */}
+          {/* Legacy methods with icons */}
           <div className="space-y-4">
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-white/70">
               Commercial developers, lenders, and investors still rely on:
             </p>
             <motion.ul 
@@ -99,68 +103,126 @@ export const ProprietaryProblem = () => {
               viewport={{ once: true }}
               className="grid sm:grid-cols-2 gap-3"
             >
-              {legacyMethods.map((method) => (
-                <motion.li
-                  key={method}
-                  variants={itemVariants}
-                  className="flex items-center gap-3 text-foreground/80"
-                >
-                  <motion.span 
-                    className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50"
-                    whileHover={{ scale: 1.5, backgroundColor: "hsl(var(--primary))" }}
-                  />
-                  {method}
-                </motion.li>
-              ))}
+              {legacyMethods.map((method) => {
+                const IconComponent = method.icon;
+                return (
+                  <motion.li
+                    key={method.text}
+                    variants={itemVariants}
+                    className="flex items-center gap-3 text-white/80"
+                  >
+                    <IconComponent className="w-4 h-4 text-[hsl(187,94%,43%)] flex-shrink-0" />
+                    {method.text}
+                  </motion.li>
+                );
+              })}
             </motion.ul>
           </div>
 
-          {/* Consequences */}
+          {/* Consequences with stats and glowing border */}
           <motion.div 
-            className="space-y-4 p-6 bg-destructive/5 border border-destructive/20 rounded-xl"
+            className="space-y-4 p-6 bg-destructive/10 border border-destructive/30 rounded-xl shadow-[0_0_30px_rgba(239,68,68,0.15)]"
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, ease: "easeOut" }}
+            whileHover={{ 
+              boxShadow: "0 0 40px rgba(239,68,68,0.25)",
+              borderColor: "rgba(239,68,68,0.5)"
+            }}
           >
-            <p className="text-lg font-medium text-foreground">This creates:</p>
+            <p className="text-lg font-medium text-white">This creates:</p>
             <motion.ul 
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true }}
-              className="grid sm:grid-cols-2 gap-3"
+              className="grid sm:grid-cols-2 gap-4"
             >
               {consequences.map((consequence) => (
                 <motion.li
-                  key={consequence}
+                  key={consequence.text}
                   variants={consequenceVariants}
                   whileHover={{ x: 5 }}
-                  className="flex items-center gap-3 text-destructive/90"
+                  className="flex items-start gap-3"
                 >
                   <motion.div
                     whileHover={{ rotate: 90, scale: 1.2 }}
                     transition={{ type: "spring", stiffness: 300 }}
+                    className="mt-0.5"
                   >
-                    <X className="w-4 h-4 flex-shrink-0" />
+                    <X className="w-4 h-4 flex-shrink-0 text-destructive" />
                   </motion.div>
-                  {consequence}
+                  <div>
+                    <span className="text-white/90">{consequence.text}</span>
+                    <span className="text-destructive/80 text-sm ml-1">({consequence.stat})</span>
+                  </div>
                 </motion.li>
               ))}
             </motion.ul>
           </motion.div>
 
-          {/* Closing statement */}
+          {/* Before/After Teaser */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 py-4 border-y border-white/10"
+          >
+            <div className="text-center sm:text-right">
+              <span className="text-white/50 text-sm uppercase tracking-wider">Traditional</span>
+              <p className="text-white/70 font-medium">3-4 weeks, $15K+</p>
+            </div>
+            <ArrowDown className="w-5 h-5 text-[hsl(27,100%,50%)] rotate-0 sm:-rotate-90" />
+            <div className="text-center sm:text-left">
+              <span className="text-[hsl(27,100%,50%)] text-sm uppercase tracking-wider">SiteIntel</span>
+              <p className="text-white font-semibold">24 hours, $795</p>
+            </div>
+          </motion.div>
+
+          {/* Closing statement with micro-CTA */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="border-l-4 border-primary pl-6"
+            className="border-l-4 border-[hsl(27,100%,50%)] pl-6 space-y-3"
           >
-            <p className="text-xl text-foreground/90">
+            <p className="text-xl text-white/90">
               SiteIntel solves this through proprietary automation, standardized feasibility reporting, and a deterministic risk scoring system.
             </p>
+            <button 
+              onClick={scrollToTechStack}
+              className="text-[hsl(187,94%,43%)] hover:text-[hsl(187,94%,53%)] text-sm font-medium inline-flex items-center gap-2 group transition-colors"
+            >
+              See how we solve this 
+              <motion.span
+                animate={{ x: [0, 4, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                →
+              </motion.span>
+            </button>
+          </motion.div>
+
+          {/* Mini Testimonial */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg p-5"
+          >
+            <div className="flex gap-4">
+              <Quote className="w-6 h-6 text-[hsl(27,100%,50%)] flex-shrink-0 opacity-50" />
+              <div>
+                <p className="text-white/80 italic text-sm md:text-base">
+                  "We discovered a $400K utility extension cost 2 weeks before closing. SiteIntel would have caught it Day 1."
+                </p>
+                <p className="text-white/50 text-sm mt-2">— Texas Commercial Developer</p>
+              </div>
+            </div>
           </motion.div>
         </motion.div>
       </div>
