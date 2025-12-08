@@ -37,8 +37,13 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.submit-application]
+verify_jwt = true
+
 [functions.google-places]
+verify_jwt = false
+
 [functions.google-place-details]
+verify_jwt = false
 
 [functions.check-feature-flag]
 verify_jwt = false
@@ -80,8 +85,13 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.create-checkout-session]
+verify_jwt = true
+
 [functions.create-subscription]
+verify_jwt = true
+
 [functions.check-subscription]
+verify_jwt = true
 
 [functions.save-draft]
 verify_jwt = true
