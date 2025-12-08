@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { Layers, Network, Brain, BarChart3, Mountain, Zap, Lock } from "lucide-react";
 
 const engines = [
@@ -52,6 +52,24 @@ const engines = [
   },
 ];
 
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.12 },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 40, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
 export const ProprietaryTechStack = () => {
   return (
     <section className="py-24 bg-muted/30">
@@ -60,6 +78,7 @@ export const ProprietaryTechStack = () => {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-center mb-16"
         >
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
@@ -67,20 +86,28 @@ export const ProprietaryTechStack = () => {
           </h2>
         </motion.div>
 
-        <div className="space-y-6">
+        <motion.div 
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          className="space-y-6"
+        >
           {engines.map((engine, index) => (
             <motion.div
               key={engine.name}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="p-6 md:p-8 bg-background border border-border rounded-xl"
+              variants={cardVariants}
+              whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
+              className="p-6 md:p-8 bg-background border border-border rounded-xl transition-shadow duration-300 hover:shadow-lg hover:shadow-primary/5"
             >
               <div className="flex items-start gap-4 mb-4">
-                <div className="p-3 bg-primary/10 rounded-lg flex-shrink-0">
+                <motion.div 
+                  className="p-3 bg-primary/10 rounded-lg flex-shrink-0"
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
                   <engine.icon className="w-6 h-6 text-primary" />
-                </div>
+                </motion.div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs text-muted-foreground font-medium">Engine {index + 1}</span>
@@ -107,7 +134,7 @@ export const ProprietaryTechStack = () => {
               </p>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );
