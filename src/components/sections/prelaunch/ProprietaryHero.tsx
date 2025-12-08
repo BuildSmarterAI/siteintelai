@@ -13,15 +13,15 @@ export const ProprietaryHero = () => {
       {/* Dark gradient overlay for text readability */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0A0F2C]/95 via-[#0A0F2C]/80 to-[#0A0F2C]/95 z-[1]" />
 
-      {/* Globe Background - reduced prominence */}
+      {/* Globe Background - visible with balanced opacity */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: "easeOut" }}
-          className="w-[280px] h-[280px] sm:w-[400px] sm:h-[400px] md:w-[600px] md:h-[600px] lg:w-[800px] lg:h-[800px] opacity-20 md:opacity-35 translate-y-1/4 md:translate-y-0"
+          className="w-[320px] h-[320px] sm:w-[450px] sm:h-[450px] md:w-[650px] md:h-[650px] lg:w-[850px] lg:h-[850px] opacity-35 md:opacity-50"
           style={{
-            filter: "drop-shadow(0 0 60px rgba(6, 182, 212, 0.2))"
+            filter: "drop-shadow(0 0 80px rgba(6, 182, 212, 0.3))"
           }}
         >
           <Globe className="!w-full !h-full !max-w-none" />
