@@ -11,6 +11,7 @@ import { ProprietaryRequestForm } from "@/components/sections/prelaunch/Propriet
 import { ProprietaryFAQ } from "@/components/sections/prelaunch/ProprietaryFAQ";
 import { ProprietaryFinalCTA } from "@/components/sections/prelaunch/ProprietaryFinalCTA";
 import { PrelaunchFooter } from "@/components/sections/prelaunch/PrelaunchFooter";
+import { BetaStickyHeader } from "@/components/sections/prelaunch/BetaStickyHeader";
 
 const Beta = () => {
   return (
@@ -24,6 +25,7 @@ const Beta = () => {
         <link rel="canonical" href="https://siteintel.ai/beta" />
       </Helmet>
 
+      <BetaStickyHeader />
       <div className="min-h-screen bg-background">
         <ProprietaryHero />
         <ProprietaryTrustBar />

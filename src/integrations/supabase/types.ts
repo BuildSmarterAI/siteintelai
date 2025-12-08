@@ -764,6 +764,7 @@ export type Database = {
         Row: {
           company: string | null
           email: string
+          full_name: string | null
           id: string
           interests: string[]
           invite_sent: boolean | null
@@ -771,10 +772,12 @@ export type Database = {
           role: string
           source: string | null
           submitted_at: string | null
+          use_case: string | null
         }
         Insert: {
           company?: string | null
           email: string
+          full_name?: string | null
           id?: string
           interests?: string[]
           invite_sent?: boolean | null
@@ -782,10 +785,12 @@ export type Database = {
           role: string
           source?: string | null
           submitted_at?: string | null
+          use_case?: string | null
         }
         Update: {
           company?: string | null
           email?: string
+          full_name?: string | null
           id?: string
           interests?: string[]
           invite_sent?: boolean | null
@@ -793,6 +798,7 @@ export type Database = {
           role?: string
           source?: string | null
           submitted_at?: string | null
+          use_case?: string | null
         }
         Relationships: []
       }

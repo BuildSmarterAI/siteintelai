@@ -55,6 +55,8 @@ export const ProprietaryRequestForm = () => {
         email: formData.email.trim(),
         company: formData.company.trim(),
         role: formData.role,
+        full_name: formData.name.trim(),
+        use_case: formData.useCase.trim() || null,
         interests: formData.markets ? formData.markets.split(",").map(m => m.trim()) : [],
         source: "proprietary_waitlist",
       });
