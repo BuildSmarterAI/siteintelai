@@ -3,7 +3,7 @@ import { ArrowRight, Lock } from "lucide-react";
 
 export const ProprietaryFinalCTA = () => {
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-muted/50">
+    <section className="py-24 bg-background">
       <div className="max-w-4xl mx-auto px-6 md:px-12 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -15,13 +15,13 @@ export const ProprietaryFinalCTA = () => {
             This is the future of feasibility.
           </h2>
           
-          <p className="text-xl md:text-2xl text-muted-foreground flex items-center justify-center gap-2">
+          <p className="text-xl md:text-2xl text-muted-foreground flex items-center justify-center gap-3">
             <Lock className="w-5 h-5" />
-            And it is not available to everyone.
+            It is not available to everyone.
           </p>
 
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Join the private waitlist to access the proprietary computation engine shaping the next generation of CRE due diligence.
+            Join the private waitlist to access the proprietary engine shaping the next generation of CRE due diligence.
           </p>
 
           <motion.div
@@ -29,10 +29,11 @@ export const ProprietaryFinalCTA = () => {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
+            className="pt-4"
           >
             <a
               href="#request-access"
-              className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 rounded-lg font-medium text-lg transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-10 py-4 rounded-lg font-semibold text-lg transition-all hover:scale-[1.02] shadow-lg shadow-primary/20"
             >
               Request Access
               <ArrowRight className="w-5 h-5" />

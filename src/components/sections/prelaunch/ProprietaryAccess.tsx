@@ -1,18 +1,18 @@
 import { motion } from "framer-motion";
-import { Users, Building2, Landmark, Store, Factory, Briefcase } from "lucide-react";
+import { Building2, Landmark, Store, Briefcase, Factory, Users, ShieldCheck } from "lucide-react";
 
 const audiences = [
-  { icon: Building2, label: "Developers & acquisition teams" },
-  { icon: Landmark, label: "Commercial lenders & credit committees" },
-  { icon: Store, label: "Franchise & multi-site expansion groups" },
-  { icon: Briefcase, label: "Institutional investment groups" },
-  { icon: Factory, label: "Industrial & logistics site selectors" },
-  { icon: Users, label: "CRE funds and operators" },
+  { icon: Building2, label: "Developers & Acquisition Teams" },
+  { icon: Landmark, label: "Commercial Lenders & Credit Committees" },
+  { icon: Briefcase, label: "Institutional Investment Groups" },
+  { icon: Store, label: "Franchise & Multi-Site Expansion Teams" },
+  { icon: Factory, label: "Industrial & Logistics Site Selectors" },
+  { icon: Users, label: "Brokerage & Advisory Teams" },
 ];
 
 export const ProprietaryAccess = () => {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-muted/30">
       <div className="max-w-5xl mx-auto px-6 md:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -23,11 +23,8 @@ export const ProprietaryAccess = () => {
           {/* Header */}
           <div className="space-y-4">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-              Who Gets Access
+              Built for high-volume, high-stakes CRE operators:
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl">
-              Private prelaunch access is limited to teams who can benefit from underwriting-grade feasibility intelligence:
-            </p>
           </div>
 
           {/* Audience grid */}
@@ -39,23 +36,28 @@ export const ProprietaryAccess = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-4 p-4 bg-muted/30 border border-border rounded-lg"
+                className="flex items-center gap-4 p-5 bg-background border border-border rounded-lg hover:border-primary/30 transition-colors"
               >
-                <audience.icon className="w-5 h-5 text-primary flex-shrink-0" />
-                <span className="text-foreground/90">{audience.label}</span>
+                <div className="p-2 bg-primary/10 rounded-lg">
+                  <audience.icon className="w-5 h-5 text-primary" />
+                </div>
+                <span className="text-foreground font-medium">{audience.label}</span>
               </motion.div>
             ))}
           </div>
 
           {/* Disclaimer */}
-          <div className="border-l-4 border-primary/50 pl-6 space-y-2">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="flex items-center gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg"
+          >
+            <ShieldCheck className="w-5 h-5 text-primary flex-shrink-0" />
             <p className="text-foreground font-medium">
-              This is not for casual users.
+              Only serious operators will be approved.
             </p>
-            <p className="text-muted-foreground">
-              We prioritize high-volume teams who need computational feasibility at scale.
-            </p>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>

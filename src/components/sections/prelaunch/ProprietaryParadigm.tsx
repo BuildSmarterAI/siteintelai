@@ -3,7 +3,7 @@ import { Sparkles } from "lucide-react";
 
 export const ProprietaryParadigm = () => {
   return (
-    <section className="py-24 bg-gradient-to-b from-muted/50 to-background">
+    <section className="py-24 bg-background">
       <div className="max-w-4xl mx-auto px-6 md:px-12 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -22,16 +22,20 @@ export const ProprietaryParadigm = () => {
             Feasibility-as-a-Service™
           </h2>
 
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto">
-            The industry's first autonomous feasibility computation engine that standardizes feasibility across every site and every deal.
+          <p className="text-lg text-muted-foreground">
+            The new standard for CRE viability assessment.
           </p>
 
-          <div className="pt-6 space-y-2">
-            <p className="text-lg font-medium text-foreground">
-              Not an app. Not a GIS portal.
+          <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto leading-relaxed">
+            SiteIntel doesn't aggregate data — it computes feasibility through a proprietary intelligence engine purpose-built for underwriting, acquisitions, and site selection at scale.
+          </p>
+
+          <div className="pt-8 space-y-3">
+            <p className="text-lg text-muted-foreground">
+              Not a map. Not a consultant.
             </p>
             <p className="text-2xl md:text-3xl font-bold text-primary">
-              A new class of proprietary intelligence system.
+              A new computational category.
             </p>
           </div>
         </motion.div>

@@ -11,22 +11,21 @@ import { toast } from "sonner";
 const roleOptions = [
   "Developer / Acquisition",
   "Lender / Credit Committee",
-  "Franchise / Multi-site Expansion",
   "Institutional Investor",
+  "Franchise / Multi-site Expansion",
   "Industrial / Logistics",
-  "CRE Fund / Operator",
-  "Broker / Land Specialist",
+  "Brokerage / Advisory",
   "Other",
 ];
 
 const benefits = [
-  "Access to the proprietary computation environment",
-  "CFI™ feasibility scoring",
+  "Access to the private computation environment",
+  "CFI™ scoring",
   "Lender-ready feasibility reports",
-  "Exclusive inference model previews",
-  "Texas launch market onboarding",
-  "Private roadmap briefings",
-  "Prelaunch enterprise pricing",
+  "Model previews & inference advancements",
+  "Priority onboarding in Texas",
+  "Pricing incentives",
+  "Direct feedback channel with engineering team",
 ];
 
 export const ProprietaryRequestForm = () => {
@@ -73,7 +72,7 @@ export const ProprietaryRequestForm = () => {
   };
 
   return (
-    <section id="request-access" className="py-24 bg-gradient-to-b from-muted/50 to-background">
+    <section id="request-access" className="py-24 bg-background">
       <div className="max-w-6xl mx-auto px-6 md:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -81,15 +80,11 @@ export const ProprietaryRequestForm = () => {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/30 rounded-full mb-6">
-            <Lock className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Private Access</span>
-          </div>
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-4">
             Request access to the proprietary engine
           </h2>
           <p className="text-lg text-muted-foreground">
-            Access is reviewed. Approval is not guaranteed.
+            Access is reviewed. Spots are limited.
           </p>
         </motion.div>
 
@@ -99,7 +94,7 @@ export const ProprietaryRequestForm = () => {
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="bg-background border border-border rounded-xl p-8"
+            className="bg-muted/30 border border-border rounded-xl p-6 md:p-8"
           >
             {isSubmitted ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
@@ -112,7 +107,7 @@ export const ProprietaryRequestForm = () => {
                 </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name *</Label>
@@ -122,6 +117,7 @@ export const ProprietaryRequestForm = () => {
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       placeholder="John Smith"
                       required
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -133,6 +129,7 @@ export const ProprietaryRequestForm = () => {
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                       placeholder="john@company.com"
                       required
+                      className="bg-background"
                     />
                   </div>
                 </div>
@@ -146,6 +143,7 @@ export const ProprietaryRequestForm = () => {
                       onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                       placeholder="Acme Development"
                       required
+                      className="bg-background"
                     />
                   </div>
                   <div className="space-y-2">
@@ -154,7 +152,7 @@ export const ProprietaryRequestForm = () => {
                       value={formData.role}
                       onValueChange={(value) => setFormData({ ...formData, role: value })}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-background">
                         <SelectValue placeholder="Select your role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -175,24 +173,26 @@ export const ProprietaryRequestForm = () => {
                     value={formData.markets}
                     onChange={(e) => setFormData({ ...formData, markets: e.target.value })}
                     placeholder="Houston, Dallas, Austin"
+                    className="bg-background"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="useCase">Intended Use Case (optional but recommended)</Label>
+                  <Label htmlFor="useCase">Intended Use Case <span className="text-muted-foreground text-xs">(increases acceptance likelihood)</span></Label>
                   <Textarea
                     id="useCase"
                     value={formData.useCase}
                     onChange={(e) => setFormData({ ...formData, useCase: e.target.value })}
                     placeholder="Describe how you plan to use the feasibility engine..."
                     rows={3}
+                    className="bg-background"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-semibold transition-all hover:scale-[1.01] disabled:opacity-50 disabled:hover:scale-100"
                 >
                   {isSubmitting ? (
                     <>
@@ -201,8 +201,8 @@ export const ProprietaryRequestForm = () => {
                     </>
                   ) : (
                     <>
+                      Request Access
                       <Send className="w-4 h-4" />
-                      Submit Application
                     </>
                   )}
                 </button>
@@ -218,7 +218,7 @@ export const ProprietaryRequestForm = () => {
             className="space-y-8"
           >
             <div>
-              <p className="text-lg text-muted-foreground mb-2">If accepted, you'll receive:</p>
+              <p className="text-muted-foreground mb-2">If accepted, you receive:</p>
               <h3 className="font-heading text-2xl font-semibold text-foreground flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-primary" />
                 Early Access Benefits
@@ -233,13 +233,20 @@ export const ProprietaryRequestForm = () => {
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-3 text-foreground/90"
+                  className="flex items-start gap-3"
                 >
-                  <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                  {benefit}
+                  <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-foreground/90">{benefit}</span>
                 </motion.li>
               ))}
             </ul>
+
+            <div className="p-4 bg-muted/30 border border-border rounded-lg">
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Lock className="w-4 h-4" />
+                <span className="text-sm">Access is reviewed on a rolling basis</span>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
