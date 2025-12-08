@@ -1,5 +1,15 @@
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Check } from "lucide-react";
+
+const features = [
+  "Commercial zoning analysis",
+  "Floodplain + Base Flood Elevation (BFE) modeling",
+  "Wetlands & environmental constraints",
+  "Water/sewer serviceability & utility feasibility",
+  "Traffic & TxDOT access requirements",
+  "Topography & pad constructability",
+  "Commercial ROM cost estimation",
+];
 
 export const ProprietaryParadigm = () => {
   return (
@@ -22,20 +32,38 @@ export const ProprietaryParadigm = () => {
             Feasibility-as-a-Service™
           </h2>
 
-          <p className="text-lg text-muted-foreground">
-            The new standard for CRE viability assessment.
+          <p className="text-xl text-primary font-medium">
+            A New Category in Commercial Real Estate Technology
           </p>
 
-          <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto leading-relaxed">
-            SiteIntel doesn't aggregate data — it computes feasibility through a proprietary intelligence engine purpose-built for underwriting, acquisitions, and site selection at scale.
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            SiteIntel replaces weeks of fragmented due diligence with a single AI-driven 
+            feasibility engine that standardizes:
           </p>
+
+          {/* Features List */}
+          <div className="grid sm:grid-cols-2 gap-3 max-w-2xl mx-auto text-left">
+            {features.map((feature, index) => (
+              <motion.div
+                key={feature}
+                initial={{ opacity: 0, x: -10 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.05 }}
+                className="flex items-center gap-3"
+              >
+                <Check className="w-5 h-5 text-primary flex-shrink-0" />
+                <span className="text-foreground/90">{feature}</span>
+              </motion.div>
+            ))}
+          </div>
 
           <div className="pt-8 space-y-3">
             <p className="text-lg text-muted-foreground">
-              Not a map. Not a consultant.
+              This is not a mapping tool.
             </p>
             <p className="text-2xl md:text-3xl font-bold text-primary">
-              A new computational category.
+              This is a proprietary feasibility computation system.
             </p>
           </div>
         </motion.div>

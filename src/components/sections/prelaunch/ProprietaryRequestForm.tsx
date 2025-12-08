@@ -81,10 +81,10 @@ export const ProprietaryRequestForm = () => {
           className="text-center mb-12"
         >
           <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground mb-4">
-            Request access to the proprietary engine
+            Request Access to the Proprietary Feasibility Engine
           </h2>
           <p className="text-lg text-muted-foreground">
-            Access is reviewed. Spots are limited.
+            Enrollment is selective. Not all applicants will be approved.
           </p>
         </motion.div>
 
@@ -201,7 +201,7 @@ export const ProprietaryRequestForm = () => {
                     </>
                   ) : (
                     <>
-                      Request Access
+                      Request Access to SiteIntel™
                       <Send className="w-4 h-4" />
                     </>
                   )}

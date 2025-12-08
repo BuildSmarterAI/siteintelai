@@ -2,17 +2,16 @@ import { motion } from "framer-motion";
 import { Check, Zap, Target, TrendingUp, DollarSign, Gauge, LayoutGrid } from "lucide-react";
 
 const deliverables = [
-  "Parcel Summary",
-  "Zoning Compliance Matrix",
-  "Floodplain + BFE Analysis",
-  "Wetlands Risk Signature",
-  "Utilities Serviceability Profile",
-  "Topography/Pad Viability",
-  "Traffic/Access Friction",
-  "Drainage/Impervious Modeling",
-  "Composite Feasibility Index (CFI™)",
-  "Underwriting Narrative",
-  "ROM Cost Premiums",
+  "Automated zoning & land-use report",
+  "Floodplain + BFE modeling",
+  "Wetlands & environmental feasibility",
+  "Water/sewer serviceability profile",
+  "Access & traffic feasibility (TxDOT)",
+  "Topography & pad readiness",
+  "Impervious cover & drainage modeling",
+  "CFI™ — Composite Feasibility Index",
+  "AI-generated feasibility narrative",
+  "ROM cost premiums",
 ];
 
 const impacts = [
@@ -41,13 +40,13 @@ export const ProprietaryOutcome = () => {
               <span className="text-sm font-medium text-primary">The Result</span>
             </div>
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-              Instant, deterministic, underwriting-grade feasibility.
+              A Fully Automated, Lender-Ready Feasibility Report in 24 Hours
             </h2>
           </div>
 
           {/* Deliverables */}
           <div className="bg-muted/30 border border-border rounded-xl p-6 md:p-8">
-            <p className="text-lg font-medium text-foreground mb-6">What you receive:</p>
+            <p className="text-lg font-medium text-foreground mb-6">Your private access includes:</p>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {deliverables.map((item, index) => (
                 <motion.div

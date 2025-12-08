@@ -2,21 +2,22 @@ import { motion } from "framer-motion";
 import { X, AlertTriangle } from "lucide-react";
 
 const legacyMethods = [
-  "Disconnected GIS portals",
-  "Zoning PDFs and email chains",
-  "Flood maps and wetlands guesswork",
-  "Utility uncertainty",
-  "Manual spreadsheets",
+  "Outdated zoning PDFs",
+  "Disconnected GIS maps",
+  "Manual floodplain checks",
+  "Wetlands guesswork",
+  "Utility emails & uncertainty",
+  "Offline spreadsheets",
   "Multiple consultants",
-  "Weeks of back-and-forth",
+  "Weeks of friction and incomplete feasibility studies",
 ];
 
 const consequences = [
-  "Late-stage kill factors",
-  "Missed risks",
+  "Slow site selection & acquisitions",
   "Inconsistent underwriting",
-  "Slow acquisitions",
-  "Expensive dead deals",
+  "Late-stage deal failures",
+  "High due-diligence costs",
+  "Missed zoning, flood, or infrastructure risks",
 ];
 
 export const ProprietaryProblem = () => {
@@ -36,14 +37,14 @@ export const ProprietaryProblem = () => {
               <span className="text-sm font-medium text-destructive uppercase tracking-wider">The Problem</span>
             </div>
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-              Feasibility is broken — slow, fragmented, and unreliable.
+              The Commercial Real Estate Feasibility Process Is Broken
             </h2>
           </div>
 
           {/* Legacy methods */}
           <div className="space-y-4">
             <p className="text-lg text-muted-foreground">
-              The industry still depends on:
+              Commercial developers, lenders, and investors still rely on:
             </p>
             <ul className="grid sm:grid-cols-2 gap-3">
               {legacyMethods.map((method, index) => (
@@ -64,7 +65,7 @@ export const ProprietaryProblem = () => {
 
           {/* Consequences */}
           <div className="space-y-4 p-6 bg-destructive/5 border border-destructive/20 rounded-xl">
-            <p className="text-lg font-medium text-foreground">This leads to:</p>
+            <p className="text-lg font-medium text-foreground">This creates:</p>
             <ul className="grid sm:grid-cols-2 gap-3">
               {consequences.map((consequence, index) => (
                 <motion.li
@@ -88,13 +89,10 @@ export const ProprietaryProblem = () => {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.5 }}
-            className="border-l-4 border-primary pl-6 space-y-2"
+            className="border-l-4 border-primary pl-6"
           >
-            <p className="text-xl text-muted-foreground">
-              Feasibility was never designed for speed, standardization, or scale.
-            </p>
-            <p className="text-xl font-semibold text-primary">
-              Until now.
+            <p className="text-xl text-foreground/90">
+              SiteIntel solves this through proprietary automation, standardized feasibility reporting, and a deterministic risk scoring system.
             </p>
           </motion.div>
         </motion.div>
