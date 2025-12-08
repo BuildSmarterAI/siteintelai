@@ -190,6 +190,10 @@ export default {
           "0%, 100%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" }
         },
+        "marquee": {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -199,6 +203,7 @@ export default {
         "data-pulse": "dataPulseExpand 800ms ease-out",
         "ai-scan": "aiScanLine 2s ease-in-out infinite",
         "shimmer": "shimmer 2.5s ease-in-out infinite",
+        "marquee": "marquee 25s linear infinite",
       },
       fontFamily: {
         heading: ['Space Grotesk', 'system-ui', 'sans-serif'],      /* Headlines, titles, section headers */
