@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { FileText, ArrowRight } from "lucide-react";
+import { Globe } from "@/components/ui/globe-feature-section";
 
 export const PrelaunchHero = () => {
   const heroStats = [
@@ -92,49 +93,27 @@ export const PrelaunchHero = () => {
             </div>
           </motion.div>
 
-          {/* Right content - Image placeholder */}
+          {/* Right content - Interactive Globe */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="relative flex items-center justify-center"
           >
-            <div className="relative bg-card border border-border rounded-2xl shadow-2xl overflow-hidden aspect-[4/3]">
-              {/* Browser chrome */}
-              <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-destructive/60" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/60" />
-                </div>
-                <div className="flex-1 mx-4">
-                  <div className="h-6 bg-background rounded-md flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">siteintel.ai/feasibility</span>
-                  </div>
-                </div>
+            {/* Globe container with glow effects */}
+            <div className="relative">
+              {/* Primary ambient glow */}
+              <div className="absolute inset-0 bg-primary/20 rounded-full blur-3xl scale-75" />
+              
+              {/* Interactive Globe */}
+              <div className="relative w-[350px] h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px]">
+                <Globe />
               </div>
               
-              {/* Dashboard placeholder */}
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="h-6 w-40 bg-muted rounded animate-pulse" />
-                  <div className="h-8 w-8 bg-primary/20 rounded-full" />
-                </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-20 bg-muted/50 rounded-lg border border-border/50" />
-                  ))}
-                </div>
-                <div className="h-32 bg-muted/30 rounded-lg border border-border/50" />
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="h-16 bg-muted/40 rounded-lg" />
-                  <div className="h-16 bg-primary/10 rounded-lg border border-primary/20" />
-                </div>
-              </div>
+              {/* Floating accent elements */}
+              <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-primary/30 rounded-full blur-2xl" />
+              <div className="absolute -top-8 -left-8 w-24 h-24 bg-accent/20 rounded-full blur-xl" />
             </div>
-
-            {/* Floating accent */}
-            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-primary/20 rounded-full blur-2xl" />
           </motion.div>
         </div>
       </div>
