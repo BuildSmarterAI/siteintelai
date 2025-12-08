@@ -122,8 +122,8 @@ export const ProprietaryRequestForm = () => {
   const progress = Math.round((filledRequired / requiredFields.length) * 100);
 
   return (
-    <section id="request-access" className="py-24 bg-background">
-      <div className="max-w-6xl mx-auto px-6 md:px-12">
+    <section id="request-access" className="py-16 md:py-24 bg-background">
+      <div className="max-w-6xl mx-auto px-4 md:px-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -150,7 +150,7 @@ export const ProprietaryRequestForm = () => {
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="bg-muted/30 border border-border rounded-xl p-6 md:p-8"
+            className="bg-muted/30 border border-border rounded-xl p-5 md:p-8"
           >
             {isSubmitted ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
