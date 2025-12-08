@@ -45,12 +45,13 @@ export const ProprietaryHero = () => {
             <span className="text-[#FF7A00]">Commercial Real Estate</span>
           </h1>
 
-          {/* Subheadline */}
+          {/* Subheadline - shorter on mobile */}
           <p className="text-lg md:text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
-            Unlock the private, state-of-the-art feasibility computation engine engineered for CRE developers, lenders, investors, and multi-site operators.
+            <span className="hidden md:inline">Unlock the private, state-of-the-art feasibility computation engine engineered for CRE developers, lenders, investors, and multi-site operators.</span>
+            <span className="md:hidden">The private feasibility engine for CRE developers, lenders, and investors.</span>
           </p>
 
-          <p className="text-base md:text-lg text-white/70 max-w-3xl mx-auto leading-relaxed">
+          <p className="hidden md:block text-base md:text-lg text-white/70 max-w-3xl mx-auto leading-relaxed">
             SiteIntel™ delivers AI-driven commercial real estate feasibility, combining automated zoning analysis, floodplain mapping, wetlands risk detection, utility serviceability modeling, topography intelligence, traffic & access constraints, and ROM cost insights inside a proprietary protected architecture.
           </p>
 
