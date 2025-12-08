@@ -211,6 +211,80 @@ export type Database = {
           },
         ]
       }
+      application_overrides: {
+        Row: {
+          application_draft_id: string | null
+          application_id: string | null
+          created_at: string
+          delta_percent: number | null
+          field_name: string
+          id: string
+          new_value: string | null
+          original_value: string | null
+          override_reason: string | null
+          parcel_id: string | null
+          source_dataset: string | null
+          source_layer_id: string | null
+        }
+        Insert: {
+          application_draft_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          delta_percent?: number | null
+          field_name: string
+          id?: string
+          new_value?: string | null
+          original_value?: string | null
+          override_reason?: string | null
+          parcel_id?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+        }
+        Update: {
+          application_draft_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          delta_percent?: number | null
+          field_name?: string
+          id?: string
+          new_value?: string | null
+          original_value?: string | null
+          override_reason?: string | null
+          parcel_id?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_overrides_application_draft_id_fkey"
+            columns: ["application_draft_id"]
+            isOneToOne: false
+            referencedRelation: "applications_draft"
+            referencedColumns: ["draft_id"]
+          },
+          {
+            foreignKeyName: "application_overrides_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_overrides_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "application_overrides_parcel_id_fkey"
+            columns: ["parcel_id"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
+          },
+        ]
+      }
       applications: {
         Row: {
           aadt_near: number | null
@@ -781,6 +855,133 @@ export type Database = {
         }
         Relationships: []
       }
+      applications_draft: {
+        Row: {
+          application_id: string | null
+          completed_steps: number[] | null
+          contact_info: Json | null
+          coverage_flags: string[] | null
+          created_at: string
+          current_step: number
+          derived_max_far: number | null
+          derived_max_height: number | null
+          draft_id: string
+          drawn_parcel_id: string | null
+          final_questions: Json | null
+          form_data: Json | null
+          gis_provenance: Json | null
+          initial_feasibility_score: number | null
+          intent_type: Database["public"]["Enums"]["intent_type"] | null
+          last_saved_at: string
+          market_risks: Json | null
+          parcel_id: string | null
+          parcel_source_id: string | null
+          profile_id: string | null
+          project_intent: Json | null
+          property_info: Json | null
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          completed_steps?: number[] | null
+          contact_info?: Json | null
+          coverage_flags?: string[] | null
+          created_at?: string
+          current_step?: number
+          derived_max_far?: number | null
+          derived_max_height?: number | null
+          draft_id?: string
+          drawn_parcel_id?: string | null
+          final_questions?: Json | null
+          form_data?: Json | null
+          gis_provenance?: Json | null
+          initial_feasibility_score?: number | null
+          intent_type?: Database["public"]["Enums"]["intent_type"] | null
+          last_saved_at?: string
+          market_risks?: Json | null
+          parcel_id?: string | null
+          parcel_source_id?: string | null
+          profile_id?: string | null
+          project_intent?: Json | null
+          property_info?: Json | null
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          completed_steps?: number[] | null
+          contact_info?: Json | null
+          coverage_flags?: string[] | null
+          created_at?: string
+          current_step?: number
+          derived_max_far?: number | null
+          derived_max_height?: number | null
+          draft_id?: string
+          drawn_parcel_id?: string | null
+          final_questions?: Json | null
+          form_data?: Json | null
+          gis_provenance?: Json | null
+          initial_feasibility_score?: number | null
+          intent_type?: Database["public"]["Enums"]["intent_type"] | null
+          last_saved_at?: string
+          market_risks?: Json | null
+          parcel_id?: string | null
+          parcel_source_id?: string | null
+          profile_id?: string | null
+          project_intent?: Json | null
+          property_info?: Json | null
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_draft_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_draft_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "applications_draft_drawn_parcel_id_fkey"
+            columns: ["drawn_parcel_id"]
+            isOneToOne: false
+            referencedRelation: "drawn_parcels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_draft_parcel_id_fkey"
+            columns: ["parcel_id"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
+          },
+          {
+            foreignKeyName: "applications_draft_parcel_source_id_fkey"
+            columns: ["parcel_source_id"]
+            isOneToOne: false
+            referencedRelation: "parcel_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_draft_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beta_signups: {
         Row: {
           company: string | null
@@ -1068,6 +1269,65 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "counties"
             referencedColumns: ["county_id"]
+          },
+        ]
+      }
+      datasets: {
+        Row: {
+          created_at: string
+          dataset_key: string
+          dataset_type: Database["public"]["Enums"]["dataset_type"]
+          dataset_version: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          jurisdiction: string
+          layer_name: string
+          mapserver_id: string | null
+          metadata: Json | null
+          record_count: number | null
+          status: Database["public"]["Enums"]["dataset_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_key: string
+          dataset_type: Database["public"]["Enums"]["dataset_type"]
+          dataset_version: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          jurisdiction: string
+          layer_name: string
+          mapserver_id?: string | null
+          metadata?: Json | null
+          record_count?: number | null
+          status?: Database["public"]["Enums"]["dataset_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dataset_key?: string
+          dataset_type?: Database["public"]["Enums"]["dataset_type"]
+          dataset_version?: string
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          jurisdiction?: string
+          layer_name?: string
+          mapserver_id?: string | null
+          metadata?: Json | null
+          record_count?: number | null
+          status?: Database["public"]["Enums"]["dataset_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "datasets_mapserver_id_fkey"
+            columns: ["mapserver_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1682,6 +1942,54 @@ export type Database = {
           },
         ]
       }
+      parcel_sources: {
+        Row: {
+          confidence_score: number | null
+          coverage_flags: string[] | null
+          created_at: string
+          dataset_id: string | null
+          geometry_source: string | null
+          id: string
+          parcel_id: string | null
+          source_type: Database["public"]["Enums"]["parcel_source_type"]
+        }
+        Insert: {
+          confidence_score?: number | null
+          coverage_flags?: string[] | null
+          created_at?: string
+          dataset_id?: string | null
+          geometry_source?: string | null
+          id?: string
+          parcel_id?: string | null
+          source_type?: Database["public"]["Enums"]["parcel_source_type"]
+        }
+        Update: {
+          confidence_score?: number | null
+          coverage_flags?: string[] | null
+          created_at?: string
+          dataset_id?: string | null
+          geometry_source?: string | null
+          id?: string
+          parcel_id?: string | null
+          source_type?: Database["public"]["Enums"]["parcel_source_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcel_sources_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "datasets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcel_sources_parcel_id_fkey"
+            columns: ["parcel_id"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
+          },
+        ]
+      }
       parcels: {
         Row: {
           acreage: number | null
@@ -2022,6 +2330,70 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_parcels"
             referencedColumns: ["application_id"]
+          },
+        ]
+      }
+      risk_profiles: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          dataset_versions_used: Json | null
+          id: string
+          kill_factors_triggered: string[] | null
+          overall_risk_score: number | null
+          parcel_id: string | null
+          risk_annotations: Json | null
+          risk_category: string | null
+          source: Database["public"]["Enums"]["risk_source"]
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          dataset_versions_used?: Json | null
+          id?: string
+          kill_factors_triggered?: string[] | null
+          overall_risk_score?: number | null
+          parcel_id?: string | null
+          risk_annotations?: Json | null
+          risk_category?: string | null
+          source?: Database["public"]["Enums"]["risk_source"]
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          dataset_versions_used?: Json | null
+          id?: string
+          kill_factors_triggered?: string[] | null
+          overall_risk_score?: number | null
+          parcel_id?: string | null
+          risk_annotations?: Json | null
+          risk_category?: string | null
+          source?: Database["public"]["Enums"]["risk_source"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "risk_profiles_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "risk_profiles_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "risk_profiles_parcel_id_fkey"
+            columns: ["parcel_id"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
           },
         ]
       }
@@ -3080,6 +3452,31 @@ export type Database = {
         Returns: boolean
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
+      get_active_datasets: {
+        Args: { p_jurisdiction: string }
+        Returns: {
+          created_at: string
+          dataset_key: string
+          dataset_type: Database["public"]["Enums"]["dataset_type"]
+          dataset_version: string
+          effective_from: string
+          effective_to: string | null
+          id: string
+          jurisdiction: string
+          layer_name: string
+          mapserver_id: string | null
+          metadata: Json | null
+          record_count: number | null
+          status: Database["public"]["Enums"]["dataset_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "datasets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_active_tile_jobs: {
         Args: never
         Returns: {
@@ -3090,6 +3487,43 @@ export type Database = {
           tileset_key: string
         }[]
       }
+      get_latest_draft: {
+        Args: { p_user_id: string }
+        Returns: {
+          application_id: string | null
+          completed_steps: number[] | null
+          contact_info: Json | null
+          coverage_flags: string[] | null
+          created_at: string
+          current_step: number
+          derived_max_far: number | null
+          derived_max_height: number | null
+          draft_id: string
+          drawn_parcel_id: string | null
+          final_questions: Json | null
+          form_data: Json | null
+          gis_provenance: Json | null
+          initial_feasibility_score: number | null
+          intent_type: Database["public"]["Enums"]["intent_type"] | null
+          last_saved_at: string
+          market_risks: Json | null
+          parcel_id: string | null
+          parcel_source_id: string | null
+          profile_id: string | null
+          project_intent: Json | null
+          property_info: Json | null
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications_draft"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_override_stats: { Args: { p_application_id: string }; Returns: Json }
       get_stale_tilesets: {
         Args: never
         Returns: {
@@ -3783,6 +4217,21 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "enterprise"
+      dataset_status: "active" | "stale" | "deprecated"
+      dataset_type:
+        | "parcels"
+        | "zoning"
+        | "flood"
+        | "utilities"
+        | "environmental"
+        | "wetlands"
+        | "topography"
+        | "traffic"
+        | "demographics"
+        | "boundaries"
+      intent_type: "build" | "buy" | "invest"
+      parcel_source_type: "official" | "user_drawn" | "third_party"
+      risk_source: "auto" | "user_annotation"
       tile_job_status:
         | "queued"
         | "fetching"
@@ -3942,6 +4391,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "enterprise"],
+      dataset_status: ["active", "stale", "deprecated"],
+      dataset_type: [
+        "parcels",
+        "zoning",
+        "flood",
+        "utilities",
+        "environmental",
+        "wetlands",
+        "topography",
+        "traffic",
+        "demographics",
+        "boundaries",
+      ],
+      intent_type: ["build", "buy", "invest"],
+      parcel_source_type: ["official", "user_drawn", "third_party"],
+      risk_source: ["auto", "user_annotation"],
       tile_job_status: [
         "queued",
         "fetching",
