@@ -22,7 +22,7 @@ export default function DataSourceErrors() {
   const { data: errors, isLoading, refetch } = useDataSourceErrors(selectedSource);
   const { data: sources } = useDataSources();
 
-  const errorTypes = [...new Set(errors?.map((e: any) => e.error_type) || [])];
+  const errorTypes = [...new Set(errors?.map((e) => e.error_type) || [])];
 
   return (
     <SidebarProvider>
@@ -56,7 +56,7 @@ export default function DataSourceErrors() {
               </div>
               <div className="rounded-lg border bg-card p-4">
                 <div className="text-2xl font-bold">
-                  {new Set(errors?.map((e: any) => e.map_server_id)).size || 0}
+                  {new Set(errors?.map((e) => e.map_server_id)).size || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Affected Sources</div>
               </div>
@@ -67,8 +67,8 @@ export default function DataSourceErrors() {
               <div className="rounded-lg border bg-card p-4">
                 <div className="text-2xl font-bold">
                   {errors?.filter(
-                    (e: any) =>
-                      new Date(e.occurred_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+                    (e) =>
+                      e.occurred_at && new Date(e.occurred_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
                   ).length || 0}
                 </div>
                 <div className="text-sm text-muted-foreground">Last 24 Hours</div>
@@ -90,7 +90,7 @@ export default function DataSourceErrors() {
                   <SelectItem value="all">All Sources</SelectItem>
                   {sources?.map((source) => (
                     <SelectItem key={source.id} value={source.id}>
-                      {source.name}
+                      {source.provider}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -106,7 +106,7 @@ export default function DataSourceErrors() {
               </div>
             ) : errors && errors.length > 0 ? (
               <div className="space-y-3">
-                {errors.map((error: any) => (
+                {errors.map((error) => (
                   <Card
                     key={error.id}
                     className="border-destructive/30 bg-destructive/5"
@@ -129,13 +129,13 @@ export default function DataSourceErrors() {
                         </div>
                         <div className="text-right shrink-0 ml-4">
                           <span className="text-xs text-muted-foreground block">
-                            {formatDistanceToNow(new Date(error.occurred_at), { addSuffix: true })}
+                            {error.occurred_at ? formatDistanceToNow(new Date(error.occurred_at), { addSuffix: true }) : 'Unknown'}
                           </span>
                           <Link
                             to={`/admin/data-sources/${error.map_server_id}`}
                             className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
                           >
-                            {error.map_servers?.name || 'View Source'}
+                            {error.map_servers?.provider || 'View Source'}
                             <ExternalLink className="h-3 w-3" />
                           </Link>
                         </div>

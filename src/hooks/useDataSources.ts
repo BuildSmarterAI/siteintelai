@@ -1,33 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Database } from '@/integrations/supabase/types';
 
-export interface DataSource {
-  id: string;
-  server_key: string;
-  server_name: string;
-  base_url: string;
-  service_type: string;
-  jurisdiction: string;
-  is_active: boolean;
-  last_sync_at: string | null;
-  created_at: string;
-  updated_at: string;
-  dataset_family: string | null;
-  agency: string | null;
-  update_frequency: string | null;
-  accuracy_tier: string | null;
-  reliability_score: number | null;
-  notes: string | null;
-  ingestion_run_id: string | null;
+// Use the actual DB type
+type MapServerRow = Database['public']['Tables']['map_servers']['Row'];
+
+export interface DataSource extends MapServerRow {
+  // Computed display name from provider or server_key
+  displayName?: string;
 }
-
-// Map DB fields to display names
-export const mapSourceFields = (source: any): DataSource => ({
-  ...source,
-  name: source.server_name,
-  source_type: source.service_type,
-});
 
 export interface DataSourceVersion {
   id: string;
@@ -35,11 +17,15 @@ export interface DataSourceVersion {
   dataset_version: string;
   schema_hash: string | null;
   field_schema: Record<string, unknown> | null;
-  ingested_at: string;
+  ingested_at: string | null;
   ingestion_run_id: string | null;
   diff_from_previous: Record<string, unknown> | null;
   record_count: number | null;
-  created_at: string;
+  created_at: string | null;
+  map_servers?: {
+    provider: string;
+    server_key: string;
+  };
 }
 
 export interface DataSourceError {
@@ -50,12 +36,16 @@ export interface DataSourceError {
   status_code: number | null;
   layer_id: number | null;
   endpoint_url: string | null;
-  occurred_at: string;
+  occurred_at: string | null;
+  map_servers?: {
+    provider: string;
+    server_key: string;
+  };
 }
 
 export interface DataSourceFormData {
   server_key: string;
-  server_name: string;
+  provider: string;
   base_url: string;
   service_type: string;
   jurisdiction: string;
@@ -110,7 +100,7 @@ export const useDataSources = (filters?: {
       let query = supabase
         .from('map_servers')
         .select('*')
-        .order('name');
+        .order('provider');
 
       if (filters?.jurisdiction) {
         query = query.eq('jurisdiction', filters.jurisdiction);
@@ -173,7 +163,7 @@ export const useDataSourceVersions = (mapServerId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('data_source_versions')
-        .select('*, map_servers(name, server_key)')
+        .select('*, map_servers(provider, server_key)')
         .order('ingested_at', { ascending: false });
 
       if (mapServerId) {
@@ -182,7 +172,7 @@ export const useDataSourceVersions = (mapServerId?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as DataSourceVersion[];
     },
   });
 };
@@ -194,7 +184,7 @@ export const useDataSourceErrors = (mapServerId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('data_source_errors')
-        .select('*, map_servers(name, server_key)')
+        .select('*, map_servers(provider, server_key)')
         .order('occurred_at', { ascending: false })
         .limit(100);
 
@@ -204,7 +194,7 @@ export const useDataSourceErrors = (mapServerId?: string) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as DataSourceError[];
     },
   });
 };
@@ -217,7 +207,20 @@ export const useCreateDataSource = () => {
     mutationFn: async (formData: DataSourceFormData) => {
       const { data, error } = await supabase
         .from('map_servers')
-        .insert(formData)
+        .insert({
+          server_key: formData.server_key,
+          provider: formData.provider,
+          base_url: formData.base_url,
+          service_type: formData.service_type,
+          jurisdiction: formData.jurisdiction,
+          is_active: formData.is_active,
+          dataset_family: formData.dataset_family,
+          agency: formData.agency,
+          update_frequency: formData.update_frequency,
+          accuracy_tier: formData.accuracy_tier,
+          reliability_score: formData.reliability_score,
+          notes: formData.notes,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -241,7 +244,21 @@ export const useUpdateDataSource = () => {
     mutationFn: async ({ id, ...formData }: DataSourceFormData & { id: string }) => {
       const { data, error } = await supabase
         .from('map_servers')
-        .update({ ...formData, updated_at: new Date().toISOString() })
+        .update({
+          server_key: formData.server_key,
+          provider: formData.provider,
+          base_url: formData.base_url,
+          service_type: formData.service_type,
+          jurisdiction: formData.jurisdiction,
+          is_active: formData.is_active,
+          dataset_family: formData.dataset_family,
+          agency: formData.agency,
+          update_frequency: formData.update_frequency,
+          accuracy_tier: formData.accuracy_tier,
+          reliability_score: formData.reliability_score,
+          notes: formData.notes,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', id)
         .select()
         .single();
@@ -308,7 +325,7 @@ export const useCreateVersionSnapshot = () => {
           map_server_id: mapServerId,
           dataset_version: version,
           schema_hash: schemaHash,
-          field_schema: fieldSchema,
+          field_schema: fieldSchema as any,
           record_count: recordCount,
         })
         .select()
@@ -338,8 +355,8 @@ export const useDataSourceFilterOptions = () => {
       if (error) throw error;
 
       const jurisdictions = [...new Set(data.map(d => d.jurisdiction).filter(Boolean))];
-      const families = [...new Set(data.map(d => d.dataset_family).filter(Boolean))];
-      const tiers = [...new Set(data.map(d => d.accuracy_tier).filter(Boolean))];
+      const families = [...new Set(data.map(d => d.dataset_family).filter(Boolean))] as string[];
+      const tiers = [...new Set(data.map(d => d.accuracy_tier).filter(Boolean))] as string[];
 
       return { jurisdictions, families, tiers };
     },

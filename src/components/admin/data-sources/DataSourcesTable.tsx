@@ -79,7 +79,7 @@ export function DataSourcesTable({ sources, isLoading }: DataSourcesTableProps) 
               >
                 <TableCell className="font-medium">
                   <div className="flex flex-col">
-                    <span>{source.name}</span>
+                    <span>{source.provider}</span>
                     <span className="text-xs text-muted-foreground font-mono">
                       {source.server_key}
                     </span>
@@ -93,7 +93,7 @@ export function DataSourcesTable({ sources, isLoading }: DataSourcesTableProps) 
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className="font-mono text-xs">
-                    {source.source_type}
+                    {source.service_type}
                   </Badge>
                 </TableCell>
                 <TableCell>

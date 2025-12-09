@@ -82,11 +82,11 @@ export default function DataSourceFormPage() {
                 isEditing && source
                   ? {
                       server_key: source.server_key,
-                      name: source.name,
+                      provider: source.provider,
                       base_url: source.base_url,
-                      source_type: source.source_type,
+                      service_type: source.service_type,
                       jurisdiction: source.jurisdiction,
-                      is_active: source.is_active,
+                      is_active: source.is_active ?? true,
                       dataset_family: source.dataset_family,
                       agency: source.agency,
                       update_frequency: source.update_frequency,

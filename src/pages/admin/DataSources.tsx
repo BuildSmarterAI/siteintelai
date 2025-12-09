@@ -29,7 +29,7 @@ export default function DataSources() {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
-      source.name.toLowerCase().includes(query) ||
+      source.provider.toLowerCase().includes(query) ||
       source.server_key.toLowerCase().includes(query) ||
       source.agency?.toLowerCase().includes(query) ||
       source.jurisdiction?.toLowerCase().includes(query)

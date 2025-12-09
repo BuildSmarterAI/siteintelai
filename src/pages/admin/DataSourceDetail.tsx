@@ -10,7 +10,6 @@ import {
   ArrowLeft,
   Pencil,
   ExternalLink,
-  RefreshCw,
   Plus,
   Copy,
 } from 'lucide-react';
@@ -131,7 +130,7 @@ export default function DataSourceDetail() {
             {/* Title & Badges */}
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-2xl font-bold">{source.name}</h1>
+                <h1 className="text-2xl font-bold">{source.provider}</h1>
                 <p className="text-muted-foreground font-mono text-sm mt-1">
                   {source.server_key}
                 </p>
@@ -175,7 +174,7 @@ export default function DataSourceDetail() {
                         <div>
                           <span className="text-xs text-muted-foreground">Source Type</span>
                           <Badge variant="outline" className="mt-1 block w-fit">
-                            {source.source_type}
+                            {source.service_type}
                           </Badge>
                         </div>
                         <div>
@@ -293,7 +292,7 @@ export default function DataSourceDetail() {
                   <CardContent className="pt-6">
                     {versions && versions.length > 0 ? (
                       <div className="space-y-3">
-                        {versions.map((version: any) => (
+                        {versions.map((version) => (
                           <div
                             key={version.id}
                             className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
@@ -303,7 +302,7 @@ export default function DataSourceDetail() {
                                 {version.dataset_version}
                               </span>
                               <p className="text-xs text-muted-foreground">
-                                {format(new Date(version.ingested_at), 'PPp')}
+                                {version.ingested_at ? format(new Date(version.ingested_at), 'PPp') : 'Unknown'}
                               </p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -334,7 +333,7 @@ export default function DataSourceDetail() {
                   <CardContent className="pt-6">
                     {errors && errors.length > 0 ? (
                       <div className="space-y-3">
-                        {errors.map((error: any) => (
+                        {errors.map((error) => (
                           <div
                             key={error.id}
                             className="p-3 rounded-lg border border-destructive/30 bg-destructive/5"
@@ -342,7 +341,7 @@ export default function DataSourceDetail() {
                             <div className="flex items-center justify-between">
                               <Badge variant="destructive">{error.error_type}</Badge>
                               <span className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(new Date(error.occurred_at), { addSuffix: true })}
+                                {error.occurred_at ? formatDistanceToNow(new Date(error.occurred_at), { addSuffix: true }) : 'Unknown'}
                               </span>
                             </div>
                             <p className="text-sm mt-2">{error.error_message}</p>
