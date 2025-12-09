@@ -189,8 +189,8 @@ serve(async (req) => {
       utm_term: utmTerm || null,
       page_url: pageUrl || null,
       
-      // Status
-      status: 'pending',
+      // Status - use 'queued' which is valid per applications_status_check constraint
+      status: 'queued',
       enrichment_status: 'pending',
     };
 
@@ -418,7 +418,7 @@ async function handleDraftSubmission(
     dataset_version_summary: datasetVersionSummary,
     override_stats: overrideStats,
     initial_feasibility_score: draft.initial_feasibility_score,
-    status: 'pending',
+    status: 'queued',
     enrichment_status: 'pending',
   };
 
