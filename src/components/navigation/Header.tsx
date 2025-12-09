@@ -69,7 +69,7 @@ export const Header = () => {
   const resources = [
     { label: "Blog", href: "/resources/blog" },
     { label: "Case Studies", href: "/resources/case-studies" },
-    { label: "Documentation", href: "/resources/documentation" },
+    { label: "Developer Docs", href: "/docs", highlight: true, badge: "NEW" },
     { label: "API Access", href: "/resources/api" },
     { label: "Book a Demo", href: "/demo", highlight: true },
   ];
