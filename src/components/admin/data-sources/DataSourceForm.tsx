@@ -28,9 +28,9 @@ import { ReliabilityBadge } from './ReliabilityBadge';
 
 const formSchema = z.object({
   server_key: z.string().min(1, 'Server key is required').regex(/^[a-z0-9_]+$/, 'Use lowercase letters, numbers, and underscores only'),
-  name: z.string().min(1, 'Name is required'),
+  provider: z.string().min(1, 'Provider name is required'),
   base_url: z.string().url('Must be a valid URL'),
-  source_type: z.string().min(1, 'Source type is required'),
+  service_type: z.string().min(1, 'Source type is required'),
   jurisdiction: z.string().min(1, 'Jurisdiction is required'),
   is_active: z.boolean(),
   dataset_family: z.string().nullable(),
@@ -92,27 +92,30 @@ export function DataSourceForm({
   const form = useForm<DataSourceFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      server_key: '',
-      name: '',
-      base_url: '',
-      source_type: 'mapserver',
-      jurisdiction: '',
-      is_active: true,
-      dataset_family: null,
-      agency: null,
-      update_frequency: null,
-      accuracy_tier: null,
-      reliability_score: 80,
-      notes: null,
-      ...defaultValues,
+      server_key: defaultValues?.server_key || '',
+      provider: defaultValues?.provider || '',
+      base_url: defaultValues?.base_url || '',
+      service_type: defaultValues?.service_type || 'mapserver',
+      jurisdiction: defaultValues?.jurisdiction || '',
+      is_active: defaultValues?.is_active ?? true,
+      dataset_family: defaultValues?.dataset_family ?? null,
+      agency: defaultValues?.agency ?? null,
+      update_frequency: defaultValues?.update_frequency ?? null,
+      accuracy_tier: defaultValues?.accuracy_tier ?? null,
+      reliability_score: defaultValues?.reliability_score ?? 80,
+      notes: defaultValues?.notes ?? null,
     },
   });
 
   const reliabilityScore = form.watch('reliability_score');
 
+  const handleFormSubmit = (data: DataSourceFormData) => {
+    onSubmit(data);
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           {/* Basic Information */}
           <Card>
@@ -122,12 +125,16 @@ export function DataSourceForm({
             <CardContent className="space-y-4">
               <FormField
                 control={form.control}
-                name="name"
+                name="provider"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Display Name</FormLabel>
+                    <FormLabel>Provider / Display Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Houston Water Lines" {...field} />
+                      <Input 
+                        placeholder="Houston Water Lines" 
+                        {...field} 
+                        value={field.value || ''} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -145,6 +152,7 @@ export function DataSourceForm({
                         placeholder="houston_water_lines"
                         className="font-mono"
                         {...field}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormDescription>
@@ -166,6 +174,7 @@ export function DataSourceForm({
                         placeholder="https://example.com/arcgis/rest/services/..."
                         className="font-mono text-sm"
                         {...field}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
@@ -176,11 +185,11 @@ export function DataSourceForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="source_type"
+                  name="service_type"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Source Type</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || 'mapserver'}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue />
@@ -206,7 +215,7 @@ export function DataSourceForm({
                     <FormItem>
                       <FormLabel>Jurisdiction</FormLabel>
                       <FormControl>
-                        <Input placeholder="Houston" {...field} />
+                        <Input placeholder="Houston" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -248,7 +257,7 @@ export function DataSourceForm({
                 name="agency"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Agency / Provider</FormLabel>
+                    <FormLabel>Agency</FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Houston Public Works"
