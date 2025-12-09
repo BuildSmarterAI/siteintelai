@@ -87,16 +87,17 @@ const LAYER_CONFIGS: LayerConfig[] = [
   },
   {
     layer_key: 'houston_sewer_lines',
-    // Use production Houston Water GIS endpoint
-    source_url: 'https://www.houstonwatergis.org/arcgis/rest/services/CoHGIS/Wastewater_Sewer/MapServer/0',
+    // CORRECT Houston Water GIS Sewer Lines endpoint (no www, correct service path)
+    source_url: 'https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
+      // Field names from Houston Water GIS (check actual response)
       { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
-      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },
-      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },
-      { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'PIPE_SIZE', target: 'diameter', transform: 'parse_float' },
+      { source: 'PIPE_MATERIAL', target: 'material', transform: 'uppercase' },
+      { source: 'ASSETSTATUS', target: 'status', transform: 'lowercase' },
       { source: 'INSTALLDATE', target: 'install_date', transform: 'parse_date' },
-      { source: 'SHAPE_Length', target: 'length_ft', transform: 'parse_float' },
+      { source: 'Shape__Length', target: 'length_ft', transform: 'parse_float' },
     ],
     constants: { 
       jurisdiction: 'Houston', 
@@ -108,16 +109,17 @@ const LAYER_CONFIGS: LayerConfig[] = [
   },
   {
     layer_key: 'houston_water_lines',
-    // Use production Houston Water GIS endpoint
-    source_url: 'https://www.houstonwatergis.org/arcgis/rest/services/CoHGIS/Water_Distribution/MapServer/0',
+    // CORRECT Houston Water GIS Water Lines endpoint (no www, correct service path)
+    source_url: 'https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
+      // Field names from Houston Water GIS (check actual response)
       { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
-      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },
-      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },
-      { source: 'PRESSURE', target: 'pressure', transform: 'parse_float' },
-      { source: 'STATUS', target: 'status', transform: 'lowercase' },
-      { source: 'SHAPE_Length', target: 'length_ft', transform: 'parse_float' },
+      { source: 'PIPE_SIZE', target: 'diameter', transform: 'parse_float' },
+      { source: 'PIPE_MATERIAL', target: 'material', transform: 'uppercase' },
+      { source: 'PRESSURE_ZONE', target: 'pressure', transform: 'parse_float' },
+      { source: 'ASSETSTATUS', target: 'status', transform: 'lowercase' },
+      { source: 'Shape__Length', target: 'length_ft', transform: 'parse_float' },
     ],
     constants: { 
       jurisdiction: 'Houston', 
@@ -130,19 +132,18 @@ const LAYER_CONFIGS: LayerConfig[] = [
   },
   {
     layer_key: 'fema_flood_zones',
-    // FEMA National Flood Hazard Layer - S_Fld_Haz_Ar layer
-    source_url: 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28',
+    // Alternative: ESRI Living Atlas FEMA Flood Zones (better connectivity than hazards.fema.gov)
+    source_url: 'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Flood_Hazard_Reduced_Set_gdb/FeatureServer/0',
     target_table: 'fema_flood_canonical',
     field_mappings: [
       { source: 'FLD_ZONE', target: 'flood_zone', transform: 'uppercase' },
       { source: 'ZONE_SUBTY', target: 'flood_zone_subtype', transform: 'uppercase' },
       { source: 'STATIC_BFE', target: 'static_bfe', transform: 'parse_float' },
-      { source: 'BFE_REVERT', target: 'bfe', transform: 'parse_float' },
-      { source: 'AR_REVERT', target: 'floodway_flag', transform: 'parse_bool' },
+      { source: 'SFHA_TF', target: 'floodway_flag', transform: 'parse_bool' },
       { source: 'DFIRM_ID', target: 'panel_id', transform: 'trim' },
     ],
     constants: { 
-      source_dataset: 'fema_flood_zones', 
+      source_dataset: 'fema_flood_zones_esri', 
       state: 'TX', 
       county: 'Harris',
       bfe_unit: 'NAVD88'
@@ -228,6 +229,8 @@ async function fetchArcGISFeatures(
       const response = await fetch(queryUrl, {
         headers: {
           'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://buildsmarter.app/',
         },
       });
       
