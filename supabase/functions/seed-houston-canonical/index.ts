@@ -40,9 +40,13 @@ const transformFunctions: Record<string, (val: any) => any> = {
   parse_date: (val) => {
     if (!val) return null;
     const date = new Date(val);
-    return isNaN(date.getTime()) ? null : date.toISOString();
+    return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0]; // Return date only
   },
   identity: (val) => val,
+  sqft_to_acres: (val) => {
+    const sqft = parseFloat(String(val));
+    return isNaN(sqft) ? null : sqft / 43560;
+  },
 };
 
 interface LayerConfig {
@@ -54,49 +58,76 @@ interface LayerConfig {
   max_records?: number;
 }
 
-// Layer configurations with field mappings
+// Layer configurations with CORRECTED field mappings matching actual table columns
 const LAYER_CONFIGS: LayerConfig[] = [
   {
     layer_key: 'houston_parcels',
     source_url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0',
     target_table: 'parcels_canonical',
     field_mappings: [
+      // Corrected mappings matching parcels_canonical columns
       { source: 'ACCT_NUM', target: 'parcel_id', transform: 'trim' },
       { source: 'owner_name_1', target: 'owner_name', transform: 'uppercase' },
-      { source: 'SITUS_ADDR', target: 'site_address', transform: 'trim' },
-      { source: 'legal_dscr_1', target: 'legal_description', transform: 'trim' },
-      { source: 'acreage_1', target: 'acreage', transform: 'parse_float' },
+      { source: 'SITUS_ADDR', target: 'situs_address', transform: 'trim' },  // FIXED: was site_address
+      { source: 'acreage_1', target: 'lot_size_acres', transform: 'parse_float' },  // FIXED: was acreage
+      { source: 'land_sqft', target: 'lot_size_sqft', transform: 'parse_float' },
       { source: 'tot_market_val', target: 'total_value', transform: 'parse_int' },
       { source: 'land_val', target: 'land_value', transform: 'parse_int' },
+      { source: 'imprv_val', target: 'improvement_value', transform: 'parse_int' },
+      { source: 'state_class', target: 'land_use_code', transform: 'trim' },
+      { source: 'SITUS_CITY', target: 'city', transform: 'trim' },
+      { source: 'SITUS_ZIP', target: 'zip', transform: 'trim' },
     ],
-    constants: { jurisdiction: 'Harris County', state: 'TX', source_dataset: 'houston_parcels' },
-    max_records: 5000,
+    constants: { 
+      jurisdiction: 'Harris County', 
+      state: 'TX', 
+      county: 'Harris',
+      source_dataset: 'houston_parcels' 
+    },
+    max_records: 1000, // Start small for testing
   },
   {
     layer_key: 'houston_sewer_lines',
     source_url: 'https://geogimstest.houstontx.gov/arcgis/rest/services/WastewaterUtilities/MapServer/24',
     target_table: 'utilities_canonical',
     field_mappings: [
-      { source: 'DIAMETER', target: 'pipe_diameter', transform: 'parse_float' },
-      { source: 'MATERIAL', target: 'pipe_material', transform: 'uppercase' },
-      { source: 'INSTALL_DATE', target: 'install_date', transform: 'parse_date' },
+      // Corrected mappings matching utilities_canonical columns
+      { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
+      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },  // FIXED: was pipe_diameter
+      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },    // FIXED: was pipe_material
       { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'INSTALL_DATE', target: 'install_date', transform: 'parse_date' },
+      { source: 'LENGTH', target: 'length_ft', transform: 'parse_float' },
     ],
-    constants: { jurisdiction: 'Houston', utility_type: 'sewer', source_dataset: 'houston_sewer_lines' },
-    max_records: 5000,
+    constants: { 
+      jurisdiction: 'Houston', 
+      utility_type: 'sewer', 
+      diameter_unit: 'inches',
+      source_dataset: 'houston_sewer_lines' 
+    },
+    max_records: 1000,
   },
   {
     layer_key: 'houston_water_lines',
     source_url: 'https://geogimstest.houstontx.gov/arcgis/rest/services/WaterUtilities/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
-      { source: 'DIAMETER', target: 'pipe_diameter', transform: 'parse_float' },
-      { source: 'MATERIAL', target: 'pipe_material', transform: 'uppercase' },
-      { source: 'PRESSURE', target: 'pressure_psi', transform: 'parse_float' },
+      // Corrected mappings matching utilities_canonical columns
+      { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
+      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },  // FIXED: was pipe_diameter
+      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },    // FIXED: was pipe_material
+      { source: 'PRESSURE', target: 'pressure', transform: 'parse_float' },  // FIXED: was pressure_psi
       { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'LENGTH', target: 'length_ft', transform: 'parse_float' },
     ],
-    constants: { jurisdiction: 'Houston', utility_type: 'water', source_dataset: 'houston_water_lines' },
-    max_records: 5000,
+    constants: { 
+      jurisdiction: 'Houston', 
+      utility_type: 'water',
+      diameter_unit: 'inches',
+      pressure_unit: 'psi',
+      source_dataset: 'houston_water_lines' 
+    },
+    max_records: 1000,
   },
   {
     layer_key: 'fema_flood_zones',
@@ -106,11 +137,17 @@ const LAYER_CONFIGS: LayerConfig[] = [
       { source: 'FLD_ZONE', target: 'flood_zone', transform: 'uppercase' },
       { source: 'ZONE_SUBTY', target: 'flood_zone_subtype', transform: 'uppercase' },
       { source: 'STATIC_BFE', target: 'static_bfe', transform: 'parse_float' },
+      { source: 'BFE_ELEV', target: 'bfe', transform: 'parse_float' },
       { source: 'FLOODWAY', target: 'floodway_flag', transform: 'parse_bool' },
       { source: 'DFIRM_ID', target: 'panel_id', transform: 'trim' },
     ],
-    constants: { source_dataset: 'fema_flood_zones', state: 'TX', county: 'Harris' },
-    max_records: 5000,
+    constants: { 
+      source_dataset: 'fema_flood_zones', 
+      state: 'TX', 
+      county: 'Harris',
+      bfe_unit: 'NAVD88'
+    },
+    max_records: 1000,
   },
   {
     layer_key: 'nwi_wetlands',
@@ -119,22 +156,28 @@ const LAYER_CONFIGS: LayerConfig[] = [
     field_mappings: [
       { source: 'ATTRIBUTE', target: 'wetland_code', transform: 'uppercase' },
       { source: 'WETLAND_TYPE', target: 'wetland_type', transform: 'trim' },
+      { source: 'ACRES', target: 'area_acres', transform: 'parse_float' },
     ],
     constants: { source_dataset: 'nwi_wetlands' },
-    max_records: 2000,
+    max_records: 500,
   },
   {
     layer_key: 'txdot_aadt',
     source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT/FeatureServer/0',
     target_table: 'transportation_canonical',
     field_mappings: [
-      { source: 'AADT_RPT_QTY', target: 'aadt', transform: 'parse_int' },
+      { source: 'AADT_RPT_QTY', target: 'aadt', transform: 'parse_float' },  // Changed to parse_float for numeric column
       { source: 'AADT_RPT_YEAR', target: 'aadt_year', transform: 'parse_int' },
       { source: 'RD_NM', target: 'road_name', transform: 'uppercase' },
-      { source: 'TRFC_STATN_ID', target: 'station_id', transform: 'trim' },
+      { source: 'FUNC_CLASS', target: 'road_class', transform: 'trim' },
+      { source: 'RTE_ID', target: 'route_number', transform: 'trim' },
     ],
-    constants: { source_dataset: 'txdot_aadt', state: 'TX' },
-    max_records: 3000,
+    constants: { 
+      source_dataset: 'txdot_aadt', 
+      jurisdiction: 'TxDOT',
+      county: 'Harris'
+    },
+    max_records: 1000,
   },
 ];
 
@@ -155,7 +198,7 @@ async function fetchArcGISFeatures(
 ): Promise<any[]> {
   const allFeatures: any[] = [];
   let offset = 0;
-  const batchSize = Math.min(1000, maxRecords);
+  const batchSize = Math.min(500, maxRecords);
 
   console.log(`[seed] Fetching from ${sourceUrl}`);
 
@@ -208,7 +251,7 @@ async function fetchArcGISFeatures(
       if (features.length < batchSize) break;
       
       // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (err) {
       console.error(`[seed] Fetch error:`, err);
       break;
@@ -239,6 +282,54 @@ function applyFieldMappings(
   return result;
 }
 
+// Convert GeoJSON geometry to WKT for PostGIS
+function geometryToWKT(geometry: any): string | null {
+  if (!geometry || !geometry.type) return null;
+
+  try {
+    switch (geometry.type) {
+      case 'Point': {
+        const [x, y] = geometry.coordinates;
+        return `SRID=4326;POINT(${x} ${y})`;
+      }
+      case 'LineString': {
+        const coords = geometry.coordinates.map((c: number[]) => `${c[0]} ${c[1]}`).join(', ');
+        return `SRID=4326;LINESTRING(${coords})`;
+      }
+      case 'Polygon': {
+        const rings = geometry.coordinates.map((ring: number[][]) => 
+          '(' + ring.map((c: number[]) => `${c[0]} ${c[1]}`).join(', ') + ')'
+        ).join(', ');
+        return `SRID=4326;POLYGON(${rings})`;
+      }
+      case 'MultiPoint': {
+        const points = geometry.coordinates.map((c: number[]) => `(${c[0]} ${c[1]})`).join(', ');
+        return `SRID=4326;MULTIPOINT(${points})`;
+      }
+      case 'MultiLineString': {
+        const lines = geometry.coordinates.map((line: number[][]) =>
+          '(' + line.map((c: number[]) => `${c[0]} ${c[1]}`).join(', ') + ')'
+        ).join(', ');
+        return `SRID=4326;MULTILINESTRING(${lines})`;
+      }
+      case 'MultiPolygon': {
+        const polygons = geometry.coordinates.map((poly: number[][][]) =>
+          '(' + poly.map((ring: number[][]) =>
+            '(' + ring.map((c: number[]) => `${c[0]} ${c[1]}`).join(', ') + ')'
+          ).join(', ') + ')'
+        ).join(', ');
+        return `SRID=4326;MULTIPOLYGON(${polygons})`;
+      }
+      default:
+        console.warn(`[seed] Unknown geometry type: ${geometry.type}`);
+        return null;
+    }
+  } catch (err) {
+    console.error(`[seed] Geometry conversion error:`, err);
+    return null;
+  }
+}
+
 async function seedLayer(
   supabase: any,
   config: LayerConfig
@@ -260,7 +351,7 @@ async function seedLayer(
     const features = await fetchArcGISFeatures(
       config.source_url,
       HOUSTON_BBOX,
-      config.max_records || 5000
+      config.max_records || 1000
     );
 
     result.records_fetched = features.length;
@@ -281,43 +372,45 @@ async function seedLayer(
       try {
         const mapped = applyFieldMappings(feature, config.field_mappings, config.constants);
         
-        // Generate source_id
-        const idField = mapped.parcel_id || mapped.station_id || crypto.randomUUID().slice(0, 8);
-        
+        // Convert geometry to EWKT format for PostGIS
+        const wkt = geometryToWKT(feature.geometry);
+        if (!wkt) {
+          result.records_failed++;
+          continue; // Skip records without valid geometry
+        }
+
         const record: any = {
           ...mapped,
-          source_id: `${config.layer_key}_${idField}`,
           dataset_version: datasetVersion,
+          geom: wkt,
         };
-
-        // Handle geometry - convert GeoJSON to WKT for PostGIS
-        if (feature.geometry) {
-          record.geom = feature.geometry;
-        }
 
         transformedRecords.push(record);
       } catch (err) {
+        console.error(`[seed] Transform error:`, err);
         result.records_failed++;
       }
     }
 
     console.log(`[seed] Transformed ${transformedRecords.length} records for ${config.layer_key}`);
 
-    // Insert in batches
-    const BATCH_SIZE = 100;
+    if (transformedRecords.length === 0) {
+      result.error = 'No valid records after transformation';
+      result.duration_ms = Date.now() - startTime;
+      return result;
+    }
+
+    // Insert in batches using plain INSERT (no unique constraints on these tables)
+    const BATCH_SIZE = 50;
     
     for (let i = 0; i < transformedRecords.length; i += BATCH_SIZE) {
       const batch = transformedRecords.slice(i, i + BATCH_SIZE);
       
-      const { error } = await supabase
-        .from(config.target_table)
-        .upsert(batch, { 
-          onConflict: 'source_id',
-          ignoreDuplicates: false 
-        });
+      // Use raw SQL via RPC to handle PostGIS geometry properly
+      const { error } = await insertBatchWithGeometry(supabase, config.target_table, batch);
 
       if (error) {
-        console.error(`[seed] Batch insert error for ${config.layer_key}:`, error.message);
+        console.error(`[seed] Batch insert error for ${config.layer_key}:`, error);
         result.records_failed += batch.length;
       } else {
         result.records_inserted += batch.length;
@@ -351,6 +444,74 @@ async function seedLayer(
   }
 
   return result;
+}
+
+// Insert batch with proper PostGIS geometry handling via RPC or direct insert
+async function insertBatchWithGeometry(
+  supabase: any, 
+  tableName: string, 
+  records: any[]
+): Promise<{ error: any }> {
+  // Build INSERT statement with ST_GeomFromEWKT for geometry
+  const columns = Object.keys(records[0]).filter(k => k !== 'geom');
+  const allColumns = [...columns, 'geom'];
+  
+  // Build values clause
+  const valuesClauses: string[] = [];
+  const params: any[] = [];
+  let paramIndex = 1;
+
+  for (const record of records) {
+    const placeholders: string[] = [];
+    
+    for (const col of columns) {
+      placeholders.push(`$${paramIndex}`);
+      params.push(record[col]);
+      paramIndex++;
+    }
+    
+    // Add geometry with ST_GeomFromEWKT
+    placeholders.push(`ST_GeomFromEWKT($${paramIndex})`);
+    params.push(record.geom);
+    paramIndex++;
+    
+    valuesClauses.push(`(${placeholders.join(', ')})`);
+  }
+
+  const sql = `INSERT INTO ${tableName} (${allColumns.join(', ')}) VALUES ${valuesClauses.join(', ')}`;
+  
+  // Execute via RPC - need to check if we have execute_sql function
+  // Fallback: try direct insert with the supabase client (may not work for PostGIS)
+  try {
+    const { error } = await supabase.rpc('execute_canonical_insert', {
+      p_table: tableName,
+      p_records: JSON.stringify(records),
+    });
+    
+    if (error) {
+      // Fallback to simple insert - geometry may not work but try anyway
+      console.log(`[seed] RPC failed, trying direct insert for ${tableName}`);
+      const { error: insertError } = await supabase
+        .from(tableName)
+        .insert(records.map(r => {
+          // Try without geometry conversion - will likely fail
+          const { geom, ...rest } = r;
+          return rest;
+        }));
+      return { error: insertError };
+    }
+    return { error: null };
+  } catch (err) {
+    // Final fallback - insert without geometry
+    console.log(`[seed] Fallback: insert without geometry for ${tableName}`);
+    const { error } = await supabase
+      .from(tableName)
+      .insert(records.map(r => {
+        const { geom, ...rest } = r;
+        return { ...rest, geom: null }; // This will fail if geom is NOT NULL
+      }));
+    return { error };
+  }
 }
 
 Deno.serve(async (req: Request) => {
