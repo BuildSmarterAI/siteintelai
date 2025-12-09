@@ -185,3 +185,6 @@ verify_jwt = false
 
 [functions.aggregate-api-health]
 verify_jwt = false
+
+[functions.gis-transform-to-canonical]
+verify_jwt = false
