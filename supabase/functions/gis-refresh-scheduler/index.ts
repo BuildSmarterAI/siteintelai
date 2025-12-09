@@ -1,244 +1,271 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
-import { corsHeaders } from '../_shared/cors.ts';
+// deno-lint-ignore-file no-explicit-any
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 interface RefreshResult {
   layer_key: string;
-  area_key: string;
-  status: 'success' | 'unchanged' | 'error' | 'skipped';
-  message: string;
-  duration_ms?: number;
+  status: 'refreshed' | 'unchanged' | 'error';
+  records?: number;
+  error?: string;
+  transformed?: boolean;
 }
 
 interface SchedulerSummary {
-  total_layers: number;
-  refreshed: number;
-  unchanged: number;
-  errors: number;
-  skipped: number;
+  success: boolean;
+  layers_checked: number;
+  layers_refreshed: number;
+  layers_unchanged: number;
+  layers_errored: number;
+  layers_transformed: number;
+  duration_ms: number;
   results: RefreshResult[];
-  execution_time_ms: number;
 }
 
-Deno.serve(async (req) => {
+async function refreshLayer(
+  supabase: any,
+  layer: any
+): Promise<RefreshResult> {
+  const result: RefreshResult = {
+    layer_key: layer.layer_key,
+    status: 'unchanged',
+    transformed: false,
+  };
+
+  try {
+    console.log(`[gis-refresh] Fetching layer: ${layer.layer_key}`);
+
+    // Call the fetch function
+    const fetchUrl = `${SUPABASE_URL}/functions/v1/gis-fetch-with-versioning`;
+    const fetchResponse = await fetch(fetchUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        layer_key: layer.layer_key,
+        force_refresh: false,
+      }),
+    });
+
+    if (!fetchResponse.ok) {
+      const errorText = await fetchResponse.text();
+      throw new Error(`Fetch failed: ${errorText}`);
+    }
+
+    const fetchResult = await fetchResponse.json();
+    
+    if (fetchResult.status === 'unchanged') {
+      result.status = 'unchanged';
+      return result;
+    }
+
+    result.status = 'refreshed';
+    result.records = fetchResult.record_count;
+
+    // Trigger transform for the new version
+    console.log(`[gis-refresh] Triggering transform for: ${layer.layer_key}`);
+    
+    const transformUrl = `${SUPABASE_URL}/functions/v1/gis-transform-to-canonical`;
+    const transformResponse = await fetch(transformUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        layer_key: layer.layer_key,
+        version_id: fetchResult.version_id,
+      }),
+    });
+
+    if (transformResponse.ok) {
+      const transformResult = await transformResponse.json();
+      result.transformed = transformResult.success;
+      console.log(`[gis-refresh] Transform result for ${layer.layer_key}:`, transformResult.success ? 'success' : 'failed');
+    } else {
+      console.error(`[gis-refresh] Transform failed for ${layer.layer_key}`);
+    }
+
+  } catch (err) {
+    result.status = 'error';
+    result.error = err instanceof Error ? err.message : String(err);
+    console.error(`[gis-refresh] Error refreshing ${layer.layer_key}:`, result.error);
+  }
+
+  return result;
+}
+
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
-  console.log('[gis-scheduler] Starting automated GIS refresh cycle');
+  console.log('[gis-refresh-scheduler] Starting scheduled refresh');
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Parse optional request body
-    let forceRefresh = false;
-    let specificLayers: string[] | undefined;
-
+    // Parse request body for optional filters
+    let body: { force_refresh?: boolean; layer_keys?: string[]; category?: string } = {};
     try {
-      const body = await req.json();
-      forceRefresh = body.force_refresh || false;
-      specificLayers = body.layer_keys;
+      body = await req.json();
     } catch {
-      // No body or invalid JSON - use defaults
+      // No body provided
     }
 
-    // Step 1: Get all active layers with their latest versions
-    const { data: layers, error: layersError } = await supabase
+    // Get active layers to refresh
+    let query = supabase
       .from('gis_layers')
-      .select(`
-        id,
-        layer_key,
-        provider,
-        category,
-        update_policy,
-        gis_layer_versions!inner (
-          id,
-          area_key,
-          expires_at,
-          is_active,
-          fetched_at
-        )
-      `)
-      .eq('status', 'active')
-      .eq('gis_layer_versions.is_active', true);
+      .select('*')
+      .eq('status', 'active');
+
+    if (body.layer_keys && body.layer_keys.length > 0) {
+      query = query.in('layer_key', body.layer_keys);
+    }
+
+    if (body.category) {
+      query = query.eq('category', body.category);
+    }
+
+    const { data: layers, error: layersError } = await query;
 
     if (layersError) {
-      console.error('[gis-scheduler] Failed to fetch layers:', layersError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch layers', details: layersError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`Failed to fetch layers: ${layersError.message}`);
     }
 
     if (!layers || layers.length === 0) {
-      console.log('[gis-scheduler] No active layers found');
-      return new Response(
-        JSON.stringify({
-          message: 'No active layers to refresh',
-          total_layers: 0,
-          results: []
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      console.log('[gis-refresh-scheduler] No active layers to refresh');
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'No active layers to refresh',
+        layers_checked: 0,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    console.log(`[gis-scheduler] Found ${layers.length} active layer versions`);
+    console.log(`[gis-refresh-scheduler] Found ${layers.length} layers to check`);
 
-    // Step 2: Filter layers that need refresh
+    // Check which layers need refresh based on their update policy
+    const layersToRefresh: any[] = [];
     const now = new Date();
-    const layersToRefresh: Array<{ layer: any; version: any }> = [];
 
     for (const layer of layers) {
-      // Handle layers with multiple versions (different areas)
-      const versions = Array.isArray(layer.gis_layer_versions) 
-        ? layer.gis_layer_versions 
-        : [layer.gis_layer_versions];
+      if (body.force_refresh) {
+        layersToRefresh.push(layer);
+        continue;
+      }
 
-      for (const version of versions) {
-        // Skip if specific layers requested and this isn't one of them
-        if (specificLayers && !specificLayers.includes(layer.layer_key)) {
-          continue;
-        }
+      // Get latest version to check expiry
+      const { data: latestVersion } = await supabase
+        .from('gis_layer_versions')
+        .select('expires_at, fetched_at')
+        .eq('layer_id', layer.id)
+        .eq('is_active', true)
+        .order('fetched_at', { ascending: false })
+        .limit(1)
+        .single();
 
-        // Check if expired or force refresh
-        const expiresAt = version.expires_at ? new Date(version.expires_at) : null;
-        const isExpired = expiresAt ? expiresAt < now : true;
+      if (!latestVersion) {
+        // No version exists, needs refresh
+        layersToRefresh.push(layer);
+        continue;
+      }
 
-        if (forceRefresh || isExpired) {
-          layersToRefresh.push({ layer, version });
-          console.log(`[gis-scheduler] Queuing refresh: ${layer.layer_key}/${version.area_key} (expired: ${isExpired})`);
-        } else {
-          console.log(`[gis-scheduler] Skipping ${layer.layer_key}/${version.area_key} (expires: ${expiresAt?.toISOString()})`);
-        }
+      // Check if expired
+      if (latestVersion.expires_at && new Date(latestVersion.expires_at) < now) {
+        layersToRefresh.push(layer);
+        continue;
+      }
+
+      // Check based on update frequency
+      const policy = layer.update_policy as { frequency?: string };
+      const lastFetch = new Date(latestVersion.fetched_at);
+      const hoursSinceFetch = (now.getTime() - lastFetch.getTime()) / (1000 * 60 * 60);
+
+      const frequencyHours: Record<string, number> = {
+        hourly: 1,
+        daily: 24,
+        weekly: 168,
+        monthly: 720,
+        quarterly: 2160,
+        yearly: 8760,
+      };
+
+      const thresholdHours = frequencyHours[policy.frequency || 'daily'] || 24;
+      
+      if (hoursSinceFetch >= thresholdHours) {
+        layersToRefresh.push(layer);
       }
     }
 
-    if (layersToRefresh.length === 0) {
-      console.log('[gis-scheduler] No layers need refresh');
-      return new Response(
-        JSON.stringify({
-          message: 'All layers are up to date',
-          total_layers: layers.length,
-          refreshed: 0,
-          unchanged: 0,
-          errors: 0,
-          skipped: layers.length,
-          execution_time_ms: Date.now() - startTime
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`[gis-refresh-scheduler] ${layersToRefresh.length} layers need refresh`);
 
-    console.log(`[gis-scheduler] Refreshing ${layersToRefresh.length} layer versions`);
-
-    // Step 3: Refresh each layer (with concurrency control)
-    const MAX_CONCURRENT = 3; // Limit concurrent refreshes to avoid overwhelming external APIs
+    // Process layers with concurrency limit
+    const CONCURRENCY = 3;
     const results: RefreshResult[] = [];
-
-    for (let i = 0; i < layersToRefresh.length; i += MAX_CONCURRENT) {
-      const batch = layersToRefresh.slice(i, i + MAX_CONCURRENT);
+    
+    for (let i = 0; i < layersToRefresh.length; i += CONCURRENCY) {
+      const batch = layersToRefresh.slice(i, i + CONCURRENCY);
       const batchResults = await Promise.all(
-        batch.map(({ layer, version }) => refreshLayer(supabase, layer, version.area_key))
+        batch.map(layer => refreshLayer(supabase, layer))
       );
       results.push(...batchResults);
     }
 
-    // Step 4: Generate summary
     const summary: SchedulerSummary = {
-      total_layers: layers.length,
-      refreshed: results.filter(r => r.status === 'success').length,
-      unchanged: results.filter(r => r.status === 'unchanged').length,
-      errors: results.filter(r => r.status === 'error').length,
-      skipped: layers.length - layersToRefresh.length,
+      success: true,
+      layers_checked: layers.length,
+      layers_refreshed: results.filter(r => r.status === 'refreshed').length,
+      layers_unchanged: results.filter(r => r.status === 'unchanged').length,
+      layers_errored: results.filter(r => r.status === 'error').length,
+      layers_transformed: results.filter(r => r.transformed).length,
+      duration_ms: Date.now() - startTime,
       results,
-      execution_time_ms: Date.now() - startTime
     };
 
-    console.log(`[gis-scheduler] Completed: ${summary.refreshed} refreshed, ${summary.unchanged} unchanged, ${summary.errors} errors, ${summary.skipped} skipped`);
+    console.log(`[gis-refresh-scheduler] Completed: ${summary.layers_refreshed} refreshed, ${summary.layers_transformed} transformed, ${summary.layers_errored} errors`);
 
-    // Step 5: If there are errors, log to console for monitoring
-    if (summary.errors > 0) {
-      console.error('[gis-scheduler] Errors occurred:');
-      results.filter(r => r.status === 'error').forEach(r => {
-        console.error(`  - ${r.layer_key}/${r.area_key}: ${r.message}`);
-      });
-    }
-
-    return new Response(
-      JSON.stringify(summary),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
-  } catch (error) {
-    console.error('[gis-scheduler] Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Scheduler failed', 
-        details: error.message,
-        execution_time_ms: Date.now() - startTime
-      }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-});
-
-// Helper: Refresh a single layer/area
-async function refreshLayer(
-  supabase: any,
-  layer: any,
-  areaKey: string
-): Promise<RefreshResult> {
-  const startTime = Date.now();
-  const layerKey = layer.layer_key;
-
-  try {
-    console.log(`[gis-scheduler] Refreshing ${layerKey}/${areaKey}`);
-
-    // Call gis-fetch-with-versioning function
-    const { data, error } = await supabase.functions.invoke('gis-fetch-with-versioning', {
-      body: {
-        layer_key: layerKey,
-        area_key: areaKey,
-        force_refresh: false // Use change detection
-      }
+    // Log to cron_job_history
+    await supabase.from('cron_job_history').insert({
+      job_name: 'gis-refresh-scheduler',
+      status: summary.layers_errored > 0 ? 'partial' : 'success',
+      started_at: new Date(startTime).toISOString(),
+      finished_at: new Date().toISOString(),
+      execution_time_ms: summary.duration_ms,
+      records_processed: summary.layers_refreshed,
+      metadata: {
+        layers_checked: summary.layers_checked,
+        layers_unchanged: summary.layers_unchanged,
+        layers_transformed: summary.layers_transformed,
+        errors: results.filter(r => r.error).map(r => ({ layer: r.layer_key, error: r.error })),
+      },
     });
 
-    if (error) {
-      console.error(`[gis-scheduler] Failed to refresh ${layerKey}/${areaKey}:`, error);
-      return {
-        layer_key: layerKey,
-        area_key: areaKey,
-        status: 'error',
-        message: error.message || 'Function invocation failed',
-        duration_ms: Date.now() - startTime
-      };
-    }
+    return new Response(JSON.stringify(summary, null, 2), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
-    // Parse the response
-    const status = data?.status || 'unknown';
-    const message = data?.message || JSON.stringify(data);
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('[gis-refresh-scheduler] Fatal error:', errorMsg);
 
-    console.log(`[gis-scheduler] ${layerKey}/${areaKey} result: ${status}`);
-
-    return {
-      layer_key: layerKey,
-      area_key: areaKey,
-      status: status === 'success' ? 'success' : status === 'unchanged' ? 'unchanged' : 'error',
-      message,
-      duration_ms: Date.now() - startTime
-    };
-
-  } catch (error) {
-    console.error(`[gis-scheduler] Exception refreshing ${layerKey}/${areaKey}:`, error);
-    return {
-      layer_key: layerKey,
-      area_key: areaKey,
-      status: 'error',
-      message: error.message,
-      duration_ms: Date.now() - startTime
-    };
+    return new Response(JSON.stringify({
+      success: false,
+      error: errorMsg,
+      duration_ms: Date.now() - startTime,
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-}
+});

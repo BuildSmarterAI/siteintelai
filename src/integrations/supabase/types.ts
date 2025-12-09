@@ -1754,6 +1754,202 @@ export type Database = {
           },
         ]
       }
+      gis_fetch_logs: {
+        Row: {
+          bytes_processed: number | null
+          created_at: string | null
+          duration_ms: number | null
+          error_details: Json | null
+          error_message: string | null
+          http_status: number | null
+          id: string
+          layer_id: string | null
+          layer_version_id: string | null
+          metadata: Json | null
+          operation: string
+          records_processed: number | null
+          retry_count: number | null
+          status: string
+        }
+        Insert: {
+          bytes_processed?: number | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          layer_id?: string | null
+          layer_version_id?: string | null
+          metadata?: Json | null
+          operation: string
+          records_processed?: number | null
+          retry_count?: number | null
+          status: string
+        }
+        Update: {
+          bytes_processed?: number | null
+          created_at?: string | null
+          duration_ms?: number | null
+          error_details?: Json | null
+          error_message?: string | null
+          http_status?: number | null
+          id?: string
+          layer_id?: string | null
+          layer_version_id?: string | null
+          metadata?: Json | null
+          operation?: string
+          records_processed?: number | null
+          retry_count?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gis_fetch_logs_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: false
+            referencedRelation: "gis_layers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gis_fetch_logs_layer_version_id_fkey"
+            columns: ["layer_version_id"]
+            isOneToOne: false
+            referencedRelation: "gis_layer_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gis_layer_versions: {
+        Row: {
+          area_key: string | null
+          bbox: Json | null
+          checksum_sha256: string | null
+          created_at: string | null
+          etag: string | null
+          expires_at: string | null
+          fetched_at: string | null
+          geojson: Json | null
+          id: string
+          is_active: boolean | null
+          layer_id: string
+          record_count: number | null
+          size_bytes: number | null
+          storage_path: string | null
+          transform_status: string | null
+          transformed_at: string | null
+          version_tag: string | null
+        }
+        Insert: {
+          area_key?: string | null
+          bbox?: Json | null
+          checksum_sha256?: string | null
+          created_at?: string | null
+          etag?: string | null
+          expires_at?: string | null
+          fetched_at?: string | null
+          geojson?: Json | null
+          id?: string
+          is_active?: boolean | null
+          layer_id: string
+          record_count?: number | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          transform_status?: string | null
+          transformed_at?: string | null
+          version_tag?: string | null
+        }
+        Update: {
+          area_key?: string | null
+          bbox?: Json | null
+          checksum_sha256?: string | null
+          created_at?: string | null
+          etag?: string | null
+          expires_at?: string | null
+          fetched_at?: string | null
+          geojson?: Json | null
+          id?: string
+          is_active?: boolean | null
+          layer_id?: string
+          record_count?: number | null
+          size_bytes?: number | null
+          storage_path?: string | null
+          transform_status?: string | null
+          transformed_at?: string | null
+          version_tag?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gis_layer_versions_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: false
+            referencedRelation: "gis_layers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gis_layers: {
+        Row: {
+          category: string
+          created_at: string | null
+          display_name: string
+          field_mappings: Json | null
+          geometry_type: string | null
+          id: string
+          layer_key: string
+          license: string | null
+          map_server_id: string | null
+          native_srid: number | null
+          provider: string
+          source_url: string
+          status: string | null
+          update_policy: Json
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          display_name: string
+          field_mappings?: Json | null
+          geometry_type?: string | null
+          id?: string
+          layer_key: string
+          license?: string | null
+          map_server_id?: string | null
+          native_srid?: number | null
+          provider: string
+          source_url: string
+          status?: string | null
+          update_policy?: Json
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          display_name?: string
+          field_mappings?: Json | null
+          geometry_type?: string | null
+          id?: string
+          layer_key?: string
+          license?: string | null
+          map_server_id?: string | null
+          native_srid?: number | null
+          provider?: string
+          source_url?: string
+          status?: string | null
+          update_policy?: Json
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gis_layers_map_server_id_fkey"
+            columns: ["map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs_enrichment: {
         Row: {
           application_id: string
@@ -2922,6 +3118,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transform_configs: {
+        Row: {
+          config: Json
+          created_at: string | null
+          description: string | null
+          enabled: boolean | null
+          id: string
+          last_run_at: string | null
+          last_run_status: string | null
+          layer_key: string
+          priority: number | null
+          target_table: string
+          transform_id: string
+          updated_at: string | null
+          validation_rules: Json | null
+          version: string | null
+        }
+        Insert: {
+          config: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_run_at?: string | null
+          last_run_status?: string | null
+          layer_key: string
+          priority?: number | null
+          target_table: string
+          transform_id: string
+          updated_at?: string | null
+          validation_rules?: Json | null
+          version?: string | null
+        }
+        Update: {
+          config?: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean | null
+          id?: string
+          last_run_at?: string | null
+          last_run_status?: string | null
+          layer_key?: string
+          priority?: number | null
+          target_table?: string
+          transform_id?: string
+          updated_at?: string | null
+          validation_rules?: Json | null
+          version?: string | null
+        }
+        Relationships: []
       }
       transportation_canonical: {
         Row: {
