@@ -65,18 +65,17 @@ const LAYER_CONFIGS: LayerConfig[] = [
     source_url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0',
     target_table: 'parcels_canonical',
     field_mappings: [
-      // Corrected mappings matching parcels_canonical columns
-      // NOTE: lot_size_acres is GENERATED column - don't insert, only lot_size_sqft
-      { source: 'ACCT_NUM', target: 'parcel_id', transform: 'trim' },
+      // Field names from HCAD API are lowercase
+      { source: 'acct_num', target: 'parcel_id', transform: 'trim' },
       { source: 'owner_name_1', target: 'owner_name', transform: 'uppercase' },
-      { source: 'SITUS_ADDR', target: 'situs_address', transform: 'trim' },
+      { source: 'site_str_name', target: 'situs_address', transform: 'trim' },
       { source: 'land_sqft', target: 'lot_size_sqft', transform: 'parse_float' },
-      { source: 'tot_market_val', target: 'total_value', transform: 'parse_int' },
-      { source: 'land_val', target: 'land_value', transform: 'parse_int' },
-      { source: 'imprv_val', target: 'improvement_value', transform: 'parse_int' },
+      { source: 'total_market_val', target: 'total_value', transform: 'parse_int' },
+      { source: 'land_value', target: 'land_value', transform: 'parse_int' },
+      { source: 'impr_value', target: 'improvement_value', transform: 'parse_int' },
       { source: 'state_class', target: 'land_use_code', transform: 'trim' },
-      { source: 'SITUS_CITY', target: 'city', transform: 'trim' },
-      { source: 'SITUS_ZIP', target: 'zip', transform: 'trim' },
+      { source: 'site_city', target: 'city', transform: 'trim' },
+      { source: 'site_zip', target: 'zip', transform: 'trim' },
     ],
     constants: { 
       jurisdiction: 'Harris County', 
@@ -84,7 +83,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       county: 'Harris',
       source_dataset: 'houston_parcels' 
     },
-    max_records: 500, // Smaller for testing
+    max_records: 200, // Small batch for testing
   },
   {
     layer_key: 'houston_sewer_lines',
