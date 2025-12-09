@@ -40,12 +40,32 @@ const transformFunctions: Record<string, (val: any) => any> = {
   parse_date: (val) => {
     if (!val) return null;
     const date = new Date(val);
-    return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0]; // Return date only
+    return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
   },
   identity: (val) => val,
   sqft_to_acres: (val) => {
     const sqft = parseFloat(String(val));
     return isNaN(sqft) ? null : sqft / 43560;
+  },
+  // Map CCN status values to canonical enum
+  ccn_status: (val) => {
+    if (!val) return 'unknown';
+    const s = String(val).toLowerCase().trim();
+    if (s.includes('active') || s === 'a') return 'active';
+    if (s.includes('inactive') || s === 'i') return 'inactive';
+    if (s.includes('revoked') || s === 'r') return 'revoked';
+    if (s.includes('proposed') || s === 'p') return 'proposed';
+    return 'unknown';
+  },
+  // Map pipeline status values to canonical enum
+  pipeline_status: (val) => {
+    if (!val) return 'unknown';
+    const s = String(val).toLowerCase().trim();
+    if (s.includes('active') || s === 'a' || s.includes('in service')) return 'active';
+    if (s.includes('abandon') || s === 'abn') return 'abandoned';
+    if (s.includes('inactive') || s.includes('idle')) return 'inactive';
+    if (s.includes('proposed') || s === 'p') return 'proposed';
+    return 'unknown';
   },
 };
 
@@ -194,7 +214,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       { source: 'UTILITY', target: 'utility_name', transform: 'trim' },
       { source: 'DBA_NAME', target: 'dba_name', transform: 'trim' },
       { source: 'COUNTY', target: 'county', transform: 'trim' },
-      { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'STATUS', target: 'status', transform: 'ccn_status' },
       { source: 'OBJECTID', target: 'source_feature_id', transform: 'trim' },
     ],
     constants: { 
@@ -217,7 +237,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       { source: 'UTILITY', target: 'utility_name', transform: 'trim' },
       { source: 'DBA_NAME', target: 'dba_name', transform: 'trim' },
       { source: 'COUNTY', target: 'county', transform: 'trim' },
-      { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'STATUS', target: 'status', transform: 'ccn_status' },
       { source: 'OBJECTID', target: 'source_feature_id', transform: 'trim' },
     ],
     constants: { 
@@ -240,7 +260,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       { source: 'SYS_NM', target: 'pipeline_system_name', transform: 'trim' },
       { source: 'PLINE_ID', target: 'pipeline_segment_id', transform: 'trim' },
       { source: 'COMMODITY1', target: 'commodity_type', transform: 'lowercase' },
-      { source: 'STATUS_CD', target: 'status', transform: 'lowercase' },
+      { source: 'STATUS_CD', target: 'status', transform: 'pipeline_status' },
       { source: 'DIAMETER', target: 'nominal_diameter_in', transform: 'parse_float' },
       { source: 'INTERSTATE', target: 'jurisdiction', transform: 'trim' },
       { source: 'OBJECTID', target: 'source_feature_id', transform: 'trim' },
