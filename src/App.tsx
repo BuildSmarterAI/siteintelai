@@ -46,6 +46,11 @@ import PaymentHistory from "./pages/PaymentHistory";
 import BrandKit from "./pages/BrandKit";
 import ApiDocs from "./pages/ApiDocs";
 import SystemHealth from "./pages/admin/SystemHealth";
+import DataSources from "./pages/admin/DataSources";
+import DataSourceDetail from "./pages/admin/DataSourceDetail";
+import DataSourceFormPage from "./pages/admin/DataSourceFormPage";
+import DataSourceVersions from "./pages/admin/DataSourceVersions";
+import DataSourceErrors from "./pages/admin/DataSourceErrors";
 import DocsIndex from "./pages/docs/DocsIndex";
 import DslSpecification from "./pages/docs/DslSpecification";
 import HoustonWorkflow from "./pages/docs/HoustonWorkflow";
@@ -124,6 +129,12 @@ const App = () => (
               <Route path="/admin/geospatial" element={<AdminGeospatial />} />
               <Route path="/admin/utilities-diagnostic" element={<UtilitiesDiagnostic />} />
               <Route path="/admin/system-health" element={<SystemHealth />} />
+              <Route path="/admin/data-sources" element={<DataSources />} />
+              <Route path="/admin/data-sources/new" element={<DataSourceFormPage />} />
+              <Route path="/admin/data-sources/:id" element={<DataSourceDetail />} />
+              <Route path="/admin/data-sources/:id/edit" element={<DataSourceFormPage />} />
+              <Route path="/admin/data-source-versions" element={<DataSourceVersions />} />
+              <Route path="/admin/data-source-errors" element={<DataSourceErrors />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
