@@ -447,72 +447,50 @@ async function seedLayer(
   return result;
 }
 
-// Insert batch with proper PostGIS geometry handling via RPC or direct insert
+// Insert batch with proper PostGIS geometry handling via RPC (one at a time)
 async function insertBatchWithGeometry(
   supabase: any, 
   tableName: string, 
   records: any[]
 ): Promise<{ error: any }> {
-  // Build INSERT statement with ST_GeomFromEWKT for geometry
-  const columns = Object.keys(records[0]).filter(k => k !== 'geom');
-  const allColumns = [...columns, 'geom'];
+  let successCount = 0;
+  let lastError: any = null;
   
-  // Build values clause
-  const valuesClauses: string[] = [];
-  const params: any[] = [];
-  let paramIndex = 1;
-
   for (const record of records) {
-    const placeholders: string[] = [];
-    
-    for (const col of columns) {
-      placeholders.push(`$${paramIndex}`);
-      params.push(record[col]);
-      paramIndex++;
+    try {
+      // Call RPC for each record individually
+      const { data, error } = await supabase.rpc('execute_canonical_insert', {
+        p_table_name: tableName,
+        p_record: record,  // Pass as object, Supabase will convert to JSONB
+      });
+      
+      if (error) {
+        console.error(`[seed] RPC error:`, error);
+        lastError = error;
+        continue;
+      }
+      
+      // Check RPC result
+      if (data && data.success) {
+        successCount++;
+      } else if (data) {
+        console.error(`[seed] Insert failed:`, data.error, data.sql?.slice(0, 200));
+        lastError = { message: data.error };
+      }
+    } catch (err) {
+      console.error(`[seed] Exception:`, err);
+      lastError = err;
     }
-    
-    // Add geometry with ST_GeomFromEWKT
-    placeholders.push(`ST_GeomFromEWKT($${paramIndex})`);
-    params.push(record.geom);
-    paramIndex++;
-    
-    valuesClauses.push(`(${placeholders.join(', ')})`);
   }
-
-  const sql = `INSERT INTO ${tableName} (${allColumns.join(', ')}) VALUES ${valuesClauses.join(', ')}`;
   
-  // Execute via RPC - need to check if we have execute_sql function
-  // Fallback: try direct insert with the supabase client (may not work for PostGIS)
-  try {
-    const { error } = await supabase.rpc('execute_canonical_insert', {
-      p_table: tableName,
-      p_records: JSON.stringify(records),
-    });
-    
-    if (error) {
-      // Fallback to simple insert - geometry may not work but try anyway
-      console.log(`[seed] RPC failed, trying direct insert for ${tableName}`);
-      const { error: insertError } = await supabase
-        .from(tableName)
-        .insert(records.map(r => {
-          // Try without geometry conversion - will likely fail
-          const { geom, ...rest } = r;
-          return rest;
-        }));
-      return { error: insertError };
-    }
-    return { error: null };
-  } catch (err) {
-    // Final fallback - insert without geometry
-    console.log(`[seed] Fallback: insert without geometry for ${tableName}`);
-    const { error } = await supabase
-      .from(tableName)
-      .insert(records.map(r => {
-        const { geom, ...rest } = r;
-        return { ...rest, geom: null }; // This will fail if geom is NOT NULL
-      }));
-    return { error };
+  console.log(`[seed] Batch result: ${successCount}/${records.length} inserted`);
+  
+  // Return error only if ALL records failed
+  if (successCount === 0 && lastError) {
+    return { error: lastError };
   }
+  
+  return { error: successCount === records.length ? null : { partial: true, successCount } };
 }
 
 Deno.serve(async (req: Request) => {
