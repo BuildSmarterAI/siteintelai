@@ -1170,6 +1170,45 @@ export type Database = {
         }
         Relationships: []
       }
+      canonical_schemas: {
+        Row: {
+          created_at: string
+          dataset_family: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          schema_json: Json
+          target_table: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_family: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          schema_json?: Json
+          target_table: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          dataset_family?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          schema_json?: Json
+          target_table?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
+      }
       cost_schedule_data: {
         Row: {
           complexity_factor: number | null
@@ -1753,6 +1792,85 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      etl_runs: {
+        Row: {
+          canonical_schema_id: string | null
+          created_at: string
+          error_details: Json | null
+          error_message: string | null
+          finished_at: string | null
+          gis_layer_id: string | null
+          id: string
+          metadata: Json | null
+          rows_extracted: number | null
+          rows_failed: number | null
+          rows_loaded: number | null
+          rows_transformed: number | null
+          started_at: string | null
+          status: string
+          transform_config_id: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          canonical_schema_id?: string | null
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          gis_layer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          rows_extracted?: number | null
+          rows_failed?: number | null
+          rows_loaded?: number | null
+          rows_transformed?: number | null
+          started_at?: string | null
+          status?: string
+          transform_config_id?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          canonical_schema_id?: string | null
+          created_at?: string
+          error_details?: Json | null
+          error_message?: string | null
+          finished_at?: string | null
+          gis_layer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          rows_extracted?: number | null
+          rows_failed?: number | null
+          rows_loaded?: number | null
+          rows_transformed?: number | null
+          started_at?: string | null
+          status?: string
+          transform_config_id?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etl_runs_canonical_schema_id_fkey"
+            columns: ["canonical_schema_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_schemas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etl_runs_gis_layer_id_fkey"
+            columns: ["gis_layer_id"]
+            isOneToOne: false
+            referencedRelation: "gis_layers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etl_runs_transform_config_id_fkey"
+            columns: ["transform_config_id"]
+            isOneToOne: false
+            referencedRelation: "transform_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feasibility_geospatial: {
         Row: {
@@ -3554,6 +3672,7 @@ export type Database = {
       }
       transform_configs: {
         Row: {
+          canonical_schema_id: string | null
           config: Json
           created_at: string | null
           description: string | null
@@ -3570,6 +3689,7 @@ export type Database = {
           version: string | null
         }
         Insert: {
+          canonical_schema_id?: string | null
           config: Json
           created_at?: string | null
           description?: string | null
@@ -3586,6 +3706,7 @@ export type Database = {
           version?: string | null
         }
         Update: {
+          canonical_schema_id?: string | null
           config?: Json
           created_at?: string | null
           description?: string | null
@@ -3601,7 +3722,15 @@ export type Database = {
           validation_rules?: Json | null
           version?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "transform_configs_canonical_schema_id_fkey"
+            columns: ["canonical_schema_id"]
+            isOneToOne: false
+            referencedRelation: "canonical_schemas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transportation_canonical: {
         Row: {
