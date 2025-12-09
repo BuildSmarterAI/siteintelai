@@ -4235,6 +4235,32 @@ export type Database = {
           tileset_key: string
         }[]
       }
+      get_all_constraints_for_parcel: {
+        Args: {
+          parcel_geom: unknown
+          transportation_radius_ft?: number
+          utility_radius_ft?: number
+        }
+        Returns: Json
+      }
+      get_flood_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: {
+          bfe: number
+          bfe_unit: string
+          coastal_flag: boolean
+          dataset_version: string
+          effective_date: string
+          flood_zone: string
+          flood_zone_subtype: string
+          floodway_flag: boolean
+          most_restrictive: boolean
+          panel_id: string
+          static_bfe: number
+          zone_area_sqft: number
+          zone_pct: number
+        }[]
+      }
       get_latest_draft: {
         Args: { p_user_id: string }
         Returns: {
@@ -4280,6 +4306,76 @@ export type Database = {
           name: string
           refresh_frequency_hours: number
           tileset_key: string
+        }[]
+      }
+      get_transportation_for_parcel: {
+        Args: { parcel_geom: unknown; search_radius_ft?: number }
+        Returns: {
+          aadt: number
+          aadt_year: number
+          dataset_version: string
+          distance_ft: number
+          lanes: number
+          road_class: string
+          road_name: string
+          route_number: string
+          speed_limit: number
+          surface_type: string
+          truck_percent: number
+        }[]
+      }
+      get_utilities_for_parcel: {
+        Args: { parcel_geom: unknown; search_radius_ft?: number }
+        Returns: {
+          capacity: number
+          capacity_unit: string
+          dataset_version: string
+          diameter: number
+          diameter_unit: string
+          distance_ft: number
+          facility_id: string
+          install_year: number
+          line_id: string
+          material: string
+          owner: string
+          status: string
+          utility_type: string
+        }[]
+      }
+      get_wetlands_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: {
+          class: string
+          dataset_version: string
+          overlap_area_acres: number
+          overlap_area_sqft: number
+          overlap_pct: number
+          subclass: string
+          subsystem: string
+          system: string
+          water_regime: string
+          wetland_code: string
+          wetland_type: string
+        }[]
+      }
+      get_zoning_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: {
+          corner_setback: number
+          dataset_version: string
+          district_code: string
+          district_name: string
+          far: number
+          front_setback: number
+          height_limit: number
+          height_limit_stories: number
+          intersection_area_sqft: number
+          intersection_pct: number
+          lot_coverage: number
+          min_lot_size: number
+          overlay_flags: string[]
+          rear_setback: number
+          side_setback: number
         }[]
       }
       gettransactionid: { Args: never; Returns: unknown }
