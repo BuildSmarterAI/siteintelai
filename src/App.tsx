@@ -46,6 +46,12 @@ import PaymentHistory from "./pages/PaymentHistory";
 import BrandKit from "./pages/BrandKit";
 import ApiDocs from "./pages/ApiDocs";
 import SystemHealth from "./pages/admin/SystemHealth";
+import DocsIndex from "./pages/docs/DocsIndex";
+import DslSpecification from "./pages/docs/DslSpecification";
+import HoustonWorkflow from "./pages/docs/HoustonWorkflow";
+import TexasPipeline from "./pages/docs/TexasPipeline";
+import TileArchitecture from "./pages/docs/TileArchitecture";
+import CanonicalSchema from "./pages/docs/CanonicalSchema";
 
 const queryClient = new QueryClient();
 
@@ -53,9 +59,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isBetaPage = location.pathname === '/beta' || location.pathname === '/beta-signup' || location.pathname === '/beta-thank-you';
   const isFullscreenPage = location.pathname === '/investor-deck';
+  const isDocsPage = location.pathname.startsWith('/docs');
 
-  // Fullscreen pages render without any layout wrapper
-  if (isFullscreenPage) {
+  // Fullscreen pages and docs render without any layout wrapper
+  if (isFullscreenPage || isDocsPage) {
     return <>{children}</>;
   }
 
@@ -124,6 +131,13 @@ const App = () => (
               <Route path="/investor-deck" element={<InvestorDeck />} />
               <Route path="/brand-kit" element={<BrandKit />} />
               <Route path="/api-docs" element={<ApiDocs />} />
+              {/* Documentation Routes */}
+              <Route path="/docs" element={<DocsIndex />} />
+              <Route path="/docs/dsl-specification" element={<DslSpecification />} />
+              <Route path="/docs/houston-workflow" element={<HoustonWorkflow />} />
+              <Route path="/docs/texas-pipeline" element={<TexasPipeline />} />
+              <Route path="/docs/tile-architecture" element={<TileArchitecture />} />
+              <Route path="/docs/canonical-schema" element={<CanonicalSchema />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
