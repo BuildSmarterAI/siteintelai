@@ -87,16 +87,16 @@ const LAYER_CONFIGS: LayerConfig[] = [
   },
   {
     layer_key: 'houston_sewer_lines',
-    source_url: 'https://geogimstest.houstontx.gov/arcgis/rest/services/WastewaterUtilities/MapServer/24',
+    // Use production Houston Water GIS endpoint
+    source_url: 'https://www.houstonwatergis.org/arcgis/rest/services/CoHGIS/Wastewater_Sewer/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
-      // Corrected mappings matching utilities_canonical columns
       { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
-      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },  // FIXED: was pipe_diameter
-      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },    // FIXED: was pipe_material
+      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },
+      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },
       { source: 'STATUS', target: 'status', transform: 'lowercase' },
-      { source: 'INSTALL_DATE', target: 'install_date', transform: 'parse_date' },
-      { source: 'LENGTH', target: 'length_ft', transform: 'parse_float' },
+      { source: 'INSTALLDATE', target: 'install_date', transform: 'parse_date' },
+      { source: 'SHAPE_Length', target: 'length_ft', transform: 'parse_float' },
     ],
     constants: { 
       jurisdiction: 'Houston', 
@@ -104,20 +104,20 @@ const LAYER_CONFIGS: LayerConfig[] = [
       diameter_unit: 'inches',
       source_dataset: 'houston_sewer_lines' 
     },
-    max_records: 1000,
+    max_records: 500,
   },
   {
     layer_key: 'houston_water_lines',
-    source_url: 'https://geogimstest.houstontx.gov/arcgis/rest/services/WaterUtilities/MapServer/0',
+    // Use production Houston Water GIS endpoint
+    source_url: 'https://www.houstonwatergis.org/arcgis/rest/services/CoHGIS/Water_Distribution/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
-      // Corrected mappings matching utilities_canonical columns
       { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
-      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },  // FIXED: was pipe_diameter
-      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },    // FIXED: was pipe_material
-      { source: 'PRESSURE', target: 'pressure', transform: 'parse_float' },  // FIXED: was pressure_psi
+      { source: 'DIAMETER', target: 'diameter', transform: 'parse_float' },
+      { source: 'MATERIAL', target: 'material', transform: 'uppercase' },
+      { source: 'PRESSURE', target: 'pressure', transform: 'parse_float' },
       { source: 'STATUS', target: 'status', transform: 'lowercase' },
-      { source: 'LENGTH', target: 'length_ft', transform: 'parse_float' },
+      { source: 'SHAPE_Length', target: 'length_ft', transform: 'parse_float' },
     ],
     constants: { 
       jurisdiction: 'Houston', 
@@ -126,18 +126,19 @@ const LAYER_CONFIGS: LayerConfig[] = [
       pressure_unit: 'psi',
       source_dataset: 'houston_water_lines' 
     },
-    max_records: 1000,
+    max_records: 500,
   },
   {
     layer_key: 'fema_flood_zones',
+    // FEMA National Flood Hazard Layer - S_Fld_Haz_Ar layer
     source_url: 'https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28',
     target_table: 'fema_flood_canonical',
     field_mappings: [
       { source: 'FLD_ZONE', target: 'flood_zone', transform: 'uppercase' },
       { source: 'ZONE_SUBTY', target: 'flood_zone_subtype', transform: 'uppercase' },
       { source: 'STATIC_BFE', target: 'static_bfe', transform: 'parse_float' },
-      { source: 'BFE_ELEV', target: 'bfe', transform: 'parse_float' },
-      { source: 'FLOODWAY', target: 'floodway_flag', transform: 'parse_bool' },
+      { source: 'BFE_REVERT', target: 'bfe', transform: 'parse_float' },
+      { source: 'AR_REVERT', target: 'floodway_flag', transform: 'parse_bool' },
       { source: 'DFIRM_ID', target: 'panel_id', transform: 'trim' },
     ],
     constants: { 
@@ -146,29 +147,32 @@ const LAYER_CONFIGS: LayerConfig[] = [
       county: 'Harris',
       bfe_unit: 'NAVD88'
     },
-    max_records: 1000,
+    max_records: 500,
   },
   {
     layer_key: 'nwi_wetlands',
+    // NWI Wetlands service - uses WETLAND_TYPE field
     source_url: 'https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/0',
     target_table: 'wetlands_canonical',
     field_mappings: [
-      { source: 'ATTRIBUTE', target: 'wetland_code', transform: 'uppercase' },
+      // NWI uses WETLAND_TYPE as main classification
+      { source: 'WETLAND_TYPE', target: 'wetland_code', transform: 'uppercase' },
       { source: 'WETLAND_TYPE', target: 'wetland_type', transform: 'trim' },
       { source: 'ACRES', target: 'area_acres', transform: 'parse_float' },
     ],
     constants: { source_dataset: 'nwi_wetlands' },
-    max_records: 500,
+    max_records: 300,
   },
   {
     layer_key: 'txdot_aadt',
-    source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/AADT/FeatureServer/0',
+    // TxDOT AADT Feature Service
+    source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0',
     target_table: 'transportation_canonical',
     field_mappings: [
-      { source: 'AADT_RPT_QTY', target: 'aadt', transform: 'parse_float' },  // Changed to parse_float for numeric column
-      { source: 'AADT_RPT_YEAR', target: 'aadt_year', transform: 'parse_int' },
-      { source: 'RD_NM', target: 'road_name', transform: 'uppercase' },
-      { source: 'FUNC_CLASS', target: 'road_class', transform: 'trim' },
+      { source: 'T_FLAG', target: 'aadt', transform: 'parse_float' },
+      { source: 'YR', target: 'aadt_year', transform: 'parse_int' },
+      { source: 'RTE_NM', target: 'road_name', transform: 'uppercase' },
+      { source: 'F_SYSTEM', target: 'road_class', transform: 'trim' },
       { source: 'RTE_ID', target: 'route_number', transform: 'trim' },
     ],
     constants: { 
@@ -176,7 +180,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       jurisdiction: 'TxDOT',
       county: 'Harris'
     },
-    max_records: 1000,
+    max_records: 500,
   },
 ];
 
@@ -220,7 +224,7 @@ async function fetchArcGISFeatures(
     const queryUrl = `${sourceUrl}/query?${queryParams.toString()}`;
 
     try {
-      console.log(`[seed] Fetching offset ${offset}...`);
+      console.log(`[seed] Fetching offset ${offset}: ${queryUrl.slice(0, 150)}...`);
       const response = await fetch(queryUrl, {
         headers: {
           'Accept': 'application/json',
@@ -229,11 +233,17 @@ async function fetchArcGISFeatures(
       
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[seed] HTTP error ${response.status}: ${errorText.slice(0, 200)}`);
+        console.error(`[seed] HTTP error ${response.status}: ${errorText.slice(0, 500)}`);
         break;
       }
 
       const data = await response.json();
+      
+      // Log raw response structure for debugging
+      console.log(`[seed] Response keys: ${Object.keys(data).join(', ')}`);
+      if (data.features && data.features.length > 0) {
+        console.log(`[seed] Sample feature properties: ${Object.keys(data.features[0].properties || {}).join(', ')}`);
+      }
 
       if (data.error) {
         console.error(`[seed] API error:`, JSON.stringify(data.error));
@@ -372,6 +382,14 @@ async function seedLayer(
     for (const feature of features) {
       try {
         const mapped = applyFieldMappings(feature, config.field_mappings, config.constants);
+        
+        // Apply defaults for required NOT NULL columns based on table
+        if (config.target_table === 'wetlands_canonical') {
+          mapped.wetland_code = mapped.wetland_code || 'UNKNOWN';
+        }
+        if (config.target_table === 'fema_flood_canonical') {
+          mapped.flood_zone = mapped.flood_zone || 'X';  // Default to Zone X (minimal flood hazard)
+        }
         
         // Convert geometry to EWKT format for PostGIS
         const wkt = geometryToWKT(feature.geometry);
