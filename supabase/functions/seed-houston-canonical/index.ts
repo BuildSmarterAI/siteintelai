@@ -183,6 +183,77 @@ const LAYER_CONFIGS: LayerConfig[] = [
     },
     max_records: 500,
   },
+  // === NEW INFRASTRUCTURE LAYERS ===
+  {
+    layer_key: 'puct_ccn_water',
+    // PUCT CCN Water Service Areas via Harris County GIS mirror
+    source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/1',
+    target_table: 'utilities_ccn_canonical',
+    field_mappings: [
+      { source: 'CCN_NO', target: 'ccn_number', transform: 'trim' },
+      { source: 'UTILITY', target: 'utility_name', transform: 'trim' },
+      { source: 'DBA_NAME', target: 'dba_name', transform: 'trim' },
+      { source: 'COUNTY', target: 'county', transform: 'trim' },
+      { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'OBJECTID', target: 'source_feature_id', transform: 'trim' },
+    ],
+    constants: { 
+      ccn_type: 'water', 
+      state: 'TX',
+      source_system: 'PUCT_CCN',
+      source_layer: 'CCN_Water_Service_Areas',
+      accuracy_tier: 1,
+      boundary_confidence: 90
+    },
+    max_records: 500,
+  },
+  {
+    layer_key: 'puct_ccn_sewer',
+    // PUCT CCN Sewer Service Areas via Harris County GIS mirror
+    source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/2',
+    target_table: 'utilities_ccn_canonical',
+    field_mappings: [
+      { source: 'CCN_NO', target: 'ccn_number', transform: 'trim' },
+      { source: 'UTILITY', target: 'utility_name', transform: 'trim' },
+      { source: 'DBA_NAME', target: 'dba_name', transform: 'trim' },
+      { source: 'COUNTY', target: 'county', transform: 'trim' },
+      { source: 'STATUS', target: 'status', transform: 'lowercase' },
+      { source: 'OBJECTID', target: 'source_feature_id', transform: 'trim' },
+    ],
+    constants: { 
+      ccn_type: 'sewer', 
+      state: 'TX',
+      source_system: 'PUCT_CCN',
+      source_layer: 'CCN_Sewer_Service_Areas',
+      accuracy_tier: 1,
+      boundary_confidence: 90
+    },
+    max_records: 500,
+  },
+  {
+    layer_key: 'rrc_pipelines',
+    // Texas RRC Pipelines via Harris County GIS mirror
+    source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/TXRRC/Pipelines/MapServer/0',
+    target_table: 'pipelines_canonical',
+    field_mappings: [
+      { source: 'OPER_NM', target: 'operator_name', transform: 'trim' },
+      { source: 'SYS_NM', target: 'pipeline_system_name', transform: 'trim' },
+      { source: 'PLINE_ID', target: 'pipeline_segment_id', transform: 'trim' },
+      { source: 'COMMODITY1', target: 'commodity_type', transform: 'lowercase' },
+      { source: 'STATUS_CD', target: 'status', transform: 'lowercase' },
+      { source: 'DIAMETER', target: 'nominal_diameter_in', transform: 'parse_float' },
+      { source: 'INTERSTATE', target: 'jurisdiction', transform: 'trim' },
+      { source: 'OBJECTID', target: 'source_feature_id', transform: 'trim' },
+    ],
+    constants: { 
+      source_system: 'RRC_PIPELINES',
+      source_layer: 'Pipelines',
+      accuracy_tier: 2,
+      alignment_confidence: 70,
+      depth_confidence: 40
+    },
+    max_records: 500,
+  },
 ];
 
 interface SeedResult {

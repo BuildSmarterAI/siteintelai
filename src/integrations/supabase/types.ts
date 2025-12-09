@@ -1041,6 +1041,135 @@ export type Database = {
         }
         Relationships: []
       }
+      broadband_coverage_canonical: {
+        Row: {
+          accuracy_tier: number
+          coverage_confidence: number
+          coverage_status: string
+          created_at: string
+          dataset_version: string | null
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          max_down_mbps: number | null
+          max_up_mbps: number | null
+          provider_frn: string | null
+          provider_name: string
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version: string | null
+          technology: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accuracy_tier?: number
+          coverage_confidence?: number
+          coverage_status: string
+          created_at?: string
+          dataset_version?: string | null
+          geom: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          max_down_mbps?: number | null
+          max_up_mbps?: number | null
+          provider_frn?: string | null
+          provider_name: string
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version?: string | null
+          technology: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accuracy_tier?: number
+          coverage_confidence?: number
+          coverage_status?: string
+          created_at?: string
+          dataset_version?: string | null
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          max_down_mbps?: number | null
+          max_up_mbps?: number | null
+          provider_frn?: string | null
+          provider_name?: string
+          source_feature_id?: string
+          source_layer?: string
+          source_system?: string
+          source_version?: string | null
+          technology?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      broadband_routes_canonical: {
+        Row: {
+          accuracy_tier: number
+          alignment_confidence: number
+          created_at: string
+          dataset_version: string | null
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          lit_status: string
+          owner_name: string | null
+          route_name: string | null
+          route_type: string
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accuracy_tier?: number
+          alignment_confidence?: number
+          created_at?: string
+          dataset_version?: string | null
+          geom: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          lit_status?: string
+          owner_name?: string | null
+          route_name?: string | null
+          route_type: string
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accuracy_tier?: number
+          alignment_confidence?: number
+          created_at?: string
+          dataset_version?: string | null
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          lit_status?: string
+          owner_name?: string | null
+          route_name?: string | null
+          route_type?: string
+          source_feature_id?: string
+          source_layer?: string
+          source_system?: string
+          source_version?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       cost_schedule_data: {
         Row: {
           complexity_factor: number | null
@@ -1289,6 +1418,45 @@ export type Database = {
           },
         ]
       }
+      dataset_metadata: {
+        Row: {
+          created_at: string
+          dataset_key: string
+          default_accuracy_tier: number
+          default_confidence: number
+          description: string | null
+          display_name: string
+          id: number
+          source_authority: string | null
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dataset_key: string
+          default_accuracy_tier: number
+          default_confidence: number
+          description?: string | null
+          display_name: string
+          id?: number
+          source_authority?: string | null
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dataset_key?: string
+          default_accuracy_tier?: number
+          default_confidence?: number
+          description?: string | null
+          display_name?: string
+          id?: number
+          source_authority?: string | null
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       datasets: {
         Row: {
           created_at: string
@@ -1398,6 +1566,78 @@ export type Database = {
             referencedColumns: ["application_id"]
           },
         ]
+      }
+      electric_service_areas_canonical: {
+        Row: {
+          accuracy_tier: number
+          boundary_confidence: number
+          created_at: string
+          dataset_version: string | null
+          eia_utility_id: string | null
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          is_approximate: boolean
+          service_area_code: string | null
+          service_area_name: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version: string | null
+          state: string | null
+          tenant_id: string | null
+          updated_at: string
+          utility_abbrev: string | null
+          utility_name: string
+          utility_type: string
+        }
+        Insert: {
+          accuracy_tier?: number
+          boundary_confidence?: number
+          created_at?: string
+          dataset_version?: string | null
+          eia_utility_id?: string | null
+          geom: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          is_approximate?: boolean
+          service_area_code?: string | null
+          service_area_name?: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version?: string | null
+          state?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          utility_abbrev?: string | null
+          utility_name: string
+          utility_type: string
+        }
+        Update: {
+          accuracy_tier?: number
+          boundary_confidence?: number
+          created_at?: string
+          dataset_version?: string | null
+          eia_utility_id?: string | null
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          is_approximate?: boolean
+          service_area_code?: string | null
+          service_area_name?: string | null
+          source_feature_id?: string
+          source_layer?: string
+          source_system?: string
+          source_version?: string | null
+          state?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          utility_abbrev?: string | null
+          utility_name?: string
+          utility_type?: string
+        }
+        Relationships: []
       }
       error_registry: {
         Row: {
@@ -2596,6 +2836,90 @@ export type Database = {
           },
         ]
       }
+      pipelines_canonical: {
+        Row: {
+          accuracy_tier: number
+          alignment_confidence: number
+          commodity_type: string
+          created_at: string
+          dataset_version: string | null
+          depth_confidence: number
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          installation_year: number | null
+          jurisdiction: string | null
+          material: string | null
+          max_operating_pressure_psi: number | null
+          nominal_diameter_in: number | null
+          operator_name: string | null
+          pipeline_segment_id: string | null
+          pipeline_system_name: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          wall_thickness_in: number | null
+        }
+        Insert: {
+          accuracy_tier?: number
+          alignment_confidence?: number
+          commodity_type?: string
+          created_at?: string
+          dataset_version?: string | null
+          depth_confidence?: number
+          geom: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          installation_year?: number | null
+          jurisdiction?: string | null
+          material?: string | null
+          max_operating_pressure_psi?: number | null
+          nominal_diameter_in?: number | null
+          operator_name?: string | null
+          pipeline_segment_id?: string | null
+          pipeline_system_name?: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          wall_thickness_in?: number | null
+        }
+        Update: {
+          accuracy_tier?: number
+          alignment_confidence?: number
+          commodity_type?: string
+          created_at?: string
+          dataset_version?: string | null
+          depth_confidence?: number
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          installation_year?: number | null
+          jurisdiction?: string | null
+          material?: string | null
+          max_operating_pressure_psi?: number | null
+          nominal_diameter_in?: number | null
+          operator_name?: string | null
+          pipeline_segment_id?: string | null
+          pipeline_system_name?: string | null
+          source_feature_id?: string
+          source_layer?: string
+          source_system?: string
+          source_version?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          wall_thickness_in?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -3466,6 +3790,90 @@ export type Database = {
         }
         Relationships: []
       }
+      utilities_ccn_canonical: {
+        Row: {
+          accuracy_tier: number
+          boundary_confidence: number
+          ccn_number: string
+          ccn_type: string
+          county: string | null
+          created_at: string
+          dataset_version: string | null
+          dba_name: string | null
+          effective_date: string | null
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          jurisdiction_name: string | null
+          pws_id: string | null
+          retired_date: string | null
+          service_area_name: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version: string | null
+          state: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          utility_name: string
+        }
+        Insert: {
+          accuracy_tier?: number
+          boundary_confidence?: number
+          ccn_number: string
+          ccn_type: string
+          county?: string | null
+          created_at?: string
+          dataset_version?: string | null
+          dba_name?: string | null
+          effective_date?: string | null
+          geom: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          jurisdiction_name?: string | null
+          pws_id?: string | null
+          retired_date?: string | null
+          service_area_name?: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version?: string | null
+          state?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          utility_name: string
+        }
+        Update: {
+          accuracy_tier?: number
+          boundary_confidence?: number
+          ccn_number?: string
+          ccn_type?: string
+          county?: string | null
+          created_at?: string
+          dataset_version?: string | null
+          dba_name?: string | null
+          effective_date?: string | null
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          jurisdiction_name?: string | null
+          pws_id?: string | null
+          retired_date?: string | null
+          service_area_name?: string | null
+          source_feature_id?: string
+          source_layer?: string
+          source_system?: string
+          source_version?: string | null
+          state?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          utility_name?: string
+        }
+        Relationships: []
+      }
       utility_endpoints: {
         Row: {
           geometry_type: string
@@ -3540,6 +3948,90 @@ export type Database = {
             referencedColumns: ["application_id"]
           },
         ]
+      }
+      wells_canonical: {
+        Row: {
+          accuracy_tier: number
+          api_number: string | null
+          completion_date: string | null
+          created_at: string
+          dataset_version: string | null
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          last_report_date: string | null
+          lease_name: string | null
+          location_confidence: number
+          operator_name: string | null
+          plug_date: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version: string | null
+          spud_date: string | null
+          status: string
+          surface_elevation_ft: number | null
+          tenant_id: string | null
+          total_depth_ft: number | null
+          updated_at: string
+          well_name: string | null
+          well_type: string
+        }
+        Insert: {
+          accuracy_tier?: number
+          api_number?: string | null
+          completion_date?: string | null
+          created_at?: string
+          dataset_version?: string | null
+          geom: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          last_report_date?: string | null
+          lease_name?: string | null
+          location_confidence?: number
+          operator_name?: string | null
+          plug_date?: string | null
+          source_feature_id: string
+          source_layer: string
+          source_system: string
+          source_version?: string | null
+          spud_date?: string | null
+          status?: string
+          surface_elevation_ft?: number | null
+          tenant_id?: string | null
+          total_depth_ft?: number | null
+          updated_at?: string
+          well_name?: string | null
+          well_type?: string
+        }
+        Update: {
+          accuracy_tier?: number
+          api_number?: string | null
+          completion_date?: string | null
+          created_at?: string
+          dataset_version?: string | null
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          last_report_date?: string | null
+          lease_name?: string | null
+          location_confidence?: number
+          operator_name?: string | null
+          plug_date?: string | null
+          source_feature_id?: string
+          source_layer?: string
+          source_system?: string
+          source_version?: string | null
+          spud_date?: string | null
+          status?: string
+          surface_elevation_ft?: number | null
+          tenant_id?: string | null
+          total_depth_ft?: number | null
+          updated_at?: string
+          well_name?: string | null
+          well_type?: string
+        }
+        Relationships: []
       }
       wetlands_canonical: {
         Row: {
@@ -4247,6 +4739,46 @@ export type Database = {
         }
         Returns: Json
       }
+      get_broadband_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: {
+          accuracy_tier: number
+          coverage_confidence: number
+          coverage_status: string
+          dataset_version: string
+          max_down_mbps: number
+          max_up_mbps: number
+          provider_name: string
+          technology: string
+        }[]
+      }
+      get_ccn_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: {
+          accuracy_tier: number
+          boundary_confidence: number
+          ccn_number: string
+          ccn_type: string
+          dataset_version: string
+          distance_ft: number
+          service_area_name: string
+          status: string
+          utility_name: string
+        }[]
+      }
+      get_electric_service_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: {
+          accuracy_tier: number
+          boundary_confidence: number
+          dataset_version: string
+          is_approximate: boolean
+          service_area_name: string
+          utility_abbrev: string
+          utility_name: string
+          utility_type: string
+        }[]
+      }
       get_flood_for_parcel: {
         Args: { parcel_geom: unknown }
         Returns: {
@@ -4264,6 +4796,10 @@ export type Database = {
           zone_area_sqft: number
           zone_pct: number
         }[]
+      }
+      get_infrastructure_constraints_for_parcel: {
+        Args: { parcel_geom: unknown }
+        Returns: Json
       }
       get_latest_draft: {
         Args: { p_user_id: string }
@@ -4302,6 +4838,20 @@ export type Database = {
         }
       }
       get_override_stats: { Args: { p_application_id: string }; Returns: Json }
+      get_pipelines_near_parcel: {
+        Args: { parcel_geom: unknown; search_radius_ft?: number }
+        Returns: {
+          accuracy_tier: number
+          commodity_type: string
+          dataset_version: string
+          distance_ft: number
+          material: string
+          nominal_diameter_in: number
+          operator_name: string
+          pipeline_segment_id: string
+          status: string
+        }[]
+      }
       get_stale_tilesets: {
         Args: never
         Returns: {
@@ -4344,6 +4894,20 @@ export type Database = {
           owner: string
           status: string
           utility_type: string
+        }[]
+      }
+      get_wells_near_parcel: {
+        Args: { parcel_geom: unknown; search_radius_ft?: number }
+        Returns: {
+          accuracy_tier: number
+          api_number: string
+          dataset_version: string
+          distance_ft: number
+          operator_name: string
+          status: string
+          total_depth_ft: number
+          well_name: string
+          well_type: string
         }[]
       }
       get_wetlands_for_parcel: {
