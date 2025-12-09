@@ -1418,6 +1418,94 @@ export type Database = {
           },
         ]
       }
+      data_source_errors: {
+        Row: {
+          endpoint_url: string | null
+          error_message: string | null
+          error_type: string
+          id: string
+          layer_id: number | null
+          map_server_id: string
+          occurred_at: string | null
+          status_code: number | null
+        }
+        Insert: {
+          endpoint_url?: string | null
+          error_message?: string | null
+          error_type: string
+          id?: string
+          layer_id?: number | null
+          map_server_id: string
+          occurred_at?: string | null
+          status_code?: number | null
+        }
+        Update: {
+          endpoint_url?: string | null
+          error_message?: string | null
+          error_type?: string
+          id?: string
+          layer_id?: number | null
+          map_server_id?: string
+          occurred_at?: string | null
+          status_code?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_errors_map_server_id_fkey"
+            columns: ["map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_source_versions: {
+        Row: {
+          created_at: string | null
+          dataset_version: string
+          diff_from_previous: Json | null
+          field_schema: Json | null
+          id: string
+          ingested_at: string | null
+          ingestion_run_id: string | null
+          map_server_id: string
+          record_count: number | null
+          schema_hash: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dataset_version: string
+          diff_from_previous?: Json | null
+          field_schema?: Json | null
+          id?: string
+          ingested_at?: string | null
+          ingestion_run_id?: string | null
+          map_server_id: string
+          record_count?: number | null
+          schema_hash?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dataset_version?: string
+          diff_from_previous?: Json | null
+          field_schema?: Json | null
+          id?: string
+          ingested_at?: string | null
+          ingestion_run_id?: string | null
+          map_server_id?: string
+          record_count?: number | null
+          schema_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_source_versions_map_server_id_fkey"
+            columns: ["map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dataset_metadata: {
         Row: {
           created_at: string
@@ -2359,74 +2447,95 @@ export type Database = {
       }
       map_servers: {
         Row: {
+          accuracy_tier: string | null
+          agency: string | null
           auth_config: Json | null
           auth_required: boolean | null
           base_url: string
           created_at: string
+          dataset_family: string | null
           health_status: string | null
           id: string
+          ingestion_run_id: string | null
           is_active: boolean | null
           jurisdiction: string
           last_health_check: string | null
           last_sync_at: string | null
           max_record_count: number | null
           metadata: Json | null
+          notes: string | null
           priority: number | null
           provider: string
+          reliability_score: number | null
           server_key: string
           service_type: string
           spatial_reference: number | null
           supports_geojson: boolean | null
           supports_pagination: boolean | null
           sync_frequency_hours: number | null
+          update_frequency: string | null
           updated_at: string
           version: string | null
         }
         Insert: {
+          accuracy_tier?: string | null
+          agency?: string | null
           auth_config?: Json | null
           auth_required?: boolean | null
           base_url: string
           created_at?: string
+          dataset_family?: string | null
           health_status?: string | null
           id?: string
+          ingestion_run_id?: string | null
           is_active?: boolean | null
           jurisdiction: string
           last_health_check?: string | null
           last_sync_at?: string | null
           max_record_count?: number | null
           metadata?: Json | null
+          notes?: string | null
           priority?: number | null
           provider: string
+          reliability_score?: number | null
           server_key: string
           service_type?: string
           spatial_reference?: number | null
           supports_geojson?: boolean | null
           supports_pagination?: boolean | null
           sync_frequency_hours?: number | null
+          update_frequency?: string | null
           updated_at?: string
           version?: string | null
         }
         Update: {
+          accuracy_tier?: string | null
+          agency?: string | null
           auth_config?: Json | null
           auth_required?: boolean | null
           base_url?: string
           created_at?: string
+          dataset_family?: string | null
           health_status?: string | null
           id?: string
+          ingestion_run_id?: string | null
           is_active?: boolean | null
           jurisdiction?: string
           last_health_check?: string | null
           last_sync_at?: string | null
           max_record_count?: number | null
           metadata?: Json | null
+          notes?: string | null
           priority?: number | null
           provider?: string
+          reliability_score?: number | null
           server_key?: string
           service_type?: string
           spatial_reference?: number | null
           supports_geojson?: boolean | null
           supports_pagination?: boolean | null
           sync_frequency_hours?: number | null
+          update_frequency?: string | null
           updated_at?: string
           version?: string | null
         }
