@@ -4102,6 +4102,10 @@ export type Database = {
           }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      execute_canonical_insert: {
+        Args: { p_records: Json; p_table: string }
+        Returns: Json
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }

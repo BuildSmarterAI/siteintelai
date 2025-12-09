@@ -66,10 +66,10 @@ const LAYER_CONFIGS: LayerConfig[] = [
     target_table: 'parcels_canonical',
     field_mappings: [
       // Corrected mappings matching parcels_canonical columns
+      // NOTE: lot_size_acres is GENERATED column - don't insert, only lot_size_sqft
       { source: 'ACCT_NUM', target: 'parcel_id', transform: 'trim' },
       { source: 'owner_name_1', target: 'owner_name', transform: 'uppercase' },
-      { source: 'SITUS_ADDR', target: 'situs_address', transform: 'trim' },  // FIXED: was site_address
-      { source: 'acreage_1', target: 'lot_size_acres', transform: 'parse_float' },  // FIXED: was acreage
+      { source: 'SITUS_ADDR', target: 'situs_address', transform: 'trim' },
       { source: 'land_sqft', target: 'lot_size_sqft', transform: 'parse_float' },
       { source: 'tot_market_val', target: 'total_value', transform: 'parse_int' },
       { source: 'land_val', target: 'land_value', transform: 'parse_int' },
@@ -84,7 +84,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       county: 'Harris',
       source_dataset: 'houston_parcels' 
     },
-    max_records: 1000, // Start small for testing
+    max_records: 500, // Smaller for testing
   },
   {
     layer_key: 'houston_sewer_lines',
@@ -198,44 +198,46 @@ async function fetchArcGISFeatures(
 ): Promise<any[]> {
   const allFeatures: any[] = [];
   let offset = 0;
-  const batchSize = Math.min(500, maxRecords);
+  const batchSize = Math.min(200, maxRecords); // Smaller batches for reliability
 
   console.log(`[seed] Fetching from ${sourceUrl}`);
 
   while (allFeatures.length < maxRecords) {
-    const geometry = encodeURIComponent(JSON.stringify({
-      xmin: bbox.xmin,
-      ymin: bbox.ymin,
-      xmax: bbox.xmax,
-      ymax: bbox.ymax,
-      spatialReference: { wkid: 4326 }
-    }));
+    // Simpler query format that works with more ArcGIS servers
+    const queryParams = new URLSearchParams({
+      where: '1=1',
+      geometry: `${bbox.xmin},${bbox.ymin},${bbox.xmax},${bbox.ymax}`,
+      geometryType: 'esriGeometryEnvelope',
+      inSR: '4326',
+      outSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: '*',
+      returnGeometry: 'true',
+      f: 'geojson',
+      resultOffset: String(offset),
+      resultRecordCount: String(batchSize),
+    });
 
-    const queryUrl = `${sourceUrl}/query?` +
-      `where=1=1` +
-      `&geometry=${geometry}` +
-      `&geometryType=esriGeometryEnvelope` +
-      `&inSR=4326` +
-      `&outSR=4326` +
-      `&spatialRel=esriSpatialRelIntersects` +
-      `&outFields=*` +
-      `&returnGeometry=true` +
-      `&f=geojson` +
-      `&resultOffset=${offset}` +
-      `&resultRecordCount=${batchSize}`;
+    const queryUrl = `${sourceUrl}/query?${queryParams.toString()}`;
 
     try {
-      const response = await fetch(queryUrl);
+      console.log(`[seed] Fetching offset ${offset}...`);
+      const response = await fetch(queryUrl, {
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
       
       if (!response.ok) {
-        console.error(`[seed] HTTP error: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`[seed] HTTP error ${response.status}: ${errorText.slice(0, 200)}`);
         break;
       }
 
       const data = await response.json();
 
       if (data.error) {
-        console.error(`[seed] API error:`, data.error);
+        console.error(`[seed] API error:`, JSON.stringify(data.error));
         break;
       }
 
@@ -251,7 +253,7 @@ async function fetchArcGISFeatures(
       if (features.length < batchSize) break;
       
       // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 400));
     } catch (err) {
       console.error(`[seed] Fetch error:`, err);
       break;
