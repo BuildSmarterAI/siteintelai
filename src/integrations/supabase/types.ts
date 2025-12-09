@@ -1513,6 +1513,78 @@ export type Database = {
         }
         Relationships: []
       }
+      fema_flood_canonical: {
+        Row: {
+          bfe: number | null
+          bfe_unit: string | null
+          coastal_flag: boolean | null
+          county: string | null
+          created_at: string | null
+          dataset_version: string
+          effective_date: string | null
+          etl_job_id: string | null
+          flood_zone: string
+          flood_zone_subtype: string | null
+          floodway_flag: boolean | null
+          geom: unknown
+          id: number
+          jurisdiction: string | null
+          mapserver_id: string | null
+          panel_id: string | null
+          source_dataset: string | null
+          source_layer_id: string | null
+          state: string | null
+          static_bfe: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          bfe?: number | null
+          bfe_unit?: string | null
+          coastal_flag?: boolean | null
+          county?: string | null
+          created_at?: string | null
+          dataset_version: string
+          effective_date?: string | null
+          etl_job_id?: string | null
+          flood_zone: string
+          flood_zone_subtype?: string | null
+          floodway_flag?: boolean | null
+          geom: unknown
+          id?: number
+          jurisdiction?: string | null
+          mapserver_id?: string | null
+          panel_id?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          state?: string | null
+          static_bfe?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          bfe?: number | null
+          bfe_unit?: string | null
+          coastal_flag?: boolean | null
+          county?: string | null
+          created_at?: string | null
+          dataset_version?: string
+          effective_date?: string | null
+          etl_job_id?: string | null
+          flood_zone?: string
+          flood_zone_subtype?: string | null
+          floodway_flag?: boolean | null
+          geom?: unknown
+          id?: number
+          jurisdiction?: string | null
+          mapserver_id?: string | null
+          panel_id?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          state?: string | null
+          static_bfe?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       fema_flood_zones: {
         Row: {
           created_at: string
@@ -2135,6 +2207,96 @@ export type Database = {
             referencedColumns: ["county_id"]
           },
         ]
+      }
+      parcels_canonical: {
+        Row: {
+          apn: string | null
+          centroid: unknown
+          city: string | null
+          county: string | null
+          created_at: string | null
+          dataset_version: string
+          etl_job_id: string | null
+          geom: unknown
+          id: number
+          improvement_value: number | null
+          jurisdiction: string
+          land_use_code: string | null
+          land_value: number | null
+          lot_size_acres: number | null
+          lot_size_sqft: number | null
+          mapserver_id: string | null
+          owner_address: string | null
+          owner_name: string | null
+          parcel_id: string
+          situs_address: string | null
+          source_dataset: string | null
+          source_layer_id: string | null
+          state: string | null
+          total_value: number | null
+          updated_at: string | null
+          zip: string | null
+          zoning_code: string | null
+        }
+        Insert: {
+          apn?: string | null
+          centroid?: unknown
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          dataset_version: string
+          etl_job_id?: string | null
+          geom: unknown
+          id?: number
+          improvement_value?: number | null
+          jurisdiction: string
+          land_use_code?: string | null
+          land_value?: number | null
+          lot_size_acres?: number | null
+          lot_size_sqft?: number | null
+          mapserver_id?: string | null
+          owner_address?: string | null
+          owner_name?: string | null
+          parcel_id: string
+          situs_address?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          state?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          zip?: string | null
+          zoning_code?: string | null
+        }
+        Update: {
+          apn?: string | null
+          centroid?: unknown
+          city?: string | null
+          county?: string | null
+          created_at?: string | null
+          dataset_version?: string
+          etl_job_id?: string | null
+          geom?: unknown
+          id?: number
+          improvement_value?: number | null
+          jurisdiction?: string
+          land_use_code?: string | null
+          land_value?: number | null
+          lot_size_acres?: number | null
+          lot_size_sqft?: number | null
+          mapserver_id?: string | null
+          owner_address?: string | null
+          owner_name?: string | null
+          parcel_id?: string
+          situs_address?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          state?: string | null
+          total_value?: number | null
+          updated_at?: string | null
+          zip?: string | null
+          zoning_code?: string | null
+        }
+        Relationships: []
       }
       payment_history: {
         Row: {
@@ -2761,6 +2923,75 @@ export type Database = {
           },
         ]
       }
+      transportation_canonical: {
+        Row: {
+          aadt: number | null
+          aadt_year: number | null
+          county: string | null
+          created_at: string | null
+          dataset_version: string
+          etl_job_id: string | null
+          geom: unknown
+          id: number
+          jurisdiction: string | null
+          lanes: number | null
+          mapserver_id: string | null
+          road_class: string | null
+          road_name: string | null
+          route_number: string | null
+          source_dataset: string | null
+          source_layer_id: string | null
+          speed_limit: number | null
+          surface_type: string | null
+          truck_percent: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          aadt?: number | null
+          aadt_year?: number | null
+          county?: string | null
+          created_at?: string | null
+          dataset_version: string
+          etl_job_id?: string | null
+          geom: unknown
+          id?: number
+          jurisdiction?: string | null
+          lanes?: number | null
+          mapserver_id?: string | null
+          road_class?: string | null
+          road_name?: string | null
+          route_number?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          speed_limit?: number | null
+          surface_type?: string | null
+          truck_percent?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          aadt?: number | null
+          aadt_year?: number | null
+          county?: string | null
+          created_at?: string | null
+          dataset_version?: string
+          etl_job_id?: string | null
+          geom?: unknown
+          id?: number
+          jurisdiction?: string | null
+          lanes?: number | null
+          mapserver_id?: string | null
+          road_class?: string | null
+          road_name?: string | null
+          route_number?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          speed_limit?: number | null
+          surface_type?: string | null
+          truck_percent?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       txdot_traffic_segments: {
         Row: {
           aadt: number | null
@@ -2898,6 +3129,96 @@ export type Database = {
           },
         ]
       }
+      utilities_canonical: {
+        Row: {
+          capacity: number | null
+          capacity_unit: string | null
+          created_at: string | null
+          dataset_version: string
+          depth: number | null
+          diameter: number | null
+          diameter_unit: string | null
+          etl_job_id: string | null
+          facility_id: string | null
+          geom: unknown
+          id: number
+          install_date: string | null
+          install_year: number | null
+          jurisdiction: string
+          length_ft: number | null
+          line_id: string | null
+          mapserver_id: string | null
+          material: string | null
+          operator: string | null
+          owner: string | null
+          pressure: number | null
+          pressure_unit: string | null
+          source_dataset: string | null
+          source_layer_id: string | null
+          status: string | null
+          updated_at: string | null
+          utility_type: string
+        }
+        Insert: {
+          capacity?: number | null
+          capacity_unit?: string | null
+          created_at?: string | null
+          dataset_version: string
+          depth?: number | null
+          diameter?: number | null
+          diameter_unit?: string | null
+          etl_job_id?: string | null
+          facility_id?: string | null
+          geom: unknown
+          id?: number
+          install_date?: string | null
+          install_year?: number | null
+          jurisdiction: string
+          length_ft?: number | null
+          line_id?: string | null
+          mapserver_id?: string | null
+          material?: string | null
+          operator?: string | null
+          owner?: string | null
+          pressure?: number | null
+          pressure_unit?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          utility_type: string
+        }
+        Update: {
+          capacity?: number | null
+          capacity_unit?: string | null
+          created_at?: string | null
+          dataset_version?: string
+          depth?: number | null
+          diameter?: number | null
+          diameter_unit?: string | null
+          etl_job_id?: string | null
+          facility_id?: string | null
+          geom?: unknown
+          id?: number
+          install_date?: string | null
+          install_year?: number | null
+          jurisdiction?: string
+          length_ft?: number | null
+          line_id?: string | null
+          mapserver_id?: string | null
+          material?: string | null
+          operator?: string | null
+          owner?: string | null
+          pressure?: number | null
+          pressure_unit?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          utility_type?: string
+        }
+        Relationships: []
+      }
       utility_endpoints: {
         Row: {
           geometry_type: string
@@ -2972,6 +3293,159 @@ export type Database = {
             referencedColumns: ["application_id"]
           },
         ]
+      }
+      wetlands_canonical: {
+        Row: {
+          area_acres: number | null
+          class: string | null
+          created_at: string | null
+          dataset_version: string
+          etl_job_id: string | null
+          geom: unknown
+          id: number
+          mapserver_id: string | null
+          source_dataset: string | null
+          source_layer_id: string | null
+          special_modifier: string | null
+          subclass: string | null
+          subsystem: string | null
+          system: string | null
+          updated_at: string | null
+          water_regime: string | null
+          wetland_code: string
+          wetland_type: string | null
+        }
+        Insert: {
+          area_acres?: number | null
+          class?: string | null
+          created_at?: string | null
+          dataset_version: string
+          etl_job_id?: string | null
+          geom: unknown
+          id?: number
+          mapserver_id?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          special_modifier?: string | null
+          subclass?: string | null
+          subsystem?: string | null
+          system?: string | null
+          updated_at?: string | null
+          water_regime?: string | null
+          wetland_code: string
+          wetland_type?: string | null
+        }
+        Update: {
+          area_acres?: number | null
+          class?: string | null
+          created_at?: string | null
+          dataset_version?: string
+          etl_job_id?: string | null
+          geom?: unknown
+          id?: number
+          mapserver_id?: string | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          special_modifier?: string | null
+          subclass?: string | null
+          subsystem?: string | null
+          system?: string | null
+          updated_at?: string | null
+          water_regime?: string | null
+          wetland_code?: string
+          wetland_type?: string | null
+        }
+        Relationships: []
+      }
+      zoning_canonical: {
+        Row: {
+          conditional_uses: string | null
+          corner_setback: number | null
+          created_at: string | null
+          dataset_version: string
+          district_code: string
+          district_name: string | null
+          etl_job_id: string | null
+          far: number | null
+          front_setback: number | null
+          geom: unknown
+          height_limit: number | null
+          height_limit_stories: number | null
+          id: number
+          jurisdiction: string
+          lot_coverage: number | null
+          mapserver_id: string | null
+          min_lot_depth: number | null
+          min_lot_size: number | null
+          min_lot_width: number | null
+          overlay_flags: string[] | null
+          permitted_uses: string | null
+          prohibited_uses: string | null
+          rear_setback: number | null
+          side_setback: number | null
+          source_dataset: string | null
+          source_layer_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          conditional_uses?: string | null
+          corner_setback?: number | null
+          created_at?: string | null
+          dataset_version: string
+          district_code: string
+          district_name?: string | null
+          etl_job_id?: string | null
+          far?: number | null
+          front_setback?: number | null
+          geom: unknown
+          height_limit?: number | null
+          height_limit_stories?: number | null
+          id?: number
+          jurisdiction: string
+          lot_coverage?: number | null
+          mapserver_id?: string | null
+          min_lot_depth?: number | null
+          min_lot_size?: number | null
+          min_lot_width?: number | null
+          overlay_flags?: string[] | null
+          permitted_uses?: string | null
+          prohibited_uses?: string | null
+          rear_setback?: number | null
+          side_setback?: number | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          conditional_uses?: string | null
+          corner_setback?: number | null
+          created_at?: string | null
+          dataset_version?: string
+          district_code?: string
+          district_name?: string | null
+          etl_job_id?: string | null
+          far?: number | null
+          front_setback?: number | null
+          geom?: unknown
+          height_limit?: number | null
+          height_limit_stories?: number | null
+          id?: number
+          jurisdiction?: string
+          lot_coverage?: number | null
+          mapserver_id?: string | null
+          min_lot_depth?: number | null
+          min_lot_size?: number | null
+          min_lot_width?: number | null
+          overlay_flags?: string[] | null
+          permitted_uses?: string | null
+          prohibited_uses?: string | null
+          rear_setback?: number | null
+          side_setback?: number | null
+          source_dataset?: string | null
+          source_layer_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {
