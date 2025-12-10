@@ -28,6 +28,18 @@ interface LayerVersion {
   is_active: boolean;
 }
 
+// ArcGIS query configuration
+const ARCGIS_QUERY_PARAMS = {
+  where: '1=1',
+  outFields: '*',
+  f: 'geojson',
+  resultRecordCount: '2000',
+  returnGeometry: 'true',
+  outSR: '4326'
+};
+
+const MAX_PAGINATION_ITERATIONS = 50; // Safety limit
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -94,10 +106,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 4: Fetch from external source
-    console.log(`[gis-fetch] Fetching from: ${layer.source_url}`);
+    // Step 4: Build proper fetch URL based on endpoint type
+    const fetchUrl = buildFetchUrl(layer.source_url);
+    const isArcGIS = isArcGISEndpoint(layer.source_url);
+    
+    console.log(`[gis-fetch] Fetching from: ${fetchUrl} (ArcGIS: ${isArcGIS})`);
+    
     const fetchHeaders: Record<string, string> = {
       'Accept': 'application/json, application/geo+json',
+      'User-Agent': 'SiteIntel-GIS-Fetcher/1.0',
     };
 
     // Add ETag for conditional requests
@@ -105,60 +122,82 @@ Deno.serve(async (req) => {
       fetchHeaders['If-None-Match'] = latestVersion.etag;
     }
 
-    const response = await fetch(layer.source_url, { headers: fetchHeaders });
-
-    // Step 5: Handle 304 Not Modified
-    if (response.status === 304) {
-      console.log('[gis-fetch] Source returned 304 Not Modified');
-      
-      // Extend expiry
-      const newExpiresAt = calculateExpiryDate(layer.update_policy.frequency);
-      await supabase
-        .from('gis_layer_versions')
-        .update({ expires_at: newExpiresAt.toISOString() })
-        .eq('id', latestVersion!.id);
-
-      await logFetch(supabase, layer.id, latestVersion!.id, 'unchanged', 304, 0, Date.now() - startTime, null);
-
-      return new Response(
-        JSON.stringify({
-          status: 'unchanged',
-          message: 'Source data not modified (304)',
-          version_id: latestVersion!.id
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!response.ok) {
-      const errorMsg = `HTTP ${response.status}: ${response.statusText}`;
-      console.error('[gis-fetch] Fetch failed:', errorMsg);
-      await logFetch(supabase, layer.id, null, 'error', response.status, 0, Date.now() - startTime, errorMsg);
-      
-      return new Response(
-        JSON.stringify({ error: errorMsg }),
-        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Step 6: Parse and normalize GeoJSON
-    const rawData = await response.text();
-    const dataSize = new TextEncoder().encode(rawData).length;
-    const newEtag = response.headers.get('etag');
-
     let geojson: any;
-    try {
-      geojson = JSON.parse(rawData);
-      geojson = normalizeGeoJSON(geojson);
-    } catch (e) {
-      const errorMsg = `Invalid GeoJSON: ${e.message}`;
-      console.error('[gis-fetch]', errorMsg);
-      await logFetch(supabase, layer.id, null, 'error', response.status, dataSize, Date.now() - startTime, errorMsg);
+    let totalRecordCount = 0;
+    let dataSize = 0;
+    let newEtag: string | null = null;
+
+    if (isArcGIS) {
+      // Fetch with pagination for ArcGIS
+      const result = await fetchArcGISWithPagination(fetchUrl, fetchHeaders);
+      geojson = result.geojson;
+      totalRecordCount = result.totalRecords;
+      dataSize = result.dataSize;
+      newEtag = result.etag;
       
-      return new Response(
-        JSON.stringify({ error: errorMsg }),
-        { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (result.error) {
+        console.error('[gis-fetch] ArcGIS fetch failed:', result.error);
+        await logFetch(supabase, layer.id, null, 'error', result.httpStatus || 500, 0, Date.now() - startTime, result.error);
+        return new Response(
+          JSON.stringify({ error: result.error }),
+          { status: result.httpStatus || 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else {
+      // Standard fetch for non-ArcGIS endpoints
+      const response = await fetch(fetchUrl, { headers: fetchHeaders });
+
+      // Handle 304 Not Modified
+      if (response.status === 304) {
+        console.log('[gis-fetch] Source returned 304 Not Modified');
+        
+        const newExpiresAt = calculateExpiryDate(layer.update_policy.frequency);
+        await supabase
+          .from('gis_layer_versions')
+          .update({ expires_at: newExpiresAt.toISOString() })
+          .eq('id', latestVersion!.id);
+
+        await logFetch(supabase, layer.id, latestVersion!.id, 'unchanged', 304, 0, Date.now() - startTime, null);
+
+        return new Response(
+          JSON.stringify({
+            status: 'unchanged',
+            message: 'Source data not modified (304)',
+            version_id: latestVersion!.id
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (!response.ok) {
+        const errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+        console.error('[gis-fetch] Fetch failed:', errorMsg);
+        await logFetch(supabase, layer.id, null, 'error', response.status, 0, Date.now() - startTime, errorMsg);
+        
+        return new Response(
+          JSON.stringify({ error: errorMsg }),
+          { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const rawData = await response.text();
+      dataSize = new TextEncoder().encode(rawData).length;
+      newEtag = response.headers.get('etag');
+
+      try {
+        geojson = JSON.parse(rawData);
+        geojson = normalizeGeoJSON(geojson);
+        totalRecordCount = geojson.features?.length || 0;
+      } catch (e) {
+        const errorMsg = `Invalid GeoJSON: ${e.message}`;
+        console.error('[gis-fetch]', errorMsg);
+        await logFetch(supabase, layer.id, null, 'error', response.status, dataSize, Date.now() - startTime, errorMsg);
+        
+        return new Response(
+          JSON.stringify({ error: errorMsg }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     // Step 7: Compute checksum
@@ -177,7 +216,7 @@ Deno.serve(async (req) => {
         })
         .eq('id', latestVersion.id);
 
-      await logFetch(supabase, layer.id, latestVersion.id, 'unchanged', response.status, dataSize, Date.now() - startTime, null);
+      await logFetch(supabase, layer.id, latestVersion.id, 'unchanged', 200, dataSize, Date.now() - startTime, null);
 
       return new Response(
         JSON.stringify({
@@ -214,7 +253,7 @@ Deno.serve(async (req) => {
 
       if (uploadError) {
         console.error('[gis-fetch] Upload failed:', uploadError);
-        await logFetch(supabase, layer.id, null, 'error', response.status, dataSize, Date.now() - startTime, `Upload failed: ${uploadError.message}`);
+        await logFetch(supabase, layer.id, null, 'error', 200, dataSize, Date.now() - startTime, `Upload failed: ${uploadError.message}`);
         
         return new Response(
           JSON.stringify({ error: `Storage upload failed: ${uploadError.message}` }),
@@ -261,7 +300,7 @@ Deno.serve(async (req) => {
 
     if (versionError) {
       console.error('[gis-fetch] Failed to insert version:', versionError);
-      await logFetch(supabase, layer.id, null, 'error', response.status, dataSize, Date.now() - startTime, `DB insert failed: ${versionError.message}`);
+      await logFetch(supabase, layer.id, null, 'error', 200, dataSize, Date.now() - startTime, `DB insert failed: ${versionError.message}`);
       
       return new Response(
         JSON.stringify({ error: `Failed to save version: ${versionError.message}` }),
@@ -271,7 +310,7 @@ Deno.serve(async (req) => {
 
     // Step 13: Log success
     const duration = Date.now() - startTime;
-    await logFetch(supabase, layer.id, newVersion.id, 'success', response.status, dataSize, duration, null);
+    await logFetch(supabase, layer.id, newVersion.id, 'success', 200, dataSize, duration, null);
 
     console.log(`[gis-fetch] Success! Version ${newVersion.id}, ${recordCount} records, ${duration}ms`);
 
@@ -298,6 +337,258 @@ Deno.serve(async (req) => {
   }
 });
 
+// Detect if URL is an ArcGIS endpoint
+function isArcGISEndpoint(url: string): boolean {
+  return url.includes('/MapServer/') || 
+         url.includes('/FeatureServer/') || 
+         url.includes('/arcgis/') ||
+         url.includes('arcgisonline.com') ||
+         url.includes('gis.hctx.net');
+}
+
+// Build proper fetch URL with query parameters for ArcGIS
+function buildFetchUrl(sourceUrl: string): string {
+  // If URL already has query parameters, use as-is
+  if (sourceUrl.includes('?')) {
+    return sourceUrl;
+  }
+
+  // For ArcGIS endpoints, append /query with params
+  if (isArcGISEndpoint(sourceUrl)) {
+    // Ensure URL ends with layer index
+    let baseUrl = sourceUrl;
+    
+    // If URL ends with MapServer or FeatureServer without layer index, add /0
+    if (baseUrl.match(/\/(MapServer|FeatureServer)\/?$/)) {
+      baseUrl = baseUrl.replace(/\/?$/, '/0');
+    }
+    
+    // Append /query if not already present
+    if (!baseUrl.endsWith('/query')) {
+      baseUrl = baseUrl.replace(/\/?$/, '/query');
+    }
+
+    // Build query string
+    const params = new URLSearchParams(ARCGIS_QUERY_PARAMS);
+    return `${baseUrl}?${params.toString()}`;
+  }
+
+  return sourceUrl;
+}
+
+// Fetch ArcGIS endpoint with pagination support
+async function fetchArcGISWithPagination(
+  baseUrl: string,
+  headers: Record<string, string>
+): Promise<{
+  geojson: any;
+  totalRecords: number;
+  dataSize: number;
+  etag: string | null;
+  error?: string;
+  httpStatus?: number;
+}> {
+  const allFeatures: any[] = [];
+  let offset = 0;
+  let totalDataSize = 0;
+  let etag: string | null = null;
+  let iteration = 0;
+  
+  const pageSize = parseInt(ARCGIS_QUERY_PARAMS.resultRecordCount);
+
+  console.log(`[gis-fetch] Starting ArcGIS pagination from: ${baseUrl}`);
+
+  while (iteration < MAX_PAGINATION_ITERATIONS) {
+    iteration++;
+    
+    // Build URL with offset
+    const url = new URL(baseUrl);
+    url.searchParams.set('resultOffset', offset.toString());
+    
+    console.log(`[gis-fetch] Page ${iteration}: offset=${offset}`);
+
+    try {
+      const response = await fetch(url.toString(), { headers });
+
+      if (!response.ok) {
+        // Check if this is actually an HTML error page
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('text/html')) {
+          return {
+            geojson: { type: 'FeatureCollection', features: [] },
+            totalRecords: 0,
+            dataSize: 0,
+            etag: null,
+            error: `ArcGIS returned HTML instead of JSON (status ${response.status}). Check endpoint URL.`,
+            httpStatus: response.status
+          };
+        }
+        return {
+          geojson: { type: 'FeatureCollection', features: [] },
+          totalRecords: 0,
+          dataSize: 0,
+          etag: null,
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          httpStatus: response.status
+        };
+      }
+
+      if (iteration === 1) {
+        etag = response.headers.get('etag');
+      }
+
+      const rawData = await response.text();
+      totalDataSize += new TextEncoder().encode(rawData).length;
+
+      // Check for HTML response (common error)
+      if (rawData.trim().startsWith('<!') || rawData.trim().startsWith('<html')) {
+        return {
+          geojson: { type: 'FeatureCollection', features: [] },
+          totalRecords: 0,
+          dataSize: totalDataSize,
+          etag: null,
+          error: 'ArcGIS returned HTML instead of JSON. Check endpoint URL and parameters.',
+          httpStatus: 200
+        };
+      }
+
+      let data: any;
+      try {
+        data = JSON.parse(rawData);
+      } catch (e) {
+        return {
+          geojson: { type: 'FeatureCollection', features: [] },
+          totalRecords: 0,
+          dataSize: totalDataSize,
+          etag: null,
+          error: `Failed to parse JSON: ${e.message}. Response: ${rawData.substring(0, 200)}`,
+          httpStatus: 200
+        };
+      }
+
+      // Check for ArcGIS error response
+      if (data.error) {
+        return {
+          geojson: { type: 'FeatureCollection', features: [] },
+          totalRecords: 0,
+          dataSize: totalDataSize,
+          etag: null,
+          error: `ArcGIS error: ${data.error.message || JSON.stringify(data.error)}`,
+          httpStatus: data.error.code || 400
+        };
+      }
+
+      // Extract features - handle both GeoJSON and ArcGIS JSON formats
+      let pageFeatures: any[] = [];
+      
+      if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
+        // Standard GeoJSON response (when f=geojson works)
+        pageFeatures = data.features;
+      } else if (Array.isArray(data.features)) {
+        // ArcGIS JSON format - convert to GeoJSON
+        pageFeatures = data.features.map((f: any) => ({
+          type: 'Feature',
+          geometry: convertArcGISGeometry(f.geometry),
+          properties: f.attributes || f.properties || {}
+        }));
+      }
+
+      console.log(`[gis-fetch] Page ${iteration}: ${pageFeatures.length} features`);
+      allFeatures.push(...pageFeatures);
+
+      // Check if we've retrieved all records
+      const exceededTransferLimit = data.exceededTransferLimit === true;
+      
+      if (!exceededTransferLimit || pageFeatures.length < pageSize) {
+        // No more pages
+        break;
+      }
+
+      offset += pageSize;
+    } catch (e) {
+      console.error(`[gis-fetch] Pagination error at offset ${offset}:`, e);
+      if (allFeatures.length > 0) {
+        // Return what we have
+        console.log(`[gis-fetch] Returning ${allFeatures.length} features despite error`);
+        break;
+      }
+      return {
+        geojson: { type: 'FeatureCollection', features: [] },
+        totalRecords: 0,
+        dataSize: totalDataSize,
+        etag: null,
+        error: `Fetch error: ${e.message}`,
+        httpStatus: 500
+      };
+    }
+  }
+
+  console.log(`[gis-fetch] Pagination complete: ${allFeatures.length} total features in ${iteration} pages`);
+
+  return {
+    geojson: {
+      type: 'FeatureCollection',
+      features: allFeatures
+    },
+    totalRecords: allFeatures.length,
+    dataSize: totalDataSize,
+    etag
+  };
+}
+
+// Convert ArcGIS geometry to GeoJSON geometry
+function convertArcGISGeometry(arcgisGeom: any): any {
+  if (!arcgisGeom) return null;
+
+  // Already GeoJSON format
+  if (arcgisGeom.type && ['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon'].includes(arcgisGeom.type)) {
+    return arcgisGeom;
+  }
+
+  // ArcGIS Point
+  if (arcgisGeom.x !== undefined && arcgisGeom.y !== undefined) {
+    return {
+      type: 'Point',
+      coordinates: [arcgisGeom.x, arcgisGeom.y]
+    };
+  }
+
+  // ArcGIS Polyline
+  if (arcgisGeom.paths) {
+    if (arcgisGeom.paths.length === 1) {
+      return {
+        type: 'LineString',
+        coordinates: arcgisGeom.paths[0]
+      };
+    }
+    return {
+      type: 'MultiLineString',
+      coordinates: arcgisGeom.paths
+    };
+  }
+
+  // ArcGIS Polygon
+  if (arcgisGeom.rings) {
+    // Single ring = Polygon, multiple rings = check for holes or MultiPolygon
+    if (arcgisGeom.rings.length === 1) {
+      return {
+        type: 'Polygon',
+        coordinates: arcgisGeom.rings
+      };
+    }
+    // For simplicity, treat as Polygon with holes
+    // (proper handling would check ring orientation for multi-part)
+    return {
+      type: 'Polygon',
+      coordinates: arcgisGeom.rings
+    };
+  }
+
+  // Unknown format
+  console.warn('[gis-fetch] Unknown ArcGIS geometry format:', JSON.stringify(arcgisGeom).substring(0, 100));
+  return null;
+}
+
 // Helper: Normalize GeoJSON to FeatureCollection
 function normalizeGeoJSON(data: any): any {
   // Handle ArcGIS REST response
@@ -306,7 +597,7 @@ function normalizeGeoJSON(data: any): any {
       type: 'FeatureCollection',
       features: data.features.map((f: any) => ({
         type: 'Feature',
-        geometry: f.geometry || null,
+        geometry: convertArcGISGeometry(f.geometry) || f.geometry || null,
         properties: f.attributes || f.properties || {}
       }))
     };
