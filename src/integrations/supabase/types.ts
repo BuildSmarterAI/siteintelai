@@ -2337,8 +2337,11 @@ export type Database = {
       gis_layers: {
         Row: {
           category: string
+          county_fips: string | null
+          coverage_quality: string | null
           created_at: string | null
           display_name: string
+          etl_adapter: string | null
           field_mappings: Json | null
           geometry_type: string | null
           id: string
@@ -2347,15 +2350,21 @@ export type Database = {
           map_server_id: string | null
           native_srid: number | null
           provider: string
+          source_type: string | null
           source_url: string
           status: string | null
+          update_cadence: string | null
           update_policy: Json
           updated_at: string | null
+          version_strategy: string | null
         }
         Insert: {
           category: string
+          county_fips?: string | null
+          coverage_quality?: string | null
           created_at?: string | null
           display_name: string
+          etl_adapter?: string | null
           field_mappings?: Json | null
           geometry_type?: string | null
           id?: string
@@ -2364,15 +2373,21 @@ export type Database = {
           map_server_id?: string | null
           native_srid?: number | null
           provider: string
+          source_type?: string | null
           source_url: string
           status?: string | null
+          update_cadence?: string | null
           update_policy?: Json
           updated_at?: string | null
+          version_strategy?: string | null
         }
         Update: {
           category?: string
+          county_fips?: string | null
+          coverage_quality?: string | null
           created_at?: string | null
           display_name?: string
+          etl_adapter?: string | null
           field_mappings?: Json | null
           geometry_type?: string | null
           id?: string
@@ -2381,10 +2396,13 @@ export type Database = {
           map_server_id?: string | null
           native_srid?: number | null
           provider?: string
+          source_type?: string | null
           source_url?: string
           status?: string | null
+          update_cadence?: string | null
           update_policy?: Json
           updated_at?: string | null
+          version_strategy?: string | null
         }
         Relationships: [
           {
