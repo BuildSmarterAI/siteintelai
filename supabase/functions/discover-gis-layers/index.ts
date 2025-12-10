@@ -21,6 +21,15 @@ interface ArcGISLayer {
   subLayerIds?: number[] | null;
 }
 
+interface SampleFeature {
+  type: 'Feature';
+  geometry: {
+    type: string;
+    coordinates: any;
+  };
+  properties: Record<string, any>;
+}
+
 interface DiscoveredLayer {
   id: number;
   name: string;
@@ -30,6 +39,8 @@ interface DiscoveredLayer {
   suggestedLayerKey: string;
   sourceUrl: string;
   fieldMappings: Record<string, string>;
+  sampleFeatures?: SampleFeature[];
+  extent?: { xmin: number; ymin: number; xmax: number; ymax: number };
 }
 
 function normalizeGeometryType(esriType: string): string {
@@ -78,6 +89,62 @@ function suggestFieldMappings(fields: ArcGISField[]): Record<string, string> {
   }
 
   return mappings;
+}
+
+// Convert ArcGIS rings/paths to GeoJSON coordinates
+function convertArcGISToGeoJSON(geometry: any, geometryType: string): SampleFeature['geometry'] | null {
+  try {
+    if (!geometry) return null;
+    
+    if (geometryType === 'esriGeometryPoint') {
+      return { type: 'Point', coordinates: [geometry.x, geometry.y] };
+    }
+    if (geometryType === 'esriGeometryPolyline') {
+      return { type: 'LineString', coordinates: geometry.paths?.[0] || [] };
+    }
+    if (geometryType === 'esriGeometryPolygon') {
+      return { type: 'Polygon', coordinates: geometry.rings || [] };
+    }
+    if (geometryType === 'esriGeometryMultipoint') {
+      return { type: 'MultiPoint', coordinates: geometry.points || [] };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSampleFeatures(layerUrl: string, geometryType: string): Promise<SampleFeature[]> {
+  try {
+    const queryUrl = `${layerUrl}/query?where=1=1&outFields=*&returnGeometry=true&outSR=4326&resultRecordCount=50&f=json`;
+    console.log(`[discover-gis-layers] Fetching sample features from: ${queryUrl}`);
+    
+    const response = await fetch(queryUrl, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) return [];
+    
+    const data = await response.json();
+    if (!data.features || !Array.isArray(data.features)) return [];
+    
+    const features: SampleFeature[] = [];
+    for (const f of data.features.slice(0, 50)) {
+      const geojsonGeom = convertArcGISToGeoJSON(f.geometry, geometryType);
+      if (geojsonGeom) {
+        features.push({
+          type: 'Feature',
+          geometry: geojsonGeom,
+          properties: f.attributes || {}
+        });
+      }
+    }
+    
+    return features;
+  } catch (error) {
+    console.warn(`[discover-gis-layers] Failed to fetch sample features:`, error);
+    return [];
+  }
 }
 
 serve(async (req) => {
@@ -171,6 +238,9 @@ serve(async (req) => {
 
         const fields = (layerInfo.fields || []) as ArcGISField[];
         
+        // Fetch sample features for preview
+        const sampleFeatures = await fetchSampleFeatures(`${baseUrl}/${layer.id}`, layerInfo.geometryType);
+        
         discoveredLayers.push({
           id: layer.id,
           name: layerInfo.name || layer.name,
@@ -184,7 +254,9 @@ serve(async (req) => {
           })),
           suggestedLayerKey: generateLayerKey(serverName, layer.name, layer.id),
           sourceUrl: `${baseUrl}/${layer.id}`,
-          fieldMappings: suggestFieldMappings(fields)
+          fieldMappings: suggestFieldMappings(fields),
+          sampleFeatures: sampleFeatures,
+          extent: layerInfo.extent || null
         });
 
       } catch (layerError) {
