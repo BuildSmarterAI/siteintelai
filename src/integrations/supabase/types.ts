@@ -2585,6 +2585,8 @@ export type Database = {
           priority: number | null
           provider: string
           reliability_score: number | null
+          scraper_config: Json | null
+          scraper_mode: string | null
           server_key: string
           service_type: string
           spatial_reference: number | null
@@ -2616,6 +2618,8 @@ export type Database = {
           priority?: number | null
           provider: string
           reliability_score?: number | null
+          scraper_config?: Json | null
+          scraper_mode?: string | null
           server_key: string
           service_type?: string
           spatial_reference?: number | null
@@ -2647,6 +2651,8 @@ export type Database = {
           priority?: number | null
           provider?: string
           reliability_score?: number | null
+          scraper_config?: Json | null
+          scraper_mode?: string | null
           server_key?: string
           service_type?: string
           spatial_reference?: number | null
@@ -3330,6 +3336,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "parcels"
             referencedColumns: ["parcel_uuid"]
+          },
+        ]
+      }
+      scraper_cache: {
+        Row: {
+          api_credits_used: number | null
+          content_type: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          response_body: string | null
+          scraped_at: string
+          source_type: string | null
+          url: string
+          url_hash: string
+        }
+        Insert: {
+          api_credits_used?: number | null
+          content_type?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          response_body?: string | null
+          scraped_at?: string
+          source_type?: string | null
+          url: string
+          url_hash: string
+        }
+        Update: {
+          api_credits_used?: number | null
+          content_type?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          response_body?: string | null
+          scraped_at?: string
+          source_type?: string | null
+          url?: string
+          url_hash?: string
+        }
+        Relationships: []
+      }
+      scraper_usage_log: {
+        Row: {
+          api_credits_used: number | null
+          cache_hit: boolean | null
+          created_at: string
+          endpoint_type: string | null
+          error_message: string | null
+          id: string
+          map_server_id: string | null
+          response_status: number | null
+          response_time_ms: number | null
+          scraper_mode: string | null
+          url: string
+        }
+        Insert: {
+          api_credits_used?: number | null
+          cache_hit?: boolean | null
+          created_at?: string
+          endpoint_type?: string | null
+          error_message?: string | null
+          id?: string
+          map_server_id?: string | null
+          response_status?: number | null
+          response_time_ms?: number | null
+          scraper_mode?: string | null
+          url: string
+        }
+        Update: {
+          api_credits_used?: number | null
+          cache_hit?: boolean | null
+          created_at?: string
+          endpoint_type?: string | null
+          error_message?: string | null
+          id?: string
+          map_server_id?: string | null
+          response_status?: number | null
+          response_time_ms?: number | null
+          scraper_mode?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scraper_usage_log_map_server_id_fkey"
+            columns: ["map_server_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
           },
         ]
       }
