@@ -9,6 +9,15 @@ export interface DiscoveredField {
   length?: number;
 }
 
+export interface SampleFeature {
+  type: 'Feature';
+  geometry: {
+    type: string;
+    coordinates: any;
+  };
+  properties: Record<string, any>;
+}
+
 export interface DiscoveredLayer {
   id: number;
   name: string;
@@ -18,6 +27,8 @@ export interface DiscoveredLayer {
   suggestedLayerKey: string;
   sourceUrl: string;
   fieldMappings: Record<string, string>;
+  sampleFeatures?: SampleFeature[];
+  extent?: { xmin: number; ymin: number; xmax: number; ymax: number };
 }
 
 export interface DiscoveryResult {

@@ -14,14 +14,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Layers, Search, Download, MapPin, Database } from 'lucide-react';
+import { Layers, Search, Download, MapPin, Database, Grid3X3, List } from 'lucide-react';
 import { useLayerDiscovery, DiscoveredLayer } from '@/hooks/useLayerDiscovery';
+import { LayerPreviewMap } from './LayerPreviewMap';
 
 interface LayerDiscoveryModalProps {
   open: boolean;
@@ -41,9 +43,11 @@ export function LayerDiscoveryModal({
   onImportComplete,
   onLayersSelected,
 }: LayerDiscoveryModalProps) {
-  const isPreSaveMode = !mapServerId && !!onLayersSelected;
   const [url, setUrl] = useState(initialUrl);
   const [selectedLayers, setSelectedLayers] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const isPreSaveMode = !mapServerId && !!onLayersSelected;
+  
   const {
     isDiscovering,
     discoveryResult,
@@ -128,14 +132,14 @@ export function LayerDiscoveryModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5 text-primary" />
             Discover GIS Layers
           </DialogTitle>
           <DialogDescription>
-            Enter a MapServer URL to automatically discover available layers and import them.
+            Enter a MapServer URL to automatically discover available layers and preview their geometry.
           </DialogDescription>
         </DialogHeader>
 
@@ -169,17 +173,17 @@ export function LayerDiscoveryModal({
 
           {/* Loading State */}
           {isDiscovering && (
-            <div className="space-y-3">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <Skeleton key={i} className="h-48 w-full rounded-lg" />
+              ))}
             </div>
           )}
 
           {/* Discovery Results */}
           {discoveryResult && !isDiscovering && (
             <>
-              {/* Service Info */}
+              {/* Service Info & Controls */}
               <div className="rounded-lg border bg-muted/30 p-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -191,7 +195,25 @@ export function LayerDiscoveryModal({
                       )}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex border rounded-md">
+                      <Button
+                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('grid')}
+                        className="rounded-r-none"
+                      >
+                        <Grid3X3 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('list')}
+                        className="rounded-l-none"
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
                     <Button variant="outline" size="sm" onClick={selectAll}>
                       Select All
                     </Button>
@@ -202,95 +224,165 @@ export function LayerDiscoveryModal({
                 </div>
               </div>
 
-              {/* Layers List */}
-              <ScrollArea className="flex-1 border rounded-lg">
-                <Accordion type="multiple" className="w-full">
-                  {discoveryResult.layers.map(layer => (
-                    <AccordionItem key={layer.id} value={`layer-${layer.id}`}>
-                      <div className="flex items-center px-4 py-2 hover:bg-muted/50">
-                        <Checkbox
-                          id={`layer-${layer.id}`}
-                          checked={selectedLayers.has(layer.id)}
-                          onCheckedChange={() => toggleLayer(layer.id)}
-                          className="mr-3"
-                        />
-                        <AccordionTrigger className="flex-1 py-0 hover:no-underline">
-                          <div className="flex items-center gap-3 text-left">
-                            <MapPin className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium">{layer.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {layer.suggestedLayerKey}
-                              </p>
+              {/* Grid View */}
+              {viewMode === 'grid' && (
+                <ScrollArea className="flex-1">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-1">
+                    {discoveryResult.layers.map(layer => (
+                      <Card
+                        key={layer.id}
+                        className={`cursor-pointer transition-all hover:ring-2 hover:ring-primary/50 ${
+                          selectedLayers.has(layer.id) ? 'ring-2 ring-primary' : ''
+                        }`}
+                        onClick={() => toggleLayer(layer.id)}
+                      >
+                        <CardContent className="p-0">
+                          {/* Map Preview */}
+                          <LayerPreviewMap
+                            features={layer.sampleFeatures || []}
+                            geometryType={layer.geometryTypeNormalized}
+                            className="h-32 w-full"
+                          />
+                          
+                          {/* Layer Info */}
+                          <div className="p-3 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{layer.name}</p>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {layer.suggestedLayerKey}
+                                </p>
+                              </div>
+                              <Checkbox
+                                checked={selectedLayers.has(layer.id)}
+                                onCheckedChange={() => toggleLayer(layer.id)}
+                                onClick={e => e.stopPropagation()}
+                              />
                             </div>
-                            <Badge
-                              variant="outline"
-                              className={getGeometryBadgeColor(layer.geometryTypeNormalized)}
-                            >
-                              {layer.geometryTypeNormalized}
-                            </Badge>
-                            <Badge variant="secondary">
-                              {layer.fields.length} fields
-                            </Badge>
-                          </div>
-                        </AccordionTrigger>
-                      </div>
-                      <AccordionContent className="px-4 pb-4">
-                        <div className="ml-10 space-y-3">
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-1">
-                              Source URL
-                            </p>
-                            <code className="text-xs bg-muted px-2 py-1 rounded block overflow-x-auto">
-                              {layer.sourceUrl}
-                            </code>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-muted-foreground mb-1">
-                              Fields ({layer.fields.length})
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {layer.fields.slice(0, 15).map(field => (
-                                <Badge
-                                  key={field.name}
-                                  variant="outline"
-                                  className="text-xs"
-                                >
-                                  {field.name}
-                                </Badge>
-                              ))}
-                              {layer.fields.length > 15 && (
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs ${getGeometryBadgeColor(layer.geometryTypeNormalized)}`}
+                              >
+                                {layer.geometryTypeNormalized}
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {layer.fields.length} fields
+                              </Badge>
+                              {layer.sampleFeatures && layer.sampleFeatures.length > 0 && (
                                 <Badge variant="outline" className="text-xs">
-                                  +{layer.fields.length - 15} more
+                                  {layer.sampleFeatures.length} features
                                 </Badge>
                               )}
                             </div>
                           </div>
-                          {Object.keys(layer.fieldMappings).length > 0 && (
-                            <div>
-                              <p className="text-xs font-medium text-muted-foreground mb-1">
-                                Suggested Mappings
-                              </p>
-                              <div className="flex flex-wrap gap-1">
-                                {Object.entries(layer.fieldMappings).map(
-                                  ([from, to]) => (
-                                    <Badge
-                                      key={from}
-                                      className="text-xs bg-primary/20 text-primary"
-                                    >
-                                      {from} → {to}
-                                    </Badge>
-                                  )
-                                )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+
+              {/* List View */}
+              {viewMode === 'list' && (
+                <ScrollArea className="flex-1 border rounded-lg">
+                  <Accordion type="multiple" className="w-full">
+                    {discoveryResult.layers.map(layer => (
+                      <AccordionItem key={layer.id} value={`layer-${layer.id}`}>
+                        <div className="flex items-center px-4 py-2 hover:bg-muted/50">
+                          <Checkbox
+                            id={`layer-${layer.id}`}
+                            checked={selectedLayers.has(layer.id)}
+                            onCheckedChange={() => toggleLayer(layer.id)}
+                            className="mr-3"
+                          />
+                          <AccordionTrigger className="flex-1 py-0 hover:no-underline">
+                            <div className="flex items-center gap-3 text-left">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium">{layer.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {layer.suggestedLayerKey}
+                                </p>
                               </div>
+                              <Badge
+                                variant="outline"
+                                className={getGeometryBadgeColor(layer.geometryTypeNormalized)}
+                              >
+                                {layer.geometryTypeNormalized}
+                              </Badge>
+                              <Badge variant="secondary">
+                                {layer.fields.length} fields
+                              </Badge>
                             </div>
-                          )}
+                          </AccordionTrigger>
                         </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </ScrollArea>
+                        <AccordionContent className="px-4 pb-4">
+                          <div className="ml-10 grid md:grid-cols-2 gap-4">
+                            {/* Map Preview in List View */}
+                            <LayerPreviewMap
+                              features={layer.sampleFeatures || []}
+                              geometryType={layer.geometryTypeNormalized}
+                              className="h-40 w-full"
+                            />
+                            
+                            <div className="space-y-3">
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  Source URL
+                                </p>
+                                <code className="text-xs bg-muted px-2 py-1 rounded block overflow-x-auto">
+                                  {layer.sourceUrl}
+                                </code>
+                              </div>
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground mb-1">
+                                  Fields ({layer.fields.length})
+                                </p>
+                                <div className="flex flex-wrap gap-1">
+                                  {layer.fields.slice(0, 10).map(field => (
+                                    <Badge
+                                      key={field.name}
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {field.name}
+                                    </Badge>
+                                  ))}
+                                  {layer.fields.length > 10 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      +{layer.fields.length - 10} more
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              {Object.keys(layer.fieldMappings).length > 0 && (
+                                <div>
+                                  <p className="text-xs font-medium text-muted-foreground mb-1">
+                                    Suggested Mappings
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {Object.entries(layer.fieldMappings).map(
+                                      ([from, to]) => (
+                                        <Badge
+                                          key={from}
+                                          className="text-xs bg-primary/20 text-primary"
+                                        >
+                                          {from} → {to}
+                                        </Badge>
+                                      )
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </ScrollArea>
+              )}
             </>
           )}
 
