@@ -29,6 +29,8 @@ interface LayerDiscoveryModalProps {
   mapServerId?: string;
   initialUrl?: string;
   onImportComplete?: () => void;
+  /** Pre-save mode: return selected layers instead of importing directly */
+  onLayersSelected?: (layers: DiscoveredLayer[]) => void;
 }
 
 export function LayerDiscoveryModal({
@@ -37,7 +39,9 @@ export function LayerDiscoveryModal({
   mapServerId,
   initialUrl = '',
   onImportComplete,
+  onLayersSelected,
 }: LayerDiscoveryModalProps) {
+  const isPreSaveMode = !mapServerId && !!onLayersSelected;
   const [url, setUrl] = useState(initialUrl);
   const [selectedLayers, setSelectedLayers] = useState<Set<number>>(new Set());
   const {
@@ -77,12 +81,23 @@ export function LayerDiscoveryModal({
   };
 
   const handleImport = async () => {
-    if (!mapServerId || !discoveryResult) return;
+    if (!discoveryResult) return;
 
     const layersToImport = discoveryResult.layers.filter(l =>
       selectedLayers.has(l.id)
     );
 
+    // Pre-save mode: return layers to parent instead of importing
+    if (isPreSaveMode) {
+      onLayersSelected?.(layersToImport);
+      onOpenChange(false);
+      clearDiscovery();
+      setSelectedLayers(new Set());
+      return;
+    }
+
+    // Normal mode: import directly to existing source
+    if (!mapServerId) return;
     const success = await importLayers(mapServerId, layersToImport);
     if (success) {
       onImportComplete?.();
@@ -299,7 +314,7 @@ export function LayerDiscoveryModal({
           <Button
             onClick={handleImport}
             disabled={
-              !mapServerId ||
+              (!mapServerId && !isPreSaveMode) ||
               selectedLayers.size === 0 ||
               isImporting ||
               !discoveryResult
@@ -310,7 +325,7 @@ export function LayerDiscoveryModal({
             ) : (
               <>
                 <Download className="h-4 w-4 mr-2" />
-                Import {selectedLayers.size} Layer{selectedLayers.size !== 1 ? 's' : ''}
+                {isPreSaveMode ? 'Select' : 'Import'} {selectedLayers.size} Layer{selectedLayers.size !== 1 ? 's' : ''}
               </>
             )}
           </Button>

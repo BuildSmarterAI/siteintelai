@@ -5,6 +5,7 @@ import { DataSourcesSidebar } from '@/components/admin/DataSourcesSidebar';
 import { DataSourceForm } from '@/components/admin/data-sources/DataSourceForm';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Layers } from 'lucide-react';
 import {
   useDataSource,
@@ -13,28 +14,60 @@ import {
   DataSourceFormData,
 } from '@/hooks/useDataSources';
 import { LayerDiscoveryModal } from '@/components/admin/data-sources/LayerDiscoveryModal';
+import { DiscoveredLayer } from '@/hooks/useLayerDiscovery';
+import { useLayerDiscovery } from '@/hooks/useLayerDiscovery';
+import { useToast } from '@/hooks/use-toast';
 
 export default function DataSourceFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = !!id;
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const [discoveryUrl, setDiscoveryUrl] = useState('');
+  const [pendingLayers, setPendingLayers] = useState<DiscoveredLayer[]>([]);
+  const { toast } = useToast();
 
   const { data: source, isLoading, refetch } = useDataSource(id!);
   const createSource = useCreateDataSource();
   const updateSource = useUpdateDataSource();
+  const { importLayers } = useLayerDiscovery();
 
-  const handleSubmit = (data: DataSourceFormData) => {
+  const handleSubmit = async (data: DataSourceFormData) => {
     if (isEditing) {
       updateSource.mutate(
         { id: id!, ...data },
         { onSuccess: () => navigate(`/admin/data-sources/${id}`) }
       );
     } else {
+      // Create source first, then import pending layers
       createSource.mutate(data, {
-        onSuccess: (newSource) => navigate(`/admin/data-sources/${newSource.id}`),
+        onSuccess: async (newSource) => {
+          if (pendingLayers.length > 0) {
+            const success = await importLayers(newSource.id, pendingLayers);
+            if (success) {
+              toast({
+                title: 'Source Created',
+                description: `Created source with ${pendingLayers.length} layers imported`,
+              });
+            }
+          }
+          navigate(`/admin/data-sources/${newSource.id}`);
+        },
       });
     }
+  };
+
+  const handleDiscoverLayers = (url: string) => {
+    setDiscoveryUrl(url);
+    setDiscoveryOpen(true);
+  };
+
+  const handleLayersSelected = (layers: DiscoveredLayer[]) => {
+    setPendingLayers(layers);
+    toast({
+      title: 'Layers Selected',
+      description: `${layers.length} layers ready to import when you create the source`,
+    });
   };
 
   if (isEditing && isLoading) {
@@ -79,26 +112,34 @@ export default function DataSourceFormPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setDiscoveryOpen(true)}
+                  onClick={() => {
+                    setDiscoveryUrl(source.base_url);
+                    setDiscoveryOpen(true);
+                  }}
                   className="gap-2"
                 >
                   <Layers className="h-4 w-4" />
                   Discover Layers
                 </Button>
               )}
+              {!isEditing && pendingLayers.length > 0 && (
+                <Badge variant="secondary" className="gap-1">
+                  <Layers className="h-3 w-3" />
+                  {pendingLayers.length} layers ready
+                </Badge>
+              )}
             </div>
           </header>
 
           {/* Layer Discovery Modal */}
-          {isEditing && source && (
-            <LayerDiscoveryModal
-              open={discoveryOpen}
-              onOpenChange={setDiscoveryOpen}
-              mapServerId={id}
-              initialUrl={source.base_url}
-              onImportComplete={() => refetch()}
-            />
-          )}
+          <LayerDiscoveryModal
+            open={discoveryOpen}
+            onOpenChange={setDiscoveryOpen}
+            mapServerId={isEditing ? id : undefined}
+            initialUrl={discoveryUrl}
+            onImportComplete={isEditing ? () => refetch() : undefined}
+            onLayersSelected={!isEditing ? handleLayersSelected : undefined}
+          />
 
           {/* Form */}
           <div className="p-6 max-w-4xl">
@@ -124,6 +165,8 @@ export default function DataSourceFormPage() {
               onSubmit={handleSubmit}
               isSubmitting={createSource.isPending || updateSource.isPending}
               submitLabel={isEditing ? 'Update Source' : 'Create Source'}
+              onDiscoverLayers={!isEditing ? handleDiscoverLayers : undefined}
+              discoveredLayersCount={!isEditing ? pendingLayers.length : undefined}
             />
           </div>
         </main>
