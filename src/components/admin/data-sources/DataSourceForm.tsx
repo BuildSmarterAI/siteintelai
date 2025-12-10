@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import { Badge } from '@/components/ui/badge';
 import {
   Form,
   FormControl,
@@ -25,6 +26,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataSourceFormData } from '@/hooks/useDataSources';
 import { ReliabilityBadge } from './ReliabilityBadge';
+import { Layers } from 'lucide-react';
 
 const formSchema = z.object({
   server_key: z.string().min(1, 'Server key is required').regex(/^[a-z0-9_]+$/, 'Use lowercase letters, numbers, and underscores only'),
@@ -46,6 +48,10 @@ interface DataSourceFormProps {
   onSubmit: (data: DataSourceFormData) => void;
   isSubmitting: boolean;
   submitLabel?: string;
+  /** Callback to trigger layer discovery from URL */
+  onDiscoverLayers?: (url: string) => void;
+  /** Number of layers discovered (for badge display) */
+  discoveredLayersCount?: number;
 }
 
 const sourceTypes = [
@@ -88,6 +94,8 @@ export function DataSourceForm({
   onSubmit,
   isSubmitting,
   submitLabel = 'Save',
+  onDiscoverLayers,
+  discoveredLayersCount,
 }: DataSourceFormProps) {
   const form = useForm<DataSourceFormData>({
     resolver: zodResolver(formSchema),
@@ -169,14 +177,37 @@ export function DataSourceForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Base URL</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://example.com/arcgis/rest/services/..."
-                        className="font-mono text-sm"
-                        {...field}
-                        value={field.value || ''}
-                      />
-                    </FormControl>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input
+                          placeholder="https://example.com/arcgis/rest/services/..."
+                          className="font-mono text-sm flex-1"
+                          {...field}
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      {onDiscoverLayers && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const url = form.getValues('base_url');
+                            if (url) onDiscoverLayers(url);
+                          }}
+                          disabled={!form.getValues('base_url')}
+                          className="gap-1.5 whitespace-nowrap"
+                        >
+                          <Layers className="h-4 w-4" />
+                          Discover
+                          {discoveredLayersCount !== undefined && discoveredLayersCount > 0 && (
+                            <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                              {discoveredLayersCount}
+                            </Badge>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
