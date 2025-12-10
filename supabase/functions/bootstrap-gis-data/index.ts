@@ -13,7 +13,7 @@ interface GISLayer {
   provider: string;
   category: string;
   map_server_id: string | null;
-  is_active: boolean;
+  status: string;
 }
 
 interface BootstrapResult {
@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
     let query = supabase
       .from('gis_layers')
       .select('*')
-      .eq('is_active', true);
+      .eq('status', 'active');
 
     if (layer_keys && Array.isArray(layer_keys) && layer_keys.length > 0) {
       query = query.in('layer_key', layer_keys);
@@ -87,7 +87,7 @@ Deno.serve(async (req: Request) => {
       console.log('[bootstrap-gis-data] No active GIS layers found');
       return new Response(JSON.stringify({ 
         message: 'No active GIS layers found',
-        hint: 'Ensure gis_layers table has entries with is_active = true'
+        hint: 'Ensure gis_layers table has entries with status = active'
       }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
