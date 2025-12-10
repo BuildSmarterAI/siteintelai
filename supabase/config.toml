@@ -194,3 +194,12 @@ verify_jwt = true
 
 [functions.seed-houston-canonical]
 verify_jwt = false
+
+[functions.scraper-gis-fetch]
+verify_jwt = false
+
+[functions.scrape-permits]
+verify_jwt = false
+
+[functions.scrape-tax-records]
+verify_jwt = false
