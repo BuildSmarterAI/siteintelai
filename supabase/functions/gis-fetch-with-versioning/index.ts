@@ -445,10 +445,10 @@ async function logFetch(
       layer_version_id: versionId,
       status,
       http_status: httpStatus,
-      bytes,
+      bytes_processed: bytes,
       duration_ms: durationMs,
       error_message: errorMessage,
-      retried: false
+      retry_count: 0
     });
   } catch (e) {
     console.error('[gis-fetch] Failed to log fetch:', e);
