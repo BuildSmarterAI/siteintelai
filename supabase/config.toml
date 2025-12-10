@@ -203,3 +203,6 @@ verify_jwt = false
 
 [functions.scrape-tax-records]
 verify_jwt = false
+
+[functions.gis-health-check]
+verify_jwt = false
