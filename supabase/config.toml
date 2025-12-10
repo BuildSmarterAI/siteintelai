@@ -206,3 +206,6 @@ verify_jwt = false
 
 [functions.gis-health-check]
 verify_jwt = false
+
+[functions.bootstrap-gis-data]
+verify_jwt = false
