@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
       storagePath = `${layer_key}/${area_key}/${timestamp}.geojson.gz`;
 
       const { error: uploadError } = await supabase.storage
-        .from('gis')
+        .from('gis-data')
         .upload(storagePath, compressed, {
           contentType: 'application/gzip',
           cacheControl: '3600',
