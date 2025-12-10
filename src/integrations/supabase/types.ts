@@ -1170,6 +1170,107 @@ export type Database = {
         }
         Relationships: []
       }
+      canonical_parcels: {
+        Row: {
+          accuracy_tier: number | null
+          acreage: number | null
+          apn: string | null
+          centroid: unknown
+          city: string | null
+          confidence: number | null
+          county_fips: string | null
+          created_at: string
+          dataset_version: string
+          geom: unknown
+          id: number
+          ingestion_run_id: string | null
+          jurisdiction: string
+          land_use_code: string | null
+          land_use_desc: string | null
+          owner_city: string | null
+          owner_mailing_address: string | null
+          owner_name: string | null
+          owner_state: string | null
+          owner_zip: string | null
+          situs_address: string | null
+          source_agency: string | null
+          source_parcel_id: string
+          source_system: string | null
+          source_url: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          accuracy_tier?: number | null
+          acreage?: number | null
+          apn?: string | null
+          centroid?: unknown
+          city?: string | null
+          confidence?: number | null
+          county_fips?: string | null
+          created_at?: string
+          dataset_version: string
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          jurisdiction: string
+          land_use_code?: string | null
+          land_use_desc?: string | null
+          owner_city?: string | null
+          owner_mailing_address?: string | null
+          owner_name?: string | null
+          owner_state?: string | null
+          owner_zip?: string | null
+          situs_address?: string | null
+          source_agency?: string | null
+          source_parcel_id: string
+          source_system?: string | null
+          source_url?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          accuracy_tier?: number | null
+          acreage?: number | null
+          apn?: string | null
+          centroid?: unknown
+          city?: string | null
+          confidence?: number | null
+          county_fips?: string | null
+          created_at?: string
+          dataset_version?: string
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string | null
+          jurisdiction?: string
+          land_use_code?: string | null
+          land_use_desc?: string | null
+          owner_city?: string | null
+          owner_mailing_address?: string | null
+          owner_name?: string | null
+          owner_state?: string | null
+          owner_zip?: string | null
+          situs_address?: string | null
+          source_agency?: string | null
+          source_parcel_id?: string
+          source_system?: string | null
+          source_url?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_parcels_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       canonical_schemas: {
         Row: {
           created_at: string
@@ -2414,6 +2515,84 @@ export type Database = {
           },
         ]
       }
+      ingestion_runs: {
+        Row: {
+          created_at: string
+          data_source_id: string | null
+          dataset_version: string
+          error_details: Json | null
+          error_message: string | null
+          etl_adapter: string
+          finished_at: string | null
+          gis_layer_id: string | null
+          id: string
+          metadata: Json | null
+          rows_failed: number | null
+          rows_fetched: number | null
+          rows_merged: number | null
+          rows_staged: number | null
+          started_at: string | null
+          status: string
+          triggered_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_source_id?: string | null
+          dataset_version: string
+          error_details?: Json | null
+          error_message?: string | null
+          etl_adapter: string
+          finished_at?: string | null
+          gis_layer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          rows_failed?: number | null
+          rows_fetched?: number | null
+          rows_merged?: number | null
+          rows_staged?: number | null
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_source_id?: string | null
+          dataset_version?: string
+          error_details?: Json | null
+          error_message?: string | null
+          etl_adapter?: string
+          finished_at?: string | null
+          gis_layer_id?: string | null
+          id?: string
+          metadata?: Json | null
+          rows_failed?: number | null
+          rows_fetched?: number | null
+          rows_merged?: number | null
+          rows_staged?: number | null
+          started_at?: string | null
+          status?: string
+          triggered_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_runs_data_source_id_fkey"
+            columns: ["data_source_id"]
+            isOneToOne: false
+            referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ingestion_runs_gis_layer_id_fkey"
+            columns: ["gis_layer_id"]
+            isOneToOne: false
+            referencedRelation: "gis_layers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs_enrichment: {
         Row: {
           application_id: string
@@ -3469,6 +3648,56 @@ export type Database = {
           srtext?: string | null
         }
         Relationships: []
+      }
+      staging_parcels: {
+        Row: {
+          county_fips: string | null
+          created_at: string
+          dataset_version: string
+          geom: unknown
+          id: number
+          ingestion_run_id: string
+          is_valid: boolean | null
+          jurisdiction: string
+          raw: Json
+          source_parcel_id: string | null
+          validation_errors: Json | null
+        }
+        Insert: {
+          county_fips?: string | null
+          created_at?: string
+          dataset_version: string
+          geom?: unknown
+          id?: number
+          ingestion_run_id: string
+          is_valid?: boolean | null
+          jurisdiction: string
+          raw: Json
+          source_parcel_id?: string | null
+          validation_errors?: Json | null
+        }
+        Update: {
+          county_fips?: string | null
+          created_at?: string
+          dataset_version?: string
+          geom?: unknown
+          id?: number
+          ingestion_run_id?: string
+          is_valid?: boolean | null
+          jurisdiction?: string
+          raw?: Json
+          source_parcel_id?: string | null
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staging_parcels_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       subscription_tiers: {
         Row: {
