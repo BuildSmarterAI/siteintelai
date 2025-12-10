@@ -31,6 +31,8 @@ import { ApiPerformanceTab } from "@/components/admin/ApiPerformanceTab";
 import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
 import { RealTimeMonitorTab } from "@/components/admin/RealTimeMonitorTab";
 import { ScraperApiTab } from "@/components/admin/ScraperApiTab";
+import { GisHealthTab } from "@/components/admin/GisHealthTab";
+import { MapPin } from "lucide-react";
 
 interface CronJob {
   id: string;
@@ -335,6 +337,10 @@ export default function SystemHealth() {
               <Plug className="w-4 h-4" />
               ScraperAPI
             </TabsTrigger>
+            <TabsTrigger value="gis-health" className="flex items-center gap-2">
+              <MapPin className="w-4 h-4" />
+              GIS Health
+            </TabsTrigger>
           </TabsList>
 
           {/* API Performance Tab */}
@@ -519,6 +525,11 @@ export default function SystemHealth() {
           {/* ScraperAPI Tab */}
           <TabsContent value="scraper">
             <ScraperApiTab />
+          </TabsContent>
+
+          {/* GIS Health Tab */}
+          <TabsContent value="gis-health">
+            <GisHealthTab />
           </TabsContent>
         </Tabs>
       </div>
