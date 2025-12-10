@@ -112,6 +112,38 @@ async function tryQuery(
   }
 }
 
+// Try count-only query for scale-restricted layers (validates data exists without rendering)
+async function tryCountQuery(queryUrl: string): Promise<{ count: number; error?: string }> {
+  const params = new URLSearchParams({
+    f: 'json',
+    where: '1=1',
+    returnCountOnly: 'true',
+  });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(`${queryUrl}/query?${params.toString()}`, {
+      signal: controller.signal,
+      headers: { 'Accept': 'application/json' },
+    });
+    clearTimeout(timeout);
+    
+    if (response.ok) {
+      const data = await response.json();
+      if (data.error) {
+        return { count: 0, error: data.error.message };
+      }
+      return { count: data.count || 0 };
+    }
+    return { count: 0, error: `HTTP ${response.status}` };
+  } catch (err) {
+    clearTimeout(timeout);
+    return { count: 0, error: err instanceof Error ? err.message : 'Unknown error' };
+  }
+}
+
 // Try point + distance query (for CRS 2278 services that fail with bbox)
 async function tryPointDistanceQuery(queryUrl: string): Promise<{ response: Response; method: string } | null> {
   const params = new URLSearchParams({
@@ -235,34 +267,41 @@ async function checkEndpoint(server: MapServer): Promise<HealthCheckResult> {
       return result;
     }
 
-    // Check for ArcGIS error response
-    if (data?.error) {
+    // Check for ArcGIS error response or no features
+    const features = data?.features || (data?.type === 'FeatureCollection' ? data.features : null);
+    const hasError = data?.error;
+    const hasNoFeatures = Array.isArray(features) && features.length === 0;
+
+    // If scale-restricted and no features returned, try count query to verify data exists
+    if ((hasError || hasNoFeatures) && minScale && minScale > 0) {
+      console.log(`[gis-health-check] ${server.server_key} scale-restricted (1:${minScale}), trying count query...`);
+      
+      const countResult = await tryCountQuery(queryUrl);
+      
+      if (countResult.count > 0) {
+        // Data exists, just not at this zoom level - mark as operational
+        result.status = 'operational';
+        result.feature_count = countResult.count;
+        result.query_method = 'count_only';
+        result.error = `Scale-restricted (1:${minScale.toLocaleString()}) - ${countResult.count.toLocaleString()} total features`;
+        console.log(`[gis-health-check] ${server.server_key} verified operational via count: ${countResult.count} features`);
+      } else {
+        result.status = 'degraded';
+        result.error = countResult.error 
+          ? `Scale-restricted + count failed: ${countResult.error}`
+          : `Scale-restricted (1:${minScale.toLocaleString()}) - 0 features found`;
+      }
+    } else if (hasError) {
       result.status = 'degraded';
       result.error = data.error.message || JSON.stringify(data.error);
-      
-      // If scale-restricted, note it specifically
-      if (minScale && minScale > 0) {
-        result.error = `Scale-restricted (1:${minScale.toLocaleString()}): ${result.error}`;
-      }
-      return result;
-    }
-
-    // Check for features
-    const features = data?.features || (data?.type === 'FeatureCollection' ? data.features : null);
-    
-    if (Array.isArray(features)) {
+    } else if (Array.isArray(features)) {
       result.feature_count = features.length;
       
       if (result.feature_count > 0) {
         result.status = 'operational';
       } else {
-        // No features - could be scale restriction or sparse data
         result.status = 'degraded';
-        if (minScale && minScale > 0) {
-          result.error = `No features at 1:${minScale.toLocaleString()} scale (data may exist at higher zoom)`;
-        } else {
-          result.error = 'No features returned for test location';
-        }
+        result.error = 'No features returned for test location';
       }
     } else {
       result.status = 'degraded';
