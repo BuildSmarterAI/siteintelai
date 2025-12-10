@@ -209,3 +209,6 @@ verify_jwt = false
 
 [functions.bootstrap-gis-data]
 verify_jwt = false
+
+[functions.discover-gis-layers]
+verify_jwt = false

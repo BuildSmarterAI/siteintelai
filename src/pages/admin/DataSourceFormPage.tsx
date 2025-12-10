@@ -1,23 +1,26 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { DataSourcesSidebar } from '@/components/admin/DataSourcesSidebar';
 import { DataSourceForm } from '@/components/admin/data-sources/DataSourceForm';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Layers } from 'lucide-react';
 import {
   useDataSource,
   useCreateDataSource,
   useUpdateDataSource,
   DataSourceFormData,
 } from '@/hooks/useDataSources';
+import { LayerDiscoveryModal } from '@/components/admin/data-sources/LayerDiscoveryModal';
 
 export default function DataSourceFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEditing = !!id;
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
 
-  const { data: source, isLoading } = useDataSource(id!);
+  const { data: source, isLoading, refetch } = useDataSource(id!);
   const createSource = useCreateDataSource();
   const updateSource = useUpdateDataSource();
 
@@ -72,8 +75,30 @@ export default function DataSourceFormPage() {
                   {isEditing ? 'Edit Data Source' : 'Add New Data Source'}
                 </h1>
               </div>
+              {isEditing && source && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDiscoveryOpen(true)}
+                  className="gap-2"
+                >
+                  <Layers className="h-4 w-4" />
+                  Discover Layers
+                </Button>
+              )}
             </div>
           </header>
+
+          {/* Layer Discovery Modal */}
+          {isEditing && source && (
+            <LayerDiscoveryModal
+              open={discoveryOpen}
+              onOpenChange={setDiscoveryOpen}
+              mapServerId={id}
+              initialUrl={source.base_url}
+              onImportComplete={() => refetch()}
+            />
+          )}
 
           {/* Form */}
           <div className="p-6 max-w-4xl">
