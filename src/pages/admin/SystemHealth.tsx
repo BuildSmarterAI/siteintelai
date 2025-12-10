@@ -24,11 +24,13 @@ import {
   Zap,
   BarChart3,
   Radio,
-  GitBranch
+  GitBranch,
+  Plug
 } from "lucide-react";
 import { ApiPerformanceTab } from "@/components/admin/ApiPerformanceTab";
 import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
 import { RealTimeMonitorTab } from "@/components/admin/RealTimeMonitorTab";
+import { ScraperApiTab } from "@/components/admin/ScraperApiTab";
 
 interface CronJob {
   id: string;
@@ -329,6 +331,10 @@ export default function SystemHealth() {
               <Database className="w-4 h-4" />
               History
             </TabsTrigger>
+            <TabsTrigger value="scraper" className="flex items-center gap-2">
+              <Plug className="w-4 h-4" />
+              ScraperAPI
+            </TabsTrigger>
           </TabsList>
 
           {/* API Performance Tab */}
@@ -508,6 +514,11 @@ export default function SystemHealth() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ScraperAPI Tab */}
+          <TabsContent value="scraper">
+            <ScraperApiTab />
           </TabsContent>
         </Tabs>
       </div>
