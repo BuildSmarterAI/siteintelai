@@ -212,3 +212,6 @@ verify_jwt = false
 
 [functions.discover-gis-layers]
 verify_jwt = false
+
+[functions.resolve-jurisdiction]
+verify_jwt = false
