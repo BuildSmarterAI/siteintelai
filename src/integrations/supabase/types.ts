@@ -1685,6 +1685,65 @@ export type Database = {
         }
         Relationships: []
       }
+      dataset_quality: {
+        Row: {
+          created_at: string | null
+          dataset_version: string
+          duplicate_parcel_ids: number | null
+          error_summary: Json | null
+          id: string
+          ingestion_run_id: string
+          invalid_geometries: number | null
+          jurisdiction: string
+          missing_addresses: number | null
+          null_parcel_ids: number | null
+          quality_score: number | null
+          repaired_geometries: number | null
+          total_records: number | null
+          valid_records: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          dataset_version: string
+          duplicate_parcel_ids?: number | null
+          error_summary?: Json | null
+          id?: string
+          ingestion_run_id: string
+          invalid_geometries?: number | null
+          jurisdiction: string
+          missing_addresses?: number | null
+          null_parcel_ids?: number | null
+          quality_score?: number | null
+          repaired_geometries?: number | null
+          total_records?: number | null
+          valid_records?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          dataset_version?: string
+          duplicate_parcel_ids?: number | null
+          error_summary?: Json | null
+          id?: string
+          ingestion_run_id?: string
+          invalid_geometries?: number | null
+          jurisdiction?: string
+          missing_addresses?: number | null
+          null_parcel_ids?: number | null
+          quality_score?: number | null
+          repaired_geometries?: number | null
+          total_records?: number | null
+          valid_records?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dataset_quality_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       datasets: {
         Row: {
           created_at: string
@@ -4873,6 +4932,75 @@ export type Database = {
           property_address?: Json | null
           updated_at?: string | null
           zoning_code?: string | null
+        }
+        Relationships: []
+      }
+      v_parcels_current: {
+        Row: {
+          accuracy_tier: number | null
+          acreage: number | null
+          apn: string | null
+          centroid: unknown
+          city: string | null
+          confidence: number | null
+          county_fips: string | null
+          created_at: string | null
+          dataset_version: string | null
+          geom: unknown
+          id: number | null
+          ingestion_run_id: string | null
+          jurisdiction: string | null
+          land_use_code: string | null
+          land_use_desc: string | null
+          owner_city: string | null
+          owner_mailing_address: string | null
+          owner_name: string | null
+          owner_state: string | null
+          owner_zip: string | null
+          situs_address: string | null
+          source_agency: string | null
+          source_parcel_id: string | null
+          source_system: string | null
+          source_url: string | null
+          state: string | null
+          updated_at: string | null
+          zip: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "canonical_parcels_ingestion_run_id_fkey"
+            columns: ["ingestion_run_id"]
+            isOneToOne: false
+            referencedRelation: "ingestion_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      v_parcels_odata: {
+        Row: {
+          acreage: number | null
+          apn: string | null
+          centroid_geojson: Json | null
+          city: string | null
+          county_fips: string | null
+          created_at: string | null
+          dataset_version: string | null
+          geom_geojson: Json | null
+          id: number | null
+          jurisdiction: string | null
+          land_use_code: string | null
+          land_use_desc: string | null
+          owner_city: string | null
+          owner_mailing_address: string | null
+          owner_name: string | null
+          owner_state: string | null
+          owner_zip: string | null
+          situs_address: string | null
+          source_agency: string | null
+          source_parcel_id: string | null
+          state: string | null
+          updated_at: string | null
+          zip: string | null
         }
         Relationships: []
       }
