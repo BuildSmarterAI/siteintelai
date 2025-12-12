@@ -1433,6 +1433,38 @@ export type Database = {
         }
         Relationships: []
       }
+      county_metro_mapping: {
+        Row: {
+          county_fips: string
+          county_name: string
+          created_at: string | null
+          is_primary_county: boolean | null
+          metro_key: string | null
+        }
+        Insert: {
+          county_fips: string
+          county_name: string
+          created_at?: string | null
+          is_primary_county?: boolean | null
+          metro_key?: string | null
+        }
+        Update: {
+          county_fips?: string
+          county_name?: string
+          created_at?: string | null
+          is_primary_county?: boolean | null
+          metro_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "county_metro_mapping_metro_key_fkey"
+            columns: ["metro_key"]
+            isOneToOne: false
+            referencedRelation: "metro_regions"
+            referencedColumns: ["metro_key"]
+          },
+        ]
+      }
       credits_usage: {
         Row: {
           application_id: string | null
@@ -2508,6 +2540,7 @@ export type Database = {
           layer_key: string
           license: string | null
           map_server_id: string | null
+          metro_key: string | null
           native_srid: number | null
           provider: string
           source_type: string | null
@@ -2531,6 +2564,7 @@ export type Database = {
           layer_key: string
           license?: string | null
           map_server_id?: string | null
+          metro_key?: string | null
           native_srid?: number | null
           provider: string
           source_type?: string | null
@@ -2554,6 +2588,7 @@ export type Database = {
           layer_key?: string
           license?: string | null
           map_server_id?: string | null
+          metro_key?: string | null
           native_srid?: number | null
           provider?: string
           source_type?: string | null
@@ -2918,6 +2953,33 @@ export type Database = {
           update_frequency?: string | null
           updated_at?: string
           version?: string | null
+        }
+        Relationships: []
+      }
+      metro_regions: {
+        Row: {
+          created_at: string | null
+          id: string
+          market_characteristics: Json | null
+          metro_key: string
+          metro_name: string
+          primary_city: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          market_characteristics?: Json | null
+          metro_key: string
+          metro_name: string
+          primary_city: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          market_characteristics?: Json | null
+          metro_key?: string
+          metro_name?: string
+          primary_city?: string
         }
         Relationships: []
       }
