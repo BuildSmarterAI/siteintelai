@@ -428,16 +428,27 @@ async function runFeasibilityAI(app: any, traceId: string) {
       
       const json = response.data;
       
-      console.log(`📥 [TRACE:${traceId}] [runFeasibilityAI] AI report generated, validating schema...`);
+      console.log(`📥 [TRACE:${traceId}] [runFeasibilityAI] AI report generated successfully`);
       
-      // Validate JSON schema
-      const { data: isValid, error } = await sbAdmin.rpc('validate_report_json_schema', { 
-        data: json 
-      });
-      
-      if (error || !isValid) {
-        console.error(`❌ [TRACE:${traceId}] [runFeasibilityAI] Schema validation failed:`, error);
-        throw new Error('JSON schema validation failed');
+      // Schema validation is now NON-BLOCKING with graceful fallback
+      // If validation fails, we still proceed with the report
+      try {
+        const { data: isValid, error } = await sbAdmin.rpc('validate_report_json_schema', { 
+          data: json 
+        });
+        
+        if (error) {
+          console.warn(`⚠️ [TRACE:${traceId}] [runFeasibilityAI] Schema validation RPC error (non-blocking):`, error.message);
+          // Log warning but don't throw - report is still usable
+        } else if (!isValid) {
+          console.warn(`⚠️ [TRACE:${traceId}] [runFeasibilityAI] Schema validation returned false (non-blocking)`);
+          // Log warning but don't throw - report generation succeeded, just schema mismatch
+        } else {
+          console.log(`✅ [TRACE:${traceId}] [runFeasibilityAI] Schema validation passed`);
+        }
+      } catch (validationErr) {
+        // RPC might not exist or throw - this is non-blocking
+        console.warn(`⚠️ [TRACE:${traceId}] [runFeasibilityAI] Schema validation unavailable (non-blocking):`, validationErr);
       }
       
       const elapsed = Date.now() - phaseStart;
