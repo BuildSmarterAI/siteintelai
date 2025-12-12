@@ -5154,7 +5154,7 @@ export type Database = {
           etl_job_id?: string | null
           far?: number | null
           front_setback?: number | null
-          geom: unknown
+          geom?: unknown
           height_limit?: number | null
           height_limit_stories?: number | null
           id?: number
