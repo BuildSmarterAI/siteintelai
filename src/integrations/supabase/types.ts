@@ -308,6 +308,8 @@ export type Database = {
           bldg_style_cd: string | null
           block: string | null
           broadband_providers: Json | null
+          buildability_output_id: string | null
+          buildability_status: string | null
           building_size_unit: string | null
           building_size_value: number | null
           cache_expires_at: string | null
@@ -359,6 +361,7 @@ export type Database = {
           geo_lat: number | null
           geo_lng: number | null
           gis_provenance: Json | null
+          governing_path: string | null
           growth_rate_5yr: number | null
           heard_about: string
           highest_best_use_output: string | null
@@ -369,6 +372,7 @@ export type Database = {
           imprv_val: number | null
           intent_type: string | null
           intent_weights: Json | null
+          kill_factors_triggered: string[] | null
           known_risks: string[] | null
           land_use_code: string | null
           land_use_description: string | null
@@ -386,6 +390,7 @@ export type Database = {
           market_context: Json | null
           market_output: string | null
           marketing_opt_in: boolean
+          max_buildable_sf: number | null
           median_income: number | null
           mud_district: string | null
           nda_confidentiality: boolean
@@ -395,6 +400,7 @@ export type Database = {
           nearest_highway: string | null
           nearest_transit_stop: string | null
           neighborhood: string | null
+          net_buildable_area_sf: number | null
           next_run_at: string | null
           nfip_claims_count: number | null
           nfip_claims_total_paid: number | null
@@ -500,6 +506,8 @@ export type Database = {
           bldg_style_cd?: string | null
           block?: string | null
           broadband_providers?: Json | null
+          buildability_output_id?: string | null
+          buildability_status?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           cache_expires_at?: string | null
@@ -551,6 +559,7 @@ export type Database = {
           geo_lat?: number | null
           geo_lng?: number | null
           gis_provenance?: Json | null
+          governing_path?: string | null
           growth_rate_5yr?: number | null
           heard_about: string
           highest_best_use_output?: string | null
@@ -561,6 +570,7 @@ export type Database = {
           imprv_val?: number | null
           intent_type?: string | null
           intent_weights?: Json | null
+          kill_factors_triggered?: string[] | null
           known_risks?: string[] | null
           land_use_code?: string | null
           land_use_description?: string | null
@@ -578,6 +588,7 @@ export type Database = {
           market_context?: Json | null
           market_output?: string | null
           marketing_opt_in?: boolean
+          max_buildable_sf?: number | null
           median_income?: number | null
           mud_district?: string | null
           nda_confidentiality?: boolean
@@ -587,6 +598,7 @@ export type Database = {
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          net_buildable_area_sf?: number | null
           next_run_at?: string | null
           nfip_claims_count?: number | null
           nfip_claims_total_paid?: number | null
@@ -692,6 +704,8 @@ export type Database = {
           bldg_style_cd?: string | null
           block?: string | null
           broadband_providers?: Json | null
+          buildability_output_id?: string | null
+          buildability_status?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           cache_expires_at?: string | null
@@ -743,6 +757,7 @@ export type Database = {
           geo_lat?: number | null
           geo_lng?: number | null
           gis_provenance?: Json | null
+          governing_path?: string | null
           growth_rate_5yr?: number | null
           heard_about?: string
           highest_best_use_output?: string | null
@@ -753,6 +768,7 @@ export type Database = {
           imprv_val?: number | null
           intent_type?: string | null
           intent_weights?: Json | null
+          kill_factors_triggered?: string[] | null
           known_risks?: string[] | null
           land_use_code?: string | null
           land_use_description?: string | null
@@ -770,6 +786,7 @@ export type Database = {
           market_context?: Json | null
           market_output?: string | null
           marketing_opt_in?: boolean
+          max_buildable_sf?: number | null
           median_income?: number | null
           mud_district?: string | null
           nda_confidentiality?: boolean
@@ -779,6 +796,7 @@ export type Database = {
           nearest_highway?: string | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
+          net_buildable_area_sf?: number | null
           next_run_at?: string | null
           nfip_claims_count?: number | null
           nfip_claims_total_paid?: number | null
@@ -863,6 +881,13 @@ export type Database = {
           zoning_output?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "applications_buildability_output_id_fkey"
+            columns: ["buildability_output_id"]
+            isOneToOne: false
+            referencedRelation: "buildability_outputs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "applications_parcel_source_id_fkey"
             columns: ["parcel_source_id"]
@@ -1169,6 +1194,137 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      buildability_outputs: {
+        Row: {
+          application_id: string | null
+          buildability_status: string | null
+          buildable_envelope: Json
+          confidence: Json | null
+          constraints: Json
+          created_at: string
+          governing_authority: Json | null
+          governing_path: string
+          id: string
+          kill_factors: string[] | null
+          parcel_id: string | null
+          sources: Json | null
+          updated_at: string
+          validation: Json | null
+        }
+        Insert: {
+          application_id?: string | null
+          buildability_status?: string | null
+          buildable_envelope?: Json
+          confidence?: Json | null
+          constraints?: Json
+          created_at?: string
+          governing_authority?: Json | null
+          governing_path: string
+          id?: string
+          kill_factors?: string[] | null
+          parcel_id?: string | null
+          sources?: Json | null
+          updated_at?: string
+          validation?: Json | null
+        }
+        Update: {
+          application_id?: string | null
+          buildability_status?: string | null
+          buildable_envelope?: Json
+          confidence?: Json | null
+          constraints?: Json
+          created_at?: string
+          governing_authority?: Json | null
+          governing_path?: string
+          id?: string
+          kill_factors?: string[] | null
+          parcel_id?: string | null
+          sources?: Json | null
+          updated_at?: string
+          validation?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildability_outputs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "buildability_outputs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
+      buildability_rulesets: {
+        Row: {
+          created_at: string
+          default_setbacks: Json | null
+          development_controls: Json | null
+          effective_date: string | null
+          governing_path: string
+          id: string
+          is_active: boolean | null
+          jurisdiction_key: string
+          jurisdiction_name: string
+          jurisdiction_type: string
+          notes: string | null
+          source_document: string | null
+          story_height_assumptions: Json | null
+          superseded_by: string | null
+          updated_at: string
+          version: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_setbacks?: Json | null
+          development_controls?: Json | null
+          effective_date?: string | null
+          governing_path: string
+          id?: string
+          is_active?: boolean | null
+          jurisdiction_key: string
+          jurisdiction_name: string
+          jurisdiction_type: string
+          notes?: string | null
+          source_document?: string | null
+          story_height_assumptions?: Json | null
+          superseded_by?: string | null
+          updated_at?: string
+          version?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_setbacks?: Json | null
+          development_controls?: Json | null
+          effective_date?: string | null
+          governing_path?: string
+          id?: string
+          is_active?: boolean | null
+          jurisdiction_key?: string
+          jurisdiction_name?: string
+          jurisdiction_type?: string
+          notes?: string | null
+          source_document?: string | null
+          story_height_assumptions?: Json | null
+          superseded_by?: string | null
+          updated_at?: string
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildability_rulesets_superseded_by_fkey"
+            columns: ["superseded_by"]
+            isOneToOne: false
+            referencedRelation: "buildability_rulesets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       canonical_parcels: {
         Row: {
@@ -1834,6 +1990,104 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deed_parcel_links: {
+        Row: {
+          created_at: string
+          deed_doc_id: string
+          id: string
+          match_confidence: number | null
+          match_method: string | null
+          parcel_id: string
+        }
+        Insert: {
+          created_at?: string
+          deed_doc_id: string
+          id?: string
+          match_confidence?: number | null
+          match_method?: string | null
+          parcel_id: string
+        }
+        Update: {
+          created_at?: string
+          deed_doc_id?: string
+          id?: string
+          match_confidence?: number | null
+          match_method?: string | null
+          parcel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deed_parcel_links_deed_doc_id_fkey"
+            columns: ["deed_doc_id"]
+            isOneToOne: false
+            referencedRelation: "deed_restriction_docs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deed_restriction_docs: {
+        Row: {
+          confidence: number | null
+          county: string | null
+          created_at: string
+          doc_type: string | null
+          extracted_constraints: Json | null
+          extraction_citations: Json | null
+          extraction_status: string | null
+          file_hash: string | null
+          id: string
+          instrument_no: string
+          lot_block_pattern: string | null
+          manual_review_required: boolean | null
+          recorded_date: string | null
+          review_notes: string | null
+          source_url: string | null
+          storage_path: string | null
+          subdivision_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number | null
+          county?: string | null
+          created_at?: string
+          doc_type?: string | null
+          extracted_constraints?: Json | null
+          extraction_citations?: Json | null
+          extraction_status?: string | null
+          file_hash?: string | null
+          id?: string
+          instrument_no: string
+          lot_block_pattern?: string | null
+          manual_review_required?: boolean | null
+          recorded_date?: string | null
+          review_notes?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          subdivision_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number | null
+          county?: string | null
+          created_at?: string
+          doc_type?: string | null
+          extracted_constraints?: Json | null
+          extraction_citations?: Json | null
+          extraction_status?: string | null
+          file_hash?: string | null
+          id?: string
+          instrument_no?: string
+          lot_block_pattern?: string | null
+          manual_review_required?: boolean | null
+          recorded_date?: string | null
+          review_notes?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          subdivision_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       drawn_parcels: {
         Row: {
@@ -3468,6 +3722,69 @@ export type Database = {
           tenant_id?: string | null
           updated_at?: string
           wall_thickness_in?: number | null
+        }
+        Relationships: []
+      }
+      plat_documents: {
+        Row: {
+          confidence: number | null
+          constraint_geometry: Json | null
+          county: string | null
+          created_at: string
+          extracted_features: Json | null
+          extraction_status: string | null
+          file_hash: string | null
+          id: string
+          manual_review_required: boolean | null
+          orientation_data: Json | null
+          plat_name: string
+          recorded_date: string | null
+          review_notes: string | null
+          source_url: string | null
+          storage_path: string | null
+          subdivision_name: string | null
+          updated_at: string
+          volume_page: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          constraint_geometry?: Json | null
+          county?: string | null
+          created_at?: string
+          extracted_features?: Json | null
+          extraction_status?: string | null
+          file_hash?: string | null
+          id?: string
+          manual_review_required?: boolean | null
+          orientation_data?: Json | null
+          plat_name: string
+          recorded_date?: string | null
+          review_notes?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          subdivision_name?: string | null
+          updated_at?: string
+          volume_page?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          constraint_geometry?: Json | null
+          county?: string | null
+          created_at?: string
+          extracted_features?: Json | null
+          extraction_status?: string | null
+          file_hash?: string | null
+          id?: string
+          manual_review_required?: boolean | null
+          orientation_data?: Json | null
+          plat_name?: string
+          recorded_date?: string | null
+          review_notes?: string | null
+          source_url?: string | null
+          storage_path?: string | null
+          subdivision_name?: string | null
+          updated_at?: string
+          volume_page?: string | null
         }
         Relationships: []
       }
