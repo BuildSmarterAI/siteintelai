@@ -1,0 +1,241 @@
+name: Generate Vector Tiles
+
+on:
+  schedule:
+    # Run daily at 4 AM UTC
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      layers:
+        description: 'Layers to generate (comma-separated or "all")'
+        required: false
+        default: 'all'
+        type: string
+      jurisdiction:
+        description: 'Jurisdiction filter (e.g., "harris", "travis", or leave empty for all)'
+        required: false
+        default: ''
+        type: string
+
+env:
+  SUPABASE_URL: https://mcmfwlgovubpdcfiqfvk.supabase.co
+  TILE_CDN_BASE: https://tiles.siteintel.ai
+  AWS_REGION: us-east-1
+
+jobs:
+  generate-tiles:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        layer: [parcels, zoning, utilities, transportation, flood]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Check if layer should be processed
+        id: check-layer
+        run: |
+          LAYERS="${{ github.event.inputs.layers || 'all' }}"
+          CURRENT_LAYER="${{ matrix.layer }}"
+          
+          if [ "$LAYERS" = "all" ] || echo "$LAYERS" | grep -q "$CURRENT_LAYER"; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install Tippecanoe
+        if: steps.check-layer.outputs.should_run == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libsqlite3-dev zlib1g-dev
+          git clone https://github.com/felt/tippecanoe.git
+          cd tippecanoe
+          make -j$(nproc)
+          sudo make install
+          tippecanoe --version
+      
+      - name: Setup Python
+        if: steps.check-layer.outputs.should_run == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install Python dependencies
+        if: steps.check-layer.outputs.should_run == 'true'
+        run: |
+          pip install -r etl/requirements.txt
+      
+      - name: Export GeoJSON from Supabase
+        if: steps.check-layer.outputs.should_run == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          JURISDICTION="${{ github.event.inputs.jurisdiction }}"
+          JURISDICTION_ARG=""
+          if [ -n "$JURISDICTION" ]; then
+            JURISDICTION_ARG="--jurisdiction $JURISDICTION"
+          fi
+          
+          python etl/jobs/export_canonical.py \
+            --layer ${{ matrix.layer }} \
+            $JURISDICTION_ARG \
+            --output-dir export
+      
+      - name: Read Tippecanoe config
+        if: steps.check-layer.outputs.should_run == 'true'
+        id: tippecanoe-config
+        run: |
+          CONFIG=$(cat etl/config/tippecanoe.config.json)
+          LAYER_CONFIG=$(echo "$CONFIG" | jq -r '."${{ matrix.layer }}"')
+          
+          MIN_ZOOM=$(echo "$LAYER_CONFIG" | jq -r '.["minimum-zoom"] // 8')
+          MAX_ZOOM=$(echo "$LAYER_CONFIG" | jq -r '.["maximum-zoom"] // 18')
+          SIMPLIFICATION=$(echo "$LAYER_CONFIG" | jq -r '.simplification // 10')
+          
+          echo "min_zoom=$MIN_ZOOM" >> $GITHUB_OUTPUT
+          echo "max_zoom=$MAX_ZOOM" >> $GITHUB_OUTPUT
+          echo "simplification=$SIMPLIFICATION" >> $GITHUB_OUTPUT
+      
+      - name: Generate tiles with Tippecanoe
+        if: steps.check-layer.outputs.should_run == 'true'
+        run: |
+          VERSION=$(date +%Y_%m_%d)
+          mkdir -p tiles/${{ matrix.layer }}
+          
+          # Find all GeoJSON files for this layer
+          GEOJSON_FILES=$(find export -name "${{ matrix.layer }}*.geojson" -type f)
+          
+          if [ -z "$GEOJSON_FILES" ]; then
+            echo "No GeoJSON files found for layer ${{ matrix.layer }}"
+            exit 1
+          fi
+          
+          echo "Processing files: $GEOJSON_FILES"
+          
+          # Generate MBTiles
+          tippecanoe \
+            --output=${{ matrix.layer }}.mbtiles \
+            --layer=${{ matrix.layer }} \
+            --minimum-zoom=${{ steps.tippecanoe-config.outputs.min_zoom }} \
+            --maximum-zoom=${{ steps.tippecanoe-config.outputs.max_zoom }} \
+            --simplification=${{ steps.tippecanoe-config.outputs.simplification }} \
+            --drop-densest-as-needed \
+            --extend-zooms-if-still-dropping \
+            --force \
+            --read-parallel \
+            $GEOJSON_FILES
+          
+          # Extract to directory structure
+          tile-join \
+            --no-tile-compression \
+            --output-to-directory=tiles/${{ matrix.layer }} \
+            ${{ matrix.layer }}.mbtiles
+          
+          # Count tiles
+          TILE_COUNT=$(find tiles/${{ matrix.layer }} -name "*.pbf" | wc -l)
+          echo "Generated $TILE_COUNT tiles"
+          echo "tile_count=$TILE_COUNT" >> $GITHUB_ENV
+      
+      - name: Configure AWS credentials
+        if: steps.check-layer.outputs.should_run == 'true'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Upload tiles to S3
+        if: steps.check-layer.outputs.should_run == 'true'
+        run: |
+          VERSION=$(date +%Y_%m_%d)
+          
+          # Sync tiles to S3 with correct content type and caching
+          aws s3 sync tiles/${{ matrix.layer }}/ \
+            s3://${{ secrets.AWS_S3_BUCKET }}/us/tx/${{ matrix.layer }}/$VERSION/ \
+            --content-type application/x-protobuf \
+            --cache-control "public, max-age=31536000, immutable" \
+            --metadata-directive REPLACE
+          
+          echo "Tiles uploaded to s3://${{ secrets.AWS_S3_BUCKET }}/us/tx/${{ matrix.layer }}/$VERSION/"
+      
+      - name: Update tileset catalog
+        if: steps.check-layer.outputs.should_run == 'true'
+        env:
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          TILE_CDN_BASE: ${{ env.TILE_CDN_BASE }}
+        run: |
+          VERSION=$(date +%Y_%m_%d)
+          
+          # Get record count from manifest
+          RECORD_COUNT=$(cat export/manifest.json | jq -r ".layers[] | select(.layer == \"${{ matrix.layer }}\") | .record_count // 0")
+          
+          python etl/jobs/register_tileset.py \
+            --layer ${{ matrix.layer }} \
+            --version $VERSION \
+            --jurisdiction tx \
+            --record-count $RECORD_COUNT \
+            --tiles-dir tiles/${{ matrix.layer }} \
+            --deactivate-old
+      
+      - name: Invalidate CloudFront cache
+        if: steps.check-layer.outputs.should_run == 'true'
+        run: |
+          VERSION=$(date +%Y_%m_%d)
+          
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/us/tx/${{ matrix.layer }}/*" "/us/tx/${{ matrix.layer }}/$VERSION/*"
+      
+      - name: Upload artifacts
+        if: steps.check-layer.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tiles-${{ matrix.layer }}
+          path: |
+            export/manifest.json
+            ${{ matrix.layer }}.mbtiles
+          retention-days: 7
+
+  notify:
+    needs: generate-tiles
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Check job results
+        id: check-results
+        run: |
+          if [ "${{ needs.generate-tiles.result }}" = "success" ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "message=✅ Vector tile generation completed successfully" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            echo "message=❌ Vector tile generation failed" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.25.0
+        with:
+          payload: |
+            {
+              "text": "${{ steps.check-results.outputs.message }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ steps.check-results.outputs.message }}\n\n*Workflow:* ${{ github.workflow }}\n*Run:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Details>"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK

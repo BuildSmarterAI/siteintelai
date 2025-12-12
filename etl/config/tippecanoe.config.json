@@ -1,0 +1,70 @@
+{
+  "parcels": {
+    "layer": "parcels",
+    "minimum-zoom": 10,
+    "maximum-zoom": 18,
+    "simplification": 10,
+    "drop-densest-as-needed": true,
+    "extend-zooms-if-still-dropping": true,
+    "coalesce-densest-as-needed": true,
+    "detect-shared-borders": true,
+    "description": "County parcel boundaries from CAD sources"
+  },
+  "zoning": {
+    "layer": "zoning",
+    "minimum-zoom": 8,
+    "maximum-zoom": 16,
+    "simplification": 8,
+    "drop-densest-as-needed": false,
+    "detect-shared-borders": true,
+    "description": "Zoning districts from city planning departments"
+  },
+  "utilities": {
+    "layer": "utilities",
+    "minimum-zoom": 12,
+    "maximum-zoom": 18,
+    "simplification": 4,
+    "drop-densest-as-needed": true,
+    "description": "Water, sewer, and storm infrastructure lines"
+  },
+  "transportation": {
+    "layer": "transportation",
+    "minimum-zoom": 8,
+    "maximum-zoom": 18,
+    "simplification": 6,
+    "drop-densest-as-needed": true,
+    "description": "TxDOT AADT traffic segments and road network"
+  },
+  "flood": {
+    "layer": "flood",
+    "minimum-zoom": 8,
+    "maximum-zoom": 16,
+    "simplification": 8,
+    "drop-densest-as-needed": false,
+    "preserve-input-order": true,
+    "description": "FEMA NFHL flood zone boundaries"
+  },
+  "wetlands": {
+    "layer": "wetlands",
+    "minimum-zoom": 10,
+    "maximum-zoom": 16,
+    "simplification": 6,
+    "drop-densest-as-needed": false,
+    "description": "USFWS National Wetlands Inventory"
+  },
+  "environmental": {
+    "layer": "environmental",
+    "minimum-zoom": 8,
+    "maximum-zoom": 16,
+    "simplification": 4,
+    "drop-densest-as-needed": false,
+    "description": "EPA regulated facilities and contamination sites"
+  },
+  "defaults": {
+    "force": true,
+    "read-parallel": true,
+    "no-tile-compression": false,
+    "output-to-directory": true,
+    "tile-stats-file": "stats.json"
+  }
+}

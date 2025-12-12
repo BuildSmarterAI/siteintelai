@@ -57,6 +57,7 @@ import HoustonWorkflow from "./pages/docs/HoustonWorkflow";
 import TexasPipeline from "./pages/docs/TexasPipeline";
 import TileArchitecture from "./pages/docs/TileArchitecture";
 import CanonicalSchema from "./pages/docs/CanonicalSchema";
+import TileManagement from "./pages/admin/TileManagement";
 
 const queryClient = new QueryClient();
 
@@ -135,6 +136,7 @@ const App = () => (
               <Route path="/admin/data-sources/:id/edit" element={<DataSourceFormPage />} />
               <Route path="/admin/data-source-versions" element={<DataSourceVersions />} />
               <Route path="/admin/data-source-errors" element={<DataSourceErrors />} />
+              <Route path="/admin/tile-management" element={<TileManagement />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />

@@ -25,7 +25,8 @@ import {
   BarChart3,
   Radio,
   GitBranch,
-  Plug
+  Plug,
+  Layers
 } from "lucide-react";
 import { ApiPerformanceTab } from "@/components/admin/ApiPerformanceTab";
 import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
@@ -340,6 +341,10 @@ export default function SystemHealth() {
             <TabsTrigger value="gis-health" className="flex items-center gap-2">
               <MapPin className="w-4 h-4" />
               GIS Health
+            </TabsTrigger>
+            <TabsTrigger value="tiles" className="flex items-center gap-2" onClick={() => window.location.href = '/admin/tile-management'}>
+              <Layers className="w-4 h-4" />
+              Tiles
             </TabsTrigger>
           </TabsList>
 
