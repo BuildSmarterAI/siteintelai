@@ -1,0 +1,26 @@
+# SiteIntel ETL Pipeline Dependencies
+# For GeoJSON export and tileset registration
+
+# Database connectivity
+psycopg2-binary>=2.9.9
+
+# HTTP client for Supabase API
+requests>=2.31.0
+
+# GeoJSON processing
+geojson>=3.1.0
+
+# CLI utilities
+click>=8.1.7
+
+# Environment variable handling
+python-dotenv>=1.0.0
+
+# AWS S3 integration (for direct uploads if needed)
+boto3>=1.34.0
+
+# JSON schema validation
+jsonschema>=4.21.0
+
+# Progress bars for large exports
+tqdm>=4.66.0
