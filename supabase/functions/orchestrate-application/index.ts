@@ -352,56 +352,90 @@ async function enrichOverlays(app: any, traceId: string) {
   
   const phaseStart = Date.now();
   
-  return retryWithBackoff(
-    async () => {
-      console.log(`📤 [TRACE:${traceId}] [enrichOverlays] Invoking enrich-utilities with:`, {
+  // LENIENT UTILITIES ENRICHMENT: Catch all errors and continue with empty utilities
+  // This ensures utility API failures don't block report generation
+  try {
+    console.log(`📤 [TRACE:${traceId}] [enrichOverlays] Invoking enrich-utilities with:`, {
+      application_id: freshApp.id,
+      trace_id: traceId
+    });
+    
+    const response = await sbAdmin.functions.invoke('enrich-utilities', {
+      body: { 
         application_id: freshApp.id,
         trace_id: traceId
-      });
-      
-      const response = await sbAdmin.functions.invoke('enrich-utilities', {
-        body: { 
-          application_id: freshApp.id,
-          trace_id: traceId
-        }
-      });
-      
-      if (response.error) {
-        console.error(`❌ [TRACE:${traceId}] [enrichOverlays] enrich-utilities failed:`, response.error);
-        throw { code: 'E402-2', message: response.error.message || 'Utilities API failed' };
       }
+    });
+    
+    if (response.error) {
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichOverlays] enrich-utilities failed, continuing with empty utilities:`, response.error);
       
-      const utilsData = response.data;
-      
-      console.log(`📥 [TRACE:${traceId}] [enrichOverlays] enrich-utilities response:`, {
-        success: utilsData?.success,
-        utilities: utilsData?.utilities,
-        flags: utilsData?.flags
-      });
-      
-      // Check if we got ANY utility data (partial success is still success!)
-      const hasAnyUtilities = 
-        (utilsData.utilities?.water || 0) > 0 ||
-        (utilsData.utilities?.sewer || 0) > 0 ||
-        (utilsData.utilities?.storm || 0) > 0;
-      
-      if (hasAnyUtilities || utilsData.success) {
-        console.log(`✅ [TRACE:${traceId}] [enrichOverlays] Utilities retrieved (may be partial):`, utilsData.utilities);
-      } else {
-        // Truly no utilities at all - log warning but don't fail
-        console.warn(`⚠️ [TRACE:${traceId}] [enrichOverlays] No utilities available - continuing anyway`);
-      }
+      // Update data_flags to indicate utility enrichment failed but continue
+      await sbAdmin
+        .from('applications')
+        .update({
+          data_flags: [...(freshApp.data_flags || []), 'utilities_api_error'],
+          utilities_summary: { water: 0, sewer: 0, storm: 0, error: true }
+        })
+        .eq('id', freshApp.id);
       
       const elapsed = Date.now() - phaseStart;
-      console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] ================== EXIT ==================`);
-      console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] Phase complete in ${elapsed}ms`);
+      console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] ================== EXIT (with warnings) ==================`);
+      console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] Phase complete in ${elapsed}ms (utilities unavailable)`);
       
-      return utilsData;
-    },
-    MAX_ATTEMPTS,
-    'E402',
-    traceId
-  );
+      return { utilities: { water: 0, sewer: 0, storm: 0 }, success: false, error: response.error.message };
+    }
+    
+    const utilsData = response.data;
+    
+    console.log(`📥 [TRACE:${traceId}] [enrichOverlays] enrich-utilities response:`, {
+      success: utilsData?.success,
+      utilities: utilsData?.utilities,
+      flags: utilsData?.flags
+    });
+    
+    // Check if we got ANY utility data (partial success is still success!)
+    const hasAnyUtilities = 
+      (utilsData?.utilities?.water || 0) > 0 ||
+      (utilsData?.utilities?.sewer || 0) > 0 ||
+      (utilsData?.utilities?.storm || 0) > 0;
+    
+    if (hasAnyUtilities || utilsData?.success) {
+      console.log(`✅ [TRACE:${traceId}] [enrichOverlays] Utilities retrieved (may be partial):`, utilsData?.utilities);
+    } else {
+      // Truly no utilities at all - log warning but don't fail
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichOverlays] No utilities available - continuing anyway`);
+    }
+    
+    const elapsed = Date.now() - phaseStart;
+    console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] ================== EXIT ==================`);
+    console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] Phase complete in ${elapsed}ms`);
+    
+    return utilsData || { utilities: { water: 0, sewer: 0, storm: 0 }, success: false };
+    
+  } catch (err: any) {
+    // CATCH ALL: Any exception should not block the pipeline
+    console.warn(`⚠️ [TRACE:${traceId}] [enrichOverlays] Exception caught, continuing with empty utilities:`, err);
+    
+    // Update data_flags to indicate utility enrichment failed
+    try {
+      await sbAdmin
+        .from('applications')
+        .update({
+          data_flags: [...(freshApp.data_flags || []), 'utilities_exception'],
+          utilities_summary: { water: 0, sewer: 0, storm: 0, error: true }
+        })
+        .eq('id', freshApp.id);
+    } catch (updateErr) {
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichOverlays] Failed to update data_flags:`, updateErr);
+    }
+    
+    const elapsed = Date.now() - phaseStart;
+    console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] ================== EXIT (exception handled) ==================`);
+    console.log(`🔌 [TRACE:${traceId}] [enrichOverlays] Phase complete in ${elapsed}ms (utilities unavailable due to exception)`);
+    
+    return { utilities: { water: 0, sewer: 0, storm: 0 }, success: false, error: String(err) };
+  }
 }
 
 async function runFeasibilityAI(app: any, traceId: string) {
