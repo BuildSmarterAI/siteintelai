@@ -398,6 +398,7 @@ export type Database = {
           nearest_facility_dist: number | null
           nearest_facility_type: string | null
           nearest_highway: string | null
+          nearest_signal_distance_ft: number | null
           nearest_transit_stop: string | null
           neighborhood: string | null
           net_buildable_area_sf: number | null
@@ -414,6 +415,7 @@ export type Database = {
           parcel_owner: string | null
           parcel_source: string | null
           parcel_source_id: string | null
+          peak_hour_volume: number | null
           phone: string
           place_id: string | null
           population_1mi: number | null
@@ -430,6 +432,7 @@ export type Database = {
           prototype_requirements: string | null
           quality_level: string
           report_url: string | null
+          road_classification: string | null
           schedule_output: string | null
           scoring_weights: Json | null
           sewer_capacity_mgd: number | null
@@ -457,6 +460,7 @@ export type Database = {
           tot_appr_val: number | null
           tot_market_val: number | null
           traffic_aadt: number | null
+          traffic_data_source: string | null
           traffic_direction: string | null
           traffic_distance_ft: number | null
           traffic_map_url: string | null
@@ -596,6 +600,7 @@ export type Database = {
           nearest_facility_dist?: number | null
           nearest_facility_type?: string | null
           nearest_highway?: string | null
+          nearest_signal_distance_ft?: number | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
           net_buildable_area_sf?: number | null
@@ -612,6 +617,7 @@ export type Database = {
           parcel_owner?: string | null
           parcel_source?: string | null
           parcel_source_id?: string | null
+          peak_hour_volume?: number | null
           phone: string
           place_id?: string | null
           population_1mi?: number | null
@@ -628,6 +634,7 @@ export type Database = {
           prototype_requirements?: string | null
           quality_level: string
           report_url?: string | null
+          road_classification?: string | null
           schedule_output?: string | null
           scoring_weights?: Json | null
           sewer_capacity_mgd?: number | null
@@ -655,6 +662,7 @@ export type Database = {
           tot_appr_val?: number | null
           tot_market_val?: number | null
           traffic_aadt?: number | null
+          traffic_data_source?: string | null
           traffic_direction?: string | null
           traffic_distance_ft?: number | null
           traffic_map_url?: string | null
@@ -794,6 +802,7 @@ export type Database = {
           nearest_facility_dist?: number | null
           nearest_facility_type?: string | null
           nearest_highway?: string | null
+          nearest_signal_distance_ft?: number | null
           nearest_transit_stop?: string | null
           neighborhood?: string | null
           net_buildable_area_sf?: number | null
@@ -810,6 +819,7 @@ export type Database = {
           parcel_owner?: string | null
           parcel_source?: string | null
           parcel_source_id?: string | null
+          peak_hour_volume?: number | null
           phone?: string
           place_id?: string | null
           population_1mi?: number | null
@@ -826,6 +836,7 @@ export type Database = {
           prototype_requirements?: string | null
           quality_level?: string
           report_url?: string | null
+          road_classification?: string | null
           schedule_output?: string | null
           scoring_weights?: Json | null
           sewer_capacity_mgd?: number | null
@@ -853,6 +864,7 @@ export type Database = {
           tot_appr_val?: number | null
           tot_market_val?: number | null
           traffic_aadt?: number | null
+          traffic_data_source?: string | null
           traffic_direction?: string | null
           traffic_distance_ft?: number | null
           traffic_map_url?: string | null

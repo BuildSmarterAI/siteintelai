@@ -221,3 +221,6 @@ verify_jwt = false
 
 [functions.auto-recover-errors]
 verify_jwt = false
+
+[functions.enrich-traffic]
+verify_jwt = true

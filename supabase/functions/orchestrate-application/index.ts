@@ -438,6 +438,80 @@ async function enrichOverlays(app: any, traceId: string) {
   }
 }
 
+async function enrichTraffic(app: any, traceId: string) {
+  console.log(`🚗 [TRACE:${traceId}] [enrichTraffic] ================== ENTRY ==================`);
+  console.log(`🚗 [TRACE:${traceId}] [enrichTraffic] Starting for app ${app.id}`);
+  
+  const phaseStart = Date.now();
+  
+  // Re-fetch app data to get fresh coordinates
+  const freshApp = await refreshAppData(app.id, traceId);
+  
+  if (!freshApp.geo_lat || !freshApp.geo_lng) {
+    console.warn(`⚠️ [TRACE:${traceId}] [enrichTraffic] Missing coordinates, skipping`);
+    return { success: false, error: 'Missing coordinates' };
+  }
+  
+  try {
+    console.log(`📤 [TRACE:${traceId}] [enrichTraffic] Invoking enrich-traffic with:`, {
+      application_id: freshApp.id,
+      trace_id: traceId
+    });
+    
+    const response = await sbAdmin.functions.invoke('enrich-traffic', {
+      body: { 
+        application_id: freshApp.id,
+        trace_id: traceId
+      }
+    });
+    
+    if (response.error) {
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichTraffic] enrich-traffic failed, continuing:`, response.error);
+      
+      // Update data_flags to indicate traffic enrichment failed but continue
+      await sbAdmin
+        .from('applications')
+        .update({
+          data_flags: [...(freshApp.data_flags || []), 'traffic_api_error']
+        })
+        .eq('id', freshApp.id);
+      
+      return { success: false, error: response.error.message };
+    }
+    
+    const trafficData = response.data;
+    
+    console.log(`📥 [TRACE:${traceId}] [enrichTraffic] enrich-traffic response:`, {
+      success: trafficData?.success,
+      aadt: trafficData?.traffic_aadt,
+      road_class: trafficData?.road_classification,
+      peak_hour: trafficData?.peak_hour_volume
+    });
+    
+    const elapsed = Date.now() - phaseStart;
+    console.log(`🚗 [TRACE:${traceId}] [enrichTraffic] ================== EXIT ==================`);
+    console.log(`🚗 [TRACE:${traceId}] [enrichTraffic] Phase complete in ${elapsed}ms`);
+    
+    return trafficData || { success: false };
+    
+  } catch (err: any) {
+    console.warn(`⚠️ [TRACE:${traceId}] [enrichTraffic] Exception caught, continuing:`, err);
+    
+    try {
+      await sbAdmin
+        .from('applications')
+        .update({
+          data_flags: [...(freshApp.data_flags || []), 'traffic_exception']
+        })
+        .eq('id', freshApp.id);
+    } catch (updateErr) {
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichTraffic] Failed to update data_flags:`, updateErr);
+    }
+    
+    return { success: false, error: String(err) };
+  }
+}
+
 async function runFeasibilityAI(app: any, traceId: string) {
   console.log(`🤖 [TRACE:${traceId}] [runFeasibilityAI] ================== ENTRY ==================`);
   console.log(`🤖 [TRACE:${traceId}] [runFeasibilityAI] Starting for app ${app.id}`);
@@ -662,9 +736,16 @@ async function orchestrate(appId: string, traceId: string): Promise<any> {
         console.log(`🔄 [TRACE:${traceId}] [orchestrate] ========== PHASE: enriching → ai ==========`);
         const phaseStart = Date.now();
         
+        // Enrich utilities (water, sewer, storm)
         await enrichOverlays(app, traceId);
         
         orchestrationMetrics.phases['enrich_overlays'] = Date.now() - phaseStart;
+        
+        // Enrich traffic data (AADT, roadway classification, peak hour)
+        console.log(`🔄 [TRACE:${traceId}] [orchestrate] Running traffic enrichment...`);
+        const trafficStart = Date.now();
+        await enrichTraffic(app, traceId);
+        orchestrationMetrics.phases['enrich_traffic'] = Date.now() - trafficStart;
         
         // Validate data before moving to AI phase
         console.log(`🔄 [TRACE:${traceId}] [orchestrate] Running data validation...`);
