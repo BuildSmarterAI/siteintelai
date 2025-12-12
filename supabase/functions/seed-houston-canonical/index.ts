@@ -67,6 +67,18 @@ const transformFunctions: Record<string, (val: any) => any> = {
     if (s.includes('proposed') || s === 'p') return 'proposed';
     return 'unknown';
   },
+  // Map TxDOT route prefix to roadway classification (FHWA functional class)
+  route_prefix_to_class: (val) => {
+    if (!val) return null;
+    const prefix = String(val).toUpperCase().trim();
+    // Principal/Minor Arterial
+    if (['IH', 'US', 'PA', 'SH', 'SA', 'UA'].includes(prefix)) return 'arterial';
+    // Major/Minor Collector
+    if (['FM', 'RM', 'RR', 'FS', 'RS', 'UP'].includes(prefix)) return 'collector';
+    // Local
+    if (['CS', 'CR', 'PV', 'PR'].includes(prefix)) return 'local';
+    return null;
+  },
 };
 
 interface LayerConfig {
@@ -186,15 +198,23 @@ const LAYER_CONFIGS: LayerConfig[] = [
   },
   {
     layer_key: 'txdot_aadt',
-    // TxDOT AADT Feature Service
+    // TxDOT AADT Feature Service - CORRECTED field mappings
     source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0',
     target_table: 'transportation_canonical',
     field_mappings: [
-      { source: 'T_FLAG', target: 'aadt', transform: 'parse_float' },
+      // FIXED: Use AADT_CUR (current AADT) instead of T_FLAG
+      { source: 'AADT_CUR', target: 'aadt', transform: 'parse_int' },
       { source: 'YR', target: 'aadt_year', transform: 'parse_int' },
       { source: 'RTE_NM', target: 'road_name', transform: 'uppercase' },
-      { source: 'F_SYSTEM', target: 'road_class', transform: 'trim' },
+      // NEW: Add route prefix for classification
+      { source: 'RTE_PRFX', target: 'road_class', transform: 'route_prefix_to_class' },
       { source: 'RTE_ID', target: 'route_number', transform: 'trim' },
+      // NEW: Truck percentage for freight analysis
+      { source: 'T_PCT', target: 'truck_percent', transform: 'parse_float' },
+      // NEW: K-factor for peak hour calculation
+      { source: 'K_FLAG', target: 'k_factor', transform: 'parse_float' },
+      // Direction flag for segment identification
+      { source: 'DIR_FLAG', target: 'direction', transform: 'trim' },
     ],
     constants: { 
       source_dataset: 'txdot_aadt', 
