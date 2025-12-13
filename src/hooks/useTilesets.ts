@@ -121,8 +121,8 @@ export function useTileUrl(category: string, jurisdiction: string = 'tx') {
 /**
  * Get all active tile sources for MapLibre
  */
-export function useVectorTileSources() {
-  const { data: tilesets, isLoading, error } = useTilesets();
+export function useVectorTileSources(jurisdiction: string = 'tx') {
+  const { data: tilesets, isLoading, error } = useTilesets({ jurisdiction });
 
   const sources: Record<string, {
     type: 'vector';
@@ -132,21 +132,35 @@ export function useVectorTileSources() {
     attribution?: string;
   }> = {};
 
+  const layers: Record<string, {
+    sourceLayer: string;
+    category: string;
+    generatedAt: string | null;
+  }> = {};
+
   if (tilesets) {
     for (const tileset of tilesets) {
       const tileUrl = tileset.tile_url_template;
+      const sourceId = `siteintel-${tileset.category}`;
 
-      sources[`siteintel-${tileset.category}`] = {
+      sources[sourceId] = {
         type: 'vector',
         tiles: [tileUrl],
         minzoom: tileset.min_zoom,
         maxzoom: tileset.max_zoom,
         attribution: '© SiteIntel',
       };
+
+      // Map category to source layer name (usually same as category)
+      layers[sourceId] = {
+        sourceLayer: tileset.category,
+        category: tileset.category,
+        generatedAt: tileset.generated_at,
+      };
     }
   }
 
-  return { sources, isLoading, error };
+  return { sources, layers, isLoading, error, tilesets };
 }
 
 /**
