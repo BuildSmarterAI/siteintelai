@@ -95,16 +95,14 @@ const LAYER_CONFIGS: LayerConfig[] = [
   {
     layer_key: 'houston_parcels',
     source_url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0',
-    target_table: 'parcels_canonical',
+    target_table: 'canonical_parcels',
     field_mappings: [
-      // Field names from HCAD API are lowercase
-      { source: 'acct_num', target: 'parcel_id', transform: 'trim' },
+      // Field names from HCAD API are lowercase - mapped to canonical_parcels schema
+      { source: 'acct_num', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'acct_num', target: 'apn', transform: 'trim' },
       { source: 'owner_name_1', target: 'owner_name', transform: 'uppercase' },
       { source: 'site_str_name', target: 'situs_address', transform: 'trim' },
-      { source: 'land_sqft', target: 'lot_size_sqft', transform: 'parse_float' },
-      { source: 'total_market_val', target: 'total_value', transform: 'parse_int' },
-      { source: 'land_value', target: 'land_value', transform: 'parse_int' },
-      { source: 'impr_value', target: 'improvement_value', transform: 'parse_int' },
+      { source: 'land_sqft', target: 'acreage', transform: 'sqft_to_acres' },
       { source: 'state_class', target: 'land_use_code', transform: 'trim' },
       { source: 'site_city', target: 'city', transform: 'trim' },
       { source: 'site_zip', target: 'zip', transform: 'trim' },
@@ -112,10 +110,11 @@ const LAYER_CONFIGS: LayerConfig[] = [
     constants: { 
       jurisdiction: 'Harris County', 
       state: 'TX', 
-      county: 'Harris',
-      source_dataset: 'houston_parcels' 
+      dataset_version: '2025_01',
+      source_system: 'HCAD',
+      source_agency: 'Harris County Appraisal District'
     },
-    max_records: 200, // Small batch for testing
+    max_records: 5000, // Production batch size
   },
   {
     layer_key: 'houston_sewer_lines',
@@ -137,7 +136,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       diameter_unit: 'inches',
       source_dataset: 'houston_sewer_lines' 
     },
-    max_records: 500,
+    max_records: 2000, // Increased for production
   },
   {
     layer_key: 'houston_water_lines',
@@ -160,7 +159,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       pressure_unit: 'psi',
       source_dataset: 'houston_water_lines' 
     },
-    max_records: 500,
+    max_records: 2000, // Increased for production
   },
   {
     layer_key: 'fema_flood_zones',
@@ -180,7 +179,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       county: 'Harris',
       bfe_unit: 'NAVD88'
     },
-    max_records: 500,
+    max_records: 2000, // Increased for production
   },
   {
     layer_key: 'nwi_wetlands',
@@ -194,7 +193,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       { source: 'ACRES', target: 'area_acres', transform: 'parse_float' },
     ],
     constants: { source_dataset: 'nwi_wetlands' },
-    max_records: 300,
+    max_records: 1500, // Increased for production
   },
   {
     layer_key: 'txdot_aadt',
@@ -221,7 +220,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       jurisdiction: 'TxDOT',
       county: 'Harris'
     },
-    max_records: 500,
+    max_records: 3000, // Increased for production
   },
   // === NEW INFRASTRUCTURE LAYERS ===
   {
@@ -245,7 +244,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       accuracy_tier: 1,
       boundary_confidence: 90
     },
-    max_records: 500,
+    max_records: 1000, // Increased for production
   },
   {
     layer_key: 'puct_ccn_sewer',
@@ -268,7 +267,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       accuracy_tier: 1,
       boundary_confidence: 90
     },
-    max_records: 500,
+    max_records: 1000, // Increased for production
   },
   {
     layer_key: 'rrc_pipelines',
@@ -292,7 +291,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       alignment_confidence: 70,
       depth_confidence: 40
     },
-    max_records: 500,
+    max_records: 2000, // Increased for production
   },
 ];
 
