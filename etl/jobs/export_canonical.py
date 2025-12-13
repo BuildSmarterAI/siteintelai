@@ -31,6 +31,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 
 # Layer configuration mapping canonical tables to export parameters
+# IMPORTANT: These must match actual database column names exactly
 LAYER_CONFIG = {
     "parcels": {
         "table": "canonical_parcels",
@@ -47,6 +48,8 @@ LAYER_CONFIG = {
             "city",
             "state",
             "zip",
+            "accuracy_tier",
+            "confidence",
         ],
         "jurisdiction_column": "jurisdiction",
     },
@@ -57,11 +60,14 @@ LAYER_CONFIG = {
             "district_code",
             "district_name",
             "jurisdiction",
-            "base_district",
-            "overlay_code",
-            "max_height_ft",
-            "max_far",
-            "lot_coverage_pct",
+            "height_limit",
+            "height_limit_stories",
+            "far",
+            "lot_coverage",
+            "front_setback",
+            "side_setback",
+            "rear_setback",
+            "min_lot_size",
         ],
         "jurisdiction_column": "jurisdiction",
     },
@@ -70,12 +76,15 @@ LAYER_CONFIG = {
         "geometry_column": "geom",
         "properties": [
             "utility_type",
-            "utility_subtype",
-            "provider_name",
-            "pipe_diameter_in",
-            "pipe_material",
+            "line_id",
+            "diameter",
+            "diameter_unit",
+            "material",
             "install_year",
             "status",
+            "owner",
+            "operator",
+            "jurisdiction",
         ],
         "jurisdiction_column": "jurisdiction",
     },
@@ -85,23 +94,31 @@ LAYER_CONFIG = {
         "properties": [
             "road_name",
             "road_class",
+            "route_number",
             "aadt",
             "aadt_year",
             "lanes",
             "speed_limit",
-            "truck_pct",
+            "truck_percent",
+            "surface_type",
+            "jurisdiction",
+            "county",
         ],
         "jurisdiction_column": "county",
     },
     "flood": {
-        "table": "flood_canonical",
+        "table": "fema_flood_canonical",
         "geometry_column": "geom",
         "properties": [
-            "fld_zone",
-            "zone_subty",
+            "flood_zone",
+            "flood_zone_subtype",
+            "bfe",
             "static_bfe",
-            "sfha_tf",
-            "firm_pan",
+            "floodway_flag",
+            "coastal_flag",
+            "panel_id",
+            "jurisdiction",
+            "county",
         ],
         "jurisdiction_column": "jurisdiction",
     },
@@ -109,11 +126,15 @@ LAYER_CONFIG = {
         "table": "wetlands_canonical",
         "geometry_column": "geom",
         "properties": [
-            "attribute_code",
+            "wetland_code",
             "wetland_type",
-            "acres",
+            "system",
+            "subsystem",
+            "class",
+            "water_regime",
+            "area_acres",
         ],
-        "jurisdiction_column": "jurisdiction",
+        "jurisdiction_column": None,  # wetlands_canonical has no jurisdiction column
     },
 }
 
@@ -160,21 +181,9 @@ def export_layer_to_geojson(
     # Build query with optional jurisdiction filter
     where_clause = ""
     params: List[Any] = []
-    if jurisdiction:
-        where_clause = f'WHERE LOWER("{jurisdiction_col}") = LOWER(%s)'
-        params.append(jurisdiction)
     
-    query = f"""
-        SELECT 
-            ST_AsGeoJSON(ST_Transform({geom_col}, 4326))::json AS geometry,
-            {prop_select}
-        FROM {table}
-        {where_clause}
-        WHERE {geom_col} IS NOT NULL
-    """
-    
-    # If we have a jurisdiction filter, add AND to the where clause
-    if jurisdiction:
+    # Handle layers without jurisdiction column (e.g., wetlands)
+    if jurisdiction and jurisdiction_col:
         query = f"""
             SELECT 
                 ST_AsGeoJSON(ST_Transform({geom_col}, 4326))::json AS geometry,
@@ -183,6 +192,7 @@ def export_layer_to_geojson(
             WHERE LOWER("{jurisdiction_col}") = LOWER(%s)
             AND {geom_col} IS NOT NULL
         """
+        params.append(jurisdiction)
     else:
         query = f"""
             SELECT 
@@ -195,7 +205,7 @@ def export_layer_to_geojson(
     print(f"Exporting {layer_name} from {table}...")
     
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
-        cur.execute(query, params if jurisdiction else None)
+        cur.execute(query, params if (jurisdiction and jurisdiction_col) else None)
         rows = cur.fetchall()
     
     # Build GeoJSON FeatureCollection
