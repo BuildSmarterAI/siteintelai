@@ -263,7 +263,7 @@ Simplification values control geometry detail retention:
 |----------|-------|---------|
 | S3 Bucket | `siteintel-tiles` | Tile storage |
 | CloudFront Distribution | `EVBS45478OD2Z` | CDN delivery |
-| CDN Domain | `d1s5qe1loulzm6.cloudfront.net` | Public tile URL |
+| CDN Domain | `tiles.siteintel.ai` | Public tile URL |
 | AWS Region | `us-east-1` | Primary region |
 
 ### S3 Bucket Structure
@@ -345,16 +345,16 @@ The GitHub Actions workflow requires an IAM user with these permissions:
 ### Tile URL Template
 
 ```
-https://d1s5qe1loulzm6.cloudfront.net/us/{jurisdiction}/{layer}/{version}/{z}/{x}/{y}.pbf
+https://tiles.siteintel.ai/us/{jurisdiction}/{layer}/{version}/{z}/{x}/{y}.pbf
 ```
 
 ### Examples
 
 | Layer | Jurisdiction | URL |
 |-------|--------------|-----|
-| Parcels | Harris County | `https://d1s5qe1loulzm6.cloudfront.net/us/tx/parcels/2025_12_13/14/3823/6532.pbf` |
-| Zoning | Travis County | `https://d1s5qe1loulzm6.cloudfront.net/us/tx/zoning/2025_12_13/12/945/1621.pbf` |
-| Flood | All TX | `https://d1s5qe1loulzm6.cloudfront.net/us/tx/flood/nfhl_2025_q4/10/234/405.pbf` |
+| Parcels | Harris County | `https://tiles.siteintel.ai/us/tx/parcels/2025_12_13/14/3823/6532.pbf` |
+| Zoning | Travis County | `https://tiles.siteintel.ai/us/tx/zoning/2025_12_13/12/945/1621.pbf` |
+| Flood | All TX | `https://tiles.siteintel.ai/us/tx/flood/nfhl_2025_q4/10/234/405.pbf` |
 
 ### Version String Formats
 
@@ -368,7 +368,7 @@ https://d1s5qe1loulzm6.cloudfront.net/us/{jurisdiction}/{layer}/{version}/{z}/{x
 
 A MapLibre style document is available at:
 ```
-https://d1s5qe1loulzm6.cloudfront.net/style.json
+https://tiles.siteintel.ai/style.json
 ```
 
 This style references all active tileset layers with appropriate styling.
@@ -502,7 +502,7 @@ const parcelTiles = useTileUrl('parcels', 'harris');
 
 if (parcelTiles) {
     console.log(parcelTiles.url);
-    // https://d1s5qe1loulzm6.cloudfront.net/us/tx/parcels/2025_12_13/{z}/{x}/{y}.pbf
+    // https://tiles.siteintel.ai/us/tx/parcels/2025_12_13/{z}/{x}/{y}.pbf
 }
 ```
 
@@ -685,11 +685,11 @@ ls -la test.pbf
 
 ```bash
 # Fetch tile via CDN
-curl -I "https://d1s5qe1loulzm6.cloudfront.net/us/tx/parcels/2025_12_13/14/3823/6532.pbf"
+curl -I "https://tiles.siteintel.ai/us/tx/parcels/2025_12_13/14/3823/6532.pbf"
 
 # Check cache status (X-Cache header)
 curl -s -o /dev/null -w "%{http_code}" \
-    "https://d1s5qe1loulzm6.cloudfront.net/us/tx/parcels/2025_12_13/14/3823/6532.pbf"
+    "https://tiles.siteintel.ai/us/tx/parcels/2025_12_13/14/3823/6532.pbf"
 ```
 
 ### Cache Invalidation
