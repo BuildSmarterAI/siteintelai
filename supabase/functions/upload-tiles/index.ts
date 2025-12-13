@@ -240,7 +240,7 @@ serve(async (req) => {
     const AWS_REGION = Deno.env.get('AWS_REGION') || 'us-east-1';
     const S3_BUCKET = Deno.env.get('TILE_BUCKET_NAME') || 'siteintel-tiles'; // Using TILE_BUCKET_NAME from secrets
     const CLOUDFRONT_DISTRIBUTION_ID = Deno.env.get('CLOUDFRONT_DISTRIBUTION_ID');
-    const CLOUDFRONT_URL = Deno.env.get('TILE_CDN_URL') || 'https://d1s5qe1loulzm6.cloudfront.net';
+    const CLOUDFRONT_URL = Deno.env.get('TILE_CDN_URL') || 'https://tiles.siteintel.ai';
     
     if (!AWS_ACCESS_KEY_ID || !AWS_SECRET_ACCESS_KEY) {
       throw new Error('AWS credentials not configured');

@@ -134,16 +134,16 @@ stale-while-revalidate: enabled for safe background refresh`}
           <CodeBlock
             language="text"
             code={`# Production Tiles
-https://tiles.siteintel.io/tx/{layer}/{version}/{z}/{x}/{y}.pbf
+https://tiles.siteintel.ai/tx/{layer}/{version}/{z}/{x}/{y}.pbf
 
 # Examples
-https://tiles.siteintel.io/tx/parcels/2025_01_15/{z}/{x}/{y}.pbf
-https://tiles.siteintel.io/tx/zoning/2025_01_12/{z}/{x}/{y}.pbf
-https://tiles.siteintel.io/tx/flood/nfhl_2024_q4/{z}/{x}/{y}.pbf
+https://tiles.siteintel.ai/tx/parcels/2025_01_15/{z}/{x}/{y}.pbf
+https://tiles.siteintel.ai/tx/zoning/2025_01_12/{z}/{x}/{y}.pbf
+https://tiles.siteintel.ai/tx/flood/nfhl_2024_q4/{z}/{x}/{y}.pbf
 
 # Style JSON
-https://tiles.siteintel.io/styles/siteintel-dark.json
-https://tiles.siteintel.io/styles/siteintel-satellite.json`}
+https://tiles.siteintel.ai/styles/siteintel-dark.json
+https://tiles.siteintel.ai/styles/siteintel-satellite.json`}
           />
 
           <div className="p-4 rounded-lg border border-white/10 bg-white/5">
