@@ -264,9 +264,30 @@ export default function TileManagement() {
                 ))}
               </div>
             ) : tilesets?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Layers className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No tilesets found. Run the tile generation workflow.</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <Layers className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">No Tilesets Found</h3>
+                <p className="mb-4 max-w-md mx-auto">
+                  Vector tiles are generated from canonical tables. First, run data ingestion to populate source data.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open("https://supabase.com/dashboard/project/mcmfwlgovubpdcfiqfvk/functions/seed-houston-canonical/logs", "_blank")}
+                  >
+                    <Database className="w-4 h-4 mr-2" />
+                    Run Data Ingestion
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleTriggerGeneration}
+                    disabled={triggeringRefresh}
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Generate Tiles
+                  </Button>
+                </div>
               </div>
             ) : (
               <Table>
@@ -341,9 +362,12 @@ export default function TileManagement() {
                 ))}
               </div>
             ) : tileJobs?.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                <p>No tile generation jobs recorded yet.</p>
+              <div className="text-center py-12 text-muted-foreground">
+                <Clock className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">No Jobs Recorded</h3>
+                <p className="max-w-md mx-auto">
+                  Tile generation jobs will appear here after running the GitHub Actions workflow or triggering manually.
+                </p>
               </div>
             ) : (
               <Table>

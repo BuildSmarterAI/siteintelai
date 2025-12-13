@@ -137,6 +137,7 @@ const App = () => (
               <Route path="/admin/data-source-versions" element={<DataSourceVersions />} />
               <Route path="/admin/data-source-errors" element={<DataSourceErrors />} />
               <Route path="/admin/tile-management" element={<TileManagement />} />
+              <Route path="/admin/tiles" element={<TileManagement />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />

@@ -74,6 +74,13 @@ export const Header = () => {
     { label: "Book a Demo", href: "/demo", highlight: true },
   ];
 
+  const adminLinks = [
+    { label: "System Health", href: "/admin/system-health" },
+    { label: "Data Sources", href: "/admin/data-sources" },
+    { label: "Tile Management", href: "/admin/tiles", highlight: true },
+    { label: "GIS Admin", href: "/admin/geospatial" },
+  ];
+
   return (
     <motion.header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -208,6 +215,33 @@ export const Header = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent className="bg-[#0A0F2C] backdrop-blur-md border-white/10 z-[100]">
               {resources.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link
+                    to={item.href}
+                    className={`cursor-pointer ${
+                      item.highlight 
+                        ? "text-[#FF7A00] hover:text-[#FF9240] font-semibold hover:bg-[#FF7A00]/10" 
+                        : "text-white/90 hover:text-[#06B6D4] hover:bg-white/5"
+                    }`}
+                  >
+                    {item.label}
+                    {item.highlight && (
+                      <span className="ml-2 text-[10px] bg-[#FF7A00] text-white px-2 py-0.5 rounded-full font-semibold">NEW</span>
+                    )}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Admin Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium text-white/90 hover:text-[#06B6D4] transition-colors">
+              Admin
+              <ChevronDown className="h-4 w-4" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="bg-[#0A0F2C] backdrop-blur-md border-white/10 z-[100]">
+              {adminLinks.map((item) => (
                 <DropdownMenuItem key={item.href} asChild>
                   <Link
                     to={item.href}
