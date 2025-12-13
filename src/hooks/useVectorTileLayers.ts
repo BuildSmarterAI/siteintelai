@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useVectorTileSources } from './useTilesets';
 
 /**
  * Vector tile layer configuration for MapLibre
  * Defines styling for each layer category from CloudFront CDN tiles
+ * Uses SiteIntel brand colors: Feasibility Orange #FF7A00, Data Cyan #06B6D4
  */
 const VECTOR_TILE_LAYER_CONFIG = {
   parcels: {
@@ -15,8 +16,8 @@ const VECTOR_TILE_LAYER_CONFIG = {
         type: 'fill' as const,
         'source-layer': 'parcels',
         paint: {
-          'fill-color': '#6366F1', // Indigo for parcels
-          'fill-opacity': 0.2,
+          'fill-color': '#FF7A00', // Feasibility Orange
+          'fill-opacity': 0.15,
         },
       },
       {
@@ -24,8 +25,8 @@ const VECTOR_TILE_LAYER_CONFIG = {
         type: 'line' as const,
         'source-layer': 'parcels',
         paint: {
-          'line-color': '#6366F1',
-          'line-width': 1,
+          'line-color': '#FF7A00', // Feasibility Orange
+          'line-width': 1.5,
         },
       },
     ],
@@ -153,6 +154,8 @@ interface UseVectorTileLayersOptions {
   mapLoaded: boolean;
   jurisdiction?: string;
   layerVisibility?: Record<string, boolean>;
+  styleVersion?: number; // Increment to force re-add after style changes
+  onParcelClick?: (feature: any) => void;
 }
 
 interface VectorTileLayerResult {
@@ -174,35 +177,36 @@ export function useVectorTileLayers({
   mapLoaded,
   jurisdiction = 'tx',
   layerVisibility = {},
+  styleVersion = 0,
+  onParcelClick,
 }: UseVectorTileLayersOptions): VectorTileLayerResult {
   const { sources, layers, isLoading, error, tilesets } = useVectorTileSources(jurisdiction);
   const addedSourcesRef = useRef<Set<string>>(new Set());
   const addedLayersRef = useRef<Set<string>>(new Set());
+  const clickHandlerRef = useRef<((e: any) => void) | null>(null);
 
-  // Add vector tile sources and layers to map
-  useEffect(() => {
-    if (!map || !mapLoaded || isLoading) return;
-    if (!tilesets || tilesets.length === 0) return;
-
-    // Wait for style to be loaded
-    if (!map.isStyleLoaded()) {
-      const handler = () => {
-        // Re-trigger effect after style loads
-      };
-      map.once('styledata', handler);
-      return;
-    }
+  // Function to add all sources and layers
+  const addSourcesAndLayers = useCallback(() => {
+    if (!map || !map.isStyleLoaded()) return;
+    
+    console.log('🗺️ Adding vector tile sources:', Object.keys(sources));
+    
+    // Clear refs since we're re-adding (style may have cleared them)
+    addedSourcesRef.current.clear();
+    addedLayersRef.current.clear();
 
     // Add sources that don't exist yet
     for (const [sourceId, sourceConfig] of Object.entries(sources)) {
-      if (!map.getSource(sourceId) && !addedSourcesRef.current.has(sourceId)) {
+      if (!map.getSource(sourceId)) {
         try {
           map.addSource(sourceId, sourceConfig);
           addedSourcesRef.current.add(sourceId);
-          console.log(`📍 Added vector tile source: ${sourceId}`);
+          console.log(`📍 Added vector tile source: ${sourceId}`, sourceConfig);
         } catch (err) {
           console.warn(`Failed to add source ${sourceId}:`, err);
         }
+      } else {
+        addedSourcesRef.current.add(sourceId);
       }
     }
 
@@ -211,7 +215,8 @@ export function useVectorTileLayers({
       if (!sources[config.sourceId]) continue;
 
       for (const layerConfig of config.layers) {
-        if (map.getLayer(layerConfig.id) || addedLayersRef.current.has(layerConfig.id)) {
+        if (map.getLayer(layerConfig.id)) {
+          addedLayersRef.current.add(layerConfig.id);
           continue;
         }
 
@@ -235,11 +240,52 @@ export function useVectorTileLayers({
       }
     }
 
-    // Cleanup on unmount
-    return () => {
-      // Don't remove sources/layers on unmount - they persist with the map
-    };
-  }, [map, mapLoaded, sources, layers, isLoading, tilesets]);
+    // Add click handler for parcels
+    if (map.getLayer('siteintel-parcels-fill')) {
+      // Remove existing handler if any
+      if (clickHandlerRef.current) {
+        map.off('click', 'siteintel-parcels-fill', clickHandlerRef.current);
+      }
+      
+      clickHandlerRef.current = (e: any) => {
+        if (e.features && e.features.length > 0 && onParcelClick) {
+          onParcelClick(e.features[0]);
+        }
+      };
+      
+      map.on('click', 'siteintel-parcels-fill', clickHandlerRef.current);
+      
+      // Hover effects
+      map.on('mouseenter', 'siteintel-parcels-fill', () => {
+        map.getCanvas().style.cursor = 'pointer';
+      });
+      map.on('mouseleave', 'siteintel-parcels-fill', () => {
+        map.getCanvas().style.cursor = '';
+      });
+    }
+  }, [map, sources, onParcelClick]);
+
+  // Add vector tile sources and layers to map
+  useEffect(() => {
+    if (!map || !mapLoaded || isLoading) return;
+    if (!tilesets || tilesets.length === 0) {
+      console.log('🗺️ No tilesets available yet');
+      return;
+    }
+
+    // Wait for style to be loaded, then add layers
+    if (!map.isStyleLoaded()) {
+      const handler = () => {
+        addSourcesAndLayers();
+      };
+      map.once('styledata', handler);
+      return () => {
+        map.off('styledata', handler);
+      };
+    }
+
+    addSourcesAndLayers();
+  }, [map, mapLoaded, sources, layers, isLoading, tilesets, styleVersion, addSourcesAndLayers]);
 
   // Update layer visibility when toggle changes
   useEffect(() => {

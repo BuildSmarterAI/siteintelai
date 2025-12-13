@@ -219,6 +219,8 @@ export function MapLibreCanvas({
   const map = useRef<maplibregl.Map | null>(null);
   const draw = useRef<MapboxDraw | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapInstance, setMapInstance] = useState<maplibregl.Map | null>(null);
+  const [styleVersion, setStyleVersion] = useState(0); // Triggers re-add after style changes
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [is3DMode, setIs3DMode] = useState(false);
   const [activeMeasurementTool, setActiveMeasurementTool] = useState<MeasurementMode>(null);
@@ -259,10 +261,12 @@ export function MapLibreCanvas({
     isLoading: vectorTilesLoading,
     activeSources: activeVectorSources 
   } = useVectorTileLayers({
-    map: map.current,
+    map: mapInstance, // Use state, not ref - triggers re-render
     mapLoaded,
     jurisdiction: 'tx',
     layerVisibility: { ...layerVisibility },
+    styleVersion, // Re-add layers after style changes
+    onParcelClick: onParcelSelect, // Forward parcel clicks
   });
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
@@ -394,10 +398,12 @@ export function MapLibreCanvas({
     setIsFullscreen(prev => !prev);
   };
 
-  // Toggle basemap style
+  // Toggle basemap style - increment styleVersion to re-add vector tiles
   const toggleBasemap = () => {
     const styles: Array<'streets' | 'satellite' | 'hybrid'> = ['streets', 'satellite', 'hybrid'];
     const currentIndex = styles.indexOf(basemapStyle);
+    // Style change will trigger re-add of vector tile layers
+    setStyleVersion(v => v + 1);
     const nextStyle = styles[(currentIndex + 1) % styles.length];
     
     if (map.current) {
@@ -525,9 +531,11 @@ export function MapLibreCanvas({
       // Add navigation controls
       map.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-      // Set loaded flag
+      // Set loaded flag and map instance for hooks
       map.current.on('load', () => {
         setMapLoaded(true);
+        setMapInstance(map.current); // Trigger hook with state
+        console.log('🗺️ Map loaded, vector tiles will initialize');
         
         // Add 3D building layer (initially hidden)
         if (map.current) {
