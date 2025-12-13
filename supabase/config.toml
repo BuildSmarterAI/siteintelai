@@ -227,3 +227,6 @@ verify_jwt = true
 
 [functions.upload-tiles]
 verify_jwt = true
+
+[functions.tile-preflight-check]
+verify_jwt = false
