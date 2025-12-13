@@ -133,22 +133,61 @@ def register_tileset(
     
     print(f"Registering tileset: {tileset_key}")
     
-    # Upsert tileset record with proper PostgREST merge-duplicates header
-    upsert_headers = get_headers()
-    upsert_headers["Prefer"] = "resolution=merge-duplicates,return=representation"
-    
-    response = requests.post(
+    # Check if tileset already exists
+    check_response = requests.get(
         f"{SUPABASE_URL}/rest/v1/tilesets",
-        headers=upsert_headers,
-        json=tileset,
-        params={"on_conflict": "tileset_key"},
+        headers=get_headers(),
+        params={"tileset_key": f"eq.{tileset_key}", "select": "id"}
     )
     
-    if response.status_code not in (200, 201):
-        print(f"  ✗ Failed to register tileset: {response.text}")
-        raise Exception(f"Failed to register tileset: {response.text}")
+    existing = check_response.json() if check_response.status_code == 200 else []
     
-    tileset_record = response.json()[0] if isinstance(response.json(), list) else response.json()
+    if existing and len(existing) > 0:
+        # UPDATE existing record
+        existing_id = existing[0]['id']
+        print(f"  ↻ Updating existing tileset (id: {existing_id})")
+        
+        # Add updated_at timestamp
+        tileset["updated_at"] = datetime.utcnow().isoformat()
+        
+        patch_headers = get_headers()
+        patch_headers["Prefer"] = "return=representation"
+        
+        response = requests.patch(
+            f"{SUPABASE_URL}/rest/v1/tilesets?id=eq.{existing_id}",
+            headers=patch_headers,
+            json=tileset
+        )
+        
+        if response.status_code not in (200, 204):
+            print(f"  ✗ Failed to update tileset: {response.text}")
+            raise Exception(f"Failed to update tileset: {response.text}")
+        
+        # Handle empty response for 204
+        if response.status_code == 204 or not response.text:
+            tileset_record = {"id": existing_id, **tileset}
+        else:
+            result = response.json()
+            tileset_record = result[0] if isinstance(result, list) else result
+    else:
+        # INSERT new record
+        print(f"  + Inserting new tileset")
+        
+        insert_headers = get_headers()
+        insert_headers["Prefer"] = "return=representation"
+        
+        response = requests.post(
+            f"{SUPABASE_URL}/rest/v1/tilesets",
+            headers=insert_headers,
+            json=tileset
+        )
+        
+        if response.status_code not in (200, 201):
+            print(f"  ✗ Failed to insert tileset: {response.text}")
+            raise Exception(f"Failed to insert tileset: {response.text}")
+        
+        result = response.json()
+        tileset_record = result[0] if isinstance(result, list) else result
     print(f"  ✓ Tileset registered: {tileset_record.get('id', 'unknown')}")
     
     # Create tile_jobs entry for audit trail
