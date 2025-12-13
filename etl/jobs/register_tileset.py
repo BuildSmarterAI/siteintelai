@@ -133,10 +133,13 @@ def register_tileset(
     
     print(f"Registering tileset: {tileset_key}")
     
-    # Upsert tileset record
+    # Upsert tileset record with proper PostgREST merge-duplicates header
+    upsert_headers = get_headers()
+    upsert_headers["Prefer"] = "resolution=merge-duplicates,return=representation"
+    
     response = requests.post(
         f"{SUPABASE_URL}/rest/v1/tilesets",
-        headers=get_headers(),
+        headers=upsert_headers,
         json=tileset,
         params={"on_conflict": "tileset_key"},
     )
