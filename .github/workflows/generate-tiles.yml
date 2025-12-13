@@ -25,11 +25,12 @@ env:
 jobs:
   generate-tiles:
     runs-on: ubuntu-latest
+    continue-on-error: true
     
     strategy:
       fail-fast: false
       matrix:
-        layer: [parcels, zoning, utilities, transportation, flood]
+        layer: [parcels, zoning, utilities, transportation, flood, wetlands]
     
     steps:
       - name: Checkout repository
@@ -71,7 +72,9 @@ jobs:
           pip install -r etl/requirements.txt
       
       - name: Export GeoJSON from Supabase
+        id: export-geojson
         if: steps.check-layer.outputs.should_run == 'true'
+        continue-on-error: true
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
@@ -86,8 +89,38 @@ jobs:
             $JURISDICTION_ARG \
             --output-dir export
       
-      - name: Read Tippecanoe config
+      - name: Check if export produced data
+        id: check-export
         if: steps.check-layer.outputs.should_run == 'true'
+        run: |
+          # Find GeoJSON files for this layer
+          GEOJSON_FILES=$(find export -name "${{ matrix.layer }}*.geojson" -type f 2>/dev/null || true)
+          
+          if [ -z "$GEOJSON_FILES" ]; then
+            echo "⚠️ No GeoJSON files found for layer ${{ matrix.layer }} - skipping tile generation"
+            echo "has_data=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Check if files have actual features (not just empty FeatureCollection)
+          TOTAL_FEATURES=0
+          for file in $GEOJSON_FILES; do
+            FEATURES=$(cat "$file" | jq '.features | length' 2>/dev/null || echo "0")
+            TOTAL_FEATURES=$((TOTAL_FEATURES + FEATURES))
+          done
+          
+          if [ "$TOTAL_FEATURES" -eq 0 ]; then
+            echo "⚠️ GeoJSON files for ${{ matrix.layer }} contain 0 features - skipping tile generation"
+            echo "has_data=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          echo "✅ Found $TOTAL_FEATURES features for layer ${{ matrix.layer }}"
+          echo "has_data=true" >> $GITHUB_OUTPUT
+          echo "feature_count=$TOTAL_FEATURES" >> $GITHUB_OUTPUT
+      
+      - name: Read Tippecanoe config
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         id: tippecanoe-config
         run: |
           CONFIG=$(cat etl/config/tippecanoe.config.json)
@@ -102,18 +135,13 @@ jobs:
           echo "simplification=$SIMPLIFICATION" >> $GITHUB_OUTPUT
       
       - name: Generate tiles with Tippecanoe
-        if: steps.check-layer.outputs.should_run == 'true'
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         run: |
           VERSION=$(date +%Y_%m_%d)
           mkdir -p tiles/${{ matrix.layer }}
           
           # Find all GeoJSON files for this layer
           GEOJSON_FILES=$(find export -name "${{ matrix.layer }}*.geojson" -type f)
-          
-          if [ -z "$GEOJSON_FILES" ]; then
-            echo "No GeoJSON files found for layer ${{ matrix.layer }}"
-            exit 1
-          fi
           
           echo "Processing files: $GEOJSON_FILES"
           
@@ -142,7 +170,7 @@ jobs:
           echo "tile_count=$TILE_COUNT" >> $GITHUB_ENV
       
       - name: Configure AWS credentials
-        if: steps.check-layer.outputs.should_run == 'true'
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -150,7 +178,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Upload tiles to S3
-        if: steps.check-layer.outputs.should_run == 'true'
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         run: |
           VERSION=$(date +%Y_%m_%d)
           
@@ -164,7 +192,7 @@ jobs:
           echo "Tiles uploaded to s3://${{ secrets.AWS_S3_BUCKET }}/us/tx/${{ matrix.layer }}/$VERSION/"
       
       - name: Update tileset catalog
-        if: steps.check-layer.outputs.should_run == 'true'
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         env:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -184,7 +212,7 @@ jobs:
             --deactivate-old
       
       - name: Invalidate CloudFront cache
-        if: steps.check-layer.outputs.should_run == 'true'
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         run: |
           VERSION=$(date +%Y_%m_%d)
           
@@ -193,7 +221,7 @@ jobs:
             --paths "/us/tx/${{ matrix.layer }}/*" "/us/tx/${{ matrix.layer }}/$VERSION/*"
       
       - name: Upload artifacts
-        if: steps.check-layer.outputs.should_run == 'true'
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: tiles-${{ matrix.layer }}
@@ -201,6 +229,11 @@ jobs:
             export/manifest.json
             ${{ matrix.layer }}.mbtiles
           retention-days: 7
+      
+      - name: Report skip status
+        if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data != 'true'
+        run: |
+          echo "::notice title=Layer Skipped::Layer ${{ matrix.layer }} was skipped - no data available in canonical table"
 
   notify:
     needs: generate-tiles
@@ -211,9 +244,10 @@ jobs:
       - name: Check job results
         id: check-results
         run: |
-          if [ "${{ needs.generate-tiles.result }}" = "success" ]; then
+          RESULT="${{ needs.generate-tiles.result }}"
+          if [ "$RESULT" = "success" ] || [ "$RESULT" = "skipped" ]; then
             echo "status=success" >> $GITHUB_OUTPUT
-            echo "message=✅ Vector tile generation completed successfully" >> $GITHUB_OUTPUT
+            echo "message=✅ Vector tile generation completed (some layers may have been skipped due to no data)" >> $GITHUB_OUTPUT
           else
             echo "status=failure" >> $GITHUB_OUTPUT
             echo "message=❌ Vector tile generation failed" >> $GITHUB_OUTPUT
