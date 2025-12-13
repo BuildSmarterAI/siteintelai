@@ -15,8 +15,17 @@ import json
 import os
 import sys
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+
+class DecimalEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles Decimal types from PostgreSQL numeric columns."""
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -222,7 +231,7 @@ def export_layer_to_geojson(
     
     # Write GeoJSON file
     with open(output_path, "w") as f:
-        json.dump(geojson, f)
+        json.dump(geojson, f, cls=DecimalEncoder)
     
     file_size = output_path.stat().st_size
     print(f"  ✓ Exported {len(features)} features to {output_path} ({file_size:,} bytes)")
@@ -323,7 +332,7 @@ def main():
         json.dump({
             "exported_at": datetime.utcnow().isoformat(),
             "layers": results,
-        }, f, indent=2)
+        }, f, indent=2, cls=DecimalEncoder)
     
     print(f"Manifest written to {manifest_path}")
     
