@@ -37,6 +37,8 @@ interface ParcelDetailsPopupProps {
     imprValue?: number;
     county?: string;
     source?: string;
+    datasetVersion?: string | null;
+    landUseDesc?: string | null;
   };
   onClose: () => void;
   onUseForAnalysis: (parcel: any) => void;
@@ -72,13 +74,18 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
       {/* Header with county badge */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <Badge className={`${countyInfo.color} text-white text-xs`}>
               {countyInfo.label} County
             </Badge>
             {parcel.source && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-xs bg-primary/10 border-primary/30">
                 {parcel.source}
+              </Badge>
+            )}
+            {parcel.datasetVersion && (
+              <Badge variant="secondary" className="text-xs font-mono">
+                v{parcel.datasetVersion}
               </Badge>
             )}
           </div>

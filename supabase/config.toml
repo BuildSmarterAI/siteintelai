@@ -230,3 +230,6 @@ verify_jwt = true
 
 [functions.tile-preflight-check]
 verify_jwt = false
+
+[functions.query-canonical-parcel]
+verify_jwt = false

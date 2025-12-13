@@ -1,6 +1,22 @@
 /**
- * Unified Multi-County Parcel Fetch Edge Function
- * Supports: HCAD, MCAD, TCAD, BCAD, DCAD, TAD, WCAD, FBCAD
+ * @deprecated This edge function is DEPRECATED and will be removed.
+ * 
+ * DATA MOAT ENFORCEMENT: Use internal vector tiles and query-canonical-parcel instead.
+ * 
+ * - For parcel DISPLAY: Use vector tiles from tiles.siteintel.ai via useVectorTileLayers hook
+ * - For parcel DETAILS: Use query-canonical-parcel edge function to query canonical_parcels table
+ * 
+ * This function makes direct calls to external city GIS APIs (HCAD, FBCAD, MCAD, etc.)
+ * which violates the data moat architecture. All GIS data should be served from
+ * SiteIntel's internal infrastructure.
+ * 
+ * Migration path:
+ * 1. MapLibreCanvas now uses useVectorTileLayers for parcel display
+ * 2. Click handlers fetch details via query-canonical-parcel from canonical_parcels
+ * 3. This function kept temporarily for backward compatibility
+ * 
+ * @see supabase/functions/query-canonical-parcel/index.ts
+ * @see src/hooks/useCanonicalParcel.ts
  */
 
 const corsHeaders = {

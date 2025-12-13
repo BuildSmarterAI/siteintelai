@@ -1994,334 +1994,125 @@ export function MapLibreCanvas({
     }
   }, [layerVisibility.drawnParcels, mapLoaded]);
 
-  // Multi-county direct API fallback configurations
-  const DIRECT_API_FALLBACKS: Record<string, { url: string; fields: Record<string, string> }> = {
-    harris: {
-      url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query',
-      fields: { id: 'acct_num', owner: 'owner_name_1', acreage: 'Acreage', address: 'SITUS_ADDRESS' }
-    },
-    fortbend: {
-      url: 'https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query',
-      fields: { id: 'propnumber', owner: 'ownername', acreage: 'acres', address: 'situs' }
-    },
-    montgomery: {
-      url: 'https://gis.mctx.org/arcgis/rest/services/Parcels/MapServer/0/query',
-      fields: { id: 'PROP_ID', owner: 'OWNER_NAME', acreage: 'ACRES', address: 'SITUS_ADDR' }
-    }
-  };
+  // DATA MOAT: All parcel display now uses internal vector tiles from tiles.siteintel.ai
+  // No external API calls to city GIS endpoints - all data served from SiteIntel infrastructure
+  // Parcel details are fetched from canonical_parcels table via query-canonical-parcel edge function
 
-  // County detection from map center
-  const detectCountyFromCenter = (lng: number, lat: number): string => {
-    // Harris County bounds
-    if (lng >= -95.91 && lng <= -94.91 && lat >= 29.49 && lat <= 30.17) return 'harris';
-    // Fort Bend
-    if (lng >= -96.01 && lng <= -95.45 && lat >= 29.35 && lat <= 29.82) return 'fortbend';
-    // Montgomery
-    if (lng >= -95.86 && lng <= -95.07 && lat >= 30.07 && lat <= 30.67) return 'montgomery';
-    // Default to harris
-    return 'harris';
-  };
-
-  // Direct county API fallback when edge function fails
-  const fetchDirectFromCounty = async (bbox: number[], county: string): Promise<any> => {
-    const config = DIRECT_API_FALLBACKS[county] || DIRECT_API_FALLBACKS.harris;
-    const [minLng, minLat, maxLng, maxLat] = bbox;
-    
-    const params = new URLSearchParams({
-      where: '1=1',
-      geometry: `${minLng},${minLat},${maxLng},${maxLat}`,
-      geometryType: 'esriGeometryEnvelope',
-      spatialRel: 'esriSpatialRelIntersects',
-      outFields: Object.values(config.fields).join(','),
-      inSR: '4326',
-      outSR: '4326',
-      returnGeometry: 'true',
-      resultRecordCount: '500',
-      f: 'geojson'
-    });
-    
-    console.log(`🔄 Trying direct ${county.toUpperCase()} API fallback...`);
-    
-    const response = await fetch(`${config.url}?${params.toString()}`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`${county.toUpperCase()} API returned ${response.status}`);
-    }
-    
-    const data = await response.json();
-    
-    if (data.error) {
-      throw new Error(data.error.message || `${county} query failed`);
-    }
-    
-    // Normalize response to match expected format
-    const fields = config.fields;
-    const normalizedFeatures = (data.features || []).map((f: any) => ({
-      type: 'Feature',
-      geometry: f.geometry,
-      properties: {
-        parcel_id: f.properties[fields.id] || '',
-        owner_name: f.properties[fields.owner] || null,
-        acreage: f.properties[fields.acreage] || null,
-        situs_address: f.properties[fields.address] || null,
-        county: county,
-        source: `${county.charAt(0).toUpperCase() + county.slice(1)} County (Direct)`,
-        raw_properties: f.properties
-      }
-    }));
-    
-    console.log(`✅ Direct ${county} fallback: ${normalizedFeatures.length} parcels`);
-    
-    return {
-      type: 'FeatureCollection',
-      features: normalizedFeatures,
-      source: `${county.toUpperCase()}_DIRECT_FALLBACK`
-    };
-  };
-
-  // Dynamic HCAD Parcels Loading (Parcel Explorer mode)
+  // DATA MOAT: Vector Tile Parcel Display (replaces external API calls)
+  // Parcels are now displayed via internal vector tiles from useVectorTileLayers hook
+  // Click handlers fetch full details from canonical_parcels via query-canonical-parcel
   useEffect(() => {
     if (!map.current || !mapLoaded || !showParcels) return;
 
-    const sourceId = 'hcad-parcels-dynamic';
-    const fillLayerId = 'hcad-parcels-fill';
-    const lineLayerId = 'hcad-parcels-outline';
-    const labelLayerId = 'hcad-parcels-labels';
+    const sourceId = 'siteintel-parcels';
+    const fillLayerId = 'siteintel-parcels-fill';
+    const lineLayerId = 'siteintel-parcels-outline';
 
-    // Retry helper with exponential backoff
-    const fetchWithRetry = async (bbox: number[], zoom: number, retries = 3, delay = 1000): Promise<any> => {
-      for (let attempt = 0; attempt < retries; attempt++) {
-        try {
-          console.log(`🗺️ Fetching parcels (attempt ${attempt + 1}/${retries}):`, { bbox, zoom });
-          
-          const { data, error } = await supabase.functions.invoke('fetch-parcels', {
-            body: { bbox, zoom }
-          });
-
-          if (error) {
-            throw error;
-          }
-          
-          return data;
-        } catch (err) {
-          console.warn(`⚠️ Parcel fetch attempt ${attempt + 1} failed:`, err);
-          if (attempt < retries - 1) {
-            const waitTime = delay * Math.pow(2, attempt); // Exponential backoff
-            console.log(`⏳ Retrying in ${waitTime}ms...`);
-            await new Promise(r => setTimeout(r, waitTime));
-          } else {
-            throw err;
-          }
-        }
-      }
-    };
-
-    const updateParcels = async () => {
-      const bounds = map.current!.getBounds();
-      const zoom = map.current!.getZoom();
-
-      // Clear error and show zoom hint when zoom is too low
-      if (zoom < 14) {
-        setParcelLoadError(null);
-        setParcelLoading(false);
-        if (map.current!.getSource(sourceId)) {
-          (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData({
-            type: 'FeatureCollection',
-            features: []
-          });
-        }
-        return;
-      }
-
-      const bbox = [
-        bounds.getWest(),
-        bounds.getSouth(),
-        bounds.getEast(),
-        bounds.getNorth()
-      ];
-
-      try {
-        setParcelLoadError(null);
-        setParcelLoading(true);
-        
-        const data = await fetchWithRetry(bbox, zoom);
-        
-        setParcelLoading(false);
-        
-        // Check for API-level errors in response
-        if (data?.error) {
-          console.warn('⚠️ Parcel API returned error:', data.error);
-          setParcelLoadError(data.error);
-          // Still try to render any features that came back
-        } else {
-          setParcelLoadError(null);
-        }
-        
-        const featureCount = data?.features?.length || 0;
-        console.log('✅ Parcels loaded:', featureCount, 'County:', data?.features?.[0]?.properties?.county || 'unknown');
-
-        // Initialize source if doesn't exist
-        if (!map.current!.getSource(sourceId)) {
-          map.current!.addSource(sourceId, {
-            type: 'geojson',
-            data: data || { type: 'FeatureCollection', features: [] }
-          });
-
-          // Add fill layer
-          map.current!.addLayer({
-            id: fillLayerId,
-            type: 'fill',
-            source: sourceId,
-            paint: {
-              'fill-color': '#F5F3E8',
-              'fill-opacity': 0.6,
-            }
-          });
-
-          // Add outline layer
-          map.current!.addLayer({
-            id: lineLayerId,
-            type: 'line',
-            source: sourceId,
-            paint: {
-              'line-color': '#6B5D9C',
-              'line-width': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                12, 0.5,
-                16, 2,
-                18, 3
-              ]
-            }
-          });
-
-          // Add label layer (zoom 16+) - use normalized owner_name field
-          map.current!.addLayer({
-            id: labelLayerId,
-            type: 'symbol',
-            source: sourceId,
-            minzoom: 16,
-            layout: {
-              'text-field': ['coalesce', ['get', 'owner_name'], ['get', 'OWNER_NAME']],
-              'text-size': 10,
-              'text-anchor': 'center',
-            },
-            paint: {
-              'text-color': '#5B4D8C',
-              'text-halo-color': '#FFFFFF',
-              'text-halo-width': 2
-            }
-          });
-
-          // Add click handler
-          map.current!.on('click', fillLayerId, (e) => {
-            if (e.features && e.features.length > 0 && onParcelSelect) {
-              onParcelSelect(e.features[0]);
-            }
-          });
-
-          // Change cursor on hover
-          map.current!.on('mouseenter', fillLayerId, () => {
-            if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-          });
-          map.current!.on('mouseleave', fillLayerId, () => {
-            if (map.current) map.current.getCanvas().style.cursor = '';
-          });
-        } else {
-          // Update existing source
-          (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(data || { type: 'FeatureCollection', features: [] });
-        }
-      } catch (err) {
-        console.error('❌ Edge function failed after retries:', err);
-        
-        // Try direct county API fallback before giving up
-        try {
-          const mapCenter = map.current!.getCenter();
-          const detectedCounty = detectCountyFromCenter(mapCenter.lng, mapCenter.lat);
-          console.log(`🔄 Attempting direct ${detectedCounty} API fallback...`);
-          
-          const fallbackData = await fetchDirectFromCounty(bbox, detectedCounty);
-          
-          setParcelLoading(false);
-          
-          if (fallbackData.features.length > 0) {
-            console.log('✅ Direct fallback succeeded with', fallbackData.features.length, 'parcels');
-            setParcelLoadError(null);
-            
-            // Update map source with fallback data
-            if (!map.current!.getSource(sourceId)) {
-              map.current!.addSource(sourceId, {
-                type: 'geojson',
-                data: fallbackData
-              });
-
-              // Add fill layer
-              map.current!.addLayer({
-                id: fillLayerId,
-                type: 'fill',
-                source: sourceId,
-                paint: {
-                  'fill-color': '#F5F3E8',
-                  'fill-opacity': 0.6,
-                }
-              });
-
-              // Add outline layer
-              map.current!.addLayer({
-                id: lineLayerId,
-                type: 'line',
-                source: sourceId,
-                paint: {
-                  'line-color': '#6B5D9C',
-                  'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2, 18, 3]
-                }
-              });
-
-              // Add click handler
-              map.current!.on('click', fillLayerId, (e) => {
-                if (e.features && e.features.length > 0 && onParcelSelect) {
-                  onParcelSelect(e.features[0]);
-                }
-              });
-
-              map.current!.on('mouseenter', fillLayerId, () => {
-                if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-              });
-              map.current!.on('mouseleave', fillLayerId, () => {
-                if (map.current) map.current.getCanvas().style.cursor = '';
-              });
-            } else {
-              (map.current!.getSource(sourceId) as maplibregl.GeoJSONSource).setData(fallbackData);
-            }
-            
-            // Show subtle indicator that we're using fallback
-            toast.info(`Using direct ${detectedCounty.charAt(0).toUpperCase() + detectedCounty.slice(1)} County data`, { duration: 3000 });
-            return;
-          }
-        } catch (fallbackErr) {
-          console.error('❌ Direct county fallback also failed:', fallbackErr);
-        }
-        
-        setParcelLoading(false);
-        setParcelLoadError('Parcel service temporarily unavailable. Try searching by address instead.');
-      }
-    };
+    // Check if vector tile source exists (from useVectorTileLayers)
+    const hasVectorSource = map.current.getSource('parcels-tiles');
     
-    // Store reference for retry button
-    retryParcelLoad.current = updateParcels;
+    if (hasVectorSource) {
+      console.log('✅ Using SiteIntel vector tiles for parcels (data moat enforced)');
+      setParcelLoading(false);
+      setParcelLoadError(null);
+      
+      // Vector tiles are managed by useVectorTileLayers - just set up click handler
+      const parcelLayerId = 'parcels-fill';
+      if (map.current.getLayer(parcelLayerId)) {
+        // Click handler to fetch canonical parcel details
+        const handleParcelClick = async (e: maplibregl.MapLayerMouseEvent) => {
+          if (!e.features || e.features.length === 0) return;
+          
+          const feature = e.features[0];
+          const props = feature.properties || {};
+          
+          // Extract parcel ID from tile properties
+          const parcelId = props.source_parcel_id || props.parcel_id || props.apn || props.id;
+          
+          if (parcelId && onParcelSelect) {
+            console.log('🔍 Fetching canonical parcel details for:', parcelId);
+            
+            try {
+              // Fetch full details from canonical_parcels
+              const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
+                body: { source_parcel_id: parcelId }
+              });
+              
+              if (error) throw error;
+              
+              if (data?.parcel) {
+                // Enrich the feature with canonical data
+                const enrichedFeature = {
+                  ...feature,
+                  properties: {
+                    ...props,
+                    parcel_id: data.parcel.source_parcel_id,
+                    owner_name: data.parcel.owner_name,
+                    situs_address: data.parcel.situs_address,
+                    acreage: data.parcel.acreage,
+                    land_use_code: data.parcel.land_use_code,
+                    land_use_desc: data.parcel.land_use_desc,
+                    jurisdiction: data.parcel.jurisdiction,
+                    source: `SiteIntel (${data.parcel.dataset_version})`,
+                    dataset_version: data.parcel.dataset_version,
+                    source_agency: data.parcel.source_agency,
+                  }
+                };
+                onParcelSelect(enrichedFeature);
+              } else {
+                // Use tile properties if canonical lookup fails
+                onParcelSelect(feature);
+              }
+            } catch (err) {
+              console.warn('⚠️ Canonical parcel lookup failed, using tile data:', err);
+              onParcelSelect(feature);
+            }
+          } else if (onParcelSelect) {
+            onParcelSelect(feature);
+          }
+        };
+        
+        map.current.on('click', parcelLayerId, handleParcelClick);
+        
+        // Cursor handlers
+        map.current.on('mouseenter', parcelLayerId, () => {
+          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+        });
+        map.current.on('mouseleave', parcelLayerId, () => {
+          if (map.current) map.current.getCanvas().style.cursor = '';
+        });
+        
+        return () => {
+          map.current?.off('click', parcelLayerId, handleParcelClick);
+        };
+      }
+      return;
+    }
 
-    // Initial load
-    updateParcels();
-
-    // Update on map move
-    map.current.on('moveend', updateParcels);
-
-    return () => {
-      map.current?.off('moveend', updateParcels);
-    };
+    // Fallback: Add placeholder source if vector tiles not yet loaded
+    // This ensures graceful degradation while tiles are loading
+    if (!map.current.getSource(sourceId)) {
+      console.log('⏳ Waiting for SiteIntel vector tiles...');
+      setParcelLoading(true);
+      
+      // Check periodically for vector tile source
+      const checkInterval = setInterval(() => {
+        if (map.current?.getSource('parcels-tiles')) {
+          setParcelLoading(false);
+          clearInterval(checkInterval);
+        }
+      }, 500);
+      
+      // Timeout after 10 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (!map.current?.getSource('parcels-tiles')) {
+          setParcelLoading(false);
+          // Don't show error - vector tiles may just not be available for this area
+          console.log('ℹ️ Vector tile parcels not available for this viewport');
+        }
+      }, 10000);
+    }
   }, [mapLoaded, showParcels, onParcelSelect]);
 
   // Update 3D buildings visibility based on 3D mode

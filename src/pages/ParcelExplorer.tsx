@@ -65,15 +65,17 @@ export default function ParcelExplorer() {
   const handleParcelSelect = (parcel: any) => {
     const props = parcel.properties || {};
     
+    // Map canonical_parcels fields to popup display format
     setSelectedParcel({
-      id: props.parcel_id || props.ACCOUNT || props.acct_num || 'Unknown',
-      address: props.situs_address || props.SITUS_ADDRESS || 'Unknown Address',
+      id: props.source_parcel_id || props.parcel_id || props.ACCOUNT || props.acct_num || props.apn || 'Unknown',
+      address: props.situs_address || props.SITUS_ADDRESS || props.address || 'Unknown Address',
       owner: props.owner_name || props.OWNER_NAME || 'Unknown',
       acreage: props.acreage || props.ACREAGE || props.Acreage || 0,
       landValue: props.market_value || props.land_value || props.LAND_VALUE || 0,
       imprValue: props.improvement_value || props.impr_value || props.IMPR_VALUE || 0,
-      county: props.county || currentCounty,
-      source: props.source || COUNTY_CENTERS[currentCounty]?.label || 'County CAD',
+      county: props.jurisdiction || props.county || currentCounty,
+      source: props.source || props.source_agency || `SiteIntel (${props.dataset_version || 'canonical'})`,
+      datasetVersion: props.dataset_version || null,
       geometry: parcel.geometry,
     });
   };
