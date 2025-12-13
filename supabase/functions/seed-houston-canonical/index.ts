@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-// Version: 1.0.1 - Deployed 2025-12-13
+// Version: 1.1.0 - Incremental batch insert to prevent timeouts
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -48,7 +48,6 @@ const transformFunctions: Record<string, (val: any) => any> = {
     const sqft = parseFloat(String(val));
     return isNaN(sqft) ? null : sqft / 43560;
   },
-  // Map CCN status values to canonical enum
   ccn_status: (val) => {
     if (!val) return 'unknown';
     const s = String(val).toLowerCase().trim();
@@ -58,7 +57,6 @@ const transformFunctions: Record<string, (val: any) => any> = {
     if (s.includes('proposed') || s === 'p') return 'proposed';
     return 'unknown';
   },
-  // Map pipeline status values to canonical enum
   pipeline_status: (val) => {
     if (!val) return 'unknown';
     const s = String(val).toLowerCase().trim();
@@ -68,15 +66,11 @@ const transformFunctions: Record<string, (val: any) => any> = {
     if (s.includes('proposed') || s === 'p') return 'proposed';
     return 'unknown';
   },
-  // Map TxDOT route prefix to roadway classification (FHWA functional class)
   route_prefix_to_class: (val) => {
     if (!val) return null;
     const prefix = String(val).toUpperCase().trim();
-    // Principal/Minor Arterial
     if (['IH', 'US', 'PA', 'SH', 'SA', 'UA'].includes(prefix)) return 'arterial';
-    // Major/Minor Collector
     if (['FM', 'RM', 'RR', 'FS', 'RS', 'UP'].includes(prefix)) return 'collector';
-    // Local
     if (['CS', 'CR', 'PV', 'PR'].includes(prefix)) return 'local';
     return null;
   },
@@ -91,14 +85,13 @@ interface LayerConfig {
   max_records?: number;
 }
 
-// Layer configurations with CORRECTED field mappings matching actual table columns
+// REDUCED max_records for faster completion within timeout
 const LAYER_CONFIGS: LayerConfig[] = [
   {
     layer_key: 'houston_parcels',
     source_url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0',
     target_table: 'canonical_parcels',
     field_mappings: [
-      // Field names from HCAD API are lowercase - mapped to canonical_parcels schema
       { source: 'acct_num', target: 'source_parcel_id', transform: 'trim' },
       { source: 'acct_num', target: 'apn', transform: 'trim' },
       { source: 'owner_name_1', target: 'owner_name', transform: 'uppercase' },
@@ -115,15 +108,13 @@ const LAYER_CONFIGS: LayerConfig[] = [
       source_system: 'HCAD',
       source_agency: 'Harris County Appraisal District'
     },
-    max_records: 5000, // Production batch size
+    max_records: 300, // REDUCED from 5000 to fit within timeout
   },
   {
     layer_key: 'houston_sewer_lines',
-    // CORRECT Houston Water GIS Sewer Lines endpoint (no www, correct service path)
     source_url: 'https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
-      // Field names from Houston Water GIS (check actual response)
       { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
       { source: 'PIPE_SIZE', target: 'diameter', transform: 'parse_float' },
       { source: 'PIPE_MATERIAL', target: 'material', transform: 'uppercase' },
@@ -137,15 +128,13 @@ const LAYER_CONFIGS: LayerConfig[] = [
       diameter_unit: 'inches',
       source_dataset: 'houston_sewer_lines' 
     },
-    max_records: 2000, // Increased for production
+    max_records: 500,
   },
   {
     layer_key: 'houston_water_lines',
-    // CORRECT Houston Water GIS Water Lines endpoint (no www, correct service path)
     source_url: 'https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWaterLineIPS/MapServer/0',
     target_table: 'utilities_canonical',
     field_mappings: [
-      // Field names from Houston Water GIS (check actual response)
       { source: 'OBJECTID', target: 'line_id', transform: 'trim' },
       { source: 'PIPE_SIZE', target: 'diameter', transform: 'parse_float' },
       { source: 'PIPE_MATERIAL', target: 'material', transform: 'uppercase' },
@@ -160,11 +149,10 @@ const LAYER_CONFIGS: LayerConfig[] = [
       pressure_unit: 'psi',
       source_dataset: 'houston_water_lines' 
     },
-    max_records: 2000, // Increased for production
+    max_records: 500,
   },
   {
     layer_key: 'fema_flood_zones',
-    // Alternative: ESRI Living Atlas FEMA Flood Zones (better connectivity than hazards.fema.gov)
     source_url: 'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Flood_Hazard_Reduced_Set_gdb/FeatureServer/0',
     target_table: 'fema_flood_canonical',
     field_mappings: [
@@ -180,40 +168,32 @@ const LAYER_CONFIGS: LayerConfig[] = [
       county: 'Harris',
       bfe_unit: 'NAVD88'
     },
-    max_records: 2000, // Increased for production
+    max_records: 500,
   },
   {
     layer_key: 'nwi_wetlands',
-    // NWI Wetlands service - uses WETLAND_TYPE field
     source_url: 'https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/0',
     target_table: 'wetlands_canonical',
     field_mappings: [
-      // NWI uses WETLAND_TYPE as main classification
       { source: 'WETLAND_TYPE', target: 'wetland_code', transform: 'uppercase' },
       { source: 'WETLAND_TYPE', target: 'wetland_type', transform: 'trim' },
       { source: 'ACRES', target: 'area_acres', transform: 'parse_float' },
     ],
     constants: { source_dataset: 'nwi_wetlands' },
-    max_records: 1500, // Increased for production
+    max_records: 500,
   },
   {
     layer_key: 'txdot_aadt',
-    // TxDOT AADT Feature Service - CORRECTED field mappings
     source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0',
     target_table: 'transportation_canonical',
     field_mappings: [
-      // FIXED: Use AADT_CUR (current AADT) instead of T_FLAG
       { source: 'AADT_CUR', target: 'aadt', transform: 'parse_int' },
       { source: 'YR', target: 'aadt_year', transform: 'parse_int' },
       { source: 'RTE_NM', target: 'road_name', transform: 'uppercase' },
-      // NEW: Add route prefix for classification
       { source: 'RTE_PRFX', target: 'road_class', transform: 'route_prefix_to_class' },
       { source: 'RTE_ID', target: 'route_number', transform: 'trim' },
-      // NEW: Truck percentage for freight analysis
       { source: 'T_PCT', target: 'truck_percent', transform: 'parse_float' },
-      // NEW: K-factor for peak hour calculation
       { source: 'K_FLAG', target: 'k_factor', transform: 'parse_float' },
-      // Direction flag for segment identification
       { source: 'DIR_FLAG', target: 'direction', transform: 'trim' },
     ],
     constants: { 
@@ -221,12 +201,10 @@ const LAYER_CONFIGS: LayerConfig[] = [
       jurisdiction: 'TxDOT',
       county: 'Harris'
     },
-    max_records: 3000, // Increased for production
+    max_records: 500,
   },
-  // === NEW INFRASTRUCTURE LAYERS ===
   {
     layer_key: 'puct_ccn_water',
-    // PUCT CCN Water Service Areas via Harris County GIS mirror
     source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/1',
     target_table: 'utilities_ccn_canonical',
     field_mappings: [
@@ -245,11 +223,10 @@ const LAYER_CONFIGS: LayerConfig[] = [
       accuracy_tier: 1,
       boundary_confidence: 90
     },
-    max_records: 1000, // Increased for production
+    max_records: 300,
   },
   {
     layer_key: 'puct_ccn_sewer',
-    // PUCT CCN Sewer Service Areas via Harris County GIS mirror
     source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/2',
     target_table: 'utilities_ccn_canonical',
     field_mappings: [
@@ -268,11 +245,10 @@ const LAYER_CONFIGS: LayerConfig[] = [
       accuracy_tier: 1,
       boundary_confidence: 90
     },
-    max_records: 1000, // Increased for production
+    max_records: 300,
   },
   {
     layer_key: 'rrc_pipelines',
-    // Texas RRC Pipelines via Harris County GIS mirror
     source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/TXRRC/Pipelines/MapServer/0',
     target_table: 'pipelines_canonical',
     field_mappings: [
@@ -292,7 +268,7 @@ const LAYER_CONFIGS: LayerConfig[] = [
       alignment_confidence: 70,
       depth_confidence: 40
     },
-    max_records: 2000, // Increased for production
+    max_records: 500,
   },
 ];
 
@@ -304,107 +280,6 @@ interface SeedResult {
   records_failed: number;
   duration_ms: number;
   error?: string;
-}
-
-async function fetchArcGISFeatures(
-  sourceUrl: string,
-  bbox: typeof HOUSTON_BBOX,
-  maxRecords: number
-): Promise<any[]> {
-  const allFeatures: any[] = [];
-  let offset = 0;
-  const batchSize = Math.min(200, maxRecords); // Smaller batches for reliability
-
-  console.log(`[seed] Fetching from ${sourceUrl}`);
-
-  while (allFeatures.length < maxRecords) {
-    // Simpler query format that works with more ArcGIS servers
-    const queryParams = new URLSearchParams({
-      where: '1=1',
-      geometry: `${bbox.xmin},${bbox.ymin},${bbox.xmax},${bbox.ymax}`,
-      geometryType: 'esriGeometryEnvelope',
-      inSR: '4326',
-      outSR: '4326',
-      spatialRel: 'esriSpatialRelIntersects',
-      outFields: '*',
-      returnGeometry: 'true',
-      f: 'geojson',
-      resultOffset: String(offset),
-      resultRecordCount: String(batchSize),
-    });
-
-    const queryUrl = `${sourceUrl}/query?${queryParams.toString()}`;
-
-    try {
-      console.log(`[seed] Fetching offset ${offset}: ${queryUrl.slice(0, 150)}...`);
-      const response = await fetch(queryUrl, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Referer': 'https://buildsmarter.app/',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[seed] HTTP error ${response.status}: ${errorText.slice(0, 500)}`);
-        break;
-      }
-
-      const data = await response.json();
-      
-      // Log raw response structure for debugging
-      console.log(`[seed] Response keys: ${Object.keys(data).join(', ')}`);
-      if (data.features && data.features.length > 0) {
-        console.log(`[seed] Sample feature properties: ${Object.keys(data.features[0].properties || {}).join(', ')}`);
-      }
-
-      if (data.error) {
-        console.error(`[seed] API error:`, JSON.stringify(data.error));
-        break;
-      }
-
-      const features = data.features || [];
-      console.log(`[seed] Batch at offset ${offset}: ${features.length} features`);
-
-      if (features.length === 0) break;
-
-      allFeatures.push(...features);
-      offset += features.length;
-
-      // If we got less than batch size, we're done
-      if (features.length < batchSize) break;
-      
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 400));
-    } catch (err) {
-      console.error(`[seed] Fetch error:`, err);
-      break;
-    }
-  }
-
-  console.log(`[seed] Total features fetched: ${allFeatures.length}`);
-  return allFeatures.slice(0, maxRecords);
-}
-
-function applyFieldMappings(
-  feature: any,
-  mappings: Array<{ source: string; target: string; transform?: string }>,
-  constants: Record<string, any>
-): Record<string, any> {
-  const result: Record<string, any> = {};
-
-  for (const mapping of mappings) {
-    const sourceValue = feature.properties?.[mapping.source];
-    const transformFn = transformFunctions[mapping.transform || 'identity'];
-    result[mapping.target] = transformFn(sourceValue);
-  }
-
-  for (const [key, value] of Object.entries(constants)) {
-    result[key] = value;
-  }
-
-  return result;
 }
 
 // Convert GeoJSON geometry to WKT for PostGIS
@@ -446,16 +321,59 @@ function geometryToWKT(geometry: any): string | null {
         return `SRID=4326;MULTIPOLYGON(${polygons})`;
       }
       default:
-        console.warn(`[seed] Unknown geometry type: ${geometry.type}`);
         return null;
     }
-  } catch (err) {
-    console.error(`[seed] Geometry conversion error:`, err);
+  } catch {
     return null;
   }
 }
 
-async function seedLayer(
+function applyFieldMappings(
+  feature: any,
+  mappings: Array<{ source: string; target: string; transform?: string }>,
+  constants: Record<string, any>
+): Record<string, any> {
+  const result: Record<string, any> = {};
+
+  for (const mapping of mappings) {
+    const sourceValue = feature.properties?.[mapping.source];
+    const transformFn = transformFunctions[mapping.transform || 'identity'];
+    result[mapping.target] = transformFn(sourceValue);
+  }
+
+  for (const [key, value] of Object.entries(constants)) {
+    result[key] = value;
+  }
+
+  return result;
+}
+
+// Insert single record with PostGIS geometry handling
+async function insertRecord(
+  supabase: any, 
+  tableName: string, 
+  record: any
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('execute_canonical_insert', {
+      p_table_name: tableName,
+      p_record: record,
+    });
+    
+    if (error) {
+      console.error(`[seed] RPC error:`, error.message);
+      return false;
+    }
+    
+    return data?.success === true;
+  } catch (err) {
+    console.error(`[seed] Insert exception:`, err);
+    return false;
+  }
+}
+
+// NEW: Fetch and insert incrementally - insert each batch immediately after fetching
+async function seedLayerIncremental(
   supabase: any,
   config: LayerConfig
 ): Promise<SeedResult> {
@@ -469,90 +387,119 @@ async function seedLayer(
     duration_ms: 0,
   };
 
+  const maxRecords = config.max_records || 300;
+  const fetchBatchSize = 100; // Fetch 100 at a time
+  let offset = 0;
+  
+  const datasetVersion = `${config.layer_key}_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}`;
+  
+  console.log(`[seed] Starting incremental seed for ${config.layer_key} (max ${maxRecords} records)`);
+
   try {
-    console.log(`[seed] Starting ${config.layer_key}...`);
-
-    // Fetch features from ArcGIS
-    const features = await fetchArcGISFeatures(
-      config.source_url,
-      HOUSTON_BBOX,
-      config.max_records || 1000
-    );
-
-    result.records_fetched = features.length;
-
-    if (features.length === 0) {
-      result.error = 'No features returned from API';
-      result.duration_ms = Date.now() - startTime;
-      return result;
-    }
-
-    // Generate dataset version
-    const datasetVersion = `${config.layer_key}_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}`;
-
-    // Transform features
-    const transformedRecords: any[] = [];
-    
-    for (const feature of features) {
-      try {
-        const mapped = applyFieldMappings(feature, config.field_mappings, config.constants);
-        
-        // Apply defaults for required NOT NULL columns based on table
-        if (config.target_table === 'wetlands_canonical') {
-          mapped.wetland_code = mapped.wetland_code || 'UNKNOWN';
-        }
-        if (config.target_table === 'fema_flood_canonical') {
-          mapped.flood_zone = mapped.flood_zone || 'X';  // Default to Zone X (minimal flood hazard)
-        }
-        
-        // Convert geometry to EWKT format for PostGIS
-        const wkt = geometryToWKT(feature.geometry);
-        if (!wkt) {
-          result.records_failed++;
-          continue; // Skip records without valid geometry
-        }
-
-        const record: any = {
-          ...mapped,
-          dataset_version: datasetVersion,
-          geom: wkt,
-        };
-
-        transformedRecords.push(record);
-      } catch (err) {
-        console.error(`[seed] Transform error:`, err);
-        result.records_failed++;
+    while (result.records_fetched < maxRecords) {
+      // Check if we're running out of time (50 second soft limit)
+      const elapsed = Date.now() - startTime;
+      if (elapsed > 50000) {
+        console.log(`[seed] Time limit approaching (${elapsed}ms), stopping ${config.layer_key}`);
+        break;
       }
-    }
 
-    console.log(`[seed] Transformed ${transformedRecords.length} records for ${config.layer_key}`);
+      // Fetch one batch
+      const queryParams = new URLSearchParams({
+        where: '1=1',
+        geometry: `${HOUSTON_BBOX.xmin},${HOUSTON_BBOX.ymin},${HOUSTON_BBOX.xmax},${HOUSTON_BBOX.ymax}`,
+        geometryType: 'esriGeometryEnvelope',
+        inSR: '4326',
+        outSR: '4326',
+        spatialRel: 'esriSpatialRelIntersects',
+        outFields: '*',
+        returnGeometry: 'true',
+        f: 'geojson',
+        resultOffset: String(offset),
+        resultRecordCount: String(fetchBatchSize),
+      });
 
-    if (transformedRecords.length === 0) {
-      result.error = 'No valid records after transformation';
-      result.duration_ms = Date.now() - startTime;
-      return result;
-    }
-
-    // Insert in batches using plain INSERT (no unique constraints on these tables)
-    const BATCH_SIZE = 50;
-    
-    for (let i = 0; i < transformedRecords.length; i += BATCH_SIZE) {
-      const batch = transformedRecords.slice(i, i + BATCH_SIZE);
+      const queryUrl = `${config.source_url}/query?${queryParams.toString()}`;
       
-      // Use raw SQL via RPC to handle PostGIS geometry properly
-      const { error } = await insertBatchWithGeometry(supabase, config.target_table, batch);
-
-      if (error) {
-        console.error(`[seed] Batch insert error for ${config.layer_key}:`, error);
-        result.records_failed += batch.length;
-      } else {
-        result.records_inserted += batch.length;
+      console.log(`[seed] Fetching batch at offset ${offset}...`);
+      
+      const response = await fetch(queryUrl, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://buildsmarter.app/',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error(`[seed] HTTP error ${response.status}`);
+        break;
       }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        console.error(`[seed] API error:`, data.error.message || JSON.stringify(data.error));
+        break;
+      }
+
+      const features = data.features || [];
+      console.log(`[seed] Batch ${offset}: ${features.length} features`);
+
+      if (features.length === 0) break;
+
+      result.records_fetched += features.length;
+
+      // IMMEDIATELY insert this batch
+      for (const feature of features) {
+        try {
+          const mapped = applyFieldMappings(feature, config.field_mappings, config.constants);
+          
+          // Apply defaults for required NOT NULL columns
+          if (config.target_table === 'wetlands_canonical') {
+            mapped.wetland_code = mapped.wetland_code || 'UNKNOWN';
+          }
+          if (config.target_table === 'fema_flood_canonical') {
+            mapped.flood_zone = mapped.flood_zone || 'X';
+          }
+          
+          const wkt = geometryToWKT(feature.geometry);
+          if (!wkt) {
+            result.records_failed++;
+            continue;
+          }
+
+          const record = {
+            ...mapped,
+            dataset_version: datasetVersion,
+            geom: wkt,
+          };
+
+          const success = await insertRecord(supabase, config.target_table, record);
+          if (success) {
+            result.records_inserted++;
+          } else {
+            result.records_failed++;
+          }
+        } catch {
+          result.records_failed++;
+        }
+      }
+
+      console.log(`[seed] Batch complete: ${result.records_inserted} inserted, ${result.records_failed} failed`);
+
+      // If we got less than batch size, we're done
+      if (features.length < fetchBatchSize) break;
+      
+      offset += features.length;
+      
+      // Brief pause between fetches
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
 
     // Log to gis_fetch_logs
     await supabase.from('gis_fetch_logs').insert({
-      operation: 'seed_canonical',
+      operation: 'seed_canonical_incremental',
       status: result.records_inserted > 0 ? 'success' : 'partial',
       records_processed: result.records_fetched,
       duration_ms: Date.now() - startTime,
@@ -563,12 +510,12 @@ async function seedLayer(
         records_failed: result.records_failed,
         dataset_version: datasetVersion,
       },
-    });
+    }).catch(() => {}); // Don't fail on log error
 
     result.success = result.records_inserted > 0;
     result.duration_ms = Date.now() - startTime;
 
-    console.log(`[seed] Completed ${config.layer_key}: ${result.records_inserted} inserted, ${result.records_failed} failed`);
+    console.log(`[seed] Completed ${config.layer_key}: ${result.records_inserted} inserted in ${result.duration_ms}ms`);
 
   } catch (err) {
     result.error = err instanceof Error ? err.message : String(err);
@@ -579,59 +526,13 @@ async function seedLayer(
   return result;
 }
 
-// Insert batch with proper PostGIS geometry handling via RPC (one at a time)
-async function insertBatchWithGeometry(
-  supabase: any, 
-  tableName: string, 
-  records: any[]
-): Promise<{ error: any }> {
-  let successCount = 0;
-  let lastError: any = null;
-  
-  for (const record of records) {
-    try {
-      // Call RPC for each record individually
-      const { data, error } = await supabase.rpc('execute_canonical_insert', {
-        p_table_name: tableName,
-        p_record: record,  // Pass as object, Supabase will convert to JSONB
-      });
-      
-      if (error) {
-        console.error(`[seed] RPC error:`, error);
-        lastError = error;
-        continue;
-      }
-      
-      // Check RPC result
-      if (data && data.success) {
-        successCount++;
-      } else if (data) {
-        console.error(`[seed] Insert failed:`, data.error, data.sql?.slice(0, 200));
-        lastError = { message: data.error };
-      }
-    } catch (err) {
-      console.error(`[seed] Exception:`, err);
-      lastError = err;
-    }
-  }
-  
-  console.log(`[seed] Batch result: ${successCount}/${records.length} inserted`);
-  
-  // Return error only if ALL records failed
-  if (successCount === 0 && lastError) {
-    return { error: lastError };
-  }
-  
-  return { error: successCount === records.length ? null : { partial: true, successCount } };
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
-  console.log('[seed-houston-canonical] Starting seed operation');
+  console.log('[seed-houston-canonical] Starting incremental seed operation v1.1.0');
 
   try {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -657,53 +558,62 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'No matching layers found',
+        available_layers: LAYER_CONFIGS.map(l => l.layer_key),
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`[seed-houston-canonical] Seeding ${layersToSeed.length} layers`);
+    console.log(`[seed-houston-canonical] Seeding ${layersToSeed.length} layers: ${layersToSeed.map(l => l.layer_key).join(', ')}`);
 
-    // Seed each layer sequentially to avoid overwhelming APIs
+    // Seed each layer sequentially using incremental approach
     const results: SeedResult[] = [];
     
     for (const layerConfig of layersToSeed) {
-      const result = await seedLayer(supabase, layerConfig);
+      // Check overall time limit (allow 55 seconds total)
+      if (Date.now() - startTime > 55000) {
+        console.log('[seed-houston-canonical] Overall time limit reached, stopping');
+        break;
+      }
+      
+      const result = await seedLayerIncremental(supabase, layerConfig);
       results.push(result);
       
       // Brief pause between layers
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
-    // Get current counts for all canonical tables
+    // Get current counts for canonical tables
     const tableCounts: Record<string, number> = {};
-    const tables = ['parcels_canonical', 'fema_flood_canonical', 'utilities_canonical', 'wetlands_canonical', 'transportation_canonical'];
+    const tables = ['canonical_parcels', 'fema_flood_canonical', 'utilities_canonical', 'wetlands_canonical', 'transportation_canonical', 'utilities_ccn_canonical', 'pipelines_canonical'];
     
     for (const table of tables) {
-      const { count } = await supabase
-        .from(table)
-        .select('*', { count: 'exact', head: true });
-      tableCounts[table] = count || 0;
+      try {
+        const { count } = await supabase
+          .from(table)
+          .select('*', { count: 'exact', head: true });
+        tableCounts[table] = count || 0;
+      } catch {
+        tableCounts[table] = -1; // Table might not exist
+      }
     }
 
     const summary = {
       success: results.some(r => r.success),
+      version: '1.1.0',
       layers_processed: results.length,
       layers_successful: results.filter(r => r.success).length,
       layers_failed: results.filter(r => !r.success).length,
       total_records_fetched: results.reduce((sum, r) => sum + r.records_fetched, 0),
       total_records_inserted: results.reduce((sum, r) => sum + r.records_inserted, 0),
+      total_records_failed: results.reduce((sum, r) => sum + r.records_failed, 0),
       duration_ms: Date.now() - startTime,
       table_counts: tableCounts,
       results,
     };
 
-    console.log(`[seed-houston-canonical] Complete:`, JSON.stringify({
-      layers: summary.layers_successful,
-      records: summary.total_records_inserted,
-      duration: summary.duration_ms,
-    }));
+    console.log(`[seed-houston-canonical] Complete: ${summary.total_records_inserted} records in ${summary.duration_ms}ms`);
 
     return new Response(JSON.stringify(summary, null, 2), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
