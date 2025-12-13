@@ -1,4 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
+// Version: 1.0.1 - Deployed 2025-12-13
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const corsHeaders = {
