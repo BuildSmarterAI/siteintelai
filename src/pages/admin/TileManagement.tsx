@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import TilePreflightCheck from "@/components/admin/TilePreflightCheck";
 import {
   Layers,
   RefreshCw,
@@ -493,6 +494,9 @@ export default function TileManagement() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pre-flight Check */}
+        <TilePreflightCheck />
       </div>
     </div>
   );
