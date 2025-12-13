@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useTilesets, useTileJobs, useTilesetFreshness, Tileset, TileJob } from "@/hooks/useTilesets";
@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Layers,
   RefreshCw,
@@ -17,12 +18,19 @@ import {
   Clock,
   Database,
   HardDrive,
-  // Use completed_at instead of finished_at to match database schema
   ExternalLink,
   Play,
   AlertTriangle,
   Zap,
+  Loader2,
+  Sprout,
 } from "lucide-react";
+
+interface CanonicalCounts {
+  parcels: number;
+  utilities: number;
+  zoning: number;
+}
 
 function formatBytes(bytes: number | null): string {
   if (!bytes) return "—";
@@ -102,12 +110,58 @@ export default function TileManagement() {
   const { data: tileJobs, isLoading: jobsLoading, refetch: refetchJobs } = useTileJobs({ limit: 20 });
   const freshness = useTilesetFreshness();
   const [triggeringRefresh, setTriggeringRefresh] = useState(false);
+  const [seedingData, setSeedingData] = useState(false);
+  const [canonicalCounts, setCanonicalCounts] = useState<CanonicalCounts>({ parcels: 0, utilities: 0, zoning: 0 });
+  const [countsLoading, setCountsLoading] = useState(true);
+
+  const fetchCanonicalCounts = useCallback(async () => {
+    try {
+      const [parcelsRes, utilitiesRes, zoningRes] = await Promise.all([
+        supabase.from("canonical_parcels").select("id", { count: "exact", head: true }),
+        supabase.from("utilities_canonical").select("id", { count: "exact", head: true }),
+        supabase.from("zoning_canonical").select("id", { count: "exact", head: true }),
+      ]);
+      setCanonicalCounts({
+        parcels: parcelsRes.count || 0,
+        utilities: utilitiesRes.count || 0,
+        zoning: zoningRes.count || 0,
+      });
+    } catch (err) {
+      console.error("Failed to fetch canonical counts:", err);
+    } finally {
+      setCountsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCanonicalCounts();
+  }, [fetchCanonicalCounts]);
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
       navigate("/dashboard");
     }
   }, [isAdmin, adminLoading, navigate]);
+
+  const handleSeedData = async () => {
+    setSeedingData(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("seed-houston-canonical", {
+        body: { layers: ["houston_parcels"] },
+      });
+
+      if (error) throw error;
+
+      const inserted = data?.total_inserted || 0;
+      toast.success(`Seeded ${inserted} parcel records successfully`);
+      await fetchCanonicalCounts();
+    } catch (err: any) {
+      console.error("Seeding error:", err);
+      toast.error("Seeding failed: " + (err.message || "Unknown error"));
+    } finally {
+      setSeedingData(false);
+    }
+  };
 
   const handleRefresh = async () => {
     await Promise.all([refetchTilesets(), refetchJobs()]);
@@ -231,19 +285,49 @@ export default function TileManagement() {
           <Card className="border-border/50 bg-card/50">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-2">
-                <Zap className="w-4 h-4" />
-                Jobs Today
+                <Sprout className="w-4 h-4" />
+                Canonical Tables
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">
-                {tileJobs?.filter(
-                  (j) => new Date(j.started_at).toDateString() === new Date().toDateString()
-                ).length || 0}
-              </div>
-              <p className="text-muted-foreground text-sm">
-                {tileJobs?.filter((j) => j.status === "error").length || 0} errors
-              </p>
+              {countsLoading ? (
+                <Skeleton className="h-8 w-20" />
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Parcels:</span>
+                    <Badge variant={canonicalCounts.parcels > 0 ? "default" : "destructive"} className="font-mono">
+                      {canonicalCounts.parcels.toLocaleString()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Utilities:</span>
+                    <Badge variant={canonicalCounts.utilities > 0 ? "default" : "secondary"} className="font-mono">
+                      {canonicalCounts.utilities.toLocaleString()}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Zoning:</span>
+                    <Badge variant={canonicalCounts.zoning > 0 ? "default" : "secondary"} className="font-mono">
+                      {canonicalCounts.zoning.toLocaleString()}
+                    </Badge>
+                  </div>
+                </div>
+              )}
+              <Button
+                onClick={handleSeedData}
+                disabled={seedingData}
+                size="sm"
+                className="w-full mt-3"
+                variant={canonicalCounts.parcels === 0 ? "default" : "outline"}
+              >
+                {seedingData ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Database className="w-4 h-4 mr-2" />
+                )}
+                {seedingData ? "Seeding..." : "Seed Parcels"}
+              </Button>
             </CardContent>
           </Card>
         </div>
