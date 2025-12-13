@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -12,6 +12,7 @@ import { MeasurementTools, MeasurementMode } from './MeasurementTools';
 import { MapSearchBar } from './MapSearchBar';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
+import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
@@ -249,6 +250,19 @@ export function MapLibreCanvas({
       traffic: 0.8,
       utilities: 0.8,
     };
+  });
+
+  // Vector tile layers from CloudFront CDN
+  const { 
+    sources: vectorTileSources, 
+    hasVectorTiles, 
+    isLoading: vectorTilesLoading,
+    activeSources: activeVectorSources 
+  } = useVectorTileLayers({
+    map: map.current,
+    mapLoaded,
+    jurisdiction: 'tx',
+    layerVisibility: { ...layerVisibility },
   });
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
@@ -2357,18 +2371,28 @@ export function MapLibreCanvas({
         </div>
       )}
 
+      {/* Vector Tile Status Badge */}
+      {hasVectorTiles && activeVectorSources.length > 0 && (
+        <div className="absolute bottom-4 right-4 z-10 bg-background/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
+          <Database className="h-4 w-4 text-primary" />
+          <span className="text-xs text-muted-foreground">
+            SiteIntel Tiles ({activeVectorSources.length} layers)
+          </span>
+        </div>
+      )}
+
       {/* Map Legend */}
       <MapLegend
-        hasFloodZones={floodZones.length > 0}
-        hasTraffic={traffic.length > 0}
+        hasFloodZones={floodZones.length > 0 || hasVectorTileSource(vectorTileSources, 'flood')}
+        hasTraffic={traffic.length > 0 || hasVectorTileSource(vectorTileSources, 'transportation')}
         hasEmployment={employmentCenters.length > 0}
-        hasHcadParcels={hcadParcels.length > 0}
+        hasHcadParcels={hcadParcels.length > 0 || hasVectorTileSource(vectorTileSources, 'parcels')}
         hasWaterLines={waterLines.length > 0}
         hasSewerLines={sewerLines.length > 0}
         hasStormLines={stormLines.length > 0}
         hasStormManholes={stormManholes.length > 0}
         hasForceMain={forceMain.length > 0}
-        hasZoningDistricts={zoningDistricts.length > 0}
+        hasZoningDistricts={zoningDistricts.length > 0 || hasVectorTileSource(vectorTileSources, 'zoning')}
       />
 
       {/* Top-right controls */}
