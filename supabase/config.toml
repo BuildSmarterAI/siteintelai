@@ -224,3 +224,6 @@ verify_jwt = false
 
 [functions.enrich-traffic]
 verify_jwt = true
+
+[functions.upload-tiles]
+verify_jwt = true
