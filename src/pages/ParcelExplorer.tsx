@@ -65,6 +65,10 @@ export default function ParcelExplorer() {
   const handleParcelSelect = (parcel: any) => {
     const props = parcel.properties || {};
     
+    // Extract coverage status from response (if it came from query-canonical-parcel)
+    const coverageStatus = parcel.coverage_status || props.coverage_status;
+    const dataSource = parcel.source || props.source;
+    
     // Map canonical_parcels fields to popup display format
     setSelectedParcel({
       id: props.source_parcel_id || props.parcel_id || props.ACCOUNT || props.acct_num || props.apn || 'Unknown',
@@ -74,9 +78,13 @@ export default function ParcelExplorer() {
       landValue: props.market_value || props.land_value || props.LAND_VALUE || 0,
       imprValue: props.improvement_value || props.impr_value || props.IMPR_VALUE || 0,
       county: props.jurisdiction || props.county || currentCounty,
-      source: props.source || props.source_agency || `SiteIntel (${props.dataset_version || 'canonical'})`,
+      source: props.source_agency || `SiteIntel (${props.dataset_version || 'canonical'})`,
       datasetVersion: props.dataset_version || null,
       geometry: parcel.geometry,
+      // New coverage tracking fields
+      coverageStatus: coverageStatus || (props.dataset_version ? 'seeded' : 'not_seeded'),
+      dataSource: dataSource === 'external_fallback' ? 'external_fallback' : 'canonical_parcels',
+      accuracyTier: props.accuracy_tier || null,
     });
   };
 

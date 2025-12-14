@@ -14,6 +14,109 @@ interface QueryParams {
   limit?: number;
 }
 
+interface ParcelResponse {
+  parcel: any;
+  source: 'canonical_parcels' | 'external_fallback';
+  coverage_status: 'seeded' | 'not_seeded';
+  data_provenance: {
+    source: string;
+    dataset_version: string | null;
+    accuracy_tier: number | null;
+    source_agency: string | null;
+  };
+  query_type?: string;
+}
+
+// Log coverage gap for ETL prioritization
+async function logCoverageGap(
+  supabase: any,
+  jurisdiction: string,
+  lat: number | null,
+  lng: number | null,
+  parcelId: string | null
+) {
+  try {
+    await supabase.from('gis_coverage_events').insert({
+      event_type: 'coverage_gap',
+      jurisdiction: jurisdiction || 'unknown',
+      layer_type: 'parcels',
+      details: {
+        lat,
+        lng,
+        parcel_id: parcelId,
+        triggered_at: new Date().toISOString(),
+        reason: 'external_fallback_used'
+      }
+    });
+    console.log('[query-canonical-parcel] Logged coverage gap event');
+  } catch (err) {
+    console.warn('[query-canonical-parcel] Failed to log coverage gap:', err);
+  }
+}
+
+// Fallback to external fetch-parcels function
+async function fetchFromExternal(
+  supabaseUrl: string,
+  supabaseKey: string,
+  params: { parcelId?: string; lat?: number; lng?: number }
+): Promise<any> {
+  const fetchParcelsUrl = `${supabaseUrl}/functions/v1/fetch-parcels`;
+  
+  console.log('[query-canonical-parcel] Falling back to external fetch-parcels');
+  
+  try {
+    const response = await fetch(fetchParcelsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({
+        parcelId: params.parcelId,
+        lat: params.lat,
+        lng: params.lng,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('[query-canonical-parcel] External fetch failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    
+    if (data.features && data.features.length > 0) {
+      const feature = data.features[0];
+      // Normalize external data to match canonical schema
+      return {
+        id: null, // Not in our DB
+        source_parcel_id: feature.properties?.parcel_id || null,
+        apn: feature.properties?.parcel_id || null,
+        situs_address: feature.properties?.situs_address || null,
+        owner_name: feature.properties?.owner_name || null,
+        acreage: feature.properties?.acreage || null,
+        land_use_code: null,
+        land_use_desc: null,
+        jurisdiction: feature.properties?.county || 'unknown',
+        county_fips: null,
+        city: null,
+        state: 'TX',
+        zip: null,
+        dataset_version: null,
+        accuracy_tier: 3, // External = lower tier
+        source_agency: feature.properties?.source || 'external_api',
+        geometry: feature.geometry,
+        _external_raw: feature.properties, // Keep raw for debugging
+      };
+    }
+    
+    return null;
+  } catch (err) {
+    console.error('[query-canonical-parcel] External fetch error:', err);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -50,16 +153,60 @@ Deno.serve(async (req) => {
         });
       }
 
-      console.log(`[query-canonical-parcel] Found parcel:`, data ? 'yes' : 'no');
+      // If found in canonical, return with verified status
+      if (data) {
+        console.log(`[query-canonical-parcel] Found in canonical_parcels`);
+        const response: ParcelResponse = {
+          parcel: data,
+          source: 'canonical_parcels',
+          coverage_status: 'seeded',
+          data_provenance: {
+            source: 'SiteIntel canonical_parcels',
+            dataset_version: data?.dataset_version || null,
+            accuracy_tier: data?.accuracy_tier || null,
+            source_agency: data?.source_agency || null,
+          }
+        };
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
+      // NOT FOUND - try external fallback
+      console.log(`[query-canonical-parcel] Not found in canonical, trying external fallback`);
+      const externalParcel = await fetchFromExternal(supabaseUrl, supabaseKey, { parcelId: id });
+      
+      if (externalParcel) {
+        // Log coverage gap for ETL prioritization
+        await logCoverageGap(supabase, externalParcel.jurisdiction, null, null, id);
+        
+        const response: ParcelResponse = {
+          parcel: externalParcel,
+          source: 'external_fallback',
+          coverage_status: 'not_seeded',
+          data_provenance: {
+            source: 'External City API (unverified)',
+            dataset_version: null,
+            accuracy_tier: 3,
+            source_agency: externalParcel.source_agency,
+          }
+        };
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Nothing found anywhere
       return new Response(JSON.stringify({
-        parcel: data,
+        parcel: null,
         source: 'canonical_parcels',
+        coverage_status: 'not_seeded',
+        message: 'Parcel not found in any data source',
         data_provenance: {
-          source: 'SiteIntel canonical_parcels',
-          dataset_version: data?.dataset_version || null,
-          accuracy_tier: data?.accuracy_tier || null,
-          source_agency: data?.source_agency || null,
+          source: 'none',
+          dataset_version: null,
+          accuracy_tier: null,
+          source_agency: null,
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -70,51 +217,66 @@ Deno.serve(async (req) => {
     if (lat !== undefined && lng !== undefined) {
       console.log(`[query-canonical-parcel] Querying by point: ${lat}, ${lng}`);
       
-      // Use PostGIS ST_Contains to find parcel containing the point
+      // Try RPC first for point-in-polygon
       const { data, error } = await supabase.rpc('find_parcel_at_point', {
         p_lng: lng,
         p_lat: lat
       });
 
-      if (error) {
-        // If RPC doesn't exist, fall back to bbox query with small buffer
-        console.warn('[query-canonical-parcel] RPC failed, falling back to bbox:', error.message);
-        
-        const buffer = 0.0001; // ~10 meters
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('canonical_parcels')
-          .select('*')
-          .gte('ST_X(centroid)', lng - buffer)
-          .lte('ST_X(centroid)', lng + buffer)
-          .gte('ST_Y(centroid)', lat - buffer)
-          .lte('ST_Y(centroid)', lat + buffer)
-          .limit(1);
-
-        if (fallbackError) {
-          // Last resort: just get nearest by jurisdiction
-          console.warn('[query-canonical-parcel] Fallback also failed:', fallbackError.message);
-          return new Response(JSON.stringify({ 
-            parcel: null, 
-            message: 'Point query not available - use parcel_id instead',
-            source: 'canonical_parcels'
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        return new Response(JSON.stringify({
-          parcel: fallbackData?.[0] || null,
+      if (!error && data) {
+        const response: ParcelResponse = {
+          parcel: data,
           source: 'canonical_parcels',
-          query_type: 'point_fallback'
-        }), {
+          coverage_status: 'seeded',
+          query_type: 'point',
+          data_provenance: {
+            source: 'SiteIntel canonical_parcels',
+            dataset_version: data?.dataset_version || null,
+            accuracy_tier: data?.accuracy_tier || null,
+            source_agency: data?.source_agency || null,
+          }
+        };
+        return new Response(JSON.stringify(response), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      return new Response(JSON.stringify({
-        parcel: data,
+      // RPC failed or no data - try external fallback
+      console.log('[query-canonical-parcel] Point query failed, trying external fallback');
+      const externalParcel = await fetchFromExternal(supabaseUrl, supabaseKey, { lat, lng });
+      
+      if (externalParcel) {
+        await logCoverageGap(supabase, externalParcel.jurisdiction, lat, lng, null);
+        
+        const response: ParcelResponse = {
+          parcel: externalParcel,
+          source: 'external_fallback',
+          coverage_status: 'not_seeded',
+          query_type: 'point_fallback',
+          data_provenance: {
+            source: 'External City API (unverified)',
+            dataset_version: null,
+            accuracy_tier: 3,
+            source_agency: externalParcel.source_agency,
+          }
+        };
+        return new Response(JSON.stringify(response), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({ 
+        parcel: null, 
+        message: 'No parcel found at this location',
         source: 'canonical_parcels',
-        query_type: 'point'
+        coverage_status: 'not_seeded',
+        query_type: 'point',
+        data_provenance: {
+          source: 'none',
+          dataset_version: null,
+          accuracy_tier: null,
+          source_agency: null,
+        }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -148,6 +310,7 @@ Deno.serve(async (req) => {
         parcels: data || [],
         count: data?.length || 0,
         source: 'canonical_parcels',
+        coverage_status: (data?.length || 0) > 0 ? 'seeded' : 'not_seeded',
         query_type: 'bbox'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

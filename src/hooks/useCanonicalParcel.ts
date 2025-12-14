@@ -21,6 +21,23 @@ export interface CanonicalParcel {
   confidence: number | null;
   created_at: string;
   updated_at: string;
+  // External fallback fields (not in DB but returned by edge function)
+  _external_raw?: Record<string, unknown>;
+}
+
+// Response from query-canonical-parcel edge function
+export interface ParcelQueryResponse {
+  parcel: CanonicalParcel | null;
+  source: 'canonical_parcels' | 'external_fallback';
+  coverage_status: 'seeded' | 'not_seeded';
+  query_type?: string;
+  message?: string;
+  data_provenance: {
+    source: string;
+    dataset_version: string | null;
+    accuracy_tier: number | null;
+    source_agency: string | null;
+  };
 }
 
 interface UseCanonicalParcelOptions {
@@ -30,51 +47,54 @@ interface UseCanonicalParcelOptions {
   enabled?: boolean;
 }
 
+export interface UseCanonicalParcelResult {
+  parcel: CanonicalParcel | null;
+  source: 'canonical_parcels' | 'external_fallback' | null;
+  coverageStatus: 'seeded' | 'not_seeded' | null;
+  dataProvenance: ParcelQueryResponse['data_provenance'] | null;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+}
+
 /**
  * Hook to query canonical_parcels table for parcel details
- * Uses internal SiteIntel data - no external API calls
+ * Now includes fallback to external APIs with coverage tracking
  */
-export function useCanonicalParcel({ parcelId, lat, lng, enabled = true }: UseCanonicalParcelOptions) {
-  return useQuery({
+export function useCanonicalParcel({ parcelId, lat, lng, enabled = true }: UseCanonicalParcelOptions): UseCanonicalParcelResult {
+  const query = useQuery({
     queryKey: ['canonical-parcel', parcelId, lat, lng],
-    queryFn: async (): Promise<CanonicalParcel | null> => {
-      // Query by parcel ID if provided
-      if (parcelId) {
-        const { data, error } = await supabase
-          .from('canonical_parcels')
-          .select('*')
-          .eq('source_parcel_id', parcelId)
-          .limit(1)
-          .maybeSingle();
-
-        if (error) {
-          console.error('Error fetching canonical parcel by ID:', error);
-          throw error;
+    queryFn: async (): Promise<ParcelQueryResponse> => {
+      // Always use the edge function for hybrid fallback support
+      const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
+        body: { 
+          source_parcel_id: parcelId,
+          lat, 
+          lng 
         }
+      });
 
-        return data as CanonicalParcel | null;
+      if (error) {
+        console.error('Error fetching parcel:', error);
+        throw error;
       }
 
-      // Query by point if lat/lng provided
-      if (lat !== undefined && lng !== undefined) {
-        const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
-          body: { lat, lng }
-        });
-
-        if (error) {
-          console.error('Error fetching canonical parcel by point:', error);
-          throw error;
-        }
-
-        return data?.parcel as CanonicalParcel | null;
-      }
-
-      return null;
+      return data as ParcelQueryResponse;
     },
     enabled: enabled && (!!parcelId || (lat !== undefined && lng !== undefined)),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 30 * 60 * 1000, // 30 minutes
   });
+
+  return {
+    parcel: query.data?.parcel ?? null,
+    source: query.data?.source ?? null,
+    coverageStatus: query.data?.coverage_status ?? null,
+    dataProvenance: query.data?.data_provenance ?? null,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    error: query.error,
+  };
 }
 
 /**
