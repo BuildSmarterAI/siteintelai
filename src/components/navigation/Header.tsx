@@ -292,14 +292,27 @@ export const Header = () => {
         </div>
 
         {/* Mobile Menu */}
-        <Sheet>
-          <SheetTrigger asChild className="md:hidden">
-            <Button variant="ghost" size="icon" className="text-white">
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="bg-[#0A0F2C] border-white/10 w-[300px]">
+        <div className="flex md:hidden items-center gap-2">
+          <AuthButton compact />
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white">
+                <Menu className="h-6 w-6" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="bg-[#0A0F2C] border-white/10 w-[300px]">
             <nav className="flex flex-col gap-6 mt-8">
+              {/* Auth Section at Top */}
+              <div className="pb-4 border-b border-white/10">
+                <AuthButton />
+                <Link 
+                  to="/auth" 
+                  className="block mt-3 text-sm text-white/70 hover:text-[#06B6D4] transition-colors"
+                >
+                  Create Account →
+                </Link>
+              </div>
+
               <Link to="/" className="text-white hover:text-[#06B6D4] font-medium">
                 Home
               </Link>
@@ -382,12 +395,10 @@ export const Header = () => {
                 <Link to="/application?step=2">Run a QuickCheck →</Link>
               </Button>
 
-              <div className="pt-4 border-t border-white/10">
-                <AuthButton />
-              </div>
             </nav>
           </SheetContent>
         </Sheet>
+      </div>
       </div>
     </motion.header>
   );
