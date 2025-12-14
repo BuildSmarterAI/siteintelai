@@ -1097,7 +1097,7 @@ export default function ReportViewer() {
 
         {/* Attachments Card - New */}
         <AttachmentsCard
-          attachments={report.applications?.attachments as any}
+          attachments={(report.applications as any)?.attachments}
           reportAssets={report.report_assets}
           pdfUrl={report.pdf_url}
           className="mb-8"
@@ -1105,6 +1105,7 @@ export default function ReportViewer() {
 
         {/* ⭐ NEW: Property Valuation Card */}
         {false && (report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
+            <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
                 Property Valuation & Building Characteristics
@@ -2428,13 +2429,13 @@ export default function ReportViewer() {
                 </>}
             </CardContent>
           </Card>}
-      </div>
+            </div>
 
-      {/* Data Sources Sidebar */}
-      <div className="lg:col-span-1">
-        <DataSourcesDisplay dataSources={dataSources} accessLevel={!isAuthenticated ? 'public' : !isOwner ? 'authenticated' : productId === 'enterprise' ? 'enterprise' : 'owner'} />
-      </div>
-    </div>}
+            {/* Data Sources Sidebar */}
+            <div className="lg:col-span-1">
+              <DataSourcesDisplay dataSources={dataSources} accessLevel={!isAuthenticated ? 'public' : !isOwner ? 'authenticated' : productId === 'enterprise' ? 'enterprise' : 'owner'} />
+            </div>
+          </div>}
       </main>
 
       {/* AI Chat Assistant */}
