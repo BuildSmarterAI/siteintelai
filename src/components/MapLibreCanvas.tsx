@@ -2009,7 +2009,7 @@ export function MapLibreCanvas({
     const lineLayerId = 'siteintel-parcels-outline';
 
     // Check if vector tile source exists (from useVectorTileLayers)
-    const hasVectorSource = map.current.getSource('parcels-tiles');
+    const hasVectorSource = map.current.getSource(sourceId);
     
     if (hasVectorSource) {
       console.log('✅ Using SiteIntel vector tiles for parcels (data moat enforced)');
@@ -2017,8 +2017,7 @@ export function MapLibreCanvas({
       setParcelLoadError(null);
       
       // Vector tiles are managed by useVectorTileLayers - just set up click handler
-      const parcelLayerId = 'parcels-fill';
-      if (map.current.getLayer(parcelLayerId)) {
+      if (map.current.getLayer(fillLayerId)) {
         // Click handler to fetch canonical parcel details
         const handleParcelClick = async (e: maplibregl.MapLayerMouseEvent) => {
           if (!e.features || e.features.length === 0) return;
@@ -2072,18 +2071,18 @@ export function MapLibreCanvas({
           }
         };
         
-        map.current.on('click', parcelLayerId, handleParcelClick);
+        map.current.on('click', fillLayerId, handleParcelClick);
         
         // Cursor handlers
-        map.current.on('mouseenter', parcelLayerId, () => {
+        map.current.on('mouseenter', fillLayerId, () => {
           if (map.current) map.current.getCanvas().style.cursor = 'pointer';
         });
-        map.current.on('mouseleave', parcelLayerId, () => {
+        map.current.on('mouseleave', fillLayerId, () => {
           if (map.current) map.current.getCanvas().style.cursor = '';
         });
         
         return () => {
-          map.current?.off('click', parcelLayerId, handleParcelClick);
+          map.current?.off('click', fillLayerId, handleParcelClick);
         };
       }
       return;
@@ -2097,7 +2096,7 @@ export function MapLibreCanvas({
       
       // Check periodically for vector tile source
       const checkInterval = setInterval(() => {
-        if (map.current?.getSource('parcels-tiles')) {
+        if (map.current?.getSource(sourceId)) {
           setParcelLoading(false);
           clearInterval(checkInterval);
         }
@@ -2106,7 +2105,7 @@ export function MapLibreCanvas({
       // Timeout after 10 seconds
       setTimeout(() => {
         clearInterval(checkInterval);
-        if (!map.current?.getSource('parcels-tiles')) {
+        if (!map.current?.getSource(sourceId)) {
           setParcelLoading(false);
           // Don't show error - vector tiles may just not be available for this area
           console.log('ℹ️ Vector tile parcels not available for this viewport');
