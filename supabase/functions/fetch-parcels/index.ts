@@ -264,10 +264,16 @@ async function fetchFromCounty(
     console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (params.lat !== undefined && params.lng !== undefined) {
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    queryParams.set('geometry', `${params.lng},${params.lat}`);
-    queryParams.set('geometryType', 'esriGeometryPoint');
+    // Use tiny bounding box (~10m) instead of point - more compatible with ArcGIS servers
+    const buffer = 0.0001; // ~11 meters at Texas latitudes
+    const minLng = params.lng - buffer;
+    const minLat = params.lat - buffer;
+    const maxLng = params.lng + buffer;
+    const maxLat = params.lat + buffer;
+    queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
+    queryParams.set('geometryType', 'esriGeometryEnvelope');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: point-in-parcel (${params.lat}, ${params.lng})`);
+    console.log(`[fetch-parcels] Query type: point-in-parcel via tiny bbox (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
     queryParams.set('where', '1=1'); // Required for spatial-only queries
