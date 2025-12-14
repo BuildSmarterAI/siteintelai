@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { ScoreCircle } from "@/components/ScoreCircle";
+import { ScoreRadarChart } from "@/components/report/ScoreRadarChart";
 import { 
   TrendingUp, 
   AlertTriangle, 
@@ -10,8 +12,11 @@ import {
   Zap, 
   Car,
   Building2,
-  Leaf
+  Leaf,
+  BarChart3,
+  Radar
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CategoryScore {
   label: string;
@@ -47,6 +52,8 @@ export function ScoreDashboard({
   keyRisks = [],
   createdAt,
 }: ScoreDashboardProps) {
+  const [viewMode, setViewMode] = useState<'bars' | 'radar'>('bars');
+  
   const categories: CategoryScore[] = [
     { 
       label: "Zoning", 
@@ -106,7 +113,7 @@ export function ScoreDashboard({
   };
 
   return (
-    <Card className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-card via-card to-muted/30">
+    <Card id="section-score" className="overflow-hidden border-0 shadow-xl bg-gradient-to-br from-card via-card to-muted/30">
       <CardContent className="p-0">
         {/* Hero Section */}
         <div className="relative p-6 md:p-8 bg-gradient-to-r from-primary/5 via-primary/10 to-accent/5">
@@ -118,7 +125,7 @@ export function ScoreDashboard({
             {/* Score Circle - Left */}
             <div className="lg:col-span-4 flex flex-col items-center">
               <div className="relative">
-                <ScoreCircle score={overallScore} size="xl" showLabel={false} />
+                <ScoreCircle score={overallScore} size="xl" showLabel={false} animated={true} />
                 <Badge 
                   className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-4 py-1 text-lg font-bold ${getBandColor(scoreBand)}`}
                 >
@@ -133,30 +140,71 @@ export function ScoreDashboard({
 
             {/* Category Breakdown - Center */}
             <div className="lg:col-span-5 space-y-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                Category Breakdown
-              </h3>
-              {categories.map((category) => (
-                <div key={category.label} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-2 text-muted-foreground">
-                      <span className={`p-1 rounded ${category.colorClass} text-white`}>
-                        {category.icon}
-                      </span>
-                      {category.label}
-                    </span>
-                    <span className={`font-semibold ${getScoreColor(category.score)}`}>
-                      {category.score > 0 ? `${category.score}%` : '—'}
-                    </span>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-500 rounded-full ${getProgressColor(category.score)}`}
-                      style={{ width: `${category.score}%` }}
-                    />
-                  </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Category Breakdown
+                </h3>
+                <div className="flex gap-1 p-1 bg-muted rounded-lg">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('bars')}
+                    className={cn(
+                      "h-7 px-2 gap-1",
+                      viewMode === 'bars' && "bg-background shadow-sm"
+                    )}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline text-xs">Bars</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('radar')}
+                    className={cn(
+                      "h-7 px-2 gap-1",
+                      viewMode === 'radar' && "bg-background shadow-sm"
+                    )}
+                  >
+                    <Radar className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline text-xs">Radar</span>
+                  </Button>
                 </div>
-              ))}
+              </div>
+              
+              {viewMode === 'bars' ? (
+                <div className="space-y-4">
+                  {categories.map((category) => (
+                    <div key={category.label} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <span className={`p-1 rounded ${category.colorClass} text-white`}>
+                            {category.icon}
+                          </span>
+                          {category.label}
+                        </span>
+                        <span className={`font-semibold ${getScoreColor(category.score)}`}>
+                          {category.score > 0 ? `${category.score}%` : '—'}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full transition-all duration-500 rounded-full ${getProgressColor(category.score)}`}
+                          style={{ width: `${category.score}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <ScoreRadarChart
+                  zoningScore={zoningScore}
+                  floodScore={floodScore}
+                  utilitiesScore={utilitiesScore}
+                  trafficScore={trafficScore}
+                  environmentalScore={environmentalScore}
+                />
+              )}
             </div>
 
             {/* Quick Stats - Right */}
