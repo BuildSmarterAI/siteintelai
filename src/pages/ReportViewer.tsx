@@ -19,6 +19,12 @@ import { PropertyOwnerCard } from "@/components/report/PropertyOwnerCard";
 import { ValuationCard } from "@/components/report/ValuationCard";
 import { ProjectFeasibilityCard } from "@/components/report/ProjectFeasibilityCard";
 import { AttachmentsCard } from "@/components/report/AttachmentsCard";
+import { FloodRiskCard } from "@/components/report/FloodRiskCard";
+import { UtilitiesCard } from "@/components/report/UtilitiesCard";
+import { EnvironmentalCard } from "@/components/report/EnvironmentalCard";
+import { TrafficCard } from "@/components/report/TrafficCard";
+import { MarketCard } from "@/components/report/MarketCard";
+import { AccessCard } from "@/components/report/AccessCard";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -194,6 +200,16 @@ interface Report {
       source?: string;
     }>;
     data_flags?: string[];
+    // Additional fields for new card components
+    nfip_claims_count?: number | null;
+    water_capacity_mgd?: number | null;
+    sewer_capacity_mgd?: number | null;
+    epa_facilities_count?: number | null;
+    peak_hour_volume?: number | null;
+    nearest_highway?: string | null;
+    nearest_transit_stop?: string | null;
+    nearest_signal_distance_ft?: number | null;
+    road_classification?: string | null;
   };
 }
 export default function ReportViewer() {
@@ -1706,691 +1722,88 @@ export default function ReportViewer() {
           </TabsContent>
 
           <TabsContent value="flood" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Flood Risk Analysis</CardTitle>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge>Score: {flood.component_score || 'N/A'}</Badge>
-                  {report.applications?.floodplain_zone && <Badge variant={report.applications.floodplain_zone === 'X' ? 'default' : 'destructive'}>
-                      Zone {report.applications.floodplain_zone}
-                    </Badge>}
-                  {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('flood').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Base Flood Elevation (BFE) */}
-                {report.applications?.base_flood_elevation && <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div className="flex items-start gap-3">
-                      <div className="p-2 bg-blue-100 rounded">
-                        <TrendingUp className="h-5 w-5 text-blue-700" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-blue-900 mb-1">Base Flood Elevation (BFE)</p>
-                        <p className="text-2xl font-bold text-blue-700">
-                          {report.applications.base_flood_elevation} ft NAVD88
-                        </p>
-                        {report.applications.base_flood_elevation_source && <p className="text-xs text-blue-600 mt-1">
-                            Source: {report.applications.base_flood_elevation_source}
-                          </p>}
-                        {report.applications.fema_firm_panel && <p className="text-xs text-muted-foreground mt-1">
-                            FIRM Panel: {report.applications.fema_firm_panel}
-                          </p>}
-                      </div>
-                    </div>
-                  </div>}
-                
-                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(flood.verdict || '<p>No flood analysis available.</p>')
-                  }} />
-              </CardContent>
-            </Card>
+            <FloodRiskCard
+              score={flood.component_score || 0}
+              floodZone={report.applications?.floodplain_zone}
+              baseFloodElevation={report.applications?.base_flood_elevation}
+              bfeSource={report.applications?.base_flood_elevation_source}
+              firmPanel={report.applications?.fema_firm_panel}
+              historicalEvents={report.applications?.historical_flood_events}
+              nfipClaims={report.applications?.nfip_claims_count}
+              verdict={flood.verdict}
+            />
           </TabsContent>
 
           <TabsContent value="utilities" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Utilities Analysis</CardTitle>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge>Score: {utilities.component_score || 'N/A'}</Badge>
-                  {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('utilities').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* ⭐ NEW: Infrastructure & Connectivity Section - PHASE 3 */}
-                {(report.applications?.power_kv_nearby || report.applications?.fiber_available || report.applications?.broadband_providers || report.applications?.distance_highway_ft || report.applications?.distance_transit_ft) && <div className="mb-6 p-4 bg-muted/30 rounded-lg border">
-                    <h4 className="font-semibold mb-4 flex items-center gap-2">
-                      <Wifi className="h-4 w-4" />
-                      Infrastructure & Connectivity
-                    </h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {report.applications.power_kv_nearby && <div className="p-3 bg-background rounded border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Zap className="h-4 w-4 text-yellow-600" />
-                            <span className="text-xs text-muted-foreground">Power</span>
-                          </div>
-                          <p className="text-xl font-bold">{report.applications.power_kv_nearby} kV</p>
-                          <p className="text-xs text-muted-foreground">nearby capacity</p>
-                        </div>}
-                      
-                      {typeof report.applications.fiber_available === 'boolean' && <div className="p-3 bg-background rounded border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Wifi className="h-4 w-4 text-blue-600" />
-                            <span className="text-xs text-muted-foreground">Fiber Optic</span>
-                          </div>
-                          <Badge variant={report.applications.fiber_available ? 'default' : 'secondary'}>
-                            {report.applications.fiber_available ? 'Available' : 'Not Available'}
-                          </Badge>
-                        </div>}
-                      
-                      {report.applications.distance_highway_ft && <div className="p-3 bg-background rounded border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Car className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Highway Access</span>
-                          </div>
-                          <p className="text-xl font-bold">
-                            {(report.applications.distance_highway_ft / 5280).toFixed(2)} mi
-                          </p>
-                          <p className="text-xs text-muted-foreground">to nearest highway</p>
-                        </div>}
-                      
-                      {report.applications.distance_transit_ft && <div className="p-3 bg-background rounded border">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-xs text-muted-foreground">Transit Access</span>
-                          </div>
-                          <p className="text-xl font-bold">
-                            {(report.applications.distance_transit_ft / 5280).toFixed(2)} mi
-                          </p>
-                          <p className="text-xs text-muted-foreground">to transit stop</p>
-                        </div>}
-                      
-                      {report.applications.broadband_providers && Array.isArray(report.applications.broadband_providers) && report.applications.broadband_providers.length > 0 && <div className="p-3 bg-background rounded border md:col-span-2">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Wifi className="h-4 w-4 text-green-600" />
-                            <span className="text-xs text-muted-foreground">Broadband Providers</span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {report.applications.broadband_providers.map((provider: any, i: number) => <Badge key={i} variant="outline" className="text-xs">
-                                {typeof provider === 'string' ? provider : provider.name || `Provider ${i + 1}`}
-                              </Badge>)}
-                          </div>
-                        </div>}
-                    </div>
-                  </div>}
-
-                {/* Original Utilities Analysis */}
-                {utilities.verdict && <div className="prose prose-sm max-w-none mb-6">
-                    <div dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(utilities.verdict)
-                    }} />
-                  </div>}
-
-                {/* Detailed Utility Line Results */}
-                <UtilityResults waterLines={report.applications.water_lines || null} sewerLines={report.applications.sewer_lines || null} stormLines={report.applications.storm_lines || null} dataFlags={report.applications.data_flags || []} />
-              </CardContent>
-            </Card>
+            <UtilitiesCard
+              score={utilities.component_score || 0}
+              verdict={utilities.verdict}
+              powerKv={report.applications?.power_kv_nearby}
+              fiberAvailable={report.applications?.fiber_available}
+              broadbandProviders={report.applications?.broadband_providers}
+              waterLines={report.applications?.water_lines}
+              sewerLines={report.applications?.sewer_lines}
+              stormLines={report.applications?.storm_lines}
+              waterCapacity={report.applications?.water_capacity_mgd}
+              sewerCapacity={report.applications?.sewer_capacity_mgd}
+            />
           </TabsContent>
 
           <TabsContent value="environmental" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Environmental Analysis</CardTitle>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge>Score: {environmental.component_score || 'N/A'}</Badge>
-                  {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('environmental').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* ⭐ PRIORITY: Wetlands - HIGH REGULATORY IMPACT */}
-                {report.applications?.wetlands_type && <div className={`p-4 rounded-lg border-2 ${report.applications.wetlands_type === 'None detected' ? 'bg-green-50 dark:bg-green-950/20 border-green-500' : 'bg-red-50 dark:bg-red-950/20 border-red-500'}`}>
-                    <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                      <MapPin className={`h-5 w-5 ${report.applications.wetlands_type === 'None detected' ? 'text-green-600' : 'text-red-600'}`} />
-                      <span className={report.applications.wetlands_type === 'None detected' ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}>
-                        Wetlands Status (Regulatory Priority)
-                      </span>
-                    </h4>
-                    <p className="text-sm font-medium mb-2">
-                      {report.applications.wetlands_type}
-                    </p>
-                    {report.applications.wetlands_type !== 'None detected' && report.applications.wetlands_type !== 'API Error' && !report.applications.wetlands_type.includes('Manual Verification') && <div className="mt-3 space-y-2">
-                        <Badge variant="destructive" className="text-xs">
-                          🚨 Section 404 CWA Permit Required
-                        </Badge>
-                        <p className="text-xs text-muted-foreground mt-2 p-2 bg-background rounded border">
-                          <strong>Regulatory Impact:</strong> Wetland delineation and Army Corps of Engineers permit required. 
-                          Expect 6-12 month permitting timeline. Consult wetland specialist immediately.
-                        </p>
-                      </div>}
-                    {report.applications.wetlands_type === 'None detected' && <Badge variant="default" className="mt-2 bg-green-600">
-                        ✅ No Wetlands Detected
-                      </Badge>}
-                  </div>}
-
-
-                <div className="grid grid-cols-1 gap-6">
-                  {/* Soil Characteristics */}
-                  {(report.applications?.soil_series || report.applications?.soil_drainage_class || report.applications?.soil_slope_percent) && <div className="p-4 bg-muted/30 rounded-lg border">
-                      <h4 className="font-semibold mb-2 text-sm flex items-center gap-2">
-                        <Landmark className="h-4 w-4 text-amber-600" />
-                        Soil Characteristics
-                      </h4>
-                      <div className="space-y-1 text-sm">
-                        {report.applications.soil_series && <p className="text-muted-foreground">
-                            <span className="font-medium">Series:</span> {report.applications.soil_series}
-                          </p>}
-                        {report.applications.soil_drainage_class && <p className="text-muted-foreground">
-                            <span className="font-medium">Drainage:</span> {report.applications.soil_drainage_class}
-                          </p>}
-                        {report.applications.soil_slope_percent !== null && report.applications.soil_slope_percent !== undefined && <p className="text-muted-foreground">
-                            <span className="font-medium">Slope:</span> {report.applications.soil_slope_percent}%
-                          </p>}
-                      </div>
-                      {report.applications.soil_slope_percent && report.applications.soil_slope_percent > 5 && <Badge variant="secondary" className="mt-2">
-                          Engineering Required (Slope &gt; 5%)
-                        </Badge>}
-                    </div>}
-                </div>
-
-                {/* Environmental Sites */}
-                {report.applications?.environmental_sites && Array.isArray(report.applications.environmental_sites) && report.applications.environmental_sites.length > 0 && <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/30">
-                    <h4 className="font-semibold mb-3 text-sm flex items-center gap-2 text-destructive">
-                      <FileText className="h-4 w-4" />
-                      Nearby Environmental Sites ({report.applications.environmental_sites.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {report.applications.environmental_sites.slice(0, 10).map((site: any, i: number) => <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
-                          <div className="flex-1">
-                            <p className="font-medium">{site.site_name}</p>
-                            {site.program && <p className="text-xs text-muted-foreground">{site.program}</p>}
-                            {site.status && <Badge variant="outline" className="mt-1 text-xs">
-                                {site.status}
-                              </Badge>}
-                          </div>
-                          {site.distance_mi && <Badge variant="secondary" className="whitespace-nowrap">
-                              {site.distance_mi} mi
-                            </Badge>}
-                        </div>)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-3">
-                      Note: Proximity to environmental sites may require Phase I/II Environmental Assessments
-                    </p>
-                  </div>}
-
-                {/* Historical Flood Events */}
-                {report.applications?.historical_flood_events && Array.isArray(report.applications.historical_flood_events) && report.applications.historical_flood_events.length > 0 && <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h4 className="font-semibold mb-3 text-sm flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                      <FileText className="h-4 w-4" />
-                      Historical Flood Events ({report.applications.historical_flood_events.length})
-                    </h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {report.applications.historical_flood_events.slice(0, 10).map((event: any, i: number) => <div key={i} className="flex items-start justify-between gap-2 text-sm p-2 bg-background rounded">
-                          <div className="flex-1">
-                            <p className="font-medium">{event.title}</p>
-                            {event.county && <p className="text-xs text-muted-foreground">{event.county}</p>}
-                            {event.disaster_number && <Badge variant="outline" className="mt-1 text-xs">
-                                DR-{event.disaster_number}
-                              </Badge>}
-                          </div>
-                          {event.declaration_date && <Badge variant="secondary" className="whitespace-nowrap">
-                              {new Date(event.declaration_date).getFullYear()}
-                            </Badge>}
-                        </div>)}
-                    </div>
-                  </div>}
-
-                {/* Original Environmental Analysis Verdict */}
-                <div className="prose prose-sm max-w-none pt-4 border-t">
-                  <div dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(environmental.verdict || '<p>No environmental analysis available.</p>')
-                    }} />
-                </div>
-              </CardContent>
-            </Card>
+            <EnvironmentalCard
+              score={environmental.component_score || 0}
+              wetlandsType={report.applications?.wetlands_type}
+              wetlandsPercent={report.applications?.wetlands_area_pct}
+              soilSeries={report.applications?.soil_series}
+              soilDrainage={report.applications?.soil_drainage_class}
+              soilSlope={report.applications?.soil_slope_percent}
+              environmentalSites={report.applications?.environmental_sites}
+              epaFacilitiesCount={report.applications?.epa_facilities_count}
+              verdict={environmental.verdict}
+            />
           </TabsContent>
 
           <TabsContent value="traffic" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="h-5 w-5" />
-                  Traffic & Access Analysis
-                </CardTitle>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {traffic.component_score && <Badge>Score: {traffic.component_score}</Badge>}
-                  {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('traffic').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
-                  {report.applications?.traffic_aadt && <Badge variant={report.applications.traffic_aadt > 20000 ? 'default' : report.applications.traffic_aadt > 10000 ? 'secondary' : 'outline'}>
-                      {report.applications.traffic_aadt.toLocaleString()} AADT
-                    </Badge>}
-                  {report.applications?.traffic_road_name && <Badge variant="outline">{report.applications.traffic_road_name}</Badge>}
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* ⭐ Enhanced: Traffic Mobility Metrics */}
-                {(report.applications?.truck_percent || report.applications?.congestion_level) && <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
-                    <h4 className="font-semibold mb-4 flex items-center gap-2">
-                      <Car className="h-5 w-5 text-orange-600" />
-                      Traffic Mobility Analysis
-                    </h4>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      {report.applications.truck_percent !== null && <Card className="border-orange-200 bg-white/70 dark:bg-background/70">
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <TrendingUp className="h-5 w-5 text-orange-600" />
-                              <span className="text-sm text-muted-foreground">Truck Traffic</span>
-                            </div>
-                            <p className="text-4xl font-bold text-orange-700 dark:text-orange-400">
-                              {report.applications.truck_percent}%
-                            </p>
-                            <Badge variant="outline" className="mt-2 text-xs">
-                              Commercial vehicles
-                            </Badge>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {report.applications.truck_percent > 10 ? 'High commercial traffic' : report.applications.truck_percent > 5 ? 'Moderate commercial flow' : 'Low truck volume'}
-                            </p>
-                          </CardContent>
-                        </Card>}
-                      
-                      {report.applications.congestion_level && <Card className="border-red-200 bg-white/70 dark:bg-background/70">
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <Clock className="h-5 w-5 text-red-600" />
-                              <span className="text-sm text-muted-foreground">Congestion</span>
-                            </div>
-                            <Badge variant={report.applications.congestion_level.toLowerCase() === 'low' ? 'default' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'secondary' : 'destructive'} className="text-2xl px-4 py-2">
-                              {report.applications.congestion_level}
-                            </Badge>
-                            <p className="text-xs text-muted-foreground mt-3">
-                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Peak hour delays expected' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Some delays during rush hours' : 'Free-flowing traffic'}
-                            </p>
-                          </CardContent>
-                        </Card>}
-                      
-                      {report.applications.traffic_direction && <Card className="border-blue-200 bg-white/70 dark:bg-background/70">
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <TrendingUp className="h-5 w-5 text-blue-600" />
-                              <span className="text-sm text-muted-foreground">Traffic Flow</span>
-                            </div>
-                            <p className="text-xl font-bold text-blue-700 dark:text-blue-400 capitalize">
-                              {report.applications.traffic_direction}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Primary direction
-                            </p>
-                          </CardContent>
-                        </Card>}
-                      
-                      {report.applications.traffic_map_url && <Card className="border-purple-200 bg-white/70 dark:bg-background/70">
-                          <CardContent className="pt-6">
-                            <div className="flex items-center gap-2 mb-2">
-                              <MapPin className="h-5 w-5 text-purple-600" />
-                              <span className="text-sm text-muted-foreground">Interactive Map</span>
-                            </div>
-                            <Button variant="outline" size="sm" className="mt-2" onClick={() => window.open(report.applications.traffic_map_url!, '_blank')}>
-                              <MapPin className="h-4 w-4 mr-2" />
-                              View Traffic Map
-                            </Button>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              Live traffic visualization
-                            </p>
-                          </CardContent>
-                        </Card>}
-                    </div>
-
-                    {/* Peak Hour Analysis */}
-                    {report.applications.congestion_level && <div className="mt-4 p-3 bg-white/50 dark:bg-background/50 rounded border border-muted">
-                        <h5 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Peak Hour Analysis
-                        </h5>
-                        <div className="grid grid-cols-2 gap-3 text-xs">
-                          <div>
-                            <p className="text-muted-foreground mb-1">Morning Rush (7-9 AM)</p>
-                            <Badge variant={report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'}>
-                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
-                            </Badge>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground mb-1">Evening Rush (4-6 PM)</p>
-                            <Badge variant={report.applications.congestion_level.toLowerCase() === 'high' ? 'destructive' : 'secondary'}>
-                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Heavy' : report.applications.congestion_level.toLowerCase() === 'moderate' ? 'Moderate' : 'Light'}
-                            </Badge>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground mb-1">Midday (11 AM-2 PM)</p>
-                            <Badge variant="outline">
-                              {report.applications.congestion_level.toLowerCase() === 'high' ? 'Moderate' : 'Light'}
-                            </Badge>
-                          </div>
-                          <div>
-                            <p className="text-muted-foreground mb-1">Off-Peak</p>
-                            <Badge variant="outline">Light</Badge>
-                          </div>
-                        </div>
-                      </div>}
-                  </div>}
-
-                {report.applications?.traffic_aadt ? <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <Card className="border-muted">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Car className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Daily Traffic</span>
-                        </div>
-                        <p className="text-2xl font-bold">{report.applications.traffic_aadt.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">vehicles per day</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="border-muted">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">Traffic Level</span>
-                        </div>
-                        <p className="text-2xl font-bold">
-                          {report.applications.traffic_aadt > 20000 ? 'High' : report.applications.traffic_aadt > 10000 ? 'Medium' : 'Low'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">exposure rating</p>
-                      </CardContent>
-                    </Card>
-                    
-                    {report.applications?.traffic_year && <Card className="border-muted">
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-2 mb-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm text-muted-foreground">Data Year</span>
-                          </div>
-                          <p className="text-2xl font-bold">{report.applications.traffic_year}</p>
-                          <p className="text-xs text-muted-foreground">TxDOT traffic count</p>
-                        </CardContent>
-                      </Card>}
-                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                    Traffic data not available for this property
-                  </div>}
-                
-                <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(traffic.verdict || '<p>Traffic analysis not available. This may be added in future reports.</p>')
-                    }} />
-                </div>
-              </CardContent>
-            </Card>
+            <TrafficCard
+              score={traffic.component_score || 0}
+              aadt={report.applications?.traffic_aadt}
+              roadName={report.applications?.traffic_road_name}
+              trafficYear={report.applications?.traffic_year}
+              truckPercent={report.applications?.truck_percent}
+              congestionLevel={report.applications?.congestion_level}
+              trafficDirection={report.applications?.traffic_direction}
+              peakHourVolume={report.applications?.peak_hour_volume}
+              trafficMapUrl={report.applications?.traffic_map_url}
+              verdict={traffic.verdict}
+            />
           </TabsContent>
 
           <TabsContent value="market" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Market Demographics
-                </CardTitle>
-                {marketDemographics.component_score && <Badge className="mt-2">Score: {marketDemographics.component_score}</Badge>}
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* ⭐ NEW: Trade Area Analysis Section */}
-                {(report.applications?.drive_time_15min_population || report.applications?.drive_time_30min_population || report.applications?.population_1mi || report.applications?.population_3mi || report.applications?.population_5mi) && <div className="mb-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <h4 className="font-semibold mb-4 flex items-center gap-2 text-lg">
-                      <TrendingUp className="h-5 w-5 text-purple-600" />
-                      Trade Area Analysis
-                    </h4>
-
-                    {/* Drive-Time Demographics */}
-                    {(report.applications.drive_time_15min_population || report.applications.drive_time_30min_population) && <div className="mb-6">
-                        <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase">
-                          Traffic-Adjusted Market Reach
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {report.applications.drive_time_15min_population && <Card className="border-purple-200 bg-white/50 dark:bg-background/50">
-                              <CardContent className="pt-6">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Clock className="h-5 w-5 text-purple-600" />
-                                  <span className="text-sm text-muted-foreground">15-Minute Drive Time</span>
-                                </div>
-                                <p className="text-4xl font-bold text-purple-700 dark:text-purple-400">
-                                  {report.applications.drive_time_15min_population.toLocaleString()}
-                                </p>
-                                <p className="text-sm text-muted-foreground mt-1">people</p>
-                                <div className="mt-3 pt-3 border-t border-purple-200/50">
-                                  <p className="text-xs text-muted-foreground">
-                                    Primary trade area - highest conversion potential
-                                  </p>
-                                </div>
-                              </CardContent>
-                            </Card>}
-                          
-                          {report.applications.drive_time_30min_population && <Card className="border-blue-200 bg-white/50 dark:bg-background/50">
-                              <CardContent className="pt-6">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <Clock className="h-5 w-5 text-blue-600" />
-                                  <span className="text-sm text-muted-foreground">30-Minute Drive Time</span>
-                                </div>
-                                <p className="text-4xl font-bold text-blue-700 dark:text-blue-400">
-                                  {report.applications.drive_time_30min_population.toLocaleString()}
-                                </p>
-                                <p className="text-sm text-muted-foreground mt-1">people</p>
-                                <div className="mt-3 pt-3 border-t border-blue-200/50">
-                                  <p className="text-xs text-muted-foreground">
-                                    Secondary trade area - extended market reach
-                                  </p>
-                                </div>
-                              </CardContent>
-                            </Card>}
-                        </div>
-                      </div>}
-
-                    {/* Comparison: Drive-Time vs Concentric Rings */}
-                    {(report.applications.population_1mi || report.applications.population_3mi || report.applications.population_5mi) && <div className="mb-6">
-                        <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          Concentric Ring Analysis
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {report.applications.population_1mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                              <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-2">
-                                  <span className="text-lg font-bold text-green-700 dark:text-green-400">1</span>
-                                </div>
-                                <p className="text-2xl font-bold text-foreground">
-                                  {report.applications.population_1mi.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-muted-foreground">within 1 mile</p>
-                              </div>
-                            </div>}
-                          
-                          {report.applications.population_3mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                              <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 mb-2">
-                                  <span className="text-lg font-bold text-blue-700 dark:text-blue-400">3</span>
-                                </div>
-                                <p className="text-2xl font-bold text-foreground">
-                                  {report.applications.population_3mi.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-muted-foreground">within 3 miles</p>
-                              </div>
-                            </div>}
-                          
-                          {report.applications.population_5mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                              <div className="text-center">
-                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 mb-2">
-                                  <span className="text-lg font-bold text-purple-700 dark:text-purple-400">5</span>
-                                </div>
-                                <p className="text-2xl font-bold text-foreground">
-                                  {report.applications.population_5mi.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-muted-foreground">within 5 miles</p>
-                              </div>
-                            </div>}
-                        </div>
-                        
-                        {/* Comparison Insight */}
-                        {report.applications.drive_time_15min_population && report.applications.population_3mi && <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-950/30 rounded border border-blue-200/50 dark:border-blue-800/50">
-                            <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-1">
-                              Market Reach Comparison
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {report.applications.drive_time_15min_population > report.applications.population_3mi ? <>
-                                  <span className="font-semibold text-green-700 dark:text-green-400">
-                                    {Math.round((report.applications.drive_time_15min_population / report.applications.population_3mi - 1) * 100)}% more people
-                                  </span>
-                                  {' '}are accessible within 15-minute drive time compared to a 3-mile radius, indicating good road connectivity and market access.
-                                </> : <>
-                                  The 3-mile radius captures{' '}
-                                  <span className="font-semibold">
-                                    {Math.round((report.applications.population_3mi / report.applications.drive_time_15min_population - 1) * 100)}% more people
-                                  </span>
-                                  {' '}than 15-minute drive time, suggesting dense urban environment with traffic congestion.
-                                </>}
-                            </p>
-                          </div>}
-                      </div>}
-
-                    {/* Demographics & Economic Indicators */}
-                    {(report.applications.growth_rate_5yr || report.applications.median_income || report.applications.households_5mi) && <div>
-                        <h5 className="text-sm font-semibold mb-3 text-muted-foreground uppercase flex items-center gap-2">
-                          <DollarSign className="h-4 w-4" />
-                          Market Characteristics
-                        </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {report.applications.growth_rate_5yr && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                              <div className="flex items-center gap-2 mb-1">
-                                <TrendingUp className="h-4 w-4 text-green-600" />
-                                <span className="text-xs text-muted-foreground uppercase">5-Year Growth</span>
-                              </div>
-                              <p className="text-3xl font-bold text-green-700 dark:text-green-400">
-                                {report.applications.growth_rate_5yr > 0 ? '+' : ''}{(report.applications.growth_rate_5yr * 100).toFixed(1)}%
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {report.applications.growth_rate_5yr > 0.1 ? 'High growth market' : report.applications.growth_rate_5yr > 0.05 ? 'Moderate growth' : 'Stable market'}
-                              </p>
-                            </div>}
-                          
-                          {report.applications.median_income && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                              <div className="flex items-center gap-2 mb-1">
-                                <DollarSign className="h-4 w-4 text-blue-600" />
-                                <span className="text-xs text-muted-foreground uppercase">Median Income</span>
-                              </div>
-                              <p className="text-3xl font-bold text-blue-700 dark:text-blue-400">
-                                ${(report.applications.median_income / 1000).toFixed(0)}k
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {report.applications.median_income > 75000 ? 'High income area' : report.applications.median_income > 50000 ? 'Middle income' : 'Value-oriented market'}
-                              </p>
-                            </div>}
-                          
-                          {report.applications.households_5mi && <div className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                              <div className="flex items-center gap-2 mb-1">
-                                <Users className="h-4 w-4 text-purple-600" />
-                                <span className="text-xs text-muted-foreground uppercase">Households</span>
-                              </div>
-                              <p className="text-3xl font-bold text-purple-700 dark:text-purple-400">
-                                {(report.applications.households_5mi / 1000).toFixed(1)}k
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">within 5 miles</p>
-                            </div>}
-                        </div>
-                      </div>}
-                  </div>}
-
-                {report.applications?.employment_clusters && Array.isArray(report.applications.employment_clusters) && report.applications.employment_clusters.length > 0 ? <div className="mb-6">
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Users className="h-4 w-4" />
-                      Nearby Employment Centers
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {report.applications.employment_clusters.map((cluster: any, i: number) => <Card key={i} className="border-muted">
-                          <CardContent className="pt-4">
-                            <div className="flex justify-between items-start mb-2">
-                              <h5 className="font-medium text-sm">{cluster.name || `Employment Center ${i + 1}`}</h5>
-                              <Badge variant="outline" className="text-xs">
-                                {cluster.distance ? `${cluster.distance.toFixed(1)} mi` : 'N/A'}
-                              </Badge>
-                            </div>
-                            <p className="text-2xl font-bold text-primary">
-                              {cluster.jobs ? cluster.jobs.toLocaleString() : 'N/A'}
-                            </p>
-                            <p className="text-xs text-muted-foreground">jobs available</p>
-                            {cluster.industries && <div className="mt-2 flex flex-wrap gap-1">
-                                {cluster.industries.slice(0, 3).map((industry: string, idx: number) => <Badge key={idx} variant="secondary" className="text-xs">
-                                    {industry}
-                                  </Badge>)}
-                              </div>}
-                          </CardContent>
-                        </Card>)}
-                    </div>
-                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                    Employment cluster data not available for this property
-                  </div>}
-                
-                <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{
-                      __html: DOMPurify.sanitize(marketDemographics.verdict || '<p>Market demographics analysis not available. This may be added in future reports.</p>')
-                    }} />
-                </div>
-              </CardContent>
-            </Card>
+            <MarketCard
+              score={marketDemographics.component_score || 0}
+              population1mi={report.applications?.population_1mi}
+              population3mi={report.applications?.population_3mi}
+              population5mi={report.applications?.population_5mi}
+              driveTime15min={report.applications?.drive_time_15min_population}
+              driveTime30min={report.applications?.drive_time_30min_population}
+              medianIncome={report.applications?.median_income}
+              households5mi={report.applications?.households_5mi}
+              growthRate5yr={report.applications?.growth_rate_5yr}
+              verdict={marketDemographics.verdict}
+            />
           </TabsContent>
 
-          {/* NEW: Access & Mobility Tab */}
           <TabsContent value="access" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Car className="w-5 h-5 text-primary" />
-                  Access & Mobility
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {report.applications.drivetimes && report.applications.drivetimes.length > 0 ? <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Drive Times to Key Destinations
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {report.applications.drivetimes.map(dt => <div key={dt.destination} className="p-4 bg-white/70 dark:bg-background/70 rounded-lg border border-muted">
-                          <h5 className="font-medium text-sm mb-2">{dt.destination}</h5>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-3xl font-bold text-primary">{dt.duration_min}</span>
-                            <span className="text-sm text-muted-foreground">min</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {dt.distance_mi?.toFixed(1)} miles
-                          </p>
-                        </div>)}
-                    </div>
-                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                    Drive time data unavailable for this location
-                  </div>}
-                
-                {report.applications.nearby_places && report.applications.nearby_places.length > 0 ? <div>
-                    <h4 className="font-semibold mb-3 flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
-                      Nearby Amenities
-                    </h4>
-                    <div className="space-y-2">
-                      {report.applications.nearby_places.map((place, idx) => <div key={idx} className="flex justify-between items-center border-b pb-2 last:border-0">
-                          <div>
-                            <span className="font-medium">{place.name}</span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              ({place.type?.replace(/_/g, ' ')})
-                            </span>
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            {(place.distance_ft / 5280).toFixed(2)} mi
-                          </span>
-                        </div>)}
-                    </div>
-                  </div> : <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
-                    Nearby amenities data unavailable for this location
-                  </div>}
-              </CardContent>
-            </Card>
+            <AccessCard
+              score={traffic.component_score || 0}
+              distanceHighwayFt={report.applications?.distance_highway_ft}
+              distanceTransitFt={report.applications?.distance_transit_ft}
+              nearestHighway={report.applications?.nearest_highway}
+              nearestTransitStop={report.applications?.nearest_transit_stop}
+              nearestSignalDistanceFt={report.applications?.nearest_signal_distance_ft}
+              roadClassification={report.applications?.road_classification}
+              driveTimeData={report.applications?.drivetimes}
+            />
           </TabsContent>
         </Tabs>
 
