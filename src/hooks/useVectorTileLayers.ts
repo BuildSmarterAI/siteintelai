@@ -184,16 +184,64 @@ export function useVectorTileLayers({
   const addedSourcesRef = useRef<Set<string>>(new Set());
   const addedLayersRef = useRef<Set<string>>(new Set());
   const clickHandlerRef = useRef<((e: any) => void) | null>(null);
+  const errorHandlerRef = useRef<((e: any) => void) | null>(null);
+
+  console.log('🔍 TILE DEBUG: useVectorTileLayers render', {
+    hasMap: !!map,
+    mapLoaded,
+    isLoading,
+    tilesetCount: tilesets?.length || 0,
+    sourceCount: Object.keys(sources).length,
+    styleVersion,
+  });
 
   // Function to add all sources and layers
   const addSourcesAndLayers = useCallback(() => {
-    if (!map || !map.isStyleLoaded()) return;
+    if (!map || !map.isStyleLoaded()) {
+      console.log('🔍 TILE DEBUG: addSourcesAndLayers skipped - map not ready', {
+        hasMap: !!map,
+        styleLoaded: map?.isStyleLoaded?.() || false,
+      });
+      return;
+    }
     
-    console.log('🗺️ Adding vector tile sources:', Object.keys(sources));
+    console.log('🔍 TILE DEBUG: addSourcesAndLayers starting', {
+      sourcesToAdd: Object.keys(sources),
+    });
     
     // Clear refs since we're re-adding (style may have cleared them)
     addedSourcesRef.current.clear();
     addedLayersRef.current.clear();
+
+    // Set up tile error handler
+    if (errorHandlerRef.current) {
+      map.off('error', errorHandlerRef.current);
+    }
+    errorHandlerRef.current = (e: any) => {
+      if (e.error?.status === 403 || e.error?.message?.includes('403')) {
+        console.error('🔍 TILE DEBUG: Tile load 403 error (Access Denied)', {
+          sourceId: e.sourceId,
+          tileUrl: e.tile?.url || e.error?.url,
+          error: e.error,
+        });
+      } else if (e.sourceId?.startsWith('siteintel-')) {
+        console.error('🔍 TILE DEBUG: Tile load error', {
+          sourceId: e.sourceId,
+          error: e.error,
+        });
+      }
+    };
+    map.on('error', errorHandlerRef.current);
+
+    // Track source data loading
+    map.on('sourcedata', (e) => {
+      if (e.sourceId?.startsWith('siteintel-') && e.isSourceLoaded) {
+        console.log('🔍 TILE DEBUG: Source data loaded', {
+          sourceId: e.sourceId,
+          isSourceLoaded: e.isSourceLoaded,
+        });
+      }
+    });
 
     // Add sources that don't exist yet
     for (const [sourceId, sourceConfig] of Object.entries(sources)) {
@@ -201,18 +249,27 @@ export function useVectorTileLayers({
         try {
           map.addSource(sourceId, sourceConfig);
           addedSourcesRef.current.add(sourceId);
-          console.log(`📍 Added vector tile source: ${sourceId}`, sourceConfig);
+          console.log('🔍 TILE DEBUG: Added source to map', {
+            sourceId,
+            tiles: sourceConfig.tiles,
+            minzoom: sourceConfig.minzoom,
+            maxzoom: sourceConfig.maxzoom,
+          });
         } catch (err) {
-          console.warn(`Failed to add source ${sourceId}:`, err);
+          console.error('🔍 TILE DEBUG: Failed to add source', { sourceId, err });
         }
       } else {
         addedSourcesRef.current.add(sourceId);
+        console.log('🔍 TILE DEBUG: Source already exists', { sourceId });
       }
     }
 
     // Add layers based on available sources
     for (const [category, config] of Object.entries(VECTOR_TILE_LAYER_CONFIG)) {
-      if (!sources[config.sourceId]) continue;
+      if (!sources[config.sourceId]) {
+        console.log('🔍 TILE DEBUG: Skipping layer category - no source', { category, sourceId: config.sourceId });
+        continue;
+      }
 
       for (const layerConfig of config.layers) {
         if (map.getLayer(layerConfig.id)) {
@@ -233,12 +290,21 @@ export function useVectorTileLayers({
           };
           map.addLayer(layerSpec);
           addedLayersRef.current.add(layerConfig.id);
-          console.log(`🎨 Added vector tile layer: ${layerConfig.id}`);
+          console.log('🔍 TILE DEBUG: Added layer to map', {
+            layerId: layerConfig.id,
+            sourceId: config.sourceId,
+            sourceLayer: layerConfig['source-layer'],
+          });
         } catch (err) {
-          console.warn(`Failed to add layer ${layerConfig.id}:`, err);
+          console.error('🔍 TILE DEBUG: Failed to add layer', { layerId: layerConfig.id, err });
         }
       }
     }
+
+    console.log('🔍 TILE DEBUG: addSourcesAndLayers complete', {
+      addedSources: Array.from(addedSourcesRef.current),
+      addedLayers: Array.from(addedLayersRef.current),
+    });
 
     // Add click handler for parcels
     if (map.getLayer('siteintel-parcels-fill')) {
@@ -249,6 +315,7 @@ export function useVectorTileLayers({
       
       clickHandlerRef.current = (e: any) => {
         if (e.features && e.features.length > 0 && onParcelClick) {
+          console.log('🔍 TILE DEBUG: Parcel clicked from vector tile', e.features[0]);
           onParcelClick(e.features[0]);
         }
       };
@@ -267,15 +334,30 @@ export function useVectorTileLayers({
 
   // Add vector tile sources and layers to map
   useEffect(() => {
-    if (!map || !mapLoaded || isLoading) return;
+    console.log('🔍 TILE DEBUG: useEffect triggered', {
+      hasMap: !!map,
+      mapLoaded,
+      isLoading,
+      tilesetCount: tilesets?.length || 0,
+      styleVersion,
+    });
+
+    if (!map || !mapLoaded || isLoading) {
+      console.log('🔍 TILE DEBUG: useEffect early return', {
+        reason: !map ? 'no map' : !mapLoaded ? 'map not loaded' : 'still loading tilesets',
+      });
+      return;
+    }
     if (!tilesets || tilesets.length === 0) {
-      console.log('🗺️ No tilesets available yet');
+      console.log('🔍 TILE DEBUG: No tilesets available from Supabase query');
       return;
     }
 
     // Wait for style to be loaded, then add layers
     if (!map.isStyleLoaded()) {
+      console.log('🔍 TILE DEBUG: Map style not loaded, waiting for styledata event');
       const handler = () => {
+        console.log('🔍 TILE DEBUG: styledata event fired, adding sources/layers');
         addSourcesAndLayers();
       };
       map.once('styledata', handler);
