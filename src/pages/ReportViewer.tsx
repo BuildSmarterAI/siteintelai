@@ -14,6 +14,11 @@ import { ReportHeader } from "@/components/report/ReportHeader";
 import { CREMetricsStrip } from "@/components/report/CREMetricsStrip";
 import { DataConfidenceIndicator } from "@/components/report/DataConfidenceIndicator";
 import { LenderReadyBadge } from "@/components/report/LenderReadyBadge";
+import { ExecutiveSummaryCard } from "@/components/report/ExecutiveSummaryCard";
+import { PropertyOwnerCard } from "@/components/report/PropertyOwnerCard";
+import { ValuationCard } from "@/components/report/ValuationCard";
+import { ProjectFeasibilityCard } from "@/components/report/ProjectFeasibilityCard";
+import { AttachmentsCard } from "@/components/report/AttachmentsCard";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -908,21 +913,18 @@ export default function ReportViewer() {
                 customKillFactors={parsedData.environmental?.kill_factors || []}
               />
 
-              {/* Executive Summary - Detailed with Glassmorphism */}
+              {/* Executive Summary - Enhanced Card */}
               {summary.executive_summary && (
-                <Card id="section-summary" className="glass-card border-l-4 border-l-[hsl(var(--feasibility-orange))] overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-[hsl(var(--midnight-blue)/0.03)] to-transparent">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-[hsl(var(--feasibility-orange))]" />
-                      Executive Summary
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {summary.executive_summary}
-                    </p>
-                  </CardContent>
-                </Card>
+                <ExecutiveSummaryCard
+                  executiveSummary={summary.executive_summary}
+                  overallScore={report.feasibility_score ?? 0}
+                  scoreBand={report.score_band || 'C'}
+                  keyOpportunities={summary.key_opportunities || []}
+                  keyRisks={summary.key_risks || []}
+                  zoningCode={report.applications?.zoning_code}
+                  floodZone={report.applications?.floodplain_zone}
+                  acreage={report.applications?.acreage_cad || report.applications?.lot_size_value}
+                />
               )}
 
         {/* Google Maps Visualization */}
@@ -1037,64 +1039,72 @@ export default function ReportViewer() {
         {/* ⭐ PHASE 3: Geospatial Intelligence Card */}
         <GeospatialIntelligenceCard applicationId={report.application_id} reportCreatedAt={report.created_at} />
 
-        {/* ⭐ PHASE 1: Property Owner & Account Information Card */}
-        {(report.applications?.parcel_owner || report.applications?.parcel_id) && <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Property Owner & Account Information
-              </CardTitle>
-              {/* Only show data source badges to enterprise users */}
-              {productId === 'enterprise' && <DataSourceBadge datasetName="HCAD Official Records" timestamp={report.applications.updated_at || report.created_at} />}
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {report.applications.parcel_owner && <div>
-                    <p className="text-xs text-muted-foreground uppercase mb-1">Property Owner</p>
-                    <p className="font-semibold text-lg">{report.applications.parcel_owner}</p>
-                  </div>}
-                {report.applications.parcel_id && <div>
-                    <p className="text-xs text-muted-foreground uppercase mb-1">Parcel ID</p>
-                    <p className="font-mono font-semibold">{report.applications.parcel_id}</p>
-                  </div>}
-                {report.applications.acct_num && <div>
-                    <p className="text-xs text-muted-foreground uppercase mb-1">Account Number</p>
-                    <p className="font-mono font-semibold">{report.applications.acct_num}</p>
-                  </div>}
-                {report.applications.lot_size_value && <div>
-                    <p className="text-xs text-muted-foreground uppercase mb-1">Lot Size</p>
-                    <p className="font-semibold text-lg">
-                      {report.applications.lot_size_value.toLocaleString()} {report.applications.lot_size_unit || 'acres'}
-                    </p>
-                  </div>}
-              </div>
-              
-              {/* Legal Description */}
-              {(report.applications.legal_dscr_1 || report.applications.legal_dscr_2 || report.applications.legal_dscr_3 || report.applications.legal_dscr_4) && <div className="mt-4 p-3 bg-muted/30 rounded-lg border">
-                  <p className="text-xs text-muted-foreground uppercase mb-2">Legal Description</p>
-                  <p className="text-sm leading-relaxed">
-                    {[report.applications.legal_dscr_1, report.applications.legal_dscr_2, report.applications.legal_dscr_3, report.applications.legal_dscr_4].filter(Boolean).join(' ')}
-                  </p>
-                </div>}
-              
-              {/* Tax Exemptions */}
-              {(report.applications.ag_use || report.applications.homestead) && <div className="mt-4">
-                  <p className="text-xs text-muted-foreground uppercase mb-2">Tax Exemptions</p>
-                  <div className="flex flex-wrap gap-2">
-                    {report.applications.ag_use && <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                        🌾 Agricultural Use Exemption
-                      </Badge>}
-                    {report.applications.homestead && <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
-                        🏠 Homestead Exemption
-                      </Badge>}
-                  </div>
-                </div>}
-            </CardContent>
-          </Card>}
+        {/* Property Owner Card - Enhanced */}
+        {(report.applications?.parcel_owner || report.applications?.parcel_id) && (
+          <PropertyOwnerCard
+            parcelOwner={report.applications.parcel_owner}
+            parcelId={report.applications.parcel_id}
+            acctNum={report.applications.acct_num}
+            lotSize={report.applications.lot_size_value}
+            lotSizeUnit={report.applications.lot_size_unit}
+            legalDescription={[
+              report.applications.legal_dscr_1,
+              report.applications.legal_dscr_2,
+              report.applications.legal_dscr_3,
+              report.applications.legal_dscr_4
+            ].filter(Boolean).join(' ') || undefined}
+            agUse={report.applications.ag_use}
+            homestead={report.applications.homestead}
+            subdivision={report.applications.subdivision}
+            block={report.applications.block}
+            lot={report.applications.lot}
+            updatedAt={report.applications.updated_at}
+            className="mb-8"
+          />
+        )}
+
+        {/* Property Valuation Card - Enhanced */}
+        {(report.applications?.tot_appr_val || report.applications?.bldg_sqft) && (
+          <ValuationCard
+            totApprVal={report.applications.tot_appr_val}
+            totMarketVal={report.applications.tot_market_val}
+            landVal={report.applications.land_val}
+            imprvVal={report.applications.imprv_val}
+            taxableValue={report.applications.taxable_value}
+            bldgSqft={report.applications.bldg_sqft}
+            yearBuilt={report.applications.year_built}
+            effectiveYr={report.applications.effective_yr}
+            numStories={report.applications.num_stories}
+            stateClass={report.applications.state_class}
+            propType={report.applications.prop_type}
+            landUseCode={report.applications.land_use_code}
+            className="mb-8"
+          />
+        )}
+
+        {/* Project Feasibility Card - Enhanced */}
+        {report.json_data?.project_feasibility && (
+          <ProjectFeasibilityCard
+            componentScore={report.json_data.project_feasibility.component_score}
+            verdict={report.json_data.project_feasibility.verdict}
+            zoningCompliance={report.json_data.project_feasibility.zoning_compliance}
+            budgetAnalysis={report.json_data.project_feasibility.budget_analysis}
+            useSpecificInsights={report.json_data.project_feasibility.use_specific_insights}
+            desiredBudget={report.applications?.desired_budget}
+            className="mb-8"
+          />
+        )}
+
+        {/* Attachments Card - New */}
+        <AttachmentsCard
+          attachments={report.applications?.attachments as any}
+          reportAssets={report.report_assets}
+          pdfUrl={report.pdf_url}
+          className="mb-8"
+        />
 
         {/* ⭐ NEW: Property Valuation Card */}
-        {(report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
-            <CardHeader>
+        {false && (report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
                 Property Valuation & Building Characteristics
