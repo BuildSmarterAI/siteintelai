@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScoreCircle } from "@/components/ScoreCircle";
+import { ScoreDashboard } from "@/components/report/ScoreDashboard";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -841,53 +842,37 @@ export default function ReportViewer() {
         {/* Full Report Content - only show if authenticated or owner */}
         {!showPreview && <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              {/* Score Overview */}
-              <Card>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-                  <div className="flex justify-center">
-                    <ScoreCircle score={report.feasibility_score} size="lg" />
-                  </div>
-                  
-                  <div className="md:col-span-2 space-y-4">
-                    <div>
-                      <h2 className="text-2xl font-headline mb-2">Executive Summary</h2>
-                      <div className="flex gap-2 mb-4">
-                        <Badge variant={report.score_band === 'A' ? 'default' : report.score_band === 'B' ? 'secondary' : 'destructive'}>
-                          Grade {report.score_band}
-                        </Badge>
-                        <Badge variant="outline">
-                          {new Date(report.created_at).toLocaleDateString()}
-                        </Badge>
-                      </div>
-                      <p className="text-muted-foreground leading-relaxed">
-                        {summary.executive_summary || 'Executive summary not available.'}
-                      </p>
-                    </div>
+              {/* Score Dashboard - Hero Section */}
+              <ScoreDashboard
+                overallScore={report.feasibility_score ?? 0}
+                scoreBand={report.score_band || 'C'}
+                address={report.applications?.formatted_address || 'Unknown Address'}
+                zoningScore={parsedData.zoning?.component_score || 0}
+                floodScore={parsedData.flood?.component_score || 0}
+                utilitiesScore={parsedData.utilities?.component_score || 0}
+                trafficScore={parsedData.traffic?.component_score || 0}
+                environmentalScore={parsedData.environmental?.component_score || 0}
+                keyOpportunities={summary.key_opportunities || []}
+                keyRisks={summary.key_risks || []}
+                createdAt={report.created_at}
+              />
 
-                    {summary.key_opportunities && summary.key_opportunities.length > 0 && <div>
-                        <h3 className="font-semibold text-green-700 mb-2 flex items-center gap-2">
-                          <Zap className="h-4 w-4" />
-                          Key Opportunities
-                        </h3>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                          {summary.key_opportunities.map((opp: string, i: number) => <li key={i}>{opp}</li>)}
-                        </ul>
-                      </div>}
-
-                    {summary.key_risks && summary.key_risks.length > 0 && <div>
-                        <h3 className="font-semibold text-red-700 mb-2 flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          Key Risks
-                        </h3>
-                        <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
-                          {summary.key_risks.map((risk: string, i: number) => <li key={i}>{risk}</li>)}
-                        </ul>
-                      </div>}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Executive Summary - Detailed */}
+              {summary.executive_summary && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Executive Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {summary.executive_summary}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
         {/* Google Maps Visualization */}
         {report.applications?.geo_lat && report.applications?.geo_lng && <Card className="mb-8">
