@@ -1,4 +1,4 @@
-import { X, Sparkles, MapPin, Copy, ExternalLink, Building2 } from 'lucide-react';
+import { X, Sparkles, MapPin, Copy, ExternalLink, Building2, CheckCircle2, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -39,6 +39,10 @@ interface ParcelDetailsPopupProps {
     source?: string;
     datasetVersion?: string | null;
     landUseDesc?: string | null;
+    // New coverage tracking fields
+    coverageStatus?: 'seeded' | 'not_seeded';
+    dataSource?: 'canonical_parcels' | 'external_fallback';
+    accuracyTier?: number | null;
   };
   onClose: () => void;
   onUseForAnalysis: (parcel: any) => void;
@@ -48,6 +52,10 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
   const countyKey = parcel.county?.toLowerCase() || 'harris';
   const countyInfo = COUNTY_CONFIG[countyKey] || { label: parcel.county || 'Unknown', color: 'bg-muted' };
   const cadUrl = CAD_WEBSITES[countyKey];
+  
+  // Determine verification status
+  const isVerified = parcel.dataSource === 'canonical_parcels' || parcel.coverageStatus === 'seeded';
+  const isExternalFallback = parcel.dataSource === 'external_fallback' || parcel.coverageStatus === 'not_seeded';
 
   const handleCopyAddress = () => {
     if (parcel.address) {
@@ -71,6 +79,17 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
 
   return (
     <div className="absolute bottom-4 left-4 z-20 w-80 glass-ai-panel rounded-lg p-4 shadow-xl">
+      {/* Coverage Status Banner */}
+      {isExternalFallback && (
+        <div className="mb-3 p-2 rounded-md bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
+          <ShieldAlert className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <p className="font-medium text-amber-600 dark:text-amber-400">External Data Source</p>
+            <p className="text-muted-foreground">This parcel is not yet in our verified database</p>
+          </div>
+        </div>
+      )}
+      
       {/* Header with county badge */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -78,11 +97,20 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
             <Badge className={`${countyInfo.color} text-white text-xs`}>
               {countyInfo.label} County
             </Badge>
-            {parcel.source && (
-              <Badge variant="outline" className="text-xs bg-primary/10 border-primary/30">
-                {parcel.source}
+            
+            {/* Verification Badge */}
+            {isVerified ? (
+              <Badge className="bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs">
+                <ShieldCheck className="h-3 w-3 mr-1" />
+                Verified
+              </Badge>
+            ) : (
+              <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Unverified
               </Badge>
             )}
+            
             {parcel.datasetVersion && (
               <Badge variant="secondary" className="text-xs font-mono">
                 v{parcel.datasetVersion}
@@ -134,6 +162,22 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
             </span>
           </div>
         )}
+        
+        {/* Data Source Info */}
+        <div className="flex justify-between pt-1 border-t border-border/30">
+          <span className="text-muted-foreground">Data Source:</span>
+          <span className={`font-mono text-xs ${isVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+            {isVerified ? 'SiteIntel Verified' : 'External API'}
+          </span>
+        </div>
+        {parcel.accuracyTier && (
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Accuracy Tier:</span>
+            <span className="font-mono text-foreground">
+              T{parcel.accuracyTier}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Quick actions */}
@@ -181,6 +225,13 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
         <Sparkles className="h-4 w-4 mr-2" />
         Run Feasibility Analysis
       </Button>
+      
+      {/* Unverified warning */}
+      {isExternalFallback && (
+        <p className="text-xs text-muted-foreground text-center mt-2">
+          Report will indicate data from external source
+        </p>
+      )}
     </div>
   );
 }
