@@ -2001,117 +2001,187 @@ export function MapLibreCanvas({
   // DATA MOAT: Vector Tile Parcel Display (replaces external API calls)
   // Parcels are now displayed via internal vector tiles from useVectorTileLayers hook
   // Click handlers fetch full details from canonical_parcels via query-canonical-parcel
+  // FALLBACK: If tiles unavailable, clicks query canonical_parcels by coordinates
   useEffect(() => {
     if (!map.current || !mapLoaded || !showParcels) return;
 
     const sourceId = 'siteintel-parcels';
     const fillLayerId = 'siteintel-parcels-fill';
-    const lineLayerId = 'siteintel-parcels-outline';
+
+    // Helper to query parcel by coordinates (used as fallback)
+    const queryParcelByCoordinates = async (lng: number, lat: number) => {
+      console.log('🔍 Querying canonical parcel by coordinates:', { lat, lng });
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
+          body: { lat, lng }
+        });
+        
+        if (error) throw error;
+        
+        if (data?.parcel) {
+          console.log('✅ Found parcel via coordinate query:', data.parcel.source_parcel_id);
+          // Create a GeoJSON-like feature for the popup
+          const feature = {
+            type: 'Feature',
+            properties: {
+              parcel_id: data.parcel.source_parcel_id,
+              owner_name: data.parcel.owner_name,
+              situs_address: data.parcel.situs_address,
+              acreage: data.parcel.acreage,
+              land_use_code: data.parcel.land_use_code,
+              land_use_desc: data.parcel.land_use_desc,
+              jurisdiction: data.parcel.jurisdiction,
+              source: `SiteIntel (${data.parcel.dataset_version})`,
+              dataset_version: data.parcel.dataset_version,
+              source_agency: data.parcel.source_agency,
+              city: data.parcel.city,
+              state: data.parcel.state,
+              zip: data.parcel.zip,
+            },
+            geometry: null // Geometry not needed for popup display
+          };
+          onParcelSelect?.(feature as any);
+          return true;
+        } else {
+          console.log('ℹ️ No parcel found at these coordinates');
+          return false;
+        }
+      } catch (err) {
+        console.warn('⚠️ Coordinate-based parcel lookup failed:', err);
+        return false;
+      }
+    };
 
     // Check if vector tile source exists (from useVectorTileLayers)
     const hasVectorSource = map.current.getSource(sourceId);
+    const hasVectorLayer = map.current.getLayer(fillLayerId);
     
-    if (hasVectorSource) {
+    if (hasVectorSource && hasVectorLayer) {
       console.log('✅ Using SiteIntel vector tiles for parcels (data moat enforced)');
       setParcelLoading(false);
       setParcelLoadError(null);
       
-      // Vector tiles are managed by useVectorTileLayers - just set up click handler
-      if (map.current.getLayer(fillLayerId)) {
-        // Click handler to fetch canonical parcel details
-        const handleParcelClick = async (e: maplibregl.MapLayerMouseEvent) => {
-          if (!e.features || e.features.length === 0) return;
+      // Click handler for vector tile parcels
+      const handleParcelClick = async (e: maplibregl.MapLayerMouseEvent) => {
+        if (!e.features || e.features.length === 0) {
+          // No features at click - try coordinate query as fallback
+          await queryParcelByCoordinates(e.lngLat.lng, e.lngLat.lat);
+          return;
+        }
+        
+        const feature = e.features[0];
+        const props = feature.properties || {};
+        
+        // Extract parcel ID from tile properties
+        const parcelId = props.source_parcel_id || props.parcel_id || props.apn || props.id;
+        
+        if (parcelId && onParcelSelect) {
+          console.log('🔍 Fetching canonical parcel details for:', parcelId);
           
-          const feature = e.features[0];
-          const props = feature.properties || {};
-          
-          // Extract parcel ID from tile properties
-          const parcelId = props.source_parcel_id || props.parcel_id || props.apn || props.id;
-          
-          if (parcelId && onParcelSelect) {
-            console.log('🔍 Fetching canonical parcel details for:', parcelId);
+          try {
+            // Fetch full details from canonical_parcels
+            const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
+              body: { source_parcel_id: parcelId }
+            });
             
-            try {
-              // Fetch full details from canonical_parcels
-              const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
-                body: { source_parcel_id: parcelId }
-              });
-              
-              if (error) throw error;
-              
-              if (data?.parcel) {
-                // Enrich the feature with canonical data
-                const enrichedFeature = {
-                  ...feature,
-                  properties: {
-                    ...props,
-                    parcel_id: data.parcel.source_parcel_id,
-                    owner_name: data.parcel.owner_name,
-                    situs_address: data.parcel.situs_address,
-                    acreage: data.parcel.acreage,
-                    land_use_code: data.parcel.land_use_code,
-                    land_use_desc: data.parcel.land_use_desc,
-                    jurisdiction: data.parcel.jurisdiction,
-                    source: `SiteIntel (${data.parcel.dataset_version})`,
-                    dataset_version: data.parcel.dataset_version,
-                    source_agency: data.parcel.source_agency,
-                  }
-                };
-                onParcelSelect(enrichedFeature);
-              } else {
-                // Use tile properties if canonical lookup fails
-                onParcelSelect(feature);
-              }
-            } catch (err) {
-              console.warn('⚠️ Canonical parcel lookup failed, using tile data:', err);
+            if (error) throw error;
+            
+            if (data?.parcel) {
+              // Enrich the feature with canonical data
+              const enrichedFeature = {
+                ...feature,
+                properties: {
+                  ...props,
+                  parcel_id: data.parcel.source_parcel_id,
+                  owner_name: data.parcel.owner_name,
+                  situs_address: data.parcel.situs_address,
+                  acreage: data.parcel.acreage,
+                  land_use_code: data.parcel.land_use_code,
+                  land_use_desc: data.parcel.land_use_desc,
+                  jurisdiction: data.parcel.jurisdiction,
+                  source: `SiteIntel (${data.parcel.dataset_version})`,
+                  dataset_version: data.parcel.dataset_version,
+                  source_agency: data.parcel.source_agency,
+                }
+              };
+              onParcelSelect(enrichedFeature);
+            } else {
+              // Use tile properties if canonical lookup fails
               onParcelSelect(feature);
             }
-          } else if (onParcelSelect) {
+          } catch (err) {
+            console.warn('⚠️ Canonical parcel lookup failed, using tile data:', err);
             onParcelSelect(feature);
           }
-        };
-        
-        map.current.on('click', fillLayerId, handleParcelClick);
-        
-        // Cursor handlers
-        map.current.on('mouseenter', fillLayerId, () => {
-          if (map.current) map.current.getCanvas().style.cursor = 'pointer';
-        });
-        map.current.on('mouseleave', fillLayerId, () => {
-          if (map.current) map.current.getCanvas().style.cursor = '';
-        });
-        
-        return () => {
-          map.current?.off('click', fillLayerId, handleParcelClick);
-        };
-      }
-      return;
+        } else if (onParcelSelect) {
+          // No parcel ID in tile - fallback to coordinate query
+          const found = await queryParcelByCoordinates(e.lngLat.lng, e.lngLat.lat);
+          if (!found) {
+            // Last resort: use tile properties
+            onParcelSelect(feature);
+          }
+        }
+      };
+      
+      map.current.on('click', fillLayerId, handleParcelClick);
+      
+      // Cursor handlers
+      map.current.on('mouseenter', fillLayerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = 'pointer';
+      });
+      map.current.on('mouseleave', fillLayerId, () => {
+        if (map.current) map.current.getCanvas().style.cursor = '';
+      });
+      
+      return () => {
+        map.current?.off('click', fillLayerId, handleParcelClick);
+      };
     }
 
-    // Fallback: Add placeholder source if vector tiles not yet loaded
-    // This ensures graceful degradation while tiles are loading
-    if (!map.current.getSource(sourceId)) {
-      console.log('⏳ Waiting for SiteIntel vector tiles...');
-      setParcelLoading(true);
+    // FALLBACK: No vector tiles available - set up direct map click handler
+    // This allows parcel lookup by coordinates even when tiles fail (403, etc.)
+    console.log('⏳ Vector tiles not available, enabling coordinate-based parcel lookup');
+    setParcelLoading(false);
+    
+    const handleMapClick = async (e: maplibregl.MapMouseEvent) => {
+      // Only handle clicks when zoom > 14 (parcel-level)
+      if (!map.current || map.current.getZoom() < 14) return;
       
-      // Check periodically for vector tile source
-      const checkInterval = setInterval(() => {
-        if (map.current?.getSource(sourceId)) {
-          setParcelLoading(false);
-          clearInterval(checkInterval);
+      // Check if click was on a vector tile parcel layer (if it exists later)
+      if (map.current.getLayer(fillLayerId)) {
+        const features = map.current.queryRenderedFeatures(e.point, { layers: [fillLayerId] });
+        if (features && features.length > 0) {
+          // Vector layer handled elsewhere
+          return;
         }
-      }, 500);
+      }
       
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (!map.current?.getSource(sourceId)) {
-          setParcelLoading(false);
-          // Don't show error - vector tiles may just not be available for this area
-          console.log('ℹ️ Vector tile parcels not available for this viewport');
+      // Query by coordinates
+      await queryParcelByCoordinates(e.lngLat.lng, e.lngLat.lat);
+    };
+    
+    map.current.on('click', handleMapClick);
+    
+    // Also show pointer cursor at zoom > 14 to indicate clickability
+    const updateCursor = () => {
+      if (map.current) {
+        if (map.current.getZoom() >= 14) {
+          map.current.getCanvas().style.cursor = 'crosshair';
+        } else {
+          map.current.getCanvas().style.cursor = '';
         }
-      }, 10000);
-    }
+      }
+    };
+    
+    map.current.on('zoom', updateCursor);
+    updateCursor();
+    
+    return () => {
+      map.current?.off('click', handleMapClick);
+      map.current?.off('zoom', updateCursor);
+      if (map.current) map.current.getCanvas().style.cursor = '';
+    };
   }, [mapLoaded, showParcels, onParcelSelect]);
 
   // Update 3D buildings visibility based on 3D mode
