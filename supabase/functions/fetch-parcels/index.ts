@@ -264,23 +264,34 @@ async function fetchFromCounty(
     console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (params.lat !== undefined && params.lng !== undefined) {
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    // Use tiny bounding box (~10m) instead of point - more compatible with ArcGIS servers
+    // Use tiny bounding box (~10m) as JSON envelope with explicit spatialReference
     const buffer = 0.0001; // ~11 meters at Texas latitudes
-    const minLng = params.lng - buffer;
-    const minLat = params.lat - buffer;
-    const maxLng = params.lng + buffer;
-    const maxLat = params.lat + buffer;
-    queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
+    const envelopeGeom = JSON.stringify({
+      xmin: params.lng - buffer,
+      ymin: params.lat - buffer,
+      xmax: params.lng + buffer,
+      ymax: params.lat + buffer,
+      spatialReference: { wkid: 4326 }
+    });
+    queryParams.set('geometry', envelopeGeom);
     queryParams.set('geometryType', 'esriGeometryEnvelope');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: point-in-parcel via tiny bbox (${params.lat}, ${params.lng})`);
+    console.log(`[fetch-parcels] Query type: point-in-parcel via JSON envelope (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
+    // Use JSON envelope format with explicit spatialReference for bbox queries
+    const bboxGeom = JSON.stringify({
+      xmin: minLng,
+      ymin: minLat,
+      xmax: maxLng,
+      ymax: maxLat,
+      spatialReference: { wkid: 4326 }
+    });
+    queryParams.set('geometry', bboxGeom);
     queryParams.set('geometryType', 'esriGeometryEnvelope');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: bbox query`);
+    console.log(`[fetch-parcels] Query type: bbox query via JSON envelope`);
   }
   
   queryParams.set('outFields', config.fields.join(','));
