@@ -233,3 +233,6 @@ verify_jwt = false
 
 [functions.query-canonical-parcel]
 verify_jwt = false
+
+[functions.fetch-parcels-geojson]
+verify_jwt = false

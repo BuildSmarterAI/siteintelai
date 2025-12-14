@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, CloudOff, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -13,6 +13,7 @@ import { MapSearchBar } from './MapSearchBar';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
 import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
+import { useFallbackParcels } from '@/hooks/useFallbackParcels';
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
@@ -270,9 +271,27 @@ export function MapLibreCanvas({
     onParcelClick: onParcelSelect, // Forward parcel clicks
   });
 
-  // Debug log vector tile state
+  // Fallback parcels via GeoJSON when vector tiles unavailable
+  const shouldUseFallback = showParcels && !hasVectorTiles && !vectorTilesLoading;
+  
+  const {
+    isLoading: fallbackLoading,
+    error: fallbackError,
+    metadata: fallbackMetadata,
+    featureCount: fallbackFeatureCount,
+    isFallbackMode,
+  } = useFallbackParcels({
+    map: mapInstance,
+    mapLoaded,
+    enabled: shouldUseFallback,
+    onParcelClick: onParcelSelect,
+    minZoom: 14,
+    debounceMs: 500,
+  });
+
+  // Debug log vector tile and fallback state
   useEffect(() => {
-    console.log('🔍 TILE DEBUG: MapLibreCanvas vector tile state', {
+    console.log('🔍 TILE DEBUG: MapLibreCanvas parcel display state', {
       hasVectorTiles,
       vectorTilesLoading,
       vectorTileError: vectorTileError?.message,
@@ -280,8 +299,14 @@ export function MapLibreCanvas({
       sourceCount: Object.keys(vectorTileSources).length,
       mapLoaded,
       hasMapInstance: !!mapInstance,
+      // Fallback state
+      shouldUseFallback,
+      fallbackLoading,
+      fallbackFeatureCount,
+      isFallbackMode,
+      fallbackSource: fallbackMetadata?.source,
     });
-  }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance]);
+  }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance, shouldUseFallback, fallbackLoading, fallbackFeatureCount, isFallbackMode, fallbackMetadata]);
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
   const toMapLibre = (coords: [number, number]): [number, number] => [coords[1], coords[0]];
@@ -2253,15 +2278,42 @@ export function MapLibreCanvas({
         </div>
       )}
 
-      {/* Vector Tile Status Badge */}
-      {hasVectorTiles && activeVectorSources.length > 0 && (
-        <div className="absolute bottom-4 right-4 z-10 bg-background/95 backdrop-blur-sm border border-border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2">
-          <Database className="h-4 w-4 text-primary" />
-          <span className="text-xs text-muted-foreground">
-            SiteIntel Tiles ({activeVectorSources.length} layers)
-          </span>
+      {/* Data Source Status Badge */}
+      {(hasVectorTiles && activeVectorSources.length > 0) || isFallbackMode || fallbackFeatureCount > 0 ? (
+        <div className={`absolute bottom-4 right-4 z-10 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2 ${
+          isFallbackMode 
+            ? 'bg-amber-500/10 border-amber-500/30' 
+            : 'bg-background/95 border-border'
+        }`}>
+          {isFallbackMode ? (
+            <>
+              <CloudOff className="h-4 w-4 text-amber-500" />
+              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                External Parcels
+              </span>
+              {fallbackMetadata?.source === 'mixed' && (
+                <span className="text-xs text-muted-foreground">
+                  ({fallbackMetadata.canonical_count} SiteIntel + {fallbackMetadata.external_count} External)
+                </span>
+              )}
+            </>
+          ) : fallbackFeatureCount > 0 && !hasVectorTiles ? (
+            <>
+              <Cloud className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">
+                SiteIntel Parcels ({fallbackFeatureCount})
+              </span>
+            </>
+          ) : (
+            <>
+              <Database className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground">
+                SiteIntel Tiles ({activeVectorSources.length} layers)
+              </span>
+            </>
+          )}
         </div>
-      )}
+      ) : null}
 
       {/* Map Legend */}
       <MapLegend
