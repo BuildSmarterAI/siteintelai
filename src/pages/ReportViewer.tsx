@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { ScoreDashboard } from "@/components/report/ScoreDashboard";
+import { ReportNavBar } from "@/components/report/ReportNavBar";
+import { KillFactorsBanner } from "@/components/report/KillFactorsBanner";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -125,6 +127,7 @@ interface Report {
     base_flood_elevation_source?: string | null;
     // Phase 2: Environmental fields
     wetlands_type?: string | null;
+    wetlands_area_pct?: number | null;
     soil_series?: string | null;
     soil_drainage_class?: string | null;
     soil_slope_percent?: number | null;
@@ -373,6 +376,7 @@ export default function ReportViewer() {
             base_flood_elevation,
             base_flood_elevation_source,
             wetlands_type,
+            wetlands_area_pct,
             soil_series,
             soil_drainage_class,
             soil_slope_percent,
@@ -725,6 +729,18 @@ export default function ReportViewer() {
         </div>
       </header>
 
+      {/* Section Navigation Bar - only show on full report */}
+      {!showPreview && (
+        <ReportNavBar 
+          hasKillFactors={
+            report.applications?.floodplain_zone?.toLowerCase().includes('floodway') ||
+            report.applications?.floodplain_zone === 'AE' ||
+            (report.applications?.wetlands_area_pct ?? 0) >= 25 ||
+            (parsedData.environmental?.kill_factors?.length > 0)
+          }
+        />
+      )}
+
       {/* Main Content */}
       <main className="container mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Limited Preview Section - shown when not authenticated */}
@@ -857,9 +873,23 @@ export default function ReportViewer() {
                 createdAt={report.created_at}
               />
 
+              {/* Kill Factors Banner */}
+              <KillFactorsBanner
+                floodZone={report.applications?.floodplain_zone}
+                wetlandsPercent={report.applications?.wetlands_area_pct ?? 0}
+                hasUtilities={
+                  (report.applications?.water_lines?.length ?? 0) > 0 ||
+                  (report.applications?.sewer_lines?.length ?? 0) > 0
+                }
+                environmentalIssues={
+                  report.applications?.environmental_sites?.map((s: any) => s.name || s.type) || []
+                }
+                customKillFactors={parsedData.environmental?.kill_factors || []}
+              />
+
               {/* Executive Summary - Detailed */}
               {summary.executive_summary && (
-                <Card>
+                <Card id="section-summary">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />

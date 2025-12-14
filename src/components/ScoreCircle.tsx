@@ -1,13 +1,44 @@
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ScoreCircleProps {
   score: number;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showLabel?: boolean;
+  animated?: boolean;
 }
 
-export function ScoreCircle({ score, size = 'md', className, showLabel = true }: ScoreCircleProps) {
+export function ScoreCircle({ score, size = 'md', className, showLabel = true, animated = true }: ScoreCircleProps) {
+  const [displayScore, setDisplayScore] = useState(animated ? 0 : score);
+  const [hasAnimated, setHasAnimated] = useState(false);
+
+  // Animate score count-up on mount
+  useEffect(() => {
+    if (!animated || hasAnimated) {
+      setDisplayScore(score);
+      return;
+    }
+
+    const duration = 1500; // ms
+    const steps = 60;
+    const increment = score / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= score) {
+        setDisplayScore(score);
+        setHasAnimated(true);
+        clearInterval(timer);
+      } else {
+        setDisplayScore(Math.round(current));
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [score, animated, hasAnimated]);
   // Calculate score band
   const getScoreBand = (score: number): 'A' | 'B' | 'C' => {
     if (score >= 80) return 'A';
@@ -72,10 +103,16 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
 
   const radius = size === 'sm' ? 28 : size === 'xl' ? 62 : size === 'lg' ? 58 : 43;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const strokeDashoffset = circumference - (displayScore / 100) * circumference;
+  const initialOffset = circumference;
 
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
+    <motion.div 
+      className={cn("flex flex-col items-center gap-2", className)}
+      initial={animated ? { opacity: 0, scale: 0.8 } : false}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
       <div className="relative">
         {/* Background circle */}
         <svg className={getSize()} viewBox="0 0 100 100">
@@ -88,7 +125,7 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
             strokeWidth="8"
             className="text-muted"
           />
-          <circle
+          <motion.circle
             cx="50"
             cy="50"
             r={radius}
@@ -96,13 +133,12 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
             stroke="currentColor"
             strokeWidth="8"
             strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
             transform="rotate(-90 50 50)"
             className={getColor(band)}
-            style={{
-              transition: 'stroke-dashoffset 1s ease-in-out'
-            }}
+            initial={animated ? { strokeDashoffset: initialOffset } : { strokeDashoffset }}
+            animate={{ strokeDashoffset }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
           />
         </svg>
 
@@ -111,28 +147,38 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
           "absolute inset-0 flex items-center justify-center",
           getSize()
         )}>
-          <div className={cn(
-            "flex flex-col items-center justify-center rounded-full",
-            getBgColor(band),
-            size === 'sm' ? 'h-10 w-10' : size === 'xl' ? 'h-28 w-28' : size === 'lg' ? 'h-20 w-20' : 'h-14 w-14'
-          )}>
-            <span className={cn("font-bold", getColor(band), size === 'sm' ? 'text-lg' : size === 'xl' ? 'text-5xl' : size === 'lg' ? 'text-3xl' : 'text-2xl')}>
-              {score}
+          <motion.div 
+            className={cn(
+              "flex flex-col items-center justify-center rounded-full",
+              getBgColor(band),
+              size === 'sm' ? 'h-10 w-10' : size === 'xl' ? 'h-28 w-28' : size === 'lg' ? 'h-20 w-20' : 'h-14 w-14'
+            )}
+            initial={animated ? { scale: 0 } : false}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, duration: 0.4, type: "spring", stiffness: 200 }}
+          >
+            <span className={cn("font-bold tabular-nums", getColor(band), size === 'sm' ? 'text-lg' : size === 'xl' ? 'text-5xl' : size === 'lg' ? 'text-3xl' : 'text-2xl')}>
+              {displayScore}
             </span>
-          </div>
+          </motion.div>
         </div>
       </div>
 
       {showLabel && (
-        <div className="text-center">
+        <motion.div 
+          className="text-center"
+          initial={animated ? { opacity: 0, y: 10 } : false}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.3 }}
+        >
           <div className={cn("font-semibold", getColor(band), getLabelSize())}>
             Grade {band}
           </div>
           <div className={cn("text-muted-foreground", getLabelSize())}>
             Feasibility Score
           </div>
-        </div>
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
