@@ -42,6 +42,11 @@ export function useTilesets(options?: { category?: string; jurisdiction?: string
   return useQuery({
     queryKey: ['tilesets', options?.category, options?.jurisdiction],
     queryFn: async () => {
+      console.log('🔍 TILE DEBUG: useTilesets query started', {
+        category: options?.category,
+        jurisdiction: options?.jurisdiction,
+      });
+
       let query = supabase
         .from('tilesets')
         .select('*')
@@ -59,8 +64,18 @@ export function useTilesets(options?: { category?: string; jurisdiction?: string
       const { data, error } = await query;
 
       if (error) {
+        console.error('🔍 TILE DEBUG: useTilesets query FAILED', error);
         throw new Error(`Failed to fetch tilesets: ${error.message}`);
       }
+
+      console.log('🔍 TILE DEBUG: useTilesets query SUCCESS', {
+        count: data?.length || 0,
+        tilesets: data?.map(t => ({
+          key: t.tileset_key,
+          category: t.category,
+          url: t.tile_url_template,
+        })),
+      });
 
       return (data || []) as unknown as Tileset[];
     },
@@ -139,9 +154,19 @@ export function useVectorTileSources(jurisdiction: string = 'tx') {
   }> = {};
 
   if (tilesets) {
+    console.log('🔍 TILE DEBUG: useVectorTileSources building sources from', tilesets.length, 'tilesets');
+    
     for (const tileset of tilesets) {
       const tileUrl = tileset.tile_url_template;
       const sourceId = `siteintel-${tileset.category}`;
+
+      console.log('🔍 TILE DEBUG: Building source', {
+        sourceId,
+        category: tileset.category,
+        tileUrl,
+        minZoom: tileset.min_zoom,
+        maxZoom: tileset.max_zoom,
+      });
 
       sources[sourceId] = {
         type: 'vector',
@@ -158,6 +183,11 @@ export function useVectorTileSources(jurisdiction: string = 'tx') {
         generatedAt: tileset.generated_at,
       };
     }
+    
+    console.log('🔍 TILE DEBUG: useVectorTileSources complete', {
+      sourceCount: Object.keys(sources).length,
+      sourceIds: Object.keys(sources),
+    });
   }
 
   return { sources, layers, isLoading, error, tilesets };

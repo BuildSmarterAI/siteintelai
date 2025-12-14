@@ -259,7 +259,8 @@ export function MapLibreCanvas({
     sources: vectorTileSources, 
     hasVectorTiles, 
     isLoading: vectorTilesLoading,
-    activeSources: activeVectorSources 
+    activeSources: activeVectorSources,
+    error: vectorTileError,
   } = useVectorTileLayers({
     map: mapInstance, // Use state, not ref - triggers re-render
     mapLoaded,
@@ -268,6 +269,19 @@ export function MapLibreCanvas({
     styleVersion, // Re-add layers after style changes
     onParcelClick: onParcelSelect, // Forward parcel clicks
   });
+
+  // Debug log vector tile state
+  useEffect(() => {
+    console.log('🔍 TILE DEBUG: MapLibreCanvas vector tile state', {
+      hasVectorTiles,
+      vectorTilesLoading,
+      vectorTileError: vectorTileError?.message,
+      activeVectorSources,
+      sourceCount: Object.keys(vectorTileSources).length,
+      mapLoaded,
+      hasMapInstance: !!mapInstance,
+    });
+  }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance]);
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
   const toMapLibre = (coords: [number, number]): [number, number] => [coords[1], coords[0]];
