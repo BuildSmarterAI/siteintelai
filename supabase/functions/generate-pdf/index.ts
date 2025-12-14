@@ -18,23 +18,52 @@ serve(async (req) => {
 
     const { report_id, application_id } = await req.json();
 
-    console.log(`[generate-pdf] Starting PDF generation for report: ${report_id}`);
+    console.log(`[generate-pdf] Starting PDF generation for report: ${report_id}, application: ${application_id}`);
 
     // 1. Fetch report and application data
-    const { data: report, error: reportError } = await supabase
-      .from('reports')
-      .select(`
-        *,
-        applications!reports_application_id_fkey (
-          *
-        )
-      `)
-      .eq('id', report_id)
-      .single();
+    // Support lookup by report_id OR application_id
+    let report;
+    let reportError;
+
+    if (report_id) {
+      // Direct report lookup
+      const result = await supabase
+        .from('reports')
+        .select(`
+          *,
+          applications!reports_application_id_fkey (
+            *
+          )
+        `)
+        .eq('id', report_id)
+        .single();
+      report = result.data;
+      reportError = result.error;
+    } else if (application_id) {
+      // Lookup report by application_id (get most recent)
+      const result = await supabase
+        .from('reports')
+        .select(`
+          *,
+          applications!reports_application_id_fkey (
+            *
+          )
+        `)
+        .eq('application_id', application_id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      report = result.data;
+      reportError = result.error;
+    } else {
+      throw new Error('Either report_id or application_id is required');
+    }
 
     if (reportError || !report) {
-      throw new Error(`Report not found: ${reportError?.message}`);
+      throw new Error(`Report not found: ${reportError?.message || 'No report exists for this application'}`);
     }
+
+    console.log(`[generate-pdf] Found report ${report.id} for application ${report.application_id}`);
 
     const application = report.applications;
     const jsonData = report.json_data;
