@@ -10,7 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export const AuthButton = () => {
+interface AuthButtonProps {
+  compact?: boolean;
+}
+
+export const AuthButton = ({ compact = false }: AuthButtonProps) => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
 
@@ -34,6 +38,13 @@ export const AuthButton = () => {
   };
 
   if (!user) {
+    if (compact) {
+      return (
+        <Button onClick={() => navigate("/auth")} variant="ghost" size="icon" className="text-foreground">
+          <User className="h-5 w-5" />
+        </Button>
+      );
+    }
     return (
       <Button onClick={() => navigate("/auth")} variant="outline">
         Sign In
