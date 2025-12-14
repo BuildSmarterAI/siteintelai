@@ -556,20 +556,24 @@ async function seedLayerIncremental(
       await new Promise(resolve => setTimeout(resolve, 200));
     }
 
-    // Log to gis_fetch_logs
-    await supabase.from('gis_fetch_logs').insert({
-      operation: 'seed_canonical_incremental',
-      status: result.records_inserted > 0 ? 'success' : 'partial',
-      records_processed: result.records_fetched,
-      duration_ms: Date.now() - startTime,
-      metadata: {
-        layer_key: config.layer_key,
-        target_table: config.target_table,
-        records_inserted: result.records_inserted,
-        records_failed: result.records_failed,
-        dataset_version: datasetVersion,
-      },
-    }).catch(() => {}); // Don't fail on log error
+    // Log to gis_fetch_logs (wrapped in try/catch to avoid .catch() pattern issues)
+    try {
+      await supabase.from('gis_fetch_logs').insert({
+        operation: 'seed_canonical_incremental',
+        status: result.records_inserted > 0 ? 'success' : 'partial',
+        records_processed: result.records_fetched,
+        duration_ms: Date.now() - startTime,
+        metadata: {
+          layer_key: config.layer_key,
+          target_table: config.target_table,
+          records_inserted: result.records_inserted,
+          records_failed: result.records_failed,
+          dataset_version: datasetVersion,
+        },
+      });
+    } catch {
+      // Ignore log errors - don't fail the seeding operation
+    }
 
     result.success = result.records_inserted > 0;
     result.duration_ms = Date.now() - startTime;
