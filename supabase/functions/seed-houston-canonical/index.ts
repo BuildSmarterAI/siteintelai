@@ -279,6 +279,8 @@ interface SeedResult {
   records_inserted: number;
   records_failed: number;
   duration_ms: number;
+  resumed_from_offset?: number;
+  total_in_table?: number;
   error?: string;
 }
 
@@ -372,7 +374,56 @@ async function insertRecord(
   }
 }
 
+// Query existing record count to resume from where we left off
+async function getExistingCount(supabase: any, tableName: string, layerKey: string): Promise<number> {
+  try {
+    // For tables with source_dataset column, filter by layer key
+    const tablesWithSourceDataset = ['utilities_canonical', 'fema_flood_canonical', 'wetlands_canonical', 'transportation_canonical'];
+    
+    if (tablesWithSourceDataset.includes(tableName)) {
+      const { count, error } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact', head: true })
+        .eq('source_dataset', layerKey);
+      
+      if (error) {
+        console.log(`[seed] Count query error for ${tableName}:`, error.message);
+        return 0;
+      }
+      return count || 0;
+    }
+    
+    // For canonical_parcels, count all records (or filter by jurisdiction if needed)
+    if (tableName === 'canonical_parcels') {
+      const { count, error } = await supabase
+        .from(tableName)
+        .select('*', { count: 'exact', head: true });
+      
+      if (error) {
+        console.log(`[seed] Count query error for ${tableName}:`, error.message);
+        return 0;
+      }
+      return count || 0;
+    }
+    
+    // For other tables (CCN, pipelines), count all
+    const { count, error } = await supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.log(`[seed] Count query error for ${tableName}:`, error.message);
+      return 0;
+    }
+    return count || 0;
+  } catch (err) {
+    console.log(`[seed] Count exception:`, err);
+    return 0;
+  }
+}
+
 // NEW: Fetch and insert incrementally - insert each batch immediately after fetching
+// Now with RESUME capability - queries existing count and starts from that offset
 async function seedLayerIncremental(
   supabase: any,
   config: LayerConfig
@@ -385,15 +436,23 @@ async function seedLayerIncremental(
     records_inserted: 0,
     records_failed: 0,
     duration_ms: 0,
+    resumed_from_offset: 0,
+    total_in_table: 0,
   };
 
   const maxRecords = config.max_records || 300;
   const fetchBatchSize = 100; // Fetch 100 at a time
-  let offset = 0;
+  
+  // RESUME: Get existing count and use as starting offset
+  const existingCount = await getExistingCount(supabase, config.target_table, config.layer_key);
+  let offset = existingCount;
+  result.resumed_from_offset = existingCount;
   
   const datasetVersion = `${config.layer_key}_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}`;
   
-  console.log(`[seed] Starting incremental seed for ${config.layer_key} (max ${maxRecords} records)`);
+  console.log(`[seed] Starting incremental seed for ${config.layer_key}`);
+  console.log(`[seed] RESUME: Found ${existingCount} existing records, starting from offset ${offset}`);
+  console.log(`[seed] Will fetch up to ${maxRecords} NEW records this invocation`);
 
   try {
     while (result.records_fetched < maxRecords) {
@@ -514,8 +573,10 @@ async function seedLayerIncremental(
 
     result.success = result.records_inserted > 0;
     result.duration_ms = Date.now() - startTime;
+    result.total_in_table = existingCount + result.records_inserted;
 
-    console.log(`[seed] Completed ${config.layer_key}: ${result.records_inserted} inserted in ${result.duration_ms}ms`);
+    console.log(`[seed] Completed ${config.layer_key}: ${result.records_inserted} NEW records inserted`);
+    console.log(`[seed] Total now in ${config.target_table}: ${result.total_in_table} (was ${existingCount})`);
 
   } catch (err) {
     result.error = err instanceof Error ? err.message : String(err);
