@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 interface ScoreCircleProps {
   score: number;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   showLabel?: boolean;
 }
@@ -50,6 +50,8 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
         return 'h-16 w-16 text-2xl';
       case 'lg':
         return 'h-32 w-32 text-5xl';
+      case 'xl':
+        return 'h-44 w-44 text-6xl';
       default:
         return 'h-24 w-24 text-4xl';
     }
@@ -61,12 +63,14 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
         return 'text-xs';
       case 'lg':
         return 'text-base';
+      case 'xl':
+        return 'text-lg';
       default:
         return 'text-sm';
     }
   };
 
-  const radius = size === 'sm' ? 28 : size === 'lg' ? 58 : 43;
+  const radius = size === 'sm' ? 28 : size === 'xl' ? 62 : size === 'lg' ? 58 : 43;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
@@ -110,9 +114,9 @@ export function ScoreCircle({ score, size = 'md', className, showLabel = true }:
           <div className={cn(
             "flex flex-col items-center justify-center rounded-full",
             getBgColor(band),
-            size === 'sm' ? 'h-10 w-10' : size === 'lg' ? 'h-20 w-20' : 'h-14 w-14'
+            size === 'sm' ? 'h-10 w-10' : size === 'xl' ? 'h-28 w-28' : size === 'lg' ? 'h-20 w-20' : 'h-14 w-14'
           )}>
-            <span className={cn("font-bold", getColor(band), size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl')}>
+            <span className={cn("font-bold", getColor(band), size === 'sm' ? 'text-lg' : size === 'xl' ? 'text-5xl' : size === 'lg' ? 'text-3xl' : 'text-2xl')}>
               {score}
             </span>
           </div>
