@@ -279,6 +279,62 @@
       "test_url": "https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/TIRZ_Boundaries/FeatureServer/0/query?geometry=-95.3675,29.7559&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&outFields=TIRZ_NUM,TIRZ_NAME&f=json"
     }
   },
+  "montgomery_county_etj": {
+    "mud": {
+      "name": "Montgomery County MUD Boundaries",
+      "url": "https://services1.arcgis.com/qPpojf7hG0a7q21B/arcgis/rest/services/Montgomery_County_MUD_Boundaries/FeatureServer/0/query",
+      "outFields": ["NAME", "DISTRICT_NUMBER", "TYPE", "STATUS"],
+      "geometryType": "esriGeometryPolygon",
+      "crs": "EPSG:4326",
+      "timeout_ms": 10000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [500, 1000],
+      "notes": "Covers The Woodlands, Spring, Conroe area MUDs",
+      "test_url": "https://services1.arcgis.com/qPpojf7hG0a7q21B/arcgis/rest/services/Montgomery_County_MUD_Boundaries/FeatureServer/0/query?geometry=-95.4891,30.1658&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&outFields=NAME,DISTRICT_NUMBER,TYPE,STATUS&f=json",
+      "last_validated": "2025-12-15"
+    },
+    "wcid": {
+      "name": "Montgomery County WCID Boundaries",
+      "url": "https://services1.arcgis.com/qPpojf7hG0a7q21B/arcgis/rest/services/Montgomery_County_WCID_Boundaries/FeatureServer/0/query",
+      "outFields": ["NAME", "DISTRICT_NUMBER", "STATUS"],
+      "geometryType": "esriGeometryPolygon",
+      "crs": "EPSG:4326",
+      "timeout_ms": 10000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [500, 1000],
+      "notes": "Water Control and Improvement Districts in Montgomery County",
+      "test_url": "https://services1.arcgis.com/qPpojf7hG0a7q21B/arcgis/rest/services/Montgomery_County_WCID_Boundaries/FeatureServer/0/query?geometry=-95.4891,30.1658&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&outFields=NAME,DISTRICT_NUMBER,STATUS&f=json",
+      "last_validated": "2025-12-15"
+    }
+  },
+  "fort_bend_county_etj": {
+    "mud": {
+      "name": "Fort Bend County MUD Boundaries",
+      "url": "https://gis.fbcad.org/arcgis/rest/services/Public/MUD_Boundaries/FeatureServer/0/query",
+      "outFields": ["NAME", "MUD_NO", "STATUS"],
+      "geometryType": "esriGeometryPolygon",
+      "crs": "EPSG:4326",
+      "timeout_ms": 10000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [500, 1000],
+      "notes": "Fort Bend County MUD boundaries. Covers Sugar Land, Missouri City, Katy area.",
+      "test_url": "https://gis.fbcad.org/arcgis/rest/services/Public/MUD_Boundaries/FeatureServer/0/query?geometry=-95.6349,29.6197&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&outFields=NAME,MUD_NO,STATUS&f=json",
+      "last_validated": "2025-12-15"
+    },
+    "wcid": {
+      "name": "Fort Bend County WCID Boundaries",
+      "url": "https://gis.fbcad.org/arcgis/rest/services/Public/WCID_Boundaries/FeatureServer/0/query",
+      "outFields": ["NAME", "WCID_NO", "STATUS"],
+      "geometryType": "esriGeometryPolygon",
+      "crs": "EPSG:4326",
+      "timeout_ms": 10000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [500, 1000],
+      "notes": "Fort Bend County WCID boundaries",
+      "test_url": "https://gis.fbcad.org/arcgis/rest/services/Public/WCID_Boundaries/FeatureServer/0/query?geometry=-95.6349,29.6197&geometryType=esriGeometryPoint&spatialRel=esriSpatialRelIntersects&outFields=NAME,WCID_NO,STATUS&f=json",
+      "last_validated": "2025-12-15"
+    }
+  },
   "texas_statewide": {
     "tceq": {
       "name": "TCEQ Water Districts Map Viewer",
