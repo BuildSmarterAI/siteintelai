@@ -92,6 +92,7 @@ serve(async (req) => {
     console.log(`[admin-trigger-enrich] Found canonical demographics:`, demo);
 
     // Update the application with Census Data Moat data
+    // Map RPC field names to application column names
     const updatePayload: Record<string, unknown> = {
       demographics_source: 'census_moat',
       // Proprietary CRE indices
@@ -105,21 +106,23 @@ serve(async (req) => {
       growth_trajectory: demo.growth_trajectory,
       market_outlook: demo.market_outlook,
       population_cagr: demo.population_cagr,
-      growth_rate_5yr: demo.growth_rate_5yr,
-      // Demographics
-      median_income: demo.median_income,
+      growth_rate_5yr: demo.population_cagr, // Use CAGR as 5yr rate
+      // Demographics - map RPC names to application column names
+      median_income: demo.median_household_income, // RPC returns median_household_income
       median_home_value: demo.median_home_value,
       median_rent: demo.median_rent,
       vacancy_rate: demo.vacancy_rate,
       unemployment_rate: demo.unemployment_rate,
       median_age: demo.median_age,
-      college_attainment_pct: demo.college_attainment_pct,
+      college_attainment_pct: demo.bachelors_pct, // RPC returns bachelors_pct
       total_housing_units: demo.total_housing_units,
       labor_force: demo.labor_force,
       population_density_sqmi: demo.population_density_sqmi,
+      per_capita_income: demo.per_capita_income,
+      mean_household_income: demo.mean_household_income,
       // Census reference
       census_block_group: demo.geoid,
-      census_vintage: demo.vintage || '2022',
+      census_vintage: demo.acs_vintage || '2022',
       updated_at: new Date().toISOString()
     };
 

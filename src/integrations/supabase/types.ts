@@ -6384,7 +6384,7 @@ export type Database = {
       get_demographics_for_point: {
         Args: { p_lat: number; p_lng: number }
         Returns: {
-          accuracy_tier: number
+          accuracy_tier: string
           acs_vintage: string
           affluence_concentration: number
           asian_pct: number
