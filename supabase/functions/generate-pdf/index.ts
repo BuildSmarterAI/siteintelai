@@ -63,7 +63,9 @@ serve(async (req) => {
       throw new Error(`Report not found: ${reportError?.message || 'No report exists for this application'}`);
     }
 
-    console.log(`[generate-pdf] Found report ${report.id} for application ${report.application_id}`);
+    // CRITICAL: Use the fetched report.id for all downstream operations
+    const actualReportId = report.id;
+    console.log(`[generate-pdf] Found report ${actualReportId} for application ${report.application_id}`);
 
     const application = report.applications;
     const jsonData = report.json_data;
@@ -117,7 +119,7 @@ serve(async (req) => {
     const { data: updatedReport } = await supabase
       .from('reports')
       .select('report_assets')
-      .eq('id', report_id)
+      .eq('id', actualReportId)
       .single();
 
     const reportAssets = updatedReport?.report_assets || {};
@@ -133,7 +135,7 @@ serve(async (req) => {
     // 5. Upload to Supabase Storage
     const year = new Date().getFullYear();
     const month = String(new Date().getMonth() + 1).padStart(2, '0');
-    const filePath = `${year}/${month}/${report_id}/report.pdf`;
+    const filePath = `${year}/${month}/${actualReportId}/report.pdf`;
 
     const { error: uploadError } = await supabase.storage
       .from('reports')
@@ -163,7 +165,7 @@ serve(async (req) => {
         status: 'completed',
         updated_at: new Date().toISOString()
       })
-      .eq('id', report_id);
+      .eq('id', actualReportId);
 
     if (updateError) {
       throw new Error(`Report update failed: ${updateError.message}`);
@@ -174,7 +176,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        report_id,
+        report_id: actualReportId,
         pdf_url: signedUrlData.signedUrl,
         file_path: filePath
       }),
