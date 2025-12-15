@@ -195,9 +195,14 @@ interface Report {
     retail_spending_index?: number | null;
     workforce_availability_score?: number | null;
     growth_potential_index?: number | null;
+    affluence_concentration?: number | null;
+    labor_pool_depth?: number | null;
+    daytime_population_estimate?: number | null;
     growth_trajectory?: string | null;
     market_outlook?: string | null;
     demographics_source?: string | null;
+    census_block_group?: string | null;
+    census_vintage?: string | null;
     // Google Maps integration
     drivetimes?: Array<{
       destination: string;
@@ -476,7 +481,26 @@ export default function ReportViewer() {
             nearest_highway,
             nearest_transit_stop,
             nearest_signal_distance_ft,
-            road_classification
+            road_classification,
+            median_home_value,
+            median_rent,
+            vacancy_rate,
+            unemployment_rate,
+            median_age,
+            college_attainment_pct,
+            total_housing_units,
+            labor_force,
+            retail_spending_index,
+            workforce_availability_score,
+            growth_potential_index,
+            affluence_concentration,
+            labor_pool_depth,
+            daytime_population_estimate,
+            growth_trajectory,
+            market_outlook,
+            demographics_source,
+            census_block_group,
+            census_vintage
           )
         `).eq('id', reportId).single();
       if (error) throw error;
@@ -2042,6 +2066,8 @@ export default function ReportViewer() {
               retailSpendingIndex={report.applications?.retail_spending_index}
               workforceAvailabilityScore={report.applications?.workforce_availability_score}
               growthPotentialIndex={report.applications?.growth_potential_index}
+              affluenceConcentration={report.applications?.affluence_concentration}
+              laborPoolDepth={report.applications?.labor_pool_depth}
               growthTrajectory={report.applications?.growth_trajectory}
               marketOutlook={report.applications?.market_outlook}
               demographicsSource={report.applications?.demographics_source === 'census_moat' ? 'canonical' : undefined}
