@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { Link, useParams, useLocation } from "react-router-dom";
 import { 
   FileText, 
   MapPin, 
@@ -31,18 +31,19 @@ interface Section {
   id: string;
   label: string;
   icon: React.ReactNode;
+  path: string;
 }
 
 const sections: Section[] = [
-  { id: "score", label: "Score", icon: <FileText className="h-4 w-4" /> },
-  { id: "map", label: "Map", icon: <MapPin className="h-4 w-4" /> },
-  { id: "zoning", label: "Zoning", icon: <Building2 className="h-4 w-4" /> },
-  { id: "flood", label: "Flood", icon: <Droplets className="h-4 w-4" /> },
-  { id: "utilities", label: "Utilities", icon: <Zap className="h-4 w-4" /> },
-  { id: "environmental", label: "Environmental", icon: <Leaf className="h-4 w-4" /> },
-  { id: "traffic", label: "Traffic", icon: <Car className="h-4 w-4" /> },
-  { id: "market", label: "Market", icon: <Users className="h-4 w-4" /> },
-  { id: "costs", label: "Costs", icon: <DollarSign className="h-4 w-4" /> },
+  { id: "score", label: "Score", icon: <FileText className="h-4 w-4" />, path: "" },
+  { id: "map", label: "Map", icon: <MapPin className="h-4 w-4" />, path: "map" },
+  { id: "zoning", label: "Zoning", icon: <Building2 className="h-4 w-4" />, path: "zoning" },
+  { id: "flood", label: "Flood", icon: <Droplets className="h-4 w-4" />, path: "flood" },
+  { id: "utilities", label: "Utilities", icon: <Zap className="h-4 w-4" />, path: "utilities" },
+  { id: "environmental", label: "Environmental", icon: <Leaf className="h-4 w-4" />, path: "environmental" },
+  { id: "traffic", label: "Traffic", icon: <Car className="h-4 w-4" />, path: "traffic" },
+  { id: "market", label: "Market", icon: <Users className="h-4 w-4" />, path: "market" },
+  { id: "costs", label: "Costs", icon: <DollarSign className="h-4 w-4" />, path: "costs" },
 ];
 
 interface ReportSidebarProps {
@@ -50,43 +51,33 @@ interface ReportSidebarProps {
 }
 
 export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
-  const [activeSection, setActiveSection] = useState("score");
+  const { reportId } = useParams<{ reportId: string }>();
+  const location = useLocation();
   const { state, toggleSidebar } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  useEffect(() => {
-    const handleScroll = () => {
-      const sectionElements = sections
-        .map(s => ({ id: s.id, el: document.getElementById(`section-${s.id}`) }))
-        .filter(s => s.el);
-
-      const scrollPosition = window.scrollY + 200;
-
-      for (let i = sectionElements.length - 1; i >= 0; i--) {
-        const section = sectionElements[i];
-        if (section.el && section.el.offsetTop <= scrollPosition) {
-          setActiveSection(section.id);
-          break;
+  // Determine active section from URL path
+  const currentPath = location.pathname;
+  const getActiveSection = () => {
+    for (const section of sections) {
+      if (section.path === "") {
+        // Score is the index route
+        if (currentPath === `/report/${reportId}` || currentPath === `/report/${reportId}/`) {
+          return section.id;
         }
+      } else if (currentPath.endsWith(`/${section.path}`)) {
+        return section.id;
       }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(`section-${sectionId}`);
-    if (element) {
-      const offset = 100;
-      const elementPosition = element.getBoundingClientRect().top;
-      const offsetPosition = elementPosition + window.scrollY - offset;
-      
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth"
-      });
     }
+    return "score";
+  };
+
+  const activeSection = getActiveSection();
+
+  const buildPath = (sectionPath: string) => {
+    return sectionPath === "" 
+      ? `/report/${reportId}` 
+      : `/report/${reportId}/${sectionPath}`;
   };
 
   return (
@@ -130,15 +121,17 @@ export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
               {hasKillFactors && (
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    onClick={() => scrollToSection("kill-factors")}
+                    asChild
                     className={cn(
                       "w-full justify-start gap-3 rounded-lg px-3 py-2.5 transition-all",
                       "bg-destructive/20 text-destructive hover:bg-destructive/30 border border-destructive/30"
                     )}
                     tooltip={isCollapsed ? "Critical Issues" : undefined}
                   >
-                    <AlertTriangle className="h-4 w-4 shrink-0" />
-                    {!isCollapsed && <span className="font-medium">Critical Issues</span>}
+                    <Link to={`/report/${reportId}`}>
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      {!isCollapsed && <span className="font-medium">Critical Issues</span>}
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
@@ -146,7 +139,7 @@ export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
               {sections.map((section) => (
                 <SidebarMenuItem key={section.id}>
                   <SidebarMenuButton
-                    onClick={() => scrollToSection(section.id)}
+                    asChild
                     className={cn(
                       "w-full justify-start gap-3 rounded-lg px-3 py-2.5 transition-all",
                       activeSection === section.id
@@ -155,8 +148,10 @@ export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
                     )}
                     tooltip={isCollapsed ? section.label : undefined}
                   >
-                    <span className="shrink-0">{section.icon}</span>
-                    {!isCollapsed && <span>{section.label}</span>}
+                    <Link to={buildPath(section.path)}>
+                      <span className="shrink-0">{section.icon}</span>
+                      {!isCollapsed && <span>{section.label}</span>}
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

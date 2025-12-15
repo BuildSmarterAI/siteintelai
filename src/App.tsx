@@ -14,7 +14,17 @@ import ThankYou from "./pages/ThankYou";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
-import ReportViewer from "./pages/ReportViewer";
+// Report multi-page architecture
+import ReportLayout from "./pages/report/ReportLayout";
+import ScorePage from "./pages/report/ScorePage";
+import MapPage from "./pages/report/MapPage";
+import ZoningPage from "./pages/report/ZoningPage";
+import FloodPage from "./pages/report/FloodPage";
+import UtilitiesPage from "./pages/report/UtilitiesPage";
+import EnvironmentalPage from "./pages/report/EnvironmentalPage";
+import TrafficPage from "./pages/report/TrafficPage";
+import MarketPage from "./pages/report/MarketPage";
+import CostsPage from "./pages/report/CostsPage";
 import Products from "./pages/Products";
 import Pricing from "./pages/Pricing";
 import Feasibility from "./pages/Feasibility";
@@ -66,9 +76,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isBetaPage = location.pathname === '/beta' || location.pathname === '/beta-signup' || location.pathname === '/beta-thank-you';
   const isFullscreenPage = location.pathname === '/investor-deck';
   const isDocsPage = location.pathname.startsWith('/docs');
+  const isReportPage = location.pathname.startsWith('/report/');
 
-  // Fullscreen pages and docs render without any layout wrapper
-  if (isFullscreenPage || isDocsPage) {
+  // Fullscreen pages, docs, and reports render without any layout wrapper
+  if (isFullscreenPage || isDocsPage || isReportPage) {
     return <>{children}</>;
   }
 
@@ -101,7 +112,17 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/payment-history" element={<PaymentHistory />} />
               <Route path="/analytics" element={<Analytics />} />
-              <Route path="/report/:reportId" element={<ReportViewer />} />
+              <Route path="/report/:reportId" element={<ReportLayout />}>
+                <Route index element={<ScorePage />} />
+                <Route path="map" element={<MapPage />} />
+                <Route path="zoning" element={<ZoningPage />} />
+                <Route path="flood" element={<FloodPage />} />
+                <Route path="utilities" element={<UtilitiesPage />} />
+                <Route path="environmental" element={<EnvironmentalPage />} />
+                <Route path="traffic" element={<TrafficPage />} />
+                <Route path="market" element={<MarketPage />} />
+                <Route path="costs" element={<CostsPage />} />
+              </Route>
               <Route path="/products" element={<Products />} />
               <Route path="/products/feasibility" element={<Feasibility />} />
               <Route path="/products/cost-intelligence" element={<CostIntelligence />} />
