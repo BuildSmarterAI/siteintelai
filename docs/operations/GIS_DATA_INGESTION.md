@@ -1,5 +1,7 @@
 # GIS Data Ingestion Guide
 
+> **Note:** `seed-texas-canonical` is the unified multi-metro ETL function (v2.0.0). The legacy `seed-houston-canonical` remains available for backward compatibility.
+
 > Step-by-step guide for populating canonical tables using SiteIntel edge functions.
 
 ## Overview

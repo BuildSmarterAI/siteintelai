@@ -3740,6 +3740,7 @@ export type Database = {
       }
       metro_regions: {
         Row: {
+          bbox: Json | null
           created_at: string | null
           id: string
           market_characteristics: Json | null
@@ -3748,6 +3749,7 @@ export type Database = {
           primary_city: string
         }
         Insert: {
+          bbox?: Json | null
           created_at?: string | null
           id?: string
           market_characteristics?: Json | null
@@ -3756,6 +3758,7 @@ export type Database = {
           primary_city: string
         }
         Update: {
+          bbox?: Json | null
           created_at?: string | null
           id?: string
           market_characteristics?: Json | null

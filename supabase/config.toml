@@ -195,6 +195,9 @@ verify_jwt = true
 [functions.seed-houston-canonical]
 verify_jwt = false
 
+[functions.seed-texas-canonical]
+verify_jwt = false
+
 [functions.scraper-gis-fetch]
 verify_jwt = false
 
