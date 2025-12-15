@@ -295,24 +295,32 @@ export type Database = {
           additional_notes: string | null
           administrative_area_level_1: string | null
           aerial_imagery_url: string | null
+          affluence_concentration: number | null
           ag_use: boolean | null
           ai_context: Json | null
           api_meta: Json | null
+          asian_pct: number | null
           attachments: Json | null
           attempts: number
           average_permit_time_months: number | null
+          avg_household_size: number | null
+          bachelors_pct: number | null
           base_flood_elevation: number | null
           base_flood_elevation_source: string | null
           best_time: string | null
+          black_pct: number | null
           bldg_sqft: number | null
           bldg_style_cd: string | null
           block: string | null
+          blue_collar_pct: number | null
           broadband_providers: Json | null
           buildability_output_id: string | null
           buildability_status: string | null
           building_size_unit: string | null
           building_size_value: number | null
           cache_expires_at: string | null
+          census_block_group: string | null
+          census_vintage: string | null
           city: string | null
           college_attainment_pct: number | null
           company: string
@@ -327,11 +335,14 @@ export type Database = {
           data_flags: Json | null
           dataset_version: string | null
           dataset_version_summary: Json | null
+          daytime_population_estimate: number | null
+          demographics_source: string | null
           desired_budget: number | null
           disaster_declarations: string | null
           distance_highway_ft: number | null
           distance_transit_ft: number | null
           draft_saved_at: string | null
+          drive_alone_pct: number | null
           drive_time_15min_population: number | null
           drive_time_30min_population: number | null
           drivetimes: Json | null
@@ -361,11 +372,17 @@ export type Database = {
           full_name: string
           geo_lat: number | null
           geo_lng: number | null
+          gini_index: number | null
           gis_provenance: Json | null
           governing_path: string | null
+          graduate_degree_pct: number | null
+          growth_potential_index: number | null
           growth_rate_5yr: number | null
+          growth_trajectory: string | null
           heard_about: string
+          high_school_only_pct: number | null
           highest_best_use_output: string | null
+          hispanic_pct: number | null
           historical_flood_events: Json | null
           homestead: boolean | null
           households_5mi: number | null
@@ -376,6 +393,7 @@ export type Database = {
           kill_factors_triggered: string[] | null
           known_risks: string[] | null
           labor_force: number | null
+          labor_pool_depth: number | null
           land_use_code: string | null
           land_use_description: string | null
           land_val: number | null
@@ -390,14 +408,21 @@ export type Database = {
           lot_size_value: number | null
           mapserver_key: string | null
           market_context: Json | null
+          market_outlook: string | null
           market_output: string | null
           marketing_opt_in: boolean
           max_buildable_sf: number | null
+          mean_commute_time_min: number | null
+          mean_household_income: number | null
           median_age: number | null
           median_home_value: number | null
+          median_home_value_5yr_projection: number | null
           median_income: number | null
+          median_income_5yr_projection: number | null
           median_rent: number | null
+          median_year_built: number | null
           mud_district: string | null
+          multi_family_pct: number | null
           nda_confidentiality: boolean
           nearby_places: Json | null
           nearest_facility_dist: number | null
@@ -412,8 +437,10 @@ export type Database = {
           nfip_claims_total_paid: number | null
           num_stories: number | null
           opportunity_zone: boolean | null
+          over_65_pct: number | null
           overlay_district: string | null
           override_stats: Json | null
+          owner_occupied_pct: number | null
           ownership_status: string
           page_url: string | null
           parcel_id: string | null
@@ -421,12 +448,18 @@ export type Database = {
           parcel_source: string | null
           parcel_source_id: string | null
           peak_hour_volume: number | null
+          per_capita_income: number | null
           phone: string
           place_id: string | null
           population_1mi: number | null
           population_3mi: number | null
           population_5mi: number | null
+          population_5yr_projection: number | null
+          population_block_group: number | null
+          population_cagr: number | null
+          population_density_sqmi: number | null
           postal_code: string | null
+          poverty_rate: number | null
           power_kv_nearby: number | null
           preferred_contact: string | null
           project_type: string[]
@@ -435,17 +468,23 @@ export type Database = {
           property_category: string | null
           property_overview_output: string | null
           prototype_requirements: string | null
+          public_transit_pct: number | null
           quality_level: string
+          renter_occupied_pct: number | null
           report_url: string | null
+          retail_spending_index: number | null
           road_classification: string | null
           schedule_output: string | null
           scoring_weights: Json | null
+          service_sector_pct: number | null
           sewer_capacity_mgd: number | null
           sewer_lines: Json | null
+          single_family_pct: number | null
           situs_address: string | null
           soil_drainage_class: string | null
           soil_series: string | null
           soil_slope_percent: number | null
+          some_college_pct: number | null
           state_class: string | null
           status: string
           status_percent: number | null
@@ -461,6 +500,7 @@ export type Database = {
           taxing_jurisdictions: Json | null
           tenant_requirements: string | null
           tile_cache_hit: boolean | null
+          top_industries: Json | null
           topography_map_url: string | null
           tot_appr_val: number | null
           tot_market_val: number | null
@@ -475,6 +515,7 @@ export type Database = {
           traffic_segment_id: string | null
           traffic_year: number | null
           truck_percent: number | null
+          under_18_pct: number | null
           unemployment_rate: number | null
           updated_at: string
           user_id: string
@@ -487,11 +528,17 @@ export type Database = {
           utm_source: string | null
           utm_term: string | null
           vacancy_rate: number | null
+          walk_bike_pct: number | null
           water_capacity_mgd: number | null
           water_lines: Json | null
           wcid_district: string | null
           wetlands_area_pct: number | null
           wetlands_type: string | null
+          white_collar_pct: number | null
+          white_pct: number | null
+          work_from_home_pct: number | null
+          workforce_availability_score: number | null
+          working_age_pct: number | null
           year_built: number | null
           zoning_code: string | null
           zoning_output: string | null
@@ -505,24 +552,32 @@ export type Database = {
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          affluence_concentration?: number | null
           ag_use?: boolean | null
           ai_context?: Json | null
           api_meta?: Json | null
+          asian_pct?: number | null
           attachments?: Json | null
           attempts?: number
           average_permit_time_months?: number | null
+          avg_household_size?: number | null
+          bachelors_pct?: number | null
           base_flood_elevation?: number | null
           base_flood_elevation_source?: string | null
           best_time?: string | null
+          black_pct?: number | null
           bldg_sqft?: number | null
           bldg_style_cd?: string | null
           block?: string | null
+          blue_collar_pct?: number | null
           broadband_providers?: Json | null
           buildability_output_id?: string | null
           buildability_status?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           cache_expires_at?: string | null
+          census_block_group?: string | null
+          census_vintage?: string | null
           city?: string | null
           college_attainment_pct?: number | null
           company: string
@@ -537,11 +592,14 @@ export type Database = {
           data_flags?: Json | null
           dataset_version?: string | null
           dataset_version_summary?: Json | null
+          daytime_population_estimate?: number | null
+          demographics_source?: string | null
           desired_budget?: number | null
           disaster_declarations?: string | null
           distance_highway_ft?: number | null
           distance_transit_ft?: number | null
           draft_saved_at?: string | null
+          drive_alone_pct?: number | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
           drivetimes?: Json | null
@@ -571,11 +629,17 @@ export type Database = {
           full_name: string
           geo_lat?: number | null
           geo_lng?: number | null
+          gini_index?: number | null
           gis_provenance?: Json | null
           governing_path?: string | null
+          graduate_degree_pct?: number | null
+          growth_potential_index?: number | null
           growth_rate_5yr?: number | null
+          growth_trajectory?: string | null
           heard_about: string
+          high_school_only_pct?: number | null
           highest_best_use_output?: string | null
+          hispanic_pct?: number | null
           historical_flood_events?: Json | null
           homestead?: boolean | null
           households_5mi?: number | null
@@ -586,6 +650,7 @@ export type Database = {
           kill_factors_triggered?: string[] | null
           known_risks?: string[] | null
           labor_force?: number | null
+          labor_pool_depth?: number | null
           land_use_code?: string | null
           land_use_description?: string | null
           land_val?: number | null
@@ -600,14 +665,21 @@ export type Database = {
           lot_size_value?: number | null
           mapserver_key?: string | null
           market_context?: Json | null
+          market_outlook?: string | null
           market_output?: string | null
           marketing_opt_in?: boolean
           max_buildable_sf?: number | null
+          mean_commute_time_min?: number | null
+          mean_household_income?: number | null
           median_age?: number | null
           median_home_value?: number | null
+          median_home_value_5yr_projection?: number | null
           median_income?: number | null
+          median_income_5yr_projection?: number | null
           median_rent?: number | null
+          median_year_built?: number | null
           mud_district?: string | null
+          multi_family_pct?: number | null
           nda_confidentiality?: boolean
           nearby_places?: Json | null
           nearest_facility_dist?: number | null
@@ -622,8 +694,10 @@ export type Database = {
           nfip_claims_total_paid?: number | null
           num_stories?: number | null
           opportunity_zone?: boolean | null
+          over_65_pct?: number | null
           overlay_district?: string | null
           override_stats?: Json | null
+          owner_occupied_pct?: number | null
           ownership_status: string
           page_url?: string | null
           parcel_id?: string | null
@@ -631,12 +705,18 @@ export type Database = {
           parcel_source?: string | null
           parcel_source_id?: string | null
           peak_hour_volume?: number | null
+          per_capita_income?: number | null
           phone: string
           place_id?: string | null
           population_1mi?: number | null
           population_3mi?: number | null
           population_5mi?: number | null
+          population_5yr_projection?: number | null
+          population_block_group?: number | null
+          population_cagr?: number | null
+          population_density_sqmi?: number | null
           postal_code?: string | null
+          poverty_rate?: number | null
           power_kv_nearby?: number | null
           preferred_contact?: string | null
           project_type: string[]
@@ -645,17 +725,23 @@ export type Database = {
           property_category?: string | null
           property_overview_output?: string | null
           prototype_requirements?: string | null
+          public_transit_pct?: number | null
           quality_level: string
+          renter_occupied_pct?: number | null
           report_url?: string | null
+          retail_spending_index?: number | null
           road_classification?: string | null
           schedule_output?: string | null
           scoring_weights?: Json | null
+          service_sector_pct?: number | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
+          single_family_pct?: number | null
           situs_address?: string | null
           soil_drainage_class?: string | null
           soil_series?: string | null
           soil_slope_percent?: number | null
+          some_college_pct?: number | null
           state_class?: string | null
           status?: string
           status_percent?: number | null
@@ -671,6 +757,7 @@ export type Database = {
           taxing_jurisdictions?: Json | null
           tenant_requirements?: string | null
           tile_cache_hit?: boolean | null
+          top_industries?: Json | null
           topography_map_url?: string | null
           tot_appr_val?: number | null
           tot_market_val?: number | null
@@ -685,6 +772,7 @@ export type Database = {
           traffic_segment_id?: string | null
           traffic_year?: number | null
           truck_percent?: number | null
+          under_18_pct?: number | null
           unemployment_rate?: number | null
           updated_at?: string
           user_id: string
@@ -697,11 +785,17 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           vacancy_rate?: number | null
+          walk_bike_pct?: number | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wcid_district?: string | null
           wetlands_area_pct?: number | null
           wetlands_type?: string | null
+          white_collar_pct?: number | null
+          white_pct?: number | null
+          work_from_home_pct?: number | null
+          workforce_availability_score?: number | null
+          working_age_pct?: number | null
           year_built?: number | null
           zoning_code?: string | null
           zoning_output?: string | null
@@ -715,24 +809,32 @@ export type Database = {
           additional_notes?: string | null
           administrative_area_level_1?: string | null
           aerial_imagery_url?: string | null
+          affluence_concentration?: number | null
           ag_use?: boolean | null
           ai_context?: Json | null
           api_meta?: Json | null
+          asian_pct?: number | null
           attachments?: Json | null
           attempts?: number
           average_permit_time_months?: number | null
+          avg_household_size?: number | null
+          bachelors_pct?: number | null
           base_flood_elevation?: number | null
           base_flood_elevation_source?: string | null
           best_time?: string | null
+          black_pct?: number | null
           bldg_sqft?: number | null
           bldg_style_cd?: string | null
           block?: string | null
+          blue_collar_pct?: number | null
           broadband_providers?: Json | null
           buildability_output_id?: string | null
           buildability_status?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           cache_expires_at?: string | null
+          census_block_group?: string | null
+          census_vintage?: string | null
           city?: string | null
           college_attainment_pct?: number | null
           company?: string
@@ -747,11 +849,14 @@ export type Database = {
           data_flags?: Json | null
           dataset_version?: string | null
           dataset_version_summary?: Json | null
+          daytime_population_estimate?: number | null
+          demographics_source?: string | null
           desired_budget?: number | null
           disaster_declarations?: string | null
           distance_highway_ft?: number | null
           distance_transit_ft?: number | null
           draft_saved_at?: string | null
+          drive_alone_pct?: number | null
           drive_time_15min_population?: number | null
           drive_time_30min_population?: number | null
           drivetimes?: Json | null
@@ -781,11 +886,17 @@ export type Database = {
           full_name?: string
           geo_lat?: number | null
           geo_lng?: number | null
+          gini_index?: number | null
           gis_provenance?: Json | null
           governing_path?: string | null
+          graduate_degree_pct?: number | null
+          growth_potential_index?: number | null
           growth_rate_5yr?: number | null
+          growth_trajectory?: string | null
           heard_about?: string
+          high_school_only_pct?: number | null
           highest_best_use_output?: string | null
+          hispanic_pct?: number | null
           historical_flood_events?: Json | null
           homestead?: boolean | null
           households_5mi?: number | null
@@ -796,6 +907,7 @@ export type Database = {
           kill_factors_triggered?: string[] | null
           known_risks?: string[] | null
           labor_force?: number | null
+          labor_pool_depth?: number | null
           land_use_code?: string | null
           land_use_description?: string | null
           land_val?: number | null
@@ -810,14 +922,21 @@ export type Database = {
           lot_size_value?: number | null
           mapserver_key?: string | null
           market_context?: Json | null
+          market_outlook?: string | null
           market_output?: string | null
           marketing_opt_in?: boolean
           max_buildable_sf?: number | null
+          mean_commute_time_min?: number | null
+          mean_household_income?: number | null
           median_age?: number | null
           median_home_value?: number | null
+          median_home_value_5yr_projection?: number | null
           median_income?: number | null
+          median_income_5yr_projection?: number | null
           median_rent?: number | null
+          median_year_built?: number | null
           mud_district?: string | null
+          multi_family_pct?: number | null
           nda_confidentiality?: boolean
           nearby_places?: Json | null
           nearest_facility_dist?: number | null
@@ -832,8 +951,10 @@ export type Database = {
           nfip_claims_total_paid?: number | null
           num_stories?: number | null
           opportunity_zone?: boolean | null
+          over_65_pct?: number | null
           overlay_district?: string | null
           override_stats?: Json | null
+          owner_occupied_pct?: number | null
           ownership_status?: string
           page_url?: string | null
           parcel_id?: string | null
@@ -841,12 +962,18 @@ export type Database = {
           parcel_source?: string | null
           parcel_source_id?: string | null
           peak_hour_volume?: number | null
+          per_capita_income?: number | null
           phone?: string
           place_id?: string | null
           population_1mi?: number | null
           population_3mi?: number | null
           population_5mi?: number | null
+          population_5yr_projection?: number | null
+          population_block_group?: number | null
+          population_cagr?: number | null
+          population_density_sqmi?: number | null
           postal_code?: string | null
+          poverty_rate?: number | null
           power_kv_nearby?: number | null
           preferred_contact?: string | null
           project_type?: string[]
@@ -855,17 +982,23 @@ export type Database = {
           property_category?: string | null
           property_overview_output?: string | null
           prototype_requirements?: string | null
+          public_transit_pct?: number | null
           quality_level?: string
+          renter_occupied_pct?: number | null
           report_url?: string | null
+          retail_spending_index?: number | null
           road_classification?: string | null
           schedule_output?: string | null
           scoring_weights?: Json | null
+          service_sector_pct?: number | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
+          single_family_pct?: number | null
           situs_address?: string | null
           soil_drainage_class?: string | null
           soil_series?: string | null
           soil_slope_percent?: number | null
+          some_college_pct?: number | null
           state_class?: string | null
           status?: string
           status_percent?: number | null
@@ -881,6 +1014,7 @@ export type Database = {
           taxing_jurisdictions?: Json | null
           tenant_requirements?: string | null
           tile_cache_hit?: boolean | null
+          top_industries?: Json | null
           topography_map_url?: string | null
           tot_appr_val?: number | null
           tot_market_val?: number | null
@@ -895,6 +1029,7 @@ export type Database = {
           traffic_segment_id?: string | null
           traffic_year?: number | null
           truck_percent?: number | null
+          under_18_pct?: number | null
           unemployment_rate?: number | null
           updated_at?: string
           user_id?: string
@@ -907,11 +1042,17 @@ export type Database = {
           utm_source?: string | null
           utm_term?: string | null
           vacancy_rate?: number | null
+          walk_bike_pct?: number | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wcid_district?: string | null
           wetlands_area_pct?: number | null
           wetlands_type?: string | null
+          white_collar_pct?: number | null
+          white_pct?: number | null
+          work_from_home_pct?: number | null
+          workforce_availability_score?: number | null
+          working_age_pct?: number | null
           year_built?: number | null
           zoning_code?: string | null
           zoning_output?: string | null
@@ -1361,6 +1502,252 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      canonical_demographics: {
+        Row: {
+          accuracy_tier: string | null
+          acs_vintage: string | null
+          affluence_concentration: number | null
+          asian_pct: number | null
+          avg_household_size: number | null
+          bachelors_pct: number | null
+          black_pct: number | null
+          blue_collar_pct: number | null
+          carpool_pct: number | null
+          centroid: unknown
+          commute_over_60min_pct: number | null
+          commute_under_30min_pct: number | null
+          confidence: number | null
+          county_fips: string | null
+          created_at: string | null
+          daytime_population_estimate: number | null
+          drive_alone_pct: number | null
+          employed_population: number | null
+          geoid: string
+          geom: unknown
+          gini_index: number | null
+          graduate_degree_pct: number | null
+          growth_potential_index: number | null
+          healthcare_workers: number | null
+          high_school_only_pct: number | null
+          hispanic_pct: number | null
+          income_50k_100k_pct: number | null
+          income_above_100k_pct: number | null
+          income_below_50k_pct: number | null
+          ingestion_run_id: string | null
+          labor_force: number | null
+          labor_pool_depth: number | null
+          less_than_high_school_pct: number | null
+          manufacturing_workers: number | null
+          mean_commute_time_min: number | null
+          mean_household_income: number | null
+          median_age: number | null
+          median_earnings: number | null
+          median_home_value: number | null
+          median_household_income: number | null
+          median_rent: number | null
+          median_rooms: number | null
+          median_year_built: number | null
+          multi_family_pct: number | null
+          occupied_housing_units: number | null
+          over_65_pct: number | null
+          owner_occupied_pct: number | null
+          per_capita_income: number | null
+          population_density_sqmi: number | null
+          poverty_rate: number | null
+          professional_services_workers: number | null
+          public_transit_pct: number | null
+          renter_occupied_pct: number | null
+          retail_spending_index: number | null
+          retail_workers: number | null
+          service_sector_pct: number | null
+          single_family_pct: number | null
+          snap_recipients_pct: number | null
+          some_college_pct: number | null
+          source_dataset: string | null
+          state_fips: string | null
+          stem_degree_pct: number | null
+          top_industries: Json | null
+          total_housing_units: number | null
+          total_population: number | null
+          tract_id: string | null
+          two_or_more_races_pct: number | null
+          under_18_pct: number | null
+          unemployment_rate: number | null
+          updated_at: string | null
+          vacancy_rate: number | null
+          vacant_housing_units: number | null
+          walk_bike_pct: number | null
+          white_collar_pct: number | null
+          white_pct: number | null
+          work_from_home_commute_pct: number | null
+          work_from_home_pct: number | null
+          workforce_availability_score: number | null
+          working_age_pct: number | null
+        }
+        Insert: {
+          accuracy_tier?: string | null
+          acs_vintage?: string | null
+          affluence_concentration?: number | null
+          asian_pct?: number | null
+          avg_household_size?: number | null
+          bachelors_pct?: number | null
+          black_pct?: number | null
+          blue_collar_pct?: number | null
+          carpool_pct?: number | null
+          centroid?: unknown
+          commute_over_60min_pct?: number | null
+          commute_under_30min_pct?: number | null
+          confidence?: number | null
+          county_fips?: string | null
+          created_at?: string | null
+          daytime_population_estimate?: number | null
+          drive_alone_pct?: number | null
+          employed_population?: number | null
+          geoid: string
+          geom?: unknown
+          gini_index?: number | null
+          graduate_degree_pct?: number | null
+          growth_potential_index?: number | null
+          healthcare_workers?: number | null
+          high_school_only_pct?: number | null
+          hispanic_pct?: number | null
+          income_50k_100k_pct?: number | null
+          income_above_100k_pct?: number | null
+          income_below_50k_pct?: number | null
+          ingestion_run_id?: string | null
+          labor_force?: number | null
+          labor_pool_depth?: number | null
+          less_than_high_school_pct?: number | null
+          manufacturing_workers?: number | null
+          mean_commute_time_min?: number | null
+          mean_household_income?: number | null
+          median_age?: number | null
+          median_earnings?: number | null
+          median_home_value?: number | null
+          median_household_income?: number | null
+          median_rent?: number | null
+          median_rooms?: number | null
+          median_year_built?: number | null
+          multi_family_pct?: number | null
+          occupied_housing_units?: number | null
+          over_65_pct?: number | null
+          owner_occupied_pct?: number | null
+          per_capita_income?: number | null
+          population_density_sqmi?: number | null
+          poverty_rate?: number | null
+          professional_services_workers?: number | null
+          public_transit_pct?: number | null
+          renter_occupied_pct?: number | null
+          retail_spending_index?: number | null
+          retail_workers?: number | null
+          service_sector_pct?: number | null
+          single_family_pct?: number | null
+          snap_recipients_pct?: number | null
+          some_college_pct?: number | null
+          source_dataset?: string | null
+          state_fips?: string | null
+          stem_degree_pct?: number | null
+          top_industries?: Json | null
+          total_housing_units?: number | null
+          total_population?: number | null
+          tract_id?: string | null
+          two_or_more_races_pct?: number | null
+          under_18_pct?: number | null
+          unemployment_rate?: number | null
+          updated_at?: string | null
+          vacancy_rate?: number | null
+          vacant_housing_units?: number | null
+          walk_bike_pct?: number | null
+          white_collar_pct?: number | null
+          white_pct?: number | null
+          work_from_home_commute_pct?: number | null
+          work_from_home_pct?: number | null
+          workforce_availability_score?: number | null
+          working_age_pct?: number | null
+        }
+        Update: {
+          accuracy_tier?: string | null
+          acs_vintage?: string | null
+          affluence_concentration?: number | null
+          asian_pct?: number | null
+          avg_household_size?: number | null
+          bachelors_pct?: number | null
+          black_pct?: number | null
+          blue_collar_pct?: number | null
+          carpool_pct?: number | null
+          centroid?: unknown
+          commute_over_60min_pct?: number | null
+          commute_under_30min_pct?: number | null
+          confidence?: number | null
+          county_fips?: string | null
+          created_at?: string | null
+          daytime_population_estimate?: number | null
+          drive_alone_pct?: number | null
+          employed_population?: number | null
+          geoid?: string
+          geom?: unknown
+          gini_index?: number | null
+          graduate_degree_pct?: number | null
+          growth_potential_index?: number | null
+          healthcare_workers?: number | null
+          high_school_only_pct?: number | null
+          hispanic_pct?: number | null
+          income_50k_100k_pct?: number | null
+          income_above_100k_pct?: number | null
+          income_below_50k_pct?: number | null
+          ingestion_run_id?: string | null
+          labor_force?: number | null
+          labor_pool_depth?: number | null
+          less_than_high_school_pct?: number | null
+          manufacturing_workers?: number | null
+          mean_commute_time_min?: number | null
+          mean_household_income?: number | null
+          median_age?: number | null
+          median_earnings?: number | null
+          median_home_value?: number | null
+          median_household_income?: number | null
+          median_rent?: number | null
+          median_rooms?: number | null
+          median_year_built?: number | null
+          multi_family_pct?: number | null
+          occupied_housing_units?: number | null
+          over_65_pct?: number | null
+          owner_occupied_pct?: number | null
+          per_capita_income?: number | null
+          population_density_sqmi?: number | null
+          poverty_rate?: number | null
+          professional_services_workers?: number | null
+          public_transit_pct?: number | null
+          renter_occupied_pct?: number | null
+          retail_spending_index?: number | null
+          retail_workers?: number | null
+          service_sector_pct?: number | null
+          single_family_pct?: number | null
+          snap_recipients_pct?: number | null
+          some_college_pct?: number | null
+          source_dataset?: string | null
+          state_fips?: string | null
+          stem_degree_pct?: number | null
+          top_industries?: Json | null
+          total_housing_units?: number | null
+          total_population?: number | null
+          tract_id?: string | null
+          two_or_more_races_pct?: number | null
+          under_18_pct?: number | null
+          unemployment_rate?: number | null
+          updated_at?: string | null
+          vacancy_rate?: number | null
+          vacant_housing_units?: number | null
+          walk_bike_pct?: number | null
+          white_collar_pct?: number | null
+          white_pct?: number | null
+          work_from_home_commute_pct?: number | null
+          work_from_home_pct?: number | null
+          workforce_availability_score?: number | null
+          working_age_pct?: number | null
+        }
+        Relationships: []
       }
       canonical_parcels: {
         Row: {
@@ -2122,6 +2509,111 @@ export type Database = {
           storage_path?: string | null
           subdivision_name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      demographics_historical: {
+        Row: {
+          acs_vintage: string
+          bachelors_pct: number | null
+          fetched_at: string | null
+          geoid: string
+          id: number
+          labor_force: number | null
+          median_age: number | null
+          median_home_value: number | null
+          median_household_income: number | null
+          median_rent: number | null
+          population_density_sqmi: number | null
+          poverty_rate: number | null
+          total_population: number | null
+          unemployment_rate: number | null
+          vacancy_rate: number | null
+        }
+        Insert: {
+          acs_vintage: string
+          bachelors_pct?: number | null
+          fetched_at?: string | null
+          geoid: string
+          id?: number
+          labor_force?: number | null
+          median_age?: number | null
+          median_home_value?: number | null
+          median_household_income?: number | null
+          median_rent?: number | null
+          population_density_sqmi?: number | null
+          poverty_rate?: number | null
+          total_population?: number | null
+          unemployment_rate?: number | null
+          vacancy_rate?: number | null
+        }
+        Update: {
+          acs_vintage?: string
+          bachelors_pct?: number | null
+          fetched_at?: string | null
+          geoid?: string
+          id?: number
+          labor_force?: number | null
+          median_age?: number | null
+          median_home_value?: number | null
+          median_household_income?: number | null
+          median_rent?: number | null
+          population_density_sqmi?: number | null
+          poverty_rate?: number | null
+          total_population?: number | null
+          unemployment_rate?: number | null
+          vacancy_rate?: number | null
+        }
+        Relationships: []
+      }
+      demographics_projections: {
+        Row: {
+          base_vintage: string | null
+          calculated_at: string | null
+          geoid: string
+          growth_trajectory: string | null
+          housing_value_cagr: number | null
+          income_cagr: number | null
+          market_outlook: string | null
+          median_home_value_5yr_projection: number | null
+          median_income_5yr_projection: number | null
+          median_rent_5yr_projection: number | null
+          population_5yr_projection: number | null
+          population_cagr: number | null
+          projection_confidence: number | null
+          rent_cagr: number | null
+        }
+        Insert: {
+          base_vintage?: string | null
+          calculated_at?: string | null
+          geoid: string
+          growth_trajectory?: string | null
+          housing_value_cagr?: number | null
+          income_cagr?: number | null
+          market_outlook?: string | null
+          median_home_value_5yr_projection?: number | null
+          median_income_5yr_projection?: number | null
+          median_rent_5yr_projection?: number | null
+          population_5yr_projection?: number | null
+          population_cagr?: number | null
+          projection_confidence?: number | null
+          rent_cagr?: number | null
+        }
+        Update: {
+          base_vintage?: string | null
+          calculated_at?: string | null
+          geoid?: string
+          growth_trajectory?: string | null
+          housing_value_cagr?: number | null
+          income_cagr?: number | null
+          market_outlook?: string | null
+          median_home_value_5yr_projection?: number | null
+          median_income_5yr_projection?: number | null
+          median_rent_5yr_projection?: number | null
+          population_5yr_projection?: number | null
+          population_cagr?: number | null
+          projection_confidence?: number | null
+          rent_cagr?: number | null
         }
         Relationships: []
       }
@@ -5887,6 +6379,94 @@ export type Database = {
           service_area_name: string
           status: string
           utility_name: string
+        }[]
+      }
+      get_demographics_for_point: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: {
+          accuracy_tier: string
+          acs_vintage: string
+          affluence_concentration: number
+          asian_pct: number
+          avg_household_size: number
+          bachelors_pct: number
+          black_pct: number
+          blue_collar_pct: number
+          carpool_pct: number
+          commute_over_60min_pct: number
+          commute_under_30min_pct: number
+          confidence: number
+          county_fips: string
+          daytime_population_estimate: number
+          drive_alone_pct: number
+          employed_population: number
+          geoid: string
+          gini_index: number
+          graduate_degree_pct: number
+          growth_potential_index: number
+          growth_trajectory: string
+          healthcare_workers: number
+          high_school_only_pct: number
+          hispanic_pct: number
+          housing_value_cagr: number
+          income_50k_100k_pct: number
+          income_above_100k_pct: number
+          income_below_50k_pct: number
+          income_cagr: number
+          labor_force: number
+          labor_pool_depth: number
+          less_than_high_school_pct: number
+          manufacturing_workers: number
+          market_outlook: string
+          mean_commute_time_min: number
+          mean_household_income: number
+          median_age: number
+          median_earnings: number
+          median_home_value: number
+          median_home_value_5yr_projection: number
+          median_household_income: number
+          median_income_5yr_projection: number
+          median_rent: number
+          median_rent_5yr_projection: number
+          median_rooms: number
+          median_year_built: number
+          multi_family_pct: number
+          occupied_housing_units: number
+          over_65_pct: number
+          owner_occupied_pct: number
+          per_capita_income: number
+          population_5yr_projection: number
+          population_cagr: number
+          population_density_sqmi: number
+          poverty_rate: number
+          professional_services_workers: number
+          projection_confidence: number
+          public_transit_pct: number
+          rent_cagr: number
+          renter_occupied_pct: number
+          retail_spending_index: number
+          retail_workers: number
+          service_sector_pct: number
+          single_family_pct: number
+          snap_recipients_pct: number
+          some_college_pct: number
+          source_dataset: string
+          stem_degree_pct: number
+          top_industries: Json
+          total_housing_units: number
+          total_population: number
+          two_or_more_races_pct: number
+          under_18_pct: number
+          unemployment_rate: number
+          vacancy_rate: number
+          vacant_housing_units: number
+          walk_bike_pct: number
+          white_collar_pct: number
+          white_pct: number
+          work_from_home_commute_pct: number
+          work_from_home_pct: number
+          workforce_availability_score: number
+          working_age_pct: number
         }[]
       }
       get_electric_service_for_parcel: {

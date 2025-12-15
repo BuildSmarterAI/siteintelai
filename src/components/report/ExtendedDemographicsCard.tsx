@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Home, DollarSign, Briefcase, GraduationCap, Users, TrendingDown, Building } from "lucide-react";
+import { Home, DollarSign, Briefcase, GraduationCap, Users, TrendingDown, Building, TrendingUp, Target, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ExtendedDemographicsCardProps {
@@ -12,6 +12,15 @@ interface ExtendedDemographicsCardProps {
   collegeAttainmentPct?: number | null;
   totalHousingUnits?: number | null;
   laborForce?: number | null;
+  // New Census Data Moat fields
+  retailSpendingIndex?: number | null;
+  workforceAvailabilityScore?: number | null;
+  growthPotentialIndex?: number | null;
+  affluenceConcentration?: number | null;
+  laborPoolDepth?: number | null;
+  growthTrajectory?: string | null;
+  marketOutlook?: string | null;
+  demographicsSource?: string | null;
   className?: string;
 }
 
@@ -24,6 +33,14 @@ export function ExtendedDemographicsCard({
   collegeAttainmentPct,
   totalHousingUnits,
   laborForce,
+  retailSpendingIndex,
+  workforceAvailabilityScore,
+  growthPotentialIndex,
+  affluenceConcentration,
+  laborPoolDepth,
+  growthTrajectory,
+  marketOutlook,
+  demographicsSource,
   className
 }: ExtendedDemographicsCardProps) {
   // Check if we have any data to display
@@ -67,8 +84,13 @@ export function ExtendedDemographicsCard({
               <Building className="h-5 w-5 text-indigo-400" />
               Housing & Employment
             </CardTitle>
-            <Badge variant="outline" className="bg-white/10 border-white/20 text-white text-xs font-mono">
-              CENSUS ACS
+            <Badge variant="outline" className={cn(
+              "text-xs font-mono",
+              demographicsSource === "canonical" 
+                ? "bg-[hsl(var(--feasibility-orange)/0.2)] border-[hsl(var(--feasibility-orange)/0.4)] text-[hsl(var(--feasibility-orange))]"
+                : "bg-white/10 border-white/20 text-white"
+            )}>
+              {demographicsSource === "canonical" ? "SITEINTEL CENSUS MOAT" : "CENSUS ACS"}
             </Badge>
           </div>
           
@@ -184,6 +206,77 @@ export function ExtendedDemographicsCard({
                 <> with <span className="font-semibold text-foreground">{vacancyRate.toFixed(1)}%</span> vacancy rate</>
               )}
             </p>
+          </div>
+        )}
+
+        {/* Proprietary CRE Indices */}
+        {(retailSpendingIndex || workforceAvailabilityScore || growthPotentialIndex) && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-[hsl(var(--feasibility-orange))]" />
+              <h4 className="font-semibold text-sm">Proprietary CRE Indices</h4>
+              <Badge variant="outline" className="text-xs bg-[hsl(var(--feasibility-orange)/0.1)] border-[hsl(var(--feasibility-orange)/0.3)] text-[hsl(var(--feasibility-orange))]">
+                SITEINTEL EXCLUSIVE
+              </Badge>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {retailSpendingIndex !== null && retailSpendingIndex !== undefined && (
+                <div className="p-3 bg-gradient-to-br from-[hsl(var(--feasibility-orange)/0.1)] to-transparent rounded-lg border border-[hsl(var(--feasibility-orange)/0.2)]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">Retail Spending</span>
+                    <Target className="h-3 w-3 text-[hsl(var(--feasibility-orange))]" />
+                  </div>
+                  <p className="text-xl font-bold font-mono text-[hsl(var(--feasibility-orange))]">{retailSpendingIndex.toFixed(0)}</p>
+                  <div className="w-full h-1 bg-muted rounded-full mt-1">
+                    <div className="h-full bg-[hsl(var(--feasibility-orange))] rounded-full" style={{ width: `${retailSpendingIndex}%` }} />
+                  </div>
+                </div>
+              )}
+              {workforceAvailabilityScore !== null && workforceAvailabilityScore !== undefined && (
+                <div className="p-3 bg-gradient-to-br from-[hsl(var(--data-cyan)/0.1)] to-transparent rounded-lg border border-[hsl(var(--data-cyan)/0.2)]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">Workforce</span>
+                    <Briefcase className="h-3 w-3 text-[hsl(var(--data-cyan))]" />
+                  </div>
+                  <p className="text-xl font-bold font-mono text-[hsl(var(--data-cyan))]">{workforceAvailabilityScore.toFixed(0)}</p>
+                  <div className="w-full h-1 bg-muted rounded-full mt-1">
+                    <div className="h-full bg-[hsl(var(--data-cyan))] rounded-full" style={{ width: `${workforceAvailabilityScore}%` }} />
+                  </div>
+                </div>
+              )}
+              {growthPotentialIndex !== null && growthPotentialIndex !== undefined && (
+                <div className="p-3 bg-gradient-to-br from-green-500/10 to-transparent rounded-lg border border-green-500/20">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-muted-foreground">Growth Potential</span>
+                    <TrendingUp className="h-3 w-3 text-green-500" />
+                  </div>
+                  <p className="text-xl font-bold font-mono text-green-600 dark:text-green-400">{growthPotentialIndex.toFixed(0)}</p>
+                  <div className="w-full h-1 bg-muted rounded-full mt-1">
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${growthPotentialIndex}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+            {(growthTrajectory || marketOutlook) && (
+              <div className="flex gap-2 mt-2">
+                {growthTrajectory && (
+                  <Badge className={cn(
+                    "text-xs",
+                    growthTrajectory === "rapid" && "bg-green-500/20 text-green-700 dark:text-green-400",
+                    growthTrajectory === "steady" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
+                    growthTrajectory === "stable" && "bg-gray-500/20 text-gray-700 dark:text-gray-400",
+                    growthTrajectory === "declining" && "bg-red-500/20 text-red-700 dark:text-red-400"
+                  )}>
+                    {growthTrajectory.charAt(0).toUpperCase() + growthTrajectory.slice(1)} Growth
+                  </Badge>
+                )}
+                {marketOutlook && (
+                  <Badge variant="outline" className="text-xs">
+                    {marketOutlook.charAt(0).toUpperCase() + marketOutlook.slice(1)} Market
+                  </Badge>
+                )}
+              </div>
+            )}
           </div>
         )}
       </CardContent>
