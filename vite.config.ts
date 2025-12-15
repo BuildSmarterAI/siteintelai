@@ -1,7 +1,18 @@
+/**
+ * SiteIntel™ Feasibility Platform
+ * Copyright (c) 2024-2025 BuildSmarter Technologies, Inc.
+ * All rights reserved. Unauthorized copying, modification, or distribution
+ * of this software or its components is strictly prohibited.
+ * 
+ * PROPRIETARY AND CONFIDENTIAL
+ */
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+// @ts-ignore - no types available
+import obfuscatorPlugin from "vite-plugin-obfuscator";
 import type { Plugin } from "vite";
 
 // Custom plugin to make CSS non-blocking
@@ -9,7 +20,6 @@ function deferCSS(): Plugin {
   return {
     name: 'defer-css',
     transformIndexHtml(html) {
-      // Replace blocking CSS links with async loading pattern
       return html.replace(
         /<link rel="stylesheet" crossorigin href="(\/assets\/index-[^"]+\.css)">/g,
         '<link rel="preload" as="style" href="$1" onload="this.onload=null;this.rel=\'stylesheet\'">' +
@@ -28,7 +38,23 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     react(), 
     mode === "development" && componentTagger(),
-    mode === "production" && deferCSS()
+    mode === "production" && deferCSS(),
+    mode === "production" && obfuscatorPlugin({
+      options: {
+        compact: true,
+        controlFlowFlattening: false,
+        deadCodeInjection: false,
+        debugProtection: false,
+        disableConsoleOutput: true,
+        identifierNamesGenerator: 'hexadecimal',
+        renameGlobals: false,
+        rotateStringArray: true,
+        selfDefending: false,
+        stringArray: true,
+        stringArrayThreshold: 0.75,
+        unicodeEscapeSequence: false
+      }
+    })
   ].filter(Boolean),
   resolve: {
     alias: {
