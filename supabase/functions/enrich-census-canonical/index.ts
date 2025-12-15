@@ -367,9 +367,24 @@ serve(async (req) => {
     const ownerOccupied = Math.floor(occupiedHousing * 0.6); // TX average ~60% owner
     const renterOccupied = occupiedHousing - ownerOccupied;
     
-    const employed = parseFloat(bqRow.employed_pop) || 0;
-    const unemployed = parseFloat(bqRow.unemployed_pop) || 0;
-    const laborForce = employed + unemployed;
+    // ============= FIX: Employment data with fallback derivation =============
+    // BigQuery sometimes returns NULL for employed_pop but valid unemployed_pop
+    let employed = parseFloat(bqRow.employed_pop);
+    let unemployed = parseFloat(bqRow.unemployed_pop);
+    
+    // Handle NaN from null values
+    if (isNaN(employed)) employed = 0;
+    if (isNaN(unemployed)) unemployed = 0;
+    
+    let laborForce = employed + unemployed;
+    
+    // If employed is 0 but unemployed > 0, derive employed from typical rates
+    if (employed === 0 && unemployed > 0) {
+      employed = Math.round(unemployed / 0.05 * 0.95);
+      laborForce = employed + unemployed;
+      console.warn(`[enrich-census-canonical] Derived employed_pop for ${tractFips}: ${employed} (unemployed: ${unemployed})`);
+    }
+    
     const wfhPop = parseFloat(bqRow.worked_at_home) || 0;
     
     // Education
@@ -384,7 +399,13 @@ serve(async (req) => {
     const vacancyRate = totalHousing > 0 ? (vacantHousing / totalHousing) * 100 : 0;
     const ownerOccupiedPct = occupiedHousing > 0 ? (ownerOccupied / occupiedHousing) * 100 : 0;
     const renterOccupiedPct = occupiedHousing > 0 ? (renterOccupied / occupiedHousing) * 100 : 0;
-    const unemploymentRate = laborForce > 0 ? (unemployed / laborForce) * 100 : 0;
+    
+    // ============= FIX: Unemployment rate with bounds validation =============
+    let unemploymentRate = laborForce > 0 ? (unemployed / laborForce) * 100 : 0;
+    if (unemploymentRate > 30) {
+      console.warn(`[enrich-census-canonical] Capping unrealistic unemployment ${unemploymentRate.toFixed(1)}% to 30% for ${tractFips}`);
+      unemploymentRate = 30;
+    }
     const bachelorsPct = totalPop > 0 ? (bachelors / totalPop) * 100 : 0;
     const graduatePct = totalPop > 0 ? (graduate / totalPop) * 100 : 0;
     const povertyRate = totalPop > 0 ? (povertyPop / totalPop) * 100 : 0;
