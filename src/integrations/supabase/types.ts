@@ -3861,6 +3861,139 @@ export type Database = {
           },
         ]
       }
+      parcel_utility_assignments: {
+        Row: {
+          application_id: string | null
+          centroid: unknown
+          conflict_details: Json | null
+          created_at: string
+          distance_to_sewer_main_ft: number | null
+          distance_to_water_main_ft: number | null
+          estimated_impact_fees: number | null
+          estimated_sewer_tap_cost: number | null
+          estimated_total_utility_cost: number | null
+          estimated_water_tap_cost: number | null
+          expires_at: string
+          has_conflicts: boolean | null
+          id: string
+          is_kill_factor: boolean | null
+          kill_factor_reason: string | null
+          parcel_id: string | null
+          resolution_confidence: number | null
+          resolved_at: string
+          sewer_provider_id: string | null
+          sewer_resolution_method: string | null
+          sewer_serviceability: string | null
+          storm_provider_id: string | null
+          storm_resolution_method: string | null
+          updated_at: string
+          water_provider_id: string | null
+          water_resolution_method: string | null
+          water_serviceability: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          centroid?: unknown
+          conflict_details?: Json | null
+          created_at?: string
+          distance_to_sewer_main_ft?: number | null
+          distance_to_water_main_ft?: number | null
+          estimated_impact_fees?: number | null
+          estimated_sewer_tap_cost?: number | null
+          estimated_total_utility_cost?: number | null
+          estimated_water_tap_cost?: number | null
+          expires_at?: string
+          has_conflicts?: boolean | null
+          id?: string
+          is_kill_factor?: boolean | null
+          kill_factor_reason?: string | null
+          parcel_id?: string | null
+          resolution_confidence?: number | null
+          resolved_at?: string
+          sewer_provider_id?: string | null
+          sewer_resolution_method?: string | null
+          sewer_serviceability?: string | null
+          storm_provider_id?: string | null
+          storm_resolution_method?: string | null
+          updated_at?: string
+          water_provider_id?: string | null
+          water_resolution_method?: string | null
+          water_serviceability?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          centroid?: unknown
+          conflict_details?: Json | null
+          created_at?: string
+          distance_to_sewer_main_ft?: number | null
+          distance_to_water_main_ft?: number | null
+          estimated_impact_fees?: number | null
+          estimated_sewer_tap_cost?: number | null
+          estimated_total_utility_cost?: number | null
+          estimated_water_tap_cost?: number | null
+          expires_at?: string
+          has_conflicts?: boolean | null
+          id?: string
+          is_kill_factor?: boolean | null
+          kill_factor_reason?: string | null
+          parcel_id?: string | null
+          resolution_confidence?: number | null
+          resolved_at?: string
+          sewer_provider_id?: string | null
+          sewer_resolution_method?: string | null
+          sewer_serviceability?: string | null
+          storm_provider_id?: string | null
+          storm_resolution_method?: string | null
+          updated_at?: string
+          water_provider_id?: string | null
+          water_resolution_method?: string | null
+          water_serviceability?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcel_utility_assignments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcel_utility_assignments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "parcel_utility_assignments_parcel_id_fkey"
+            columns: ["parcel_id"]
+            isOneToOne: false
+            referencedRelation: "parcels"
+            referencedColumns: ["parcel_uuid"]
+          },
+          {
+            foreignKeyName: "parcel_utility_assignments_sewer_provider_id_fkey"
+            columns: ["sewer_provider_id"]
+            isOneToOne: false
+            referencedRelation: "utility_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcel_utility_assignments_storm_provider_id_fkey"
+            columns: ["storm_provider_id"]
+            isOneToOne: false
+            referencedRelation: "utility_providers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parcel_utility_assignments_water_provider_id_fkey"
+            columns: ["water_provider_id"]
+            isOneToOne: false
+            referencedRelation: "utility_providers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       parcels: {
         Row: {
           acreage: number | null
@@ -5453,6 +5586,114 @@ export type Database = {
         }
         Relationships: []
       }
+      utility_providers: {
+        Row: {
+          accepts_new_connections: boolean | null
+          accuracy_tier: number | null
+          capacity_notes: string | null
+          capacity_status: string | null
+          ccn_number: string | null
+          cities_served: string[] | null
+          confidence: number | null
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          counties_served: string[] | null
+          created_at: string
+          data_source: string | null
+          fee_schedule: Json | null
+          fee_schedule_effective_date: string | null
+          fee_schedule_source: string | null
+          id: string
+          last_verified_at: string | null
+          mailing_address: string | null
+          physical_address: string | null
+          primary_county: string | null
+          provider_name: string
+          provider_type: string
+          provides_reclaimed: boolean | null
+          provides_sewer: boolean | null
+          provides_storm: boolean | null
+          provides_water: boolean | null
+          service_area_geom: unknown
+          service_area_sqmi: number | null
+          source_url: string | null
+          tceq_id: string | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          accepts_new_connections?: boolean | null
+          accuracy_tier?: number | null
+          capacity_notes?: string | null
+          capacity_status?: string | null
+          ccn_number?: string | null
+          cities_served?: string[] | null
+          confidence?: number | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          counties_served?: string[] | null
+          created_at?: string
+          data_source?: string | null
+          fee_schedule?: Json | null
+          fee_schedule_effective_date?: string | null
+          fee_schedule_source?: string | null
+          id?: string
+          last_verified_at?: string | null
+          mailing_address?: string | null
+          physical_address?: string | null
+          primary_county?: string | null
+          provider_name: string
+          provider_type: string
+          provides_reclaimed?: boolean | null
+          provides_sewer?: boolean | null
+          provides_storm?: boolean | null
+          provides_water?: boolean | null
+          service_area_geom?: unknown
+          service_area_sqmi?: number | null
+          source_url?: string | null
+          tceq_id?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          accepts_new_connections?: boolean | null
+          accuracy_tier?: number | null
+          capacity_notes?: string | null
+          capacity_status?: string | null
+          ccn_number?: string | null
+          cities_served?: string[] | null
+          confidence?: number | null
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          counties_served?: string[] | null
+          created_at?: string
+          data_source?: string | null
+          fee_schedule?: Json | null
+          fee_schedule_effective_date?: string | null
+          fee_schedule_source?: string | null
+          id?: string
+          last_verified_at?: string | null
+          mailing_address?: string | null
+          physical_address?: string | null
+          primary_county?: string | null
+          provider_name?: string
+          provider_type?: string
+          provides_reclaimed?: boolean | null
+          provides_sewer?: boolean | null
+          provides_storm?: boolean | null
+          provides_water?: boolean | null
+          service_area_geom?: unknown
+          service_area_sqmi?: number | null
+          source_url?: string | null
+          tceq_id?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       visualization_cache_3d: {
         Row: {
           application_id: string
@@ -6370,6 +6611,44 @@ export type Database = {
           technology: string
         }[]
       }
+      get_cached_utility_assignment: {
+        Args: { p_lat: number; p_lng: number; p_tolerance_meters?: number }
+        Returns: {
+          application_id: string | null
+          centroid: unknown
+          conflict_details: Json | null
+          created_at: string
+          distance_to_sewer_main_ft: number | null
+          distance_to_water_main_ft: number | null
+          estimated_impact_fees: number | null
+          estimated_sewer_tap_cost: number | null
+          estimated_total_utility_cost: number | null
+          estimated_water_tap_cost: number | null
+          expires_at: string
+          has_conflicts: boolean | null
+          id: string
+          is_kill_factor: boolean | null
+          kill_factor_reason: string | null
+          parcel_id: string | null
+          resolution_confidence: number | null
+          resolved_at: string
+          sewer_provider_id: string | null
+          sewer_resolution_method: string | null
+          sewer_serviceability: string | null
+          storm_provider_id: string | null
+          storm_resolution_method: string | null
+          updated_at: string
+          water_provider_id: string | null
+          water_resolution_method: string | null
+          water_serviceability: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "parcel_utility_assignments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_ccn_for_parcel: {
         Args: { parcel_geom: unknown }
         Returns: {
@@ -6586,6 +6865,21 @@ export type Database = {
           owner: string
           status: string
           utility_type: string
+        }[]
+      }
+      get_utility_providers_for_point: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: {
+          capacity_status: string
+          ccn_number: string
+          confidence: number
+          fee_schedule: Json
+          provider_id: string
+          provider_name: string
+          provider_type: string
+          provides_sewer: boolean
+          provides_storm: boolean
+          provides_water: boolean
         }[]
       }
       get_wells_near_parcel: {
