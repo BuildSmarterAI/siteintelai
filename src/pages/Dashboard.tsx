@@ -20,6 +20,8 @@ import { IntentBadge } from "@/components/IntentBadge";
 import { ReportCardSkeleton, StatsCardSkeleton } from "@/components/ui/report-skeleton";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { triggerDataPulse } from "@/lib/data-pulse-effect";
+import { useOAuthErrorHandler } from "@/hooks/useOAuthErrorHandler";
+import { OAuthDebugPanel } from "@/components/OAuthDebugPanel";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -49,6 +51,9 @@ export default function Dashboard() {
   const { bulkReEnrich, loading: bulkReEnrichLoading } = useBulkReEnrich();
   const [showTour, setShowTour] = useState(false);
   const [reportStatuses, setReportStatuses] = useState<Record<string, string>>({});
+  
+  // OAuth error handler for detecting redirect errors
+  const { error: oauthError, showDebugPanel, setShowDebugPanel, copyDebugInfo } = useOAuthErrorHandler();
 
   useEffect(() => {
     checkAuth();
@@ -397,6 +402,12 @@ export default function Dashboard() {
 
   return (
     <SidebarProvider>
+      <OAuthDebugPanel 
+        error={oauthError}
+        show={showDebugPanel}
+        onClose={() => setShowDebugPanel(false)}
+        onCopyDebugInfo={copyDebugInfo}
+      />
       <OnboardingTour 
         tourName="dashboard" 
         run={showTour} 
