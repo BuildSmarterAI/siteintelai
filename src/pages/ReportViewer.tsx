@@ -275,6 +275,14 @@ export default function ReportViewer() {
   const [isSavingParcel, setIsSavingParcel] = useState(false);
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
   const [editingParcel, setEditingParcel] = useState<any>(null);
+  const [countyComparison, setCountyComparison] = useState<{
+    avgMedianIncome?: number | null;
+    avgMedianHomeValue?: number | null;
+    avgVacancyRate?: number | null;
+    avgUnemploymentRate?: number | null;
+    avgMedianRent?: number | null;
+    tractCount?: number | null;
+  } | null>(null);
 
   // Feature flag for MapLibre GL
   const useMapLibre = import.meta.env.VITE_USE_MAPLIBRE === 'true';
@@ -312,6 +320,47 @@ export default function ReportViewer() {
     }
     fetchGeospatialData();
   }, [report?.application_id]);
+
+  // Fetch county comparison demographics
+  useEffect(() => {
+    if (!report?.applications?.census_block_group) return;
+    
+    // Extract county FIPS from census block group (format: STATE(2) + COUNTY(3) + TRACT(6) + BLOCK(1))
+    // census_block_group is typically 12 digits: SSCCCTTTTTTB
+    const geoid = report.applications.census_block_group;
+    const countyFips = geoid?.length >= 5 ? geoid.substring(2, 5) : null;
+    
+    if (!countyFips) return;
+    
+    async function fetchCountyComparison() {
+      try {
+        const { data, error } = await supabase.rpc('get_county_demographics', {
+          p_county_fips: countyFips
+        });
+        
+        if (error) {
+          console.warn('County demographics fetch failed:', error);
+          return;
+        }
+        
+        if (data && data.length > 0) {
+          const county = data[0];
+          setCountyComparison({
+            avgMedianIncome: county.avg_median_income,
+            avgMedianHomeValue: county.avg_median_home_value,
+            avgVacancyRate: county.avg_vacancy_rate,
+            avgUnemploymentRate: county.avg_unemployment_rate,
+            avgMedianRent: county.avg_median_rent,
+            tractCount: county.tract_count,
+          });
+        }
+      } catch (err) {
+        console.warn('Error fetching county comparison:', err);
+      }
+    }
+    
+    fetchCountyComparison();
+  }, [report?.applications?.census_block_group]);
   useEffect(() => {
     if (reportId) {
       checkAuthAndFetchReport();
@@ -2074,6 +2123,10 @@ export default function ReportViewer() {
               growthTrajectory={report.applications?.growth_trajectory}
               marketOutlook={report.applications?.market_outlook}
               demographicsSource={report.applications?.demographics_source === 'census_moat' ? 'canonical' : undefined}
+              censusGeoid={report.applications?.census_block_group}
+              countyFips={report.applications?.census_block_group?.substring(2, 5)}
+              acsVintage={report.applications?.census_vintage}
+              countyComparison={countyComparison}
               className="mt-6"
             />
           </section>

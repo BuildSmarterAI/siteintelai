@@ -6384,6 +6384,22 @@ export type Database = {
           utility_name: string
         }[]
       }
+      get_county_demographics: {
+        Args: { p_county_fips: string }
+        Returns: {
+          avg_college_attainment_pct: number
+          avg_median_age: number
+          avg_median_home_value: number
+          avg_median_income: number
+          avg_median_rent: number
+          avg_unemployment_rate: number
+          avg_vacancy_rate: number
+          county_fips: string
+          total_housing_units: number
+          total_population: number
+          tract_count: number
+        }[]
+      }
       get_demographics_for_point: {
         Args: { p_lat: number; p_lng: number }
         Returns: {
@@ -6395,78 +6411,48 @@ export type Database = {
           bachelors_pct: number
           black_pct: number
           blue_collar_pct: number
-          carpool_pct: number
-          commute_over_60min_pct: number
-          commute_under_30min_pct: number
           confidence: number
           county_fips: string
           daytime_population_estimate: number
           drive_alone_pct: number
-          employed_population: number
           geoid: string
           gini_index: number
           graduate_degree_pct: number
           growth_potential_index: number
-          growth_trajectory: string
-          healthcare_workers: number
           high_school_only_pct: number
           hispanic_pct: number
-          housing_value_cagr: number
-          income_50k_100k_pct: number
-          income_above_100k_pct: number
-          income_below_50k_pct: number
-          income_cagr: number
           labor_force: number
           labor_pool_depth: number
-          less_than_high_school_pct: number
-          manufacturing_workers: number
-          market_outlook: string
           mean_commute_time_min: number
           mean_household_income: number
           median_age: number
-          median_earnings: number
           median_home_value: number
-          median_home_value_5yr_projection: number
           median_household_income: number
-          median_income_5yr_projection: number
           median_rent: number
-          median_rent_5yr_projection: number
-          median_rooms: number
           median_year_built: number
           multi_family_pct: number
-          occupied_housing_units: number
           over_65_pct: number
           owner_occupied_pct: number
           per_capita_income: number
-          population_5yr_projection: number
-          population_cagr: number
           population_density_sqmi: number
           poverty_rate: number
-          professional_services_workers: number
-          projection_confidence: number
           public_transit_pct: number
-          rent_cagr: number
           renter_occupied_pct: number
           retail_spending_index: number
-          retail_workers: number
           service_sector_pct: number
           single_family_pct: number
-          snap_recipients_pct: number
           some_college_pct: number
-          source_dataset: string
-          stem_degree_pct: number
-          top_industries: Json
+          state_fips: string
           total_housing_units: number
           total_population: number
-          two_or_more_races_pct: number
+          tract_geom_geojson: string
+          tract_id: string
           under_18_pct: number
           unemployment_rate: number
           vacancy_rate: number
-          vacant_housing_units: number
           walk_bike_pct: number
           white_collar_pct: number
           white_pct: number
-          work_from_home_commute_pct: number
           work_from_home_pct: number
           workforce_availability_score: number
           working_age_pct: number

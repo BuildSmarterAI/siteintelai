@@ -1,7 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Home, DollarSign, Briefcase, GraduationCap, Users, TrendingDown, Building, TrendingUp, Target, Sparkles } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Home, DollarSign, Briefcase, GraduationCap, Users, TrendingDown, Building, TrendingUp, Target, Sparkles, MapPin, ArrowUp, ArrowDown, Minus, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCountyName } from "@/lib/texasCounties";
+
+interface CountyComparison {
+  avgMedianIncome?: number | null;
+  avgMedianHomeValue?: number | null;
+  avgVacancyRate?: number | null;
+  avgUnemploymentRate?: number | null;
+  avgMedianRent?: number | null;
+  tractCount?: number | null;
+}
 
 interface ExtendedDemographicsCardProps {
   medianHomeValue?: number | null;
@@ -21,6 +32,12 @@ interface ExtendedDemographicsCardProps {
   growthTrajectory?: string | null;
   marketOutlook?: string | null;
   demographicsSource?: string | null;
+  // NEW: Tract identification
+  censusGeoid?: string | null;
+  countyFips?: string | null;
+  acsVintage?: string | null;
+  // NEW: County comparison metrics
+  countyComparison?: CountyComparison | null;
   className?: string;
 }
 
@@ -41,6 +58,10 @@ export function ExtendedDemographicsCard({
   growthTrajectory,
   marketOutlook,
   demographicsSource,
+  censusGeoid,
+  countyFips,
+  acsVintage,
+  countyComparison,
   className
 }: ExtendedDemographicsCardProps) {
   // Check if we have any data to display
@@ -67,6 +88,44 @@ export function ExtendedDemographicsCard({
     return { label: 'High Unemployment', color: 'bg-red-500/20 text-red-700 dark:text-red-400' };
   };
 
+  // Calculate delta percentage between tract and county values
+  const calcDelta = (tractVal: number | null | undefined, countyVal: number | null | undefined) => {
+    if (!tractVal || !countyVal || countyVal === 0) return null;
+    return ((tractVal - countyVal) / countyVal) * 100;
+  };
+
+  const DeltaIndicator = ({ delta }: { delta: number | null }) => {
+    if (delta === null) return null;
+    const isPositive = delta > 0;
+    const isNeutral = Math.abs(delta) < 2;
+    
+    if (isNeutral) {
+      return (
+        <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+          <Minus className="h-3 w-3" />
+          ~0%
+        </span>
+      );
+    }
+    
+    return (
+      <span className={cn(
+        "flex items-center gap-0.5 text-xs font-medium",
+        isPositive ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+      )}>
+        {isPositive ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+        {isPositive ? '+' : ''}{delta.toFixed(0)}%
+      </span>
+    );
+  };
+
+  const countyName = formatCountyName(countyFips);
+  const hasCountyComparison = countyComparison && (
+    countyComparison.avgMedianHomeValue ||
+    countyComparison.avgVacancyRate ||
+    countyComparison.avgUnemploymentRate
+  );
+
   return (
     <Card className={cn(
       "glass-card overflow-hidden border-l-4 border-l-indigo-500",
@@ -79,19 +138,50 @@ export function ExtendedDemographicsCard({
         </div>
         
         <div className="relative z-10">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2 text-white">
               <Building className="h-5 w-5 text-indigo-400" />
               Housing & Employment
             </CardTitle>
-            <Badge variant="outline" className={cn(
-              "text-xs font-mono",
-              demographicsSource === "canonical" 
-                ? "bg-[hsl(var(--feasibility-orange)/0.2)] border-[hsl(var(--feasibility-orange)/0.4)] text-[hsl(var(--feasibility-orange))]"
-                : "bg-white/10 border-white/20 text-white"
-            )}>
-              {demographicsSource === "canonical" ? "SITEINTEL CENSUS MOAT" : "CENSUS ACS"}
-            </Badge>
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Census Tract GEOID Badge */}
+              {censusGeoid && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-xs font-mono bg-white/10 border-white/20 text-white cursor-help">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        Tract {censusGeoid.slice(-6)}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p className="font-semibold mb-1">Census Tract {censusGeoid}</p>
+                      <p className="text-xs text-muted-foreground">
+                        This report uses demographic data from Census Tract {censusGeoid}, 
+                        the statistical area containing your parcel.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              
+              {/* ACS Vintage Badge */}
+              {acsVintage && (
+                <Badge variant="outline" className="text-xs font-mono bg-white/10 border-white/20 text-white">
+                  ACS {acsVintage}
+                </Badge>
+              )}
+              
+              {/* Source Badge */}
+              <Badge variant="outline" className={cn(
+                "text-xs font-mono",
+                demographicsSource === "canonical" 
+                  ? "bg-[hsl(var(--feasibility-orange)/0.2)] border-[hsl(var(--feasibility-orange)/0.4)] text-[hsl(var(--feasibility-orange))]"
+                  : "bg-white/10 border-white/20 text-white"
+              )}>
+                {demographicsSource === "canonical" ? "SITEINTEL CENSUS MOAT" : "CENSUS ACS"}
+              </Badge>
+            </div>
           </div>
           
           {/* Key Metrics Strip */}
@@ -114,6 +204,64 @@ export function ExtendedDemographicsCard({
       </CardHeader>
 
       <CardContent className="pt-6 space-y-6">
+        {/* County Comparison Section */}
+        {hasCountyComparison && (
+          <div className="p-4 bg-gradient-to-r from-[hsl(var(--data-cyan)/0.1)] to-[hsl(var(--data-cyan)/0.05)] rounded-xl border border-[hsl(var(--data-cyan)/0.2)]">
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="h-4 w-4 text-[hsl(var(--data-cyan))]" />
+              <h4 className="font-semibold text-sm">Tract vs. {countyName}</h4>
+              {countyComparison?.tractCount && (
+                <span className="text-xs text-muted-foreground">
+                  ({countyComparison.tractCount} tracts in county)
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* Median Home Value Comparison */}
+              {medianHomeValue && countyComparison?.avgMedianHomeValue && (
+                <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Median Home</p>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-bold text-sm">{formatCurrency(medianHomeValue)}</span>
+                    <DeltaIndicator delta={calcDelta(medianHomeValue, countyComparison.avgMedianHomeValue)} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    vs {formatCurrency(countyComparison.avgMedianHomeValue)} avg
+                  </p>
+                </div>
+              )}
+              
+              {/* Vacancy Rate Comparison */}
+              {vacancyRate !== null && vacancyRate !== undefined && countyComparison?.avgVacancyRate && (
+                <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Vacancy Rate</p>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-bold text-sm">{vacancyRate.toFixed(1)}%</span>
+                    <DeltaIndicator delta={calcDelta(vacancyRate, countyComparison.avgVacancyRate) ? -calcDelta(vacancyRate, countyComparison.avgVacancyRate)! : null} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    vs {countyComparison.avgVacancyRate.toFixed(1)}% avg
+                  </p>
+                </div>
+              )}
+              
+              {/* Unemployment Comparison */}
+              {unemploymentRate !== null && unemploymentRate !== undefined && countyComparison?.avgUnemploymentRate && (
+                <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Unemployment</p>
+                  <div className="flex items-baseline justify-between">
+                    <span className="font-bold text-sm">{unemploymentRate.toFixed(1)}%</span>
+                    <DeltaIndicator delta={calcDelta(unemploymentRate, countyComparison.avgUnemploymentRate) ? -calcDelta(unemploymentRate, countyComparison.avgUnemploymentRate)! : null} />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    vs {countyComparison.avgUnemploymentRate.toFixed(1)}% avg
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Housing Market */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {medianHomeValue && (
