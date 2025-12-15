@@ -335,7 +335,82 @@
       "last_validated": "2025-12-15"
     }
   },
+  "harris_county": {
+    "hcfcd_channels": {
+      "name": "HCFCD Storm Drainage Channels (Countywide)",
+      "url": "https://www.gis.hctx.net/arcgishcpid/rest/services/HCFCD/HCFCDData/MapServer/1/query",
+      "outFields": ["UNIT_NO", "CHAN_NAME", "MAINT_RESP", "LENGTH_FT", "TYPE"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 2278,
+      "timeout_ms": 15000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "search_radius_ft": 1000,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Harris County Flood Control District drainage channels. Covers entire Harris County including ETJ areas. Unit numbers like 'J126' identify channels.",
+      "test_url": "https://www.gis.hctx.net/arcgishcpid/rest/services/HCFCD/HCFCDData/MapServer/1/query?geometry=-95.4175,30.0783&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=1000&units=esriSRUnit_Foot&outFields=UNIT_NO,CHAN_NAME,MAINT_RESP,LENGTH_FT,TYPE&returnGeometry=true&f=json",
+      "last_validated": "2025-12-15"
+    },
+    "hcfcd_outfalls": {
+      "name": "HCFCD Major Outfalls (Countywide)",
+      "url": "https://www.gis.hctx.net/arcgishcpid/rest/services/HCFCD/HCFCDData/MapServer/0/query",
+      "outFields": ["OUTFALL_ID", "UNIT_NO", "OUTFALL_TYPE", "DIAMETER", "MATERIAL"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 2278,
+      "timeout_ms": 12000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "search_radius_ft": 500,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "HCFCD major stormwater outfalls (points). Used for drainage connectivity analysis.",
+      "test_url": "https://www.gis.hctx.net/arcgishcpid/rest/services/HCFCD/HCFCDData/MapServer/0/query?geometry=-95.4175,30.0783&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Foot&outFields=OUTFALL_ID,UNIT_NO,OUTFALL_TYPE,DIAMETER,MATERIAL&returnGeometry=true&f=json",
+      "last_validated": "2025-12-15"
+    },
+    "hcfcd_detention": {
+      "name": "HCFCD Detention Basins (Countywide)",
+      "url": "https://www.gis.hctx.net/arcgishcpid/rest/services/HCFCD/HCFCDData/MapServer/2/query",
+      "outFields": ["BASIN_NAME", "UNIT_NO", "STORAGE_AF", "STATUS", "MAINT_RESP"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 2278,
+      "timeout_ms": 12000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "search_radius_ft": 2640,
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "HCFCD regional detention basins. Half-mile search radius for drainage impact analysis.",
+      "test_url": "https://www.gis.hctx.net/arcgishcpid/rest/services/HCFCD/HCFCDData/MapServer/2/query?geometry=-95.4175,30.0783&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&distance=2640&units=esriSRUnit_Foot&outFields=BASIN_NAME,UNIT_NO,STORAGE_AF,STATUS,MAINT_RESP&returnGeometry=true&f=json",
+      "last_validated": "2025-12-15"
+    }
+  },
   "texas_statewide": {
+    "puc_ccn_water_areas": {
+      "name": "PUC CCN Water Service Areas (Texas Statewide)",
+      "url": "https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/1/query",
+      "outFields": ["CCN_NAME", "CCN_NO", "UTILITY_TYPE", "STATUS"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
+      "timeout_ms": 15000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Texas PUC Certificate of Convenience and Necessity water service areas. Authoritative source for water utility jurisdiction.",
+      "test_url": "https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/1/query?geometry=-95.4175,30.0783&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=CCN_NAME,CCN_NO,UTILITY_TYPE,STATUS&returnGeometry=false&f=json",
+      "last_validated": "2025-12-15"
+    },
+    "puc_ccn_sewer_areas": {
+      "name": "PUC CCN Sewer Service Areas (Texas Statewide)",
+      "url": "https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/2/query",
+      "outFields": ["CCN_NAME", "CCN_NO", "UTILITY_TYPE", "STATUS"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
+      "timeout_ms": 15000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [1000, 2000],
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Texas PUC Certificate of Convenience and Necessity sewer service areas. Authoritative source for sewer utility jurisdiction.",
+      "test_url": "https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/2/query?geometry=-95.4175,30.0783&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=CCN_NAME,CCN_NO,UTILITY_TYPE,STATUS&returnGeometry=false&f=json",
+      "last_validated": "2025-12-15"
+    },
     "tceq": {
       "name": "TCEQ Water Districts Map Viewer",
       "url": "https://www.tceq.texas.gov/gis/iwudview.html",
