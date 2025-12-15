@@ -191,6 +191,13 @@ interface Report {
     college_attainment_pct?: number | null;
     total_housing_units?: number | null;
     labor_force?: number | null;
+    // Proprietary CRE Indices (Census Data Moat)
+    retail_spending_index?: number | null;
+    workforce_availability_score?: number | null;
+    growth_potential_index?: number | null;
+    growth_trajectory?: string | null;
+    market_outlook?: string | null;
+    demographics_source?: string | null;
     // Google Maps integration
     drivetimes?: Array<{
       destination: string;
@@ -2032,6 +2039,12 @@ export default function ReportViewer() {
               collegeAttainmentPct={report.applications?.college_attainment_pct}
               totalHousingUnits={report.applications?.total_housing_units}
               laborForce={report.applications?.labor_force}
+              retailSpendingIndex={report.applications?.retail_spending_index}
+              workforceAvailabilityScore={report.applications?.workforce_availability_score}
+              growthPotentialIndex={report.applications?.growth_potential_index}
+              growthTrajectory={report.applications?.growth_trajectory}
+              marketOutlook={report.applications?.market_outlook}
+              demographicsSource={report.applications?.demographics_source === 'census_moat' ? 'canonical' : undefined}
               className="mt-6"
             />
           </section>
