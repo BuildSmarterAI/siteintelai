@@ -1369,7 +1369,7 @@ async function fetchMobilityData(lat: number, lng: number, googleApiKey: string)
   }
 }
 
-// Helper function to fetch Census demographics
+// Helper function to fetch Census demographics with extended ACS variables
 async function fetchDemographics(lat: number, lng: number): Promise<any> {
   try {
     // First, get the census tract for the coordinates
@@ -1385,19 +1385,75 @@ async function fetchDemographics(lat: number, lng: number): Promise<any> {
     const county = tract.substring(2, 5);
     const tractNum = tract.substring(5);
     
-    // Population, income, households
-    const varsUrl = `${CENSUS_ACS_BASE}?get=NAME,B01003_001E,B19013_001E,B11001_001E,B01003_001E&for=tract:${tractNum}&in=state:${state}%20county:${county}`;
+    // Extended ACS variables:
+    // B01003_001E - Total Population
+    // B19013_001E - Median Household Income
+    // B11001_001E - Total Households
+    // B25077_001E - Median Home Value
+    // B25064_001E - Median Gross Rent
+    // B25002_002E - Occupied Housing Units
+    // B25002_003E - Vacant Housing Units
+    // B23025_005E - Unemployed (in labor force)
+    // B23025_002E - In Labor Force
+    // B01002_001E - Median Age
+    // B15003_022E - Bachelor's Degree holders
+    // B15003_001E - Population 25+ (for education %)
+    // B08303_001E - Total Commuters (for commute time proxy)
+    // B08303_012E - Commute 45-59 min (for avg commute estimate)
+    const varsUrl = `${CENSUS_ACS_BASE}?get=NAME,B01003_001E,B19013_001E,B11001_001E,B25077_001E,B25064_001E,B25002_002E,B25002_003E,B23025_005E,B23025_002E,B01002_001E,B15003_022E,B15003_001E&for=tract:${tractNum}&in=state:${state}%20county:${county}`;
+    console.log('[CENSUS] Fetching extended ACS data for tract:', tractNum);
+    
     const varsResp = await fetch(varsUrl);
     const varsData = await varsResp.json();
     
     if (varsData && varsData.length > 1) {
+      const row = varsData[1];
+      // Parse all variables
+      const totalPop = parseInt(row[1]) || null;
+      const medianIncome = parseInt(row[2]) || null;
+      const totalHouseholds = parseInt(row[3]) || null;
+      const medianHomeValue = parseInt(row[4]) || null;
+      const medianRent = parseInt(row[5]) || null;
+      const occupiedUnits = parseInt(row[6]) || 0;
+      const vacantUnits = parseInt(row[7]) || 0;
+      const unemployed = parseInt(row[8]) || 0;
+      const laborForce = parseInt(row[9]) || 0;
+      const medianAge = parseFloat(row[10]) || null;
+      const bachelors = parseInt(row[11]) || 0;
+      const pop25Plus = parseInt(row[12]) || 0;
+      
+      // Calculate derived metrics
+      const totalUnits = occupiedUnits + vacantUnits;
+      const vacancyRate = totalUnits > 0 ? (vacantUnits / totalUnits) * 100 : null;
+      const unemploymentRate = laborForce > 0 ? (unemployed / laborForce) * 100 : null;
+      const collegeAttainmentPct = pop25Plus > 0 ? (bachelors / pop25Plus) * 100 : null;
+      
+      console.log('[CENSUS] Extended data parsed:', {
+        medianHomeValue,
+        medianRent,
+        vacancyRate: vacancyRate?.toFixed(1),
+        unemploymentRate: unemploymentRate?.toFixed(1),
+        medianAge,
+        collegeAttainmentPct: collegeAttainmentPct?.toFixed(1)
+      });
+      
       return {
-        population_1mi: parseInt(varsData[1][1]) || null,
-        population_3mi: parseInt(varsData[1][1]) * 3 || null, // Approximation
-        population_5mi: parseInt(varsData[1][1]) * 5 || null, // Approximation
-        median_income: parseInt(varsData[1][2]) || null,
-        households_5mi: parseInt(varsData[1][3]) * 5 || null, // Approximation
-        growth_rate_5yr: null // Would need historical data
+        population_1mi: totalPop,
+        population_3mi: totalPop ? totalPop * 3 : null, // Approximation
+        population_5mi: totalPop ? totalPop * 5 : null, // Approximation
+        median_income: medianIncome,
+        households_5mi: totalHouseholds ? totalHouseholds * 5 : null, // Approximation
+        growth_rate_5yr: null, // Would need historical data
+        // Extended demographics
+        median_home_value: medianHomeValue,
+        median_rent: medianRent,
+        vacancy_rate: vacancyRate !== null ? Math.round(vacancyRate * 10) / 10 : null,
+        unemployment_rate: unemploymentRate !== null ? Math.round(unemploymentRate * 10) / 10 : null,
+        median_age: medianAge,
+        college_attainment_pct: collegeAttainmentPct !== null ? Math.round(collegeAttainmentPct * 10) / 10 : null,
+        total_housing_units: totalUnits > 0 ? totalUnits : null,
+        occupied_housing_units: occupiedUnits > 0 ? occupiedUnits : null,
+        labor_force: laborForce > 0 ? laborForce : null
       };
     }
     return {};

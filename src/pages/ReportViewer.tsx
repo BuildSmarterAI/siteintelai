@@ -37,6 +37,7 @@ import { ZoningCard } from "@/components/report/ZoningCard";
 import { SectionNav } from "@/components/report/SectionNav";
 import { TaxJurisdictionCard } from "@/components/report/TaxJurisdictionCard";
 import { EmploymentContextCard } from "@/components/report/EmploymentContextCard";
+import { ExtendedDemographicsCard } from "@/components/report/ExtendedDemographicsCard";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -181,6 +182,15 @@ interface Report {
     growth_rate_5yr?: number | null;
     median_income?: number | null;
     households_5mi?: number | null;
+    // Extended Census ACS demographics
+    median_home_value?: number | null;
+    median_rent?: number | null;
+    vacancy_rate?: number | null;
+    unemployment_rate?: number | null;
+    median_age?: number | null;
+    college_attainment_pct?: number | null;
+    total_housing_units?: number | null;
+    labor_force?: number | null;
     // Google Maps integration
     drivetimes?: Array<{
       destination: string;
@@ -2009,6 +2019,19 @@ export default function ReportViewer() {
               households5mi={report.applications?.households_5mi}
               growthRate5yr={report.applications?.growth_rate_5yr}
               verdict={marketDemographics.verdict}
+            />
+            
+            {/* Extended Housing & Employment Demographics */}
+            <ExtendedDemographicsCard
+              medianHomeValue={report.applications?.median_home_value}
+              medianRent={report.applications?.median_rent}
+              vacancyRate={report.applications?.vacancy_rate}
+              unemploymentRate={report.applications?.unemployment_rate}
+              medianAge={report.applications?.median_age}
+              collegeAttainmentPct={report.applications?.college_attainment_pct}
+              totalHousingUnits={report.applications?.total_housing_units}
+              laborForce={report.applications?.labor_force}
+              className="mt-6"
             />
           </section>
 
