@@ -27,6 +27,8 @@ const sections: Section[] = [
   { id: 'section-traffic', label: 'Traffic', icon: Car },
   { id: 'section-market', label: 'Market', icon: Users },
   { id: 'section-access', label: 'Access', icon: Route },
+  { id: 'section-tax', label: 'Tax & Incentives', icon: Landmark },
+  { id: 'section-employment', label: 'Employment', icon: Users },
 ];
 
 interface SectionNavProps {

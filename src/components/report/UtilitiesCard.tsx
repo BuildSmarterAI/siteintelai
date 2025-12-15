@@ -21,6 +21,9 @@ interface UtilitiesCardProps {
   broadbandProviders?: any[] | null;
   waterCapacity?: number | null;
   sewerCapacity?: number | null;
+  mudDistrict?: string | null;
+  etjProvider?: string | null;
+  wcidDistrict?: string | null;
   verdict?: string | null;
   className?: string;
 }
@@ -35,6 +38,9 @@ export function UtilitiesCard({
   broadbandProviders,
   waterCapacity,
   sewerCapacity,
+  mudDistrict,
+  etjProvider,
+  wcidDistrict,
   verdict,
   className
 }: UtilitiesCardProps) {
@@ -198,6 +204,36 @@ export function UtilitiesCard({
             </div>
           )}
         </div>
+
+        {/* Special Districts */}
+        {(mudDistrict || etjProvider || wcidDistrict) && (
+          <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+            <div className="flex items-center gap-2 mb-3">
+              <Cable className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Utility Districts & Providers</span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              {mudDistrict && (
+                <div>
+                  <p className="text-xs text-muted-foreground">MUD District</p>
+                  <p className="font-medium">{mudDistrict}</p>
+                </div>
+              )}
+              {etjProvider && (
+                <div>
+                  <p className="text-xs text-muted-foreground">ETJ Provider</p>
+                  <p className="font-medium">{etjProvider}</p>
+                </div>
+              )}
+              {wcidDistrict && (
+                <div>
+                  <p className="text-xs text-muted-foreground">WCID</p>
+                  <p className="font-medium">{wcidDistrict}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Broadband Providers */}
         {broadbandProviders && broadbandProviders.length > 0 && (

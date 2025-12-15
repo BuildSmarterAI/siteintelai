@@ -13,6 +13,9 @@ interface EnvironmentalCardProps {
   soilSlope?: number | null;
   environmentalSites?: any[] | null;
   epaFacilitiesCount?: number | null;
+  elevation?: number | null;
+  disasterDeclarations?: string | null;
+  environmentalConstraints?: string[] | null;
   verdict?: string | null;
   className?: string;
 }
@@ -26,6 +29,9 @@ export function EnvironmentalCard({
   soilSlope,
   environmentalSites = [],
   epaFacilitiesCount,
+  elevation,
+  disasterDeclarations,
+  environmentalConstraints,
   verdict,
   className
 }: EnvironmentalCardProps) {
@@ -188,6 +194,41 @@ export function EnvironmentalCard({
                 </div>
               )}
             </div>
+
+            {/* Elevation */}
+            {elevation && (
+              <div className="mt-4 pt-4 border-t border-amber-500/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Site Elevation</span>
+                  <span className="font-semibold font-mono">{elevation.toFixed(1)} ft</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Environmental Constraints */}
+        {environmentalConstraints && environmentalConstraints.length > 0 && (
+          <div className="p-4 bg-muted/20 rounded-xl border">
+            <h4 className="font-semibold mb-3 text-sm">Environmental Constraints</h4>
+            <div className="flex flex-wrap gap-2">
+              {environmentalConstraints.map((constraint, i) => (
+                <Badge key={i} variant="outline" className="text-xs">
+                  {constraint}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Disaster History */}
+        {disasterDeclarations && (
+          <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-xl border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-4 w-4 text-blue-500" />
+              <h4 className="font-semibold text-sm">FEMA Disaster History</h4>
+            </div>
+            <p className="text-sm text-muted-foreground">{disasterDeclarations}</p>
           </div>
         )}
 

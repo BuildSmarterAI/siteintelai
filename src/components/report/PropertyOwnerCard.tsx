@@ -19,6 +19,10 @@ interface PropertyOwnerCardProps {
   subdivision?: string | null;
   block?: string | null;
   lot?: string | null;
+  neighborhood?: string | null;
+  yearBuilt?: number | null;
+  bldgSqft?: number | null;
+  numStories?: number | null;
   updatedAt?: string | null;
   className?: string;
 }
@@ -35,6 +39,10 @@ export function PropertyOwnerCard({
   subdivision,
   block,
   lot,
+  neighborhood,
+  yearBuilt,
+  bldgSqft,
+  numStories,
   updatedAt,
   className,
 }: PropertyOwnerCardProps) {
@@ -177,6 +185,18 @@ export function PropertyOwnerCard({
             </motion.div>
           )}
 
+          {neighborhood && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.28 }}
+              className="p-3 bg-[hsl(var(--muted)/0.3)] rounded-lg border"
+            >
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Neighborhood</p>
+              <Badge variant="secondary">{neighborhood}</Badge>
+            </motion.div>
+          )}
+
           {block && (
             <motion.div
               initial={{ opacity: 0 }}
@@ -201,6 +221,38 @@ export function PropertyOwnerCard({
             </motion.div>
           )}
         </div>
+
+        {/* Building Characteristics */}
+        {(yearBuilt || bldgSqft || numStories) && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="p-4 bg-[hsl(var(--muted)/0.2)] rounded-lg border"
+          >
+            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Building Characteristics</p>
+            <div className="grid grid-cols-3 gap-4">
+              {yearBuilt && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Year Built</p>
+                  <p className="font-semibold font-mono">{yearBuilt}</p>
+                </div>
+              )}
+              {bldgSqft && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Building SF</p>
+                  <p className="font-semibold font-mono">{bldgSqft.toLocaleString()}</p>
+                </div>
+              )}
+              {numStories && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Stories</p>
+                  <p className="font-semibold font-mono">{numStories}</p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {/* Legal Description Callout */}
         {legalDescription && (
