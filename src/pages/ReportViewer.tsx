@@ -35,6 +35,8 @@ import { AccessCard } from "@/components/report/AccessCard";
 import { TopographyCard } from "@/components/report/TopographyCard";
 import { ZoningCard } from "@/components/report/ZoningCard";
 import { SectionNav } from "@/components/report/SectionNav";
+import { TaxJurisdictionCard } from "@/components/report/TaxJurisdictionCard";
+import { EmploymentContextCard } from "@/components/report/EmploymentContextCard";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -166,6 +168,10 @@ interface Report {
     average_permit_time_months?: number | null;
     city?: string | null;
     county?: string | null;
+    neighborhood?: string | null;
+    submarket_enriched?: string | null;
+    disaster_declarations?: string | null;
+    wcid_district?: string | null;
     // Market demographics - drive time
     drive_time_15min_population?: number | null;
     drive_time_30min_population?: number | null;
@@ -424,6 +430,9 @@ export default function ReportViewer() {
             average_permit_time_months,
             city,
             county,
+            neighborhood,
+            submarket_enriched,
+            disaster_declarations,
             drive_time_15min_population,
             drive_time_30min_population,
             population_1mi,
@@ -441,7 +450,16 @@ export default function ReportViewer() {
             storm_lines,
             data_flags,
             elevation,
-            topography_map_url
+            topography_map_url,
+            nfip_claims_count,
+            water_capacity_mgd,
+            sewer_capacity_mgd,
+            epa_facilities_count,
+            peak_hour_volume,
+            nearest_highway,
+            nearest_transit_stop,
+            nearest_signal_distance_ft,
+            road_classification
           )
         `).eq('id', reportId).single();
       if (error) throw error;
@@ -1272,6 +1290,10 @@ export default function ReportViewer() {
             subdivision={report.applications.subdivision}
             block={report.applications.block}
             lot={report.applications.lot}
+            neighborhood={report.applications.neighborhood}
+            yearBuilt={report.applications.year_built}
+            bldgSqft={report.applications.bldg_sqft}
+            numStories={report.applications.num_stories}
             updatedAt={report.applications.updated_at}
             className="mb-8"
           />
@@ -1933,6 +1955,9 @@ export default function ReportViewer() {
               broadbandProviders={report.applications?.broadband_providers}
               waterCapacity={report.applications?.water_capacity_mgd}
               sewerCapacity={report.applications?.sewer_capacity_mgd}
+              mudDistrict={report.applications?.mud_district}
+              etjProvider={report.applications?.etj_provider}
+              wcidDistrict={report.applications?.wcid_district}
               verdict={utilities.verdict}
             />
           </section>
@@ -1948,6 +1973,9 @@ export default function ReportViewer() {
               soilSlope={report.applications?.soil_slope_percent}
               environmentalSites={report.applications?.environmental_sites}
               epaFacilitiesCount={report.applications?.epa_facilities_count}
+              elevation={report.applications?.elevation}
+              disasterDeclarations={report.applications?.disaster_declarations}
+              environmentalConstraints={report.applications?.environmental_constraints}
               verdict={environmental.verdict}
             />
           </section>
@@ -1995,6 +2023,35 @@ export default function ReportViewer() {
               nearestSignalDistanceFt={report.applications?.nearest_signal_distance_ft}
               roadClassification={report.applications?.road_classification}
               driveTimeData={report.applications?.drivetimes}
+            />
+          </section>
+
+          {/* 8. Tax & Incentives */}
+          <section id="section-tax">
+            <TaxJurisdictionCard
+              taxRateTotal={report.applications?.tax_rate_total}
+              taxableValue={report.applications?.taxable_value}
+              landVal={report.applications?.land_val}
+              imprvVal={report.applications?.imprv_val}
+              totApprVal={report.applications?.tot_appr_val}
+              totMarketVal={report.applications?.tot_market_val}
+              taxingJurisdictions={report.applications?.taxing_jurisdictions}
+              opportunityZone={report.applications?.opportunity_zone}
+              enterpriseZone={report.applications?.enterprise_zone}
+              foreignTradeZone={report.applications?.foreign_trade_zone}
+              averagePermitTimeMonths={report.applications?.average_permit_time_months}
+              mudDistrict={report.applications?.mud_district}
+              etjProvider={report.applications?.etj_provider}
+              wcidDistrict={report.applications?.wcid_district}
+            />
+          </section>
+
+          {/* 9. Employment Context */}
+          <section id="section-employment">
+            <EmploymentContextCard
+              submarketEnriched={report.applications?.submarket_enriched}
+              employmentClusters={report.applications?.employment_clusters}
+              nearbyPlaces={report.applications?.nearby_places}
             />
           </section>
         </div>
