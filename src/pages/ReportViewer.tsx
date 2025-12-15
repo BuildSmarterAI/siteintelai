@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { ScoreDashboard } from "@/components/report/ScoreDashboard";
-import { ReportNavBar } from "@/components/report/ReportNavBar";
+import { ReportSidebar } from "@/components/report/ReportSidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { KillFactorsBanner } from "@/components/report/KillFactorsBanner";
 import { ReportHeader } from "@/components/report/ReportHeader";
 import { CREMetricsStrip } from "@/components/report/CREMetricsStrip";
@@ -777,64 +778,66 @@ export default function ReportViewer() {
            (report.applications?.sewer_lines?.length ?? 0) > 0;
   };
 
-  return <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/50">
-      {/* Show auth gate overlay if needed */}
-      {showGate && reportId && <ReportPreviewGate reportId={reportId} onAuthSuccess={handleAuthSuccess} />}
-      
-      {/* AI-Enhanced Dark Header - replaces old header for full report view */}
-      {!showPreview && (
-        <div className="container mx-auto px-4 md:px-6 pt-6">
-          <ReportHeader
-            address={report.applications?.formatted_address || 'Property Report'}
-            parcelId={report.applications?.parcel_id}
-            jurisdiction={report.applications?.city || report.applications?.county}
-            zoningCode={report.applications?.zoning_code || undefined}
-            acreage={report.applications?.acreage_cad || report.applications?.lot_size_value}
-            createdAt={report.created_at}
-            pdfUrl={report.pdf_url}
-            onDownloadPdf={() => window.open(report.pdf_url!, '_blank')}
-            pdfGenerating={pdfGenerating}
-            pdfError={pdfError}
-          />
-        </div>
-      )}
+  const hasKillFactors = report.applications?.floodplain_zone?.toLowerCase().includes('floodway') ||
+    report.applications?.floodplain_zone === 'AE' ||
+    (report.applications?.wetlands_area_pct ?? 0) >= 25 ||
+    (parsedData.environmental?.kill_factors?.length > 0);
 
-      {/* Legacy Header - only for preview mode */}
-      {showPreview && (
-        <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-50">
-          <div className="container mx-auto px-4 md:px-6 py-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3 md:gap-4">
-                <img src={siteintelLogo} alt="SiteIntel AI" className="h-8 md:h-10 drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
-                <div>
-                  <h1 className="text-lg md:text-2xl font-headline">Feasibility Report</h1>
-                  <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
-                    {report.applications?.formatted_address || 'Property Report'}
-                  </p>
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-muted/50">
+        {/* Left Sidebar Navigation - only show on full report */}
+        {!showPreview && (
+          <ReportSidebar hasKillFactors={hasKillFactors} />
+        )}
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-auto">
+          {/* Show auth gate overlay if needed */}
+          {showGate && reportId && <ReportPreviewGate reportId={reportId} onAuthSuccess={handleAuthSuccess} />}
+          
+          {/* AI-Enhanced Dark Header - replaces old header for full report view */}
+          {!showPreview && (
+            <div className="container mx-auto px-4 md:px-6 pt-6">
+              <ReportHeader
+                address={report.applications?.formatted_address || 'Property Report'}
+                parcelId={report.applications?.parcel_id}
+                jurisdiction={report.applications?.city || report.applications?.county}
+                zoningCode={report.applications?.zoning_code || undefined}
+                acreage={report.applications?.acreage_cad || report.applications?.lot_size_value}
+                createdAt={report.created_at}
+                pdfUrl={report.pdf_url}
+                onDownloadPdf={() => window.open(report.pdf_url!, '_blank')}
+                pdfGenerating={pdfGenerating}
+                pdfError={pdfError}
+              />
+            </div>
+          )}
+
+          {/* Legacy Header - only for preview mode */}
+          {showPreview && (
+            <header className="border-b bg-card/50 backdrop-blur sticky top-0 z-50">
+              <div className="container mx-auto px-4 md:px-6 py-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <img src={siteintelLogo} alt="SiteIntel AI" className="h-8 md:h-10 drop-shadow-[0_0_8px_rgba(255,122,0,0.5)]" />
+                    <div>
+                      <h1 className="text-lg md:text-2xl font-headline">Feasibility Report</h1>
+                      <p className="text-xs md:text-sm text-muted-foreground line-clamp-1">
+                        {report.applications?.formatted_address || 'Property Report'}
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ghost" onClick={() => navigate('/dashboard')}>
+                    Back to Dashboard
+                  </Button>
                 </div>
               </div>
-              <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-                Back to Dashboard
-              </Button>
-            </div>
-          </div>
-        </header>
-      )}
+            </header>
+          )}
 
-      {/* Section Navigation Bar - only show on full report */}
-      {!showPreview && (
-        <ReportNavBar 
-          hasKillFactors={
-            report.applications?.floodplain_zone?.toLowerCase().includes('floodway') ||
-            report.applications?.floodplain_zone === 'AE' ||
-            (report.applications?.wetlands_area_pct ?? 0) >= 25 ||
-            (parsedData.environmental?.kill_factors?.length > 0)
-          }
-        />
-      )}
-
-      {/* Main Content */}
-      <main className="container mx-auto px-4 md:px-6 py-6 md:py-8">
+          {/* Main Content */}
+          <main className="container mx-auto px-4 md:px-6 py-6 md:py-8">
         {/* Limited Preview Section - shown when not authenticated */}
         {showPreview && !showGate && <div className="space-y-8">
             {/* Score Preview - Fully Visible */}
@@ -2161,9 +2164,12 @@ export default function ReportViewer() {
           </div>
         );
         })()}
-      </main>
+          </main>
 
-      {/* AI Chat Assistant */}
-      {report && report.applications && <ReportChatAssistant reportData={report} applicationData={report.applications} />}
-    </div>;
+          {/* AI Chat Assistant */}
+          {report && report.applications && <ReportChatAssistant reportData={report} applicationData={report.applications} />}
+        </div>
+      </div>
+    </SidebarProvider>
+  );
 }
