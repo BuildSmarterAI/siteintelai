@@ -15,12 +15,14 @@ export interface KillFactorItem {
   confidence: number;
   source: string;
   sourceUrl?: string;
+  geometryType?: string; // For map sync
 }
 
 interface KillFactorPanelProps {
   dealKillers: KillFactorItem[];
   conditionalRisks: KillFactorItem[];
   advisoryNotes: KillFactorItem[];
+  onItemClick?: (item: KillFactorItem) => void;
 }
 
 const statusConfig: Record<KillFactorStatus, {
@@ -53,7 +55,15 @@ const statusConfig: Record<KillFactorStatus, {
   },
 };
 
-function KillFactorRow({ item, index }: { item: KillFactorItem; index: number }) {
+function KillFactorRow({ 
+  item, 
+  index, 
+  onClick 
+}: { 
+  item: KillFactorItem; 
+  index: number;
+  onClick?: () => void;
+}) {
   const config = statusConfig[item.status];
   
   return (
@@ -61,9 +71,11 @@ function KillFactorRow({ item, index }: { item: KillFactorItem; index: number })
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
+      onClick={onClick}
       className={cn(
-        "bg-white rounded-lg border p-4",
-        config.borderClass
+        "bg-white rounded-lg border p-4 transition-all",
+        config.borderClass,
+        onClick && "cursor-pointer hover:shadow-md hover:border-[hsl(var(--primary)/0.5)]"
       )}
     >
       <div className="flex items-start justify-between gap-4">
@@ -152,6 +164,7 @@ export function KillFactorPanel({
   dealKillers,
   conditionalRisks,
   advisoryNotes,
+  onItemClick,
 }: KillFactorPanelProps) {
   const totalIssues = dealKillers.length + conditionalRisks.length + advisoryNotes.length;
   
@@ -179,7 +192,12 @@ export function KillFactorPanel({
           <SectionHeader title="Deal-Killers" count={dealKillers.length} severity="deal_killer" />
           <div className="space-y-3">
             {dealKillers.map((item, i) => (
-              <KillFactorRow key={item.id} item={item} index={i} />
+              <KillFactorRow 
+                key={item.id} 
+                item={item} 
+                index={i} 
+                onClick={onItemClick ? () => onItemClick(item) : undefined}
+              />
             ))}
           </div>
         </div>
@@ -191,7 +209,12 @@ export function KillFactorPanel({
           <SectionHeader title="Conditional Risks" count={conditionalRisks.length} severity="conditional" />
           <div className="space-y-3">
             {conditionalRisks.map((item, i) => (
-              <KillFactorRow key={item.id} item={item} index={i} />
+              <KillFactorRow 
+                key={item.id} 
+                item={item} 
+                index={i}
+                onClick={onItemClick ? () => onItemClick(item) : undefined}
+              />
             ))}
           </div>
         </div>
@@ -203,7 +226,12 @@ export function KillFactorPanel({
           <SectionHeader title="Advisory Notes" count={advisoryNotes.length} severity="advisory" />
           <div className="space-y-3">
             {advisoryNotes.map((item, i) => (
-              <KillFactorRow key={item.id} item={item} index={i} />
+              <KillFactorRow 
+                key={item.id} 
+                item={item} 
+                index={i}
+                onClick={onItemClick ? () => onItemClick(item) : undefined}
+              />
             ))}
           </div>
         </div>
