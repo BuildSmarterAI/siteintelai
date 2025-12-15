@@ -1,6 +1,11 @@
 import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useVectorTileSources } from './useTilesets';
+import { 
+  UTILITY_COLORS, 
+  UTILITY_LAYER_IDS,
+  LINE_WIDTH_BY_ZOOM,
+} from '@/lib/utilityLayerConfig';
 
 // Terrain/Hillshade source configuration (free MapLibre demo tiles)
 const TERRAIN_SOURCE_ID = 'terrain-dem-source';
@@ -9,7 +14,13 @@ const HILLSHADE_LAYER_ID = 'terrain-hillshade';
 /**
  * Vector tile layer configuration for MapLibre
  * Defines styling for each layer category from CloudFront CDN tiles
- * Uses SiteIntel brand colors: Feasibility Orange #FF7A00, Data Cyan #06B6D4
+ * 
+ * PRD-Compliant Utility Colors (§6.1):
+ * - Water: Blue #1F6AE1
+ * - Sewer: Brown #7A4A2E  
+ * - Stormwater: Teal #1C7C7C
+ * 
+ * SiteIntel brand colors: Feasibility Orange #FF7A00, Data Cyan #06B6D4
  */
 const VECTOR_TILE_LAYER_CONFIG = {
   parcels: {
@@ -68,25 +79,209 @@ const VECTOR_TILE_LAYER_CONFIG = {
       },
     ],
   },
+  // ==========================================================================
+  // UTILITIES - PRD-Compliant Styling (§6)
+  // Colors: Water #1F6AE1, Sewer #7A4A2E, Stormwater #1C7C7C
+  // ==========================================================================
   utilities: {
     sourceId: 'siteintel-utilities',
     layers: [
+      // ===== WATER LAYERS =====
+      // Water Mains - Solid blue line (§6.2)
       {
-        id: 'siteintel-utilities-line',
+        id: UTILITY_LAYER_IDS.water_mains,
         type: 'line' as const,
         'source-layer': 'utilities',
+        filter: ['all', 
+          ['==', ['get', 'utility_type'], 'water'],
+          ['in', ['get', 'feature_type'], ['literal', ['main', 'transmission']]],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.water, // #1F6AE1
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.9,
+        },
+        minzoom: 12,
+      },
+      // Water Valves - Small blue circles (§6.3)
+      {
+        id: UTILITY_LAYER_IDS.water_valves,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'water'],
+          ['==', ['get', 'feature_type'], 'valve'],
+        ],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': UTILITY_COLORS.water,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 15,
+      },
+      // Water Pump Stations - Larger blue circles (§6.3)
+      {
+        id: UTILITY_LAYER_IDS.water_pump_stations,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'water'],
+          ['==', ['get', 'feature_type'], 'pump_station'],
+        ],
+        paint: {
+          'circle-radius': 8,
+          'circle-color': UTILITY_COLORS.water,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1.5,
+        },
+        minzoom: 13,
+      },
+
+      // ===== SEWER LAYERS =====
+      // Gravity Sewer - Dashed brown line [4,2] (§6.2)
+      {
+        id: UTILITY_LAYER_IDS.sewer_gravity,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['in', ['get', 'feature_type'], ['literal', ['main', 'gravity']]],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.sewer, // #7A4A2E
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.9,
+          'line-dasharray': [4, 2],
+        },
+        minzoom: 12,
+      },
+      // Force Mains - Tight dashed, darker brown [1,1] (§6.2)
+      // WARNING: Direct connections typically prohibited
+      {
+        id: UTILITY_LAYER_IDS.sewer_force,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['==', ['get', 'feature_type'], 'force_main'],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.sewer_force, // #5A3A1E (darker)
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.9,
+          'line-dasharray': [1, 1],
+        },
+        minzoom: 12,
+      },
+      // Manholes - Brown circles 6px (§6.3)
+      {
+        id: UTILITY_LAYER_IDS.sewer_manholes,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['==', ['get', 'feature_type'], 'manhole'],
+        ],
+        paint: {
+          'circle-radius': 6,
+          'circle-color': UTILITY_COLORS.sewer,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 15,
+      },
+      // Lift Stations - Larger brown circles 8px (§6.3 - triangle via circle fallback)
+      // Must render above lines per PRD
+      {
+        id: UTILITY_LAYER_IDS.sewer_lift_stations,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['==', ['get', 'feature_type'], 'lift_station'],
+        ],
+        paint: {
+          'circle-radius': 8,
+          'circle-color': UTILITY_COLORS.sewer,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1.5,
+        },
+        minzoom: 13,
+      },
+
+      // ===== STORMWATER LAYERS =====
+      // Storm Trunks - Dotted teal line [2,3] (§6.2)
+      {
+        id: UTILITY_LAYER_IDS.storm_trunks,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'storm'],
+          ['in', ['get', 'feature_type'], ['literal', ['trunk', 'main']]],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.stormwater, // #1C7C7C
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.8,
+          'line-dasharray': [2, 3],
+        },
+        minzoom: 12,
+      },
+      // Storm Inlets - Square 6px (§6.3 - using circle fallback)
+      {
+        id: UTILITY_LAYER_IDS.storm_inlets,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'storm'],
+          ['==', ['get', 'feature_type'], 'inlet'],
+        ],
+        paint: {
+          'circle-radius': 6,
+          'circle-color': UTILITY_COLORS.stormwater,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 15,
+      },
+      // Storm Outfalls - Larger teal circles
+      {
+        id: UTILITY_LAYER_IDS.storm_outfalls,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'storm'],
+          ['==', ['get', 'feature_type'], 'outfall'],
+        ],
+        paint: {
+          'circle-radius': 7,
+          'circle-color': UTILITY_COLORS.stormwater,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 14,
+      },
+
+      // ===== LEGACY FALLBACK (for non-typed utilities) =====
+      {
+        id: 'siteintel-utilities-line-legacy',
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['!', ['has', 'feature_type']],
         paint: {
           'line-color': [
             'match',
             ['get', 'utility_type'],
-            'water', '#3B82F6', // Blue for water
-            'sewer', '#10B981', // Green for sewer
-            'storm', '#14B8A6', // Teal for storm
-            'gas', '#F59E0B', // Amber for gas
-            'electric', '#FBBF24', // Yellow for electric
-            '#6B7280', // Gray default
+            'water', UTILITY_COLORS.water,
+            'sewer', UTILITY_COLORS.sewer,
+            'storm', UTILITY_COLORS.stormwater,
+            'gas', '#F59E0B',
+            'electric', '#FBBF24',
+            '#6B7280',
           ],
           'line-width': 2,
+          'line-opacity': 0.7,
         },
       },
     ],
@@ -400,10 +595,28 @@ export function useVectorTileLayers({
     if (!map || !mapLoaded) return;
 
     // Map visibility keys to vector tile layer prefixes
+    // PRD-compliant: Utilities expanded to include all sublayers (§5.1)
     const visibilityMap: Record<string, string[]> = {
       hcadParcels: ['siteintel-parcels-fill', 'siteintel-parcels-line'],
       floodZones: ['siteintel-flood-fill', 'siteintel-flood-line'],
-      utilities: ['siteintel-utilities-line'],
+      // Utilities group - all PRD-compliant sublayers
+      utilities: [
+        // Water layers
+        UTILITY_LAYER_IDS.water_mains,
+        UTILITY_LAYER_IDS.water_valves,
+        UTILITY_LAYER_IDS.water_pump_stations,
+        // Sewer layers
+        UTILITY_LAYER_IDS.sewer_gravity,
+        UTILITY_LAYER_IDS.sewer_force,
+        UTILITY_LAYER_IDS.sewer_manholes,
+        UTILITY_LAYER_IDS.sewer_lift_stations,
+        // Stormwater layers
+        UTILITY_LAYER_IDS.storm_trunks,
+        UTILITY_LAYER_IDS.storm_inlets,
+        UTILITY_LAYER_IDS.storm_outfalls,
+        // Legacy fallback
+        'siteintel-utilities-line-legacy',
+      ],
       traffic: ['siteintel-transportation-line'],
       zoningDistricts: ['siteintel-zoning-fill', 'siteintel-zoning-line'],
       topography: [HILLSHADE_LAYER_ID],
