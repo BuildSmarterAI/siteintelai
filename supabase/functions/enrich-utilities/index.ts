@@ -667,6 +667,105 @@ serve(async (req) => {
     let waterLateralsCrs: number | undefined = 4326;
     let waterFittingsCrs: number | undefined = 4326;
 
+    // PHASE 0.5: Resolve Utility Ownership (MUD/WCID/Municipal) FIRST
+    // This determines the utility provider before we query utility lines
+    let utilityOwnership: any = null;
+    let mud_district: string | null = null;
+    let wcid_district: string | null = null;
+    let etj_provider: string | null = null;
+    let utility_resolution_confidence: number | null = null;
+    let estimated_utility_costs: any = null;
+    
+    try {
+      console.log(`🏛️ [TRACE:${traceId}] Resolving utility ownership for ${county || 'unknown county'}...`);
+      
+      const ownershipResponse = await fetch(`${supabaseUrl}/functions/v1/resolve-utility-ownership`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({
+          lat: geo_lat,
+          lng: geo_lng,
+          city: city,
+          county: county,
+          application_id: application_id,
+          skip_cache: false
+        })
+      });
+      
+      if (ownershipResponse.ok) {
+        const ownershipData = await ownershipResponse.json();
+        
+        if (ownershipData.success && ownershipData.data) {
+          utilityOwnership = ownershipData.data;
+          
+          // Extract MUD/WCID/ETJ info from resolution
+          const waterProvider = utilityOwnership.water_provider;
+          const sewerProvider = utilityOwnership.sewer_provider;
+          
+          // Set MUD district if found
+          if (waterProvider?.provider_type === 'mud' || sewerProvider?.provider_type === 'mud') {
+            const mudProvider = waterProvider?.provider_type === 'mud' ? waterProvider : sewerProvider;
+            mud_district = mudProvider?.provider_name || null;
+            etj_provider = 'MUD';
+            flags.push('served_by_mud_district');
+            console.log(`✅ [TRACE:${traceId}] MUD district resolved: ${mud_district}`);
+          }
+          // Set WCID district if found
+          else if (waterProvider?.provider_type === 'wcid' || sewerProvider?.provider_type === 'wcid') {
+            const wcidProvider = waterProvider?.provider_type === 'wcid' ? waterProvider : sewerProvider;
+            wcid_district = wcidProvider?.provider_name || null;
+            etj_provider = 'WCID';
+            flags.push('served_by_wcid_district');
+            console.log(`✅ [TRACE:${traceId}] WCID district resolved: ${wcid_district}`);
+          }
+          // Municipal provider
+          else if (waterProvider?.provider_type === 'municipal') {
+            etj_provider = waterProvider?.provider_name || `City of ${city}`;
+            flags.push('served_by_municipal');
+            console.log(`✅ [TRACE:${traceId}] Municipal provider: ${etj_provider}`);
+          }
+          // CCN provider
+          else if (waterProvider?.provider_type === 'ccn') {
+            etj_provider = waterProvider?.provider_name || 'CCN Provider';
+            flags.push('served_by_ccn');
+            console.log(`✅ [TRACE:${traceId}] CCN provider: ${etj_provider}`);
+          }
+          // Unresolved
+          else {
+            etj_provider = county ? `${county}_ETJ` : 'Unknown_ETJ';
+            flags.push('utility_provider_unresolved');
+            console.log(`⚠️ [TRACE:${traceId}] Utility provider unresolved, setting to: ${etj_provider}`);
+          }
+          
+          utility_resolution_confidence = utilityOwnership.resolution_confidence;
+          estimated_utility_costs = utilityOwnership.estimated_costs;
+          
+          // Check for kill factors
+          if (utilityOwnership.kill_factors?.length > 0) {
+            flags.push(...utilityOwnership.kill_factors.map((kf: string) => `kill_factor_${kf.toLowerCase()}`));
+            console.log(`⚠️ [TRACE:${traceId}] Kill factors detected:`, utilityOwnership.kill_factors);
+          }
+          
+          console.log(`✅ [TRACE:${traceId}] Utility ownership resolved:`, {
+            mud_district,
+            wcid_district,
+            etj_provider,
+            confidence: utility_resolution_confidence,
+            kill_factors: utilityOwnership.kill_factors
+          });
+        }
+      } else {
+        console.warn(`⚠️ [TRACE:${traceId}] resolve-utility-ownership returned non-OK status: ${ownershipResponse.status}`);
+        flags.push('utility_ownership_resolution_failed');
+      }
+    } catch (ownershipErr) {
+      console.error(`❌ [TRACE:${traceId}] resolve-utility-ownership error:`, ownershipErr instanceof Error ? ownershipErr.message : String(ownershipErr));
+      flags.push('utility_ownership_resolution_error');
+    }
+
     // 2. Decide which catalog entry to use
     const cityLower = city?.toLowerCase() || '';
     
@@ -1216,79 +1315,10 @@ serve(async (req) => {
             spatialRel: eps.reclaimed.spatialRel
           });
         }
-      } else if (county?.toLowerCase().includes("harris")) {
-        console.log('Harris County - checking MUD districts');
-        
-        // Try to find MUD district
-        const mudEp = endpointCatalog.harris_county_etj.mud;
-        let mudFound = false;
-        
-        try {
-          const mudHits = await queryPolygon(mudEp.url, mudEp.outFields, geo_lat, geo_lng);
-          
-          if (mudHits.length > 0) {
-            const mudAttrs = mudHits[0].attributes;
-            const mudDistrict = mudAttrs.DISTRICT_NA || mudAttrs.DISTRICT_NO || null;
-            console.log('MUD district found:', mudDistrict);
-            
-            // Update with MUD info
-            if (application_id) {
-              await supabase.from("applications").update({
-                mud_district: mudDistrict,
-                etj_provider: mudAttrs.AGENCY || "MUD"
-              }).eq("id", application_id);
-            }
-            
-            mudFound = true;
-            flags.push("etj_provider_boundary_only");
-          }
-        } catch (mudErr) {
-          console.error("MUD lookup failed:", mudErr instanceof Error ? mudErr.message : String(mudErr));
-        }
-        
-    // If no MUD found, check WCID
-    if (!mudFound) {
-      console.log('No MUD found - checking WCID districts');
-      
-      const wcidEp = endpointCatalog.harris_county_etj.wcid;
-      let wcidFound = false;
-      
-      try {
-        const wcidHits = await queryPolygon(wcidEp.url, wcidEp.outFields, geo_lat, geo_lng);
-        
-        if (wcidHits.length > 0) {
-          const wcidAttrs = wcidHits[0].attributes;
-          const wcidDistrict = wcidAttrs.DISTRICT_NA || wcidAttrs.DISTRICT_NO || null;
-          console.log('✅ WCID district found:', wcidDistrict);
-          
-          // Update with WCID info
-          if (application_id) {
-            await supabase.from("applications").update({
-              wcid_district: wcidDistrict,
-              etj_provider: "WCID"
-            }).eq("id", application_id);
-          }
-          
-          wcidFound = true;
-          flags.push("etj_provider_wcid");
-        }
-      } catch (wcidErr) {
-        console.error("❌ WCID lookup failed:", wcidErr instanceof Error ? wcidErr.message : String(wcidErr));
-      }
-      
-      // If neither MUD nor WCID found, mark as Harris ETJ
-      if (!wcidFound) {
-        console.log('No MUD or WCID found - marking as Harris ETJ');
-        if (application_id) {
-          await supabase.from("applications").update({
-            mud_district: null,
-            etj_provider: "Harris_ETJ"
-          }).eq("id", application_id);
-        }
-        
-        flags.push("etj_provider_boundary_only");
-      }
-    }
+      } else if (county?.toLowerCase().includes("harris") || county?.toLowerCase().includes("montgomery") || county?.toLowerCase().includes("fort bend")) {
+        // MUD/WCID already resolved by resolve-utility-ownership at the beginning
+        console.log(`${county} County - utility ownership already resolved: MUD=${mud_district || 'none'}, WCID=${wcid_district || 'none'}, ETJ=${etj_provider || 'unknown'}`);
+        flags.push("etj_provider_resolved_early");
       } else {
         console.log('No city-specific endpoints, using statewide fallback');
         flags.push("texas_statewide_tceq");
@@ -1303,39 +1333,16 @@ serve(async (req) => {
       }
     }
 
-    // 2.6. Check for MUD district if Houston property has no utilities
+    // 2.6. MUD district already resolved by resolve-utility-ownership - skip redundant checks
     const allUtilitiesEmpty = !water.length && !sewer.length && !sewer_force.length && !storm.length;
     const isUrbanArea = endpointCatalog.config.urban_cities.some((c: string) => 
       cityLower.includes(c.toLowerCase())
     );
     
-    if (allUtilitiesEmpty && cityLower.includes("houston") && !apiUnreachable) {
-      console.log('⚠️ Houston property with 0 utilities - checking for MUD district...');
-      
-      try {
-        const mudEp = endpointCatalog.harris_county_etj.mud;
-        const mudHits = await queryPolygon(mudEp.url, mudEp.outFields, geo_lat, geo_lng);
-        
-        if (mudHits.length > 0) {
-          const mudAttrs = mudHits[0].attributes;
-          const mudDistrict = mudAttrs.DISTRICT_NA || mudAttrs.DISTRICT_NO || null;
-          console.log('✅ MUD district found:', mudDistrict);
-          
-          // Update application with MUD info
-          if (application_id) {
-            await supabase.from("applications").update({
-              mud_district: mudDistrict,
-              etj_provider: mudAttrs.AGENCY || "MUD"
-            }).eq("id", application_id);
-          }
-          
-          flags.push("served_by_mud_district");
-          console.log(`Property is in ${mudDistrict} - utilities managed by MUD, not HPW`);
-        } else {
-          console.log('No MUD district found - triggering OSM fallback...');
-        }
-      } catch (mudErr) {
-        console.error('MUD lookup failed:', mudErr instanceof Error ? mudErr.message : String(mudErr));
+    if (allUtilitiesEmpty && !apiUnreachable && mud_district) {
+      console.log(`⚠️ Property with 0 utility lines but MUD resolved: ${mud_district}`);
+      if (!flags.includes("served_by_mud_district")) {
+        flags.push("served_by_mud_district");
       }
     }
     
@@ -1579,6 +1586,10 @@ serve(async (req) => {
         data_flags: flags,
         api_meta: apiMeta,
         enrichment_status: enrichmentStatus,
+        // Add utility ownership resolution results
+        mud_district: mud_district,
+        wcid_district: wcid_district,
+        etj_provider: etj_provider,
         // Add traffic data if available
         ...(traffic && traffic.length > 0 && {
           traffic_aadt: traffic[0].attributes.ADT || null,
@@ -1591,6 +1602,10 @@ serve(async (req) => {
           city: city || null,
           county: county || null,
           enriched_at: new Date().toISOString(),
+          // Utility ownership resolution
+          utility_ownership: utilityOwnership,
+          utility_resolution_confidence: utility_resolution_confidence,
+          estimated_utility_costs: estimated_utility_costs,
           
           // Water laterals data (Layer 0)
           ...(water_laterals.length > 0 && {

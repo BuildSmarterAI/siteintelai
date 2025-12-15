@@ -11,11 +11,41 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Municipal cities with their own water service
-const MUNICIPAL_WATER_CITIES = ['houston', 'sugar land', 'pearland', 'pasadena', 'baytown', 'league city', 'friendswood', 'missouri city', 'stafford'];
+const MUNICIPAL_WATER_CITIES = ['houston', 'sugar land', 'pearland', 'pasadena', 'baytown', 'league city', 'friendswood', 'missouri city', 'stafford', 'the woodlands', 'conroe', 'spring', 'tomball', 'katy', 'cypress'];
 
-// ArcGIS endpoints for MUD/WCID queries
-const MUD_ENDPOINT = 'https://geo.hcad.org/arcgis/rest/services/Boundaries/MUD_Boundaries/FeatureServer/0/query';
-const WCID_ENDPOINT = 'https://geo.hcad.org/arcgis/rest/services/Boundaries/WCID_Boundaries/FeatureServer/0/query';
+// County-specific ArcGIS endpoints for MUD/WCID queries
+const COUNTY_ENDPOINTS: Record<string, { mud: string; wcid: string; mud_fields: string[]; wcid_fields: string[] }> = {
+  harris: {
+    mud: 'https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/MUD_Boundaries/FeatureServer/0/query',
+    wcid: 'https://services.arcgis.com/KTcxiTD9dsQwVSFh/arcgis/rest/services/WCID_Boundaries/FeatureServer/0/query',
+    mud_fields: ['DISTRICT_NA', 'DISTRICT_NO', 'AGENCY'],
+    wcid_fields: ['DISTRICT_NA', 'DISTRICT_NO']
+  },
+  montgomery: {
+    mud: 'https://services1.arcgis.com/qPpojf7hG0a7q21B/arcgis/rest/services/Montgomery_County_MUD_Boundaries/FeatureServer/0/query',
+    wcid: 'https://services1.arcgis.com/qPpojf7hG0a7q21B/arcgis/rest/services/Montgomery_County_WCID_Boundaries/FeatureServer/0/query',
+    mud_fields: ['NAME', 'DISTRICT_NUMBER', 'TYPE', 'STATUS'],
+    wcid_fields: ['NAME', 'DISTRICT_NUMBER', 'STATUS']
+  },
+  'fort bend': {
+    mud: 'https://gis.fbcad.org/arcgis/rest/services/Public/MUD_Boundaries/FeatureServer/0/query',
+    wcid: 'https://gis.fbcad.org/arcgis/rest/services/Public/WCID_Boundaries/FeatureServer/0/query',
+    mud_fields: ['NAME', 'MUD_NO', 'STATUS'],
+    wcid_fields: ['NAME', 'WCID_NO', 'STATUS']
+  }
+};
+
+// Default endpoints (Harris County) for backward compatibility
+const MUD_ENDPOINT = COUNTY_ENDPOINTS.harris.mud;
+const WCID_ENDPOINT = COUNTY_ENDPOINTS.harris.wcid;
+
+// Get county-specific endpoints
+function getCountyEndpoints(county: string | null): { mud: string; wcid: string; mud_fields: string[]; wcid_fields: string[] } {
+  if (!county) return COUNTY_ENDPOINTS.harris;
+  
+  const countyLower = county.toLowerCase().replace(' county', '').trim();
+  return COUNTY_ENDPOINTS[countyLower] || COUNTY_ENDPOINTS.harris;
+}
 
 interface UtilityProvider {
   provider_id: string | null;
@@ -107,8 +137,8 @@ async function queryCCNBoundaries(lat: number, lng: number): Promise<any[]> {
   }
 }
 
-// Query ArcGIS endpoint for MUD/WCID
-async function queryArcGISBoundary(endpoint: string, lat: number, lng: number, type: string): Promise<any | null> {
+// Query ArcGIS endpoint for MUD/WCID with county-aware field mapping
+async function queryArcGISBoundary(endpoint: string, lat: number, lng: number, type: string, county?: string): Promise<any | null> {
   try {
     const params = new URLSearchParams({
       geometry: JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } }),
@@ -121,14 +151,14 @@ async function queryArcGISBoundary(endpoint: string, lat: number, lng: number, t
     });
     
     const url = `${endpoint}?${params.toString()}`;
-    console.log(`[${type}] Querying:`, url);
+    console.log(`[${type}] Querying (county: ${county || 'unknown'}):`, url);
     
     const resp = await fetch(url, {
       headers: {
         'User-Agent': 'SiteIntel-Feasibility/1.0',
         'Referer': 'https://siteintel.ai'
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(12000)
     });
     
     if (!resp.ok) {
@@ -145,14 +175,25 @@ async function queryArcGISBoundary(endpoint: string, lat: number, lng: number, t
     
     if (json.features && json.features.length > 0) {
       const feature = json.features[0];
-      console.log(`[${type}] Found:`, feature.attributes);
+      const attrs = feature.attributes;
+      console.log(`[${type}] Found:`, attrs);
+      
+      // Normalize field names across different county schemas
+      const districtNo = attrs.DISTRICT_NO || attrs.DISTRICT_NUMBER || attrs.MUD_NO || attrs.WCID_NO || null;
+      const districtName = attrs.DISTRICT_NA || attrs.NAME || attrs.DISTRICT_NAME || 
+                           (districtNo ? `${type} #${districtNo}` : `${type} District`);
+      const agency = attrs.AGENCY || attrs.TYPE || county?.toUpperCase() || null;
+      
       return {
         type,
-        attributes: feature.attributes,
-        district_no: feature.attributes.DISTRICT_NO || feature.attributes.MUD_NO || feature.attributes.WCID_NO || null,
-        name: feature.attributes.NAME || feature.attributes.DISTRICT_NAME || `${type} District`,
-        has_water: feature.attributes.HAS_WATER === 'Y' || feature.attributes.WATER_SERVICE === 'Y' || true,
-        has_sewer: feature.attributes.HAS_SEWER === 'Y' || feature.attributes.SEWER_SERVICE === 'Y' || true
+        attributes: attrs,
+        district_no: districtNo,
+        name: districtName,
+        agency: agency,
+        status: attrs.STATUS || 'active',
+        has_water: attrs.HAS_WATER === 'Y' || attrs.WATER_SERVICE === 'Y' || true,
+        has_sewer: attrs.HAS_SEWER === 'Y' || attrs.SEWER_SERVICE === 'Y' || true,
+        county: county
       };
     }
     
@@ -645,13 +686,15 @@ serve(async (req) => {
       }
     }
     
-    // Step 2: Query all sources in parallel
+    // Step 2: Get county-specific endpoints and query all sources in parallel
+    const countyEndpoints = getCountyEndpoints(county);
+    console.log(`[${traceId}] Using endpoints for county: ${county || 'harris (default)'}`);
     console.log(`[${traceId}] Querying CCN, MUD, and WCID sources...`);
     
     const [ccnResults, mudResult, wcidResult] = await Promise.all([
       queryCCNBoundaries(lat, lng),
-      queryArcGISBoundary(MUD_ENDPOINT, lat, lng, 'MUD'),
-      queryArcGISBoundary(WCID_ENDPOINT, lat, lng, 'WCID')
+      queryArcGISBoundary(countyEndpoints.mud, lat, lng, 'MUD', county || 'Harris'),
+      queryArcGISBoundary(countyEndpoints.wcid, lat, lng, 'WCID', county || 'Harris')
     ]);
     
     console.log(`[${traceId}] CCN: ${ccnResults.length}, MUD: ${mudResult ? 'found' : 'none'}, WCID: ${wcidResult ? 'found' : 'none'}`);
