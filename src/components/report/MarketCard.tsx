@@ -55,7 +55,7 @@ export function MarketCard({
               Market Demographics
             </CardTitle>
             <Badge variant="outline" className="bg-white/10 border-white/20 text-white text-xs font-mono">
-              CENSUS • ESRI
+              CENSUS ACS
             </Badge>
           </div>
           

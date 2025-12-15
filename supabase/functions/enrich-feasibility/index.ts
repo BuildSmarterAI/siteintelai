@@ -3697,6 +3697,16 @@ serve(async (req) => {
       if (enrichedData.employment_clusters) updateData.employment_clusters = enrichedData.employment_clusters;
       if (enrichedData.growth_rate_5yr) updateData.growth_rate_5yr = enrichedData.growth_rate_5yr;
       
+      // Extended Census ACS demographics
+      if (enrichedData.median_home_value) updateData.median_home_value = enrichedData.median_home_value;
+      if (enrichedData.median_rent) updateData.median_rent = enrichedData.median_rent;
+      if (enrichedData.vacancy_rate !== null && enrichedData.vacancy_rate !== undefined) updateData.vacancy_rate = enrichedData.vacancy_rate;
+      if (enrichedData.unemployment_rate !== null && enrichedData.unemployment_rate !== undefined) updateData.unemployment_rate = enrichedData.unemployment_rate;
+      if (enrichedData.median_age) updateData.median_age = enrichedData.median_age;
+      if (enrichedData.college_attainment_pct !== null && enrichedData.college_attainment_pct !== undefined) updateData.college_attainment_pct = enrichedData.college_attainment_pct;
+      if (enrichedData.total_housing_units) updateData.total_housing_units = enrichedData.total_housing_units;
+      if (enrichedData.labor_force) updateData.labor_force = enrichedData.labor_force;
+      
       // Financial / Incentives
       if (enrichedData.tax_rate_total) updateData.tax_rate_total = enrichedData.tax_rate_total;
       if (enrichedData.taxing_jurisdictions) updateData.taxing_jurisdictions = enrichedData.taxing_jurisdictions;

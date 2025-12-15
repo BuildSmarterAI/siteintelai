@@ -314,6 +314,7 @@ export type Database = {
           building_size_value: number | null
           cache_expires_at: string | null
           city: string | null
+          college_attainment_pct: number | null
           company: string
           conclusion_output: string | null
           congestion_level: string | null
@@ -374,6 +375,7 @@ export type Database = {
           intent_weights: Json | null
           kill_factors_triggered: string[] | null
           known_risks: string[] | null
+          labor_force: number | null
           land_use_code: string | null
           land_use_description: string | null
           land_val: number | null
@@ -391,7 +393,10 @@ export type Database = {
           market_output: string | null
           marketing_opt_in: boolean
           max_buildable_sf: number | null
+          median_age: number | null
+          median_home_value: number | null
           median_income: number | null
+          median_rent: number | null
           mud_district: string | null
           nda_confidentiality: boolean
           nearby_places: Json | null
@@ -459,6 +464,7 @@ export type Database = {
           topography_map_url: string | null
           tot_appr_val: number | null
           tot_market_val: number | null
+          total_housing_units: number | null
           traffic_aadt: number | null
           traffic_data_source: string | null
           traffic_direction: string | null
@@ -469,6 +475,7 @@ export type Database = {
           traffic_segment_id: string | null
           traffic_year: number | null
           truck_percent: number | null
+          unemployment_rate: number | null
           updated_at: string
           user_id: string
           utilities_map_url: string | null
@@ -479,6 +486,7 @@ export type Database = {
           utm_medium: string | null
           utm_source: string | null
           utm_term: string | null
+          vacancy_rate: number | null
           water_capacity_mgd: number | null
           water_lines: Json | null
           wcid_district: string | null
@@ -516,6 +524,7 @@ export type Database = {
           building_size_value?: number | null
           cache_expires_at?: string | null
           city?: string | null
+          college_attainment_pct?: number | null
           company: string
           conclusion_output?: string | null
           congestion_level?: string | null
@@ -576,6 +585,7 @@ export type Database = {
           intent_weights?: Json | null
           kill_factors_triggered?: string[] | null
           known_risks?: string[] | null
+          labor_force?: number | null
           land_use_code?: string | null
           land_use_description?: string | null
           land_val?: number | null
@@ -593,7 +603,10 @@ export type Database = {
           market_output?: string | null
           marketing_opt_in?: boolean
           max_buildable_sf?: number | null
+          median_age?: number | null
+          median_home_value?: number | null
           median_income?: number | null
+          median_rent?: number | null
           mud_district?: string | null
           nda_confidentiality?: boolean
           nearby_places?: Json | null
@@ -661,6 +674,7 @@ export type Database = {
           topography_map_url?: string | null
           tot_appr_val?: number | null
           tot_market_val?: number | null
+          total_housing_units?: number | null
           traffic_aadt?: number | null
           traffic_data_source?: string | null
           traffic_direction?: string | null
@@ -671,6 +685,7 @@ export type Database = {
           traffic_segment_id?: string | null
           traffic_year?: number | null
           truck_percent?: number | null
+          unemployment_rate?: number | null
           updated_at?: string
           user_id: string
           utilities_map_url?: string | null
@@ -681,6 +696,7 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          vacancy_rate?: number | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wcid_district?: string | null
@@ -718,6 +734,7 @@ export type Database = {
           building_size_value?: number | null
           cache_expires_at?: string | null
           city?: string | null
+          college_attainment_pct?: number | null
           company?: string
           conclusion_output?: string | null
           congestion_level?: string | null
@@ -778,6 +795,7 @@ export type Database = {
           intent_weights?: Json | null
           kill_factors_triggered?: string[] | null
           known_risks?: string[] | null
+          labor_force?: number | null
           land_use_code?: string | null
           land_use_description?: string | null
           land_val?: number | null
@@ -795,7 +813,10 @@ export type Database = {
           market_output?: string | null
           marketing_opt_in?: boolean
           max_buildable_sf?: number | null
+          median_age?: number | null
+          median_home_value?: number | null
           median_income?: number | null
+          median_rent?: number | null
           mud_district?: string | null
           nda_confidentiality?: boolean
           nearby_places?: Json | null
@@ -863,6 +884,7 @@ export type Database = {
           topography_map_url?: string | null
           tot_appr_val?: number | null
           tot_market_val?: number | null
+          total_housing_units?: number | null
           traffic_aadt?: number | null
           traffic_data_source?: string | null
           traffic_direction?: string | null
@@ -873,6 +895,7 @@ export type Database = {
           traffic_segment_id?: string | null
           traffic_year?: number | null
           truck_percent?: number | null
+          unemployment_rate?: number | null
           updated_at?: string
           user_id?: string
           utilities_map_url?: string | null
@@ -883,6 +906,7 @@ export type Database = {
           utm_medium?: string | null
           utm_source?: string | null
           utm_term?: string | null
+          vacancy_rate?: number | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
           wcid_district?: string | null
