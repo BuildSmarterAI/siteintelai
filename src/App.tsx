@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 // Report multi-page architecture
 import ReportLayout from "./pages/report/ReportLayout";
+import PropertyInfoPage from "./pages/report/PropertyInfoPage";
 import ScorePage from "./pages/report/ScorePage";
 import MapPage from "./pages/report/MapPage";
 import ZoningPage from "./pages/report/ZoningPage";
@@ -113,7 +114,8 @@ const App = () => (
               <Route path="/payment-history" element={<PaymentHistory />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/report/:reportId" element={<ReportLayout />}>
-                <Route index element={<ScorePage />} />
+                <Route index element={<PropertyInfoPage />} />
+                <Route path="score" element={<ScorePage />} />
                 <Route path="map" element={<MapPage />} />
                 <Route path="zoning" element={<ZoningPage />} />
                 <Route path="flood" element={<FloodPage />} />
