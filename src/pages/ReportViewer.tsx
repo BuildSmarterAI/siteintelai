@@ -25,6 +25,7 @@ import { EnvironmentalCard } from "@/components/report/EnvironmentalCard";
 import { TrafficCard } from "@/components/report/TrafficCard";
 import { MarketCard } from "@/components/report/MarketCard";
 import { AccessCard } from "@/components/report/AccessCard";
+import { TopographyCard } from "@/components/report/TopographyCard";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -210,6 +211,8 @@ interface Report {
     nearest_transit_stop?: string | null;
     nearest_signal_distance_ft?: number | null;
     road_classification?: string | null;
+    elevation?: number | null;
+    topography_map_url?: string | null;
   };
 }
 export default function ReportViewer() {
@@ -427,7 +430,9 @@ export default function ReportViewer() {
             water_lines,
             sewer_lines,
             storm_lines,
-            data_flags
+            data_flags,
+            elevation,
+            topography_map_url
           )
         `).eq('id', reportId).single();
       if (error) throw error;
@@ -1660,11 +1665,12 @@ export default function ReportViewer() {
 
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-1">
             <TabsTrigger value="zoning" className="text-xs md:text-sm">Zoning</TabsTrigger>
             <TabsTrigger value="flood" className="text-xs md:text-sm">Flood Risk</TabsTrigger>
             <TabsTrigger value="utilities" className="text-xs md:text-sm">Utilities</TabsTrigger>
             <TabsTrigger value="environmental" className="text-xs md:text-sm">Environmental</TabsTrigger>
+            <TabsTrigger value="topography" className="text-xs md:text-sm">Topography</TabsTrigger>
             <TabsTrigger value="traffic" className="text-xs md:text-sm">Traffic</TabsTrigger>
             <TabsTrigger value="market" className="text-xs md:text-sm">Market</TabsTrigger>
             <TabsTrigger value="access" className="text-xs md:text-sm">
@@ -1738,6 +1744,16 @@ export default function ReportViewer() {
               environmentalSites={report.applications?.environmental_sites}
               epaFacilitiesCount={report.applications?.epa_facilities_count}
               verdict={environmental.verdict}
+            />
+          </TabsContent>
+
+          <TabsContent value="topography" className="mt-6">
+            <TopographyCard
+              elevation={report.applications?.elevation}
+              topographyMapUrl={report.applications?.topography_map_url}
+              slopePercent={report.applications?.soil_slope_percent}
+              latitude={report.applications?.geo_lat}
+              longitude={report.applications?.geo_lng}
             />
           </TabsContent>
 
