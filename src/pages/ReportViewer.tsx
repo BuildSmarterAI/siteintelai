@@ -1037,11 +1037,6 @@ export default function ReportViewer() {
             </CardContent>
           </Card>}
 
-        {/* ⭐ PHASE 3: Drawn Parcels Management */}
-        {useMapLibre && isAuthenticated && isOwner && mapLayers?.drawnParcels && <div className="mb-8">
-            <DrawnParcelsList parcels={mapLayers.drawnParcels} onEdit={handleEditParcel} onDelete={handleDeleteParcel} onZoomTo={handleZoomToParcel} onDrawNew={handleDrawNewParcel} isLoading={!mapLayers} />
-          </div>}
-
         {/* ⭐ PHASE 3: Geospatial Intelligence Card */}
         <GeospatialIntelligenceCard applicationId={report.application_id} reportCreatedAt={report.created_at} />
 
