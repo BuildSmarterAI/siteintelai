@@ -1317,8 +1317,190 @@ serve(async (req) => {
         }
       } else if (county?.toLowerCase().includes("harris") || county?.toLowerCase().includes("montgomery") || county?.toLowerCase().includes("fort bend")) {
         // MUD/WCID already resolved by resolve-utility-ownership at the beginning
-        console.log(`${county} County - utility ownership already resolved: MUD=${mud_district || 'none'}, WCID=${wcid_district || 'none'}, ETJ=${etj_provider || 'unknown'}`);
+        console.log(`${county} County (outside city limits) - utility ownership resolved: MUD=${mud_district || 'none'}, WCID=${wcid_district || 'none'}, ETJ=${etj_provider || 'unknown'}`);
         flags.push("etj_provider_resolved_early");
+        
+        // Query county-wide storm drainage (HCFCD) for Harris County
+        if (county?.toLowerCase().includes("harris") && endpointCatalog.harris_county) {
+          const harrisEps = endpointCatalog.harris_county;
+          
+          // 1. HCFCD Storm Channels (county-wide drainage)
+          if (harrisEps.hcfcd_channels) {
+            try {
+              console.log('🌊 [Harris County] Querying HCFCD storm drainage channels...');
+              const hcfcdChannels = await queryArcGIS(
+                harrisEps.hcfcd_channels.url,
+                harrisEps.hcfcd_channels.outFields,
+                geo_lat,
+                geo_lng,
+                "harris_hcfcd_channels",
+                {
+                  timeout_ms: harrisEps.hcfcd_channels.timeout_ms,
+                  retry_attempts: harrisEps.hcfcd_channels.retry_attempts,
+                  retry_delays_ms: harrisEps.hcfcd_channels.retry_delays_ms,
+                  search_radius_ft: harrisEps.hcfcd_channels.search_radius_ft,
+                  crs: harrisEps.hcfcd_channels.crs,
+                  geometryType: harrisEps.hcfcd_channels.geometryType,
+                  spatialRel: harrisEps.hcfcd_channels.spatialRel
+                }
+              );
+              
+              if (hcfcdChannels.length > 0) {
+                // Map HCFCD channels to storm line format
+                storm = hcfcdChannels.map((f: any) => ({
+                  attributes: {
+                    FACILITYID: f.attributes.UNIT_NO || null,
+                    DIAMETER: null, // Channels don't have diameter
+                    MATERIAL: 'CHANNEL',
+                    STATUS: 'ACTIVE',
+                    OWNER: f.attributes.MAINT_RESP || 'HCFCD',
+                    CHAN_NAME: f.attributes.CHAN_NAME || null,
+                    LENGTH_FT: f.attributes.LENGTH_FT || null,
+                    TYPE: f.attributes.TYPE || 'CHANNEL'
+                  },
+                  geometry: f.geometry
+                }));
+                flags.push("storm_via_hcfcd_channels");
+                stormCrs = harrisEps.hcfcd_channels.crs || 2278;
+                console.log(`✅ HCFCD channels found: ${hcfcdChannels.length}`);
+              } else {
+                console.log('⚠️ HCFCD channels: No channels found in search radius');
+              }
+            } catch (err) {
+              console.warn('⚠️ HCFCD channels query failed:', err instanceof Error ? err.message : String(err));
+              flags.push('hcfcd_channels_unavailable');
+            }
+          }
+          
+          // 2. HCFCD Outfalls (stormwater discharge points)
+          if (harrisEps.hcfcd_outfalls) {
+            try {
+              console.log('🌊 [Harris County] Querying HCFCD storm outfalls...');
+              const hcfcdOutfalls = await queryArcGIS(
+                harrisEps.hcfcd_outfalls.url,
+                harrisEps.hcfcd_outfalls.outFields,
+                geo_lat,
+                geo_lng,
+                "harris_hcfcd_outfalls",
+                {
+                  timeout_ms: harrisEps.hcfcd_outfalls.timeout_ms,
+                  retry_attempts: harrisEps.hcfcd_outfalls.retry_attempts,
+                  retry_delays_ms: harrisEps.hcfcd_outfalls.retry_delays_ms,
+                  search_radius_ft: harrisEps.hcfcd_outfalls.search_radius_ft,
+                  crs: harrisEps.hcfcd_outfalls.crs,
+                  geometryType: harrisEps.hcfcd_outfalls.geometryType,
+                  spatialRel: harrisEps.hcfcd_outfalls.spatialRel
+                }
+              );
+              
+              if (hcfcdOutfalls.length > 0) {
+                // Add outfalls as storm manholes equivalent
+                stormManholes = hcfcdOutfalls.map((f: any) => ({
+                  attributes: {
+                    FACILITYID: f.attributes.OUTFALL_ID || null,
+                    DIAMETER: f.attributes.DIAMETER || null,
+                    MATERIAL: f.attributes.MATERIAL || null,
+                    OWNER: 'HCFCD',
+                    OUTFALL_TYPE: f.attributes.OUTFALL_TYPE || null,
+                    UNIT_NO: f.attributes.UNIT_NO || null
+                  },
+                  geometry: f.geometry
+                }));
+                flags.push("hcfcd_outfalls_found");
+                console.log(`✅ HCFCD outfalls found: ${hcfcdOutfalls.length}`);
+              }
+            } catch (err) {
+              console.warn('⚠️ HCFCD outfalls query failed:', err instanceof Error ? err.message : String(err));
+            }
+          }
+          
+          // 3. HCFCD Detention Basins (regional flood control)
+          if (harrisEps.hcfcd_detention) {
+            try {
+              console.log('🌊 [Harris County] Querying HCFCD detention basins...');
+              const hcfcdDetention = await queryArcGIS(
+                harrisEps.hcfcd_detention.url,
+                harrisEps.hcfcd_detention.outFields,
+                geo_lat,
+                geo_lng,
+                "harris_hcfcd_detention",
+                {
+                  timeout_ms: harrisEps.hcfcd_detention.timeout_ms,
+                  retry_attempts: harrisEps.hcfcd_detention.retry_attempts,
+                  retry_delays_ms: harrisEps.hcfcd_detention.retry_delays_ms,
+                  search_radius_ft: harrisEps.hcfcd_detention.search_radius_ft,
+                  crs: harrisEps.hcfcd_detention.crs,
+                  geometryType: harrisEps.hcfcd_detention.geometryType,
+                  spatialRel: harrisEps.hcfcd_detention.spatialRel
+                }
+              );
+              
+              if (hcfcdDetention.length > 0) {
+                flags.push("hcfcd_detention_nearby");
+                console.log(`✅ HCFCD detention basins nearby: ${hcfcdDetention.length}`);
+                // Store detention basin info in api_meta for reference
+                apiMeta.push({
+                  api: 'harris_hcfcd_detention',
+                  url: harrisEps.hcfcd_detention.url,
+                  status: 200,
+                  elapsed_ms: 0,
+                  timestamp: new Date().toISOString(),
+                  detention_basins: hcfcdDetention.map((f: any) => ({
+                    name: f.attributes.BASIN_NAME,
+                    storage_af: f.attributes.STORAGE_AF,
+                    status: f.attributes.STATUS
+                  }))
+                });
+              }
+            } catch (err) {
+              console.warn('⚠️ HCFCD detention basins query failed:', err instanceof Error ? err.message : String(err));
+            }
+          }
+        }
+        
+        // Query PUC CCN service areas for water/sewer jurisdiction (statewide)
+        if (endpointCatalog.texas_statewide?.puc_ccn_water_areas) {
+          try {
+            console.log('🏛️ [Statewide] Querying PUC CCN water service areas...');
+            const ccnWater = await queryPolygon(
+              endpointCatalog.texas_statewide.puc_ccn_water_areas.url,
+              endpointCatalog.texas_statewide.puc_ccn_water_areas.outFields,
+              geo_lat,
+              geo_lng
+            );
+            
+            if (ccnWater.length > 0) {
+              const ccnName = ccnWater[0].attributes.CCN_NAME || ccnWater[0].attributes.CCN_NO;
+              if (ccnName && !etj_provider) {
+                etj_provider = ccnName;
+              }
+              flags.push("ccn_water_service_area");
+              console.log(`✅ PUC CCN Water provider: ${ccnName}`);
+            }
+          } catch (err) {
+            console.warn('⚠️ PUC CCN water areas query failed:', err instanceof Error ? err.message : String(err));
+          }
+        }
+        
+        if (endpointCatalog.texas_statewide?.puc_ccn_sewer_areas) {
+          try {
+            console.log('🏛️ [Statewide] Querying PUC CCN sewer service areas...');
+            const ccnSewer = await queryPolygon(
+              endpointCatalog.texas_statewide.puc_ccn_sewer_areas.url,
+              endpointCatalog.texas_statewide.puc_ccn_sewer_areas.outFields,
+              geo_lat,
+              geo_lng
+            );
+            
+            if (ccnSewer.length > 0) {
+              const ccnName = ccnSewer[0].attributes.CCN_NAME || ccnSewer[0].attributes.CCN_NO;
+              flags.push("ccn_sewer_service_area");
+              console.log(`✅ PUC CCN Sewer provider: ${ccnName}`);
+            }
+          } catch (err) {
+            console.warn('⚠️ PUC CCN sewer areas query failed:', err instanceof Error ? err.message : String(err));
+          }
+        }
       } else {
         console.log('No city-specific endpoints, using statewide fallback');
         flags.push("texas_statewide_tceq");
