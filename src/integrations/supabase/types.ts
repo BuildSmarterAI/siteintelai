@@ -7318,6 +7318,10 @@ export type Database = {
         Returns: unknown
       }
       unlockrows: { Args: { "": string }; Returns: number }
+      update_demographics_geometry: {
+        Args: { p_geoid: string; p_geom_json: string }
+        Returns: undefined
+      }
       updategeometrysrid: {
         Args: {
           catalogn_name: string
