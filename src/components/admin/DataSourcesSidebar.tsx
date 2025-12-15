@@ -18,6 +18,7 @@ import {
   Settings,
   LayoutDashboard,
   ArrowLeft,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,12 @@ const navigationItems = [
     url: '/admin/data-sources',
     icon: Database,
     description: 'Manage GIS endpoints',
+  },
+  {
+    title: 'Reports',
+    url: '/admin/reports',
+    icon: FileText,
+    description: 'Manage all reports',
   },
   {
     title: 'Version History',

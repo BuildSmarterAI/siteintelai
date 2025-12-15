@@ -58,7 +58,7 @@ import TexasPipeline from "./pages/docs/TexasPipeline";
 import TileArchitecture from "./pages/docs/TileArchitecture";
 import CanonicalSchema from "./pages/docs/CanonicalSchema";
 import TileManagement from "./pages/admin/TileManagement";
-
+import AdminReports from "./pages/admin/AdminReports";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -138,6 +138,7 @@ const App = () => (
               <Route path="/admin/data-source-errors" element={<DataSourceErrors />} />
               <Route path="/admin/tile-management" element={<TileManagement />} />
               <Route path="/admin/tiles" element={<TileManagement />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
