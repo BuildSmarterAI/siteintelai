@@ -12,7 +12,8 @@ import {
   Users,
   AlertTriangle,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Home
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,7 +36,8 @@ interface Section {
 }
 
 const sections: Section[] = [
-  { id: "score", label: "Score", icon: <FileText className="h-4 w-4" />, path: "" },
+  { id: "property", label: "Property", icon: <Home className="h-4 w-4" />, path: "" },
+  { id: "score", label: "Score", icon: <FileText className="h-4 w-4" />, path: "score" },
   { id: "map", label: "Map", icon: <MapPin className="h-4 w-4" />, path: "map" },
   { id: "zoning", label: "Zoning", icon: <Building2 className="h-4 w-4" />, path: "zoning" },
   { id: "flood", label: "Flood", icon: <Droplets className="h-4 w-4" />, path: "flood" },
@@ -69,7 +71,7 @@ export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
         return section.id;
       }
     }
-    return "score";
+    return "property";
   };
 
   const activeSection = getActiveSection();
