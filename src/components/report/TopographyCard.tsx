@@ -60,8 +60,8 @@ export function TopographyCard({
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* Elevation */}
-          <div className="bg-[hsl(var(--midnight-blue)/0.5)] rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+          <div className="bg-white rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
+            <div className="flex items-center gap-2 text-[hsl(var(--data-cyan))] text-sm mb-2 font-medium">
               <Ruler className="h-4 w-4" />
               <span>Site Elevation</span>
             </div>
@@ -75,8 +75,8 @@ export function TopographyCard({
           </div>
 
           {/* Slope */}
-          <div className="bg-[hsl(var(--midnight-blue)/0.5)] rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+          <div className="bg-white rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
+            <div className="flex items-center gap-2 text-[hsl(var(--data-cyan))] text-sm mb-2 font-medium">
               <TrendingUp className="h-4 w-4" />
               <span>Ground Slope</span>
             </div>
@@ -94,8 +94,8 @@ export function TopographyCard({
           </div>
 
           {/* USGS Map Link */}
-          <div className="bg-[hsl(var(--midnight-blue)/0.5)] rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)] flex flex-col justify-between">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+          <div className="bg-white rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)] flex flex-col justify-between">
+            <div className="flex items-center gap-2 text-[hsl(var(--data-cyan))] text-sm mb-2 font-medium">
               <Mountain className="h-4 w-4" />
               <span>USGS National Map</span>
             </div>
@@ -117,11 +117,11 @@ export function TopographyCard({
 
         {/* Grading Assessment */}
         {slopeInfo && (
-          <div className="bg-[hsl(var(--midnight-blue)/0.4)] rounded-lg p-4 border border-[hsl(var(--data-cyan)/0.1)]">
+          <div className="bg-white rounded-lg p-4 border border-[hsl(var(--data-cyan)/0.2)]">
             <div className="flex items-start gap-3">
               <div className="text-[hsl(var(--data-cyan))] text-lg">💡</div>
               <div>
-                <div className="text-sm font-medium text-foreground mb-1">Grading Assessment</div>
+                <div className="text-sm font-medium text-[hsl(var(--data-cyan))] mb-1">Grading Assessment</div>
                 <p className="text-sm text-muted-foreground">
                   {slopePercent !== null && slopePercent !== undefined && slopePercent <= 2 && 
                     "Level terrain suitable for standard foundation construction with minimal site preparation costs."
