@@ -360,6 +360,9 @@ serve(async (req) => {
     const projectionRecords: any[] = [];
     const historicalRecords: any[] = [];
 
+    // Store geoid -> geomJson mapping for later SQL update
+    const geomUpdates: { geoid: string; geomJson: string }[] = [];
+
     for (const row of rows) {
       const values = row.f.map((f: any) => f.v);
       const [
@@ -369,6 +372,11 @@ serve(async (req) => {
         commutersCar, commutersTransit, workedHome, belowPoverty,
         whitePop, blackPop, asianPop, hispanicPop
       ] = values;
+
+      // Collect geometry for SQL update
+      if (geoid && geomJson) {
+        geomUpdates.push({ geoid, geomJson });
+      }
 
       if (!geoid || !totalPop) continue;
 
@@ -525,6 +533,46 @@ serve(async (req) => {
         throw demoError;
       }
       console.log(`[seed-census-canonical] Upserted ${canonicalRecords.length} canonical_demographics records`);
+
+      // Update geometry via SQL (PostGIS geometry must be set via RPC/SQL)
+      if (geomUpdates.length > 0) {
+        console.log(`[seed-census-canonical] Updating ${geomUpdates.length} tract geometries...`);
+        let geomSuccessCount = 0;
+        let geomErrorCount = 0;
+        
+        // Process in batches of 50 to avoid timeout
+        const batchSize = 50;
+        for (let i = 0; i < geomUpdates.length; i += batchSize) {
+          const batch = geomUpdates.slice(i, i + batchSize);
+          
+          for (const { geoid, geomJson } of batch) {
+            try {
+              const { error: geomError } = await supabase.rpc('update_demographics_geometry', {
+                p_geoid: geoid,
+                p_geom_json: geomJson
+              });
+              
+              if (geomError) {
+                geomErrorCount++;
+                if (geomErrorCount <= 3) {
+                  console.error(`[seed-census-canonical] Geometry update error for ${geoid}:`, geomError.message);
+                }
+              } else {
+                geomSuccessCount++;
+              }
+            } catch (err) {
+              geomErrorCount++;
+            }
+          }
+          
+          // Small delay between batches
+          if (i + batchSize < geomUpdates.length) {
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
+        
+        console.log(`[seed-census-canonical] Geometry updates: ${geomSuccessCount} success, ${geomErrorCount} errors`);
+      }
     }
 
     // Upsert to demographics_projections
