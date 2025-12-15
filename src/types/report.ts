@@ -133,6 +133,48 @@ export interface ReportApplications {
   demographics_source?: string | null;
   census_block_group?: string | null;
   census_vintage?: string | null;
+  // Age distribution
+  under_18_pct?: number | null;
+  working_age_pct?: number | null;
+  over_65_pct?: number | null;
+  // Race/Ethnicity
+  white_pct?: number | null;
+  black_pct?: number | null;
+  asian_pct?: number | null;
+  hispanic_pct?: number | null;
+  // Income & Wealth
+  per_capita_income?: number | null;
+  mean_household_income?: number | null;
+  poverty_rate?: number | null;
+  gini_index?: number | null;
+  // Housing
+  owner_occupied_pct?: number | null;
+  renter_occupied_pct?: number | null;
+  population_block_group?: number | null;
+  single_family_pct?: number | null;
+  multi_family_pct?: number | null;
+  median_year_built?: number | null;
+  avg_household_size?: number | null;
+  // Workforce & Commute
+  white_collar_pct?: number | null;
+  blue_collar_pct?: number | null;
+  service_sector_pct?: number | null;
+  work_from_home_pct?: number | null;
+  mean_commute_time_min?: number | null;
+  drive_alone_pct?: number | null;
+  public_transit_pct?: number | null;
+  walk_bike_pct?: number | null;
+  // Education
+  high_school_only_pct?: number | null;
+  some_college_pct?: number | null;
+  bachelors_pct?: number | null;
+  graduate_degree_pct?: number | null;
+  // Growth Projections
+  population_cagr?: number | null;
+  population_5yr_projection?: number | null;
+  median_income_5yr_projection?: number | null;
+  median_home_value_5yr_projection?: number | null;
+  population_density_sqmi?: number | null;
   // Google Maps integration
   drivetimes?: Array<{
     destination: string;
