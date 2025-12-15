@@ -9,7 +9,8 @@ Welcome to the SiteIntel™ Feasibility platform documentation. This guide will 
 | [Quickstart Guide](./guides/quickstart.md) | Get up and running in 5 minutes |
 | [Environment Setup](./guides/environment-setup.md) | Configure your development environment |
 | [Architecture Overview](./architecture/overview.md) | System design and components |
-| [API Reference](./api/edge-functions.md) | Edge function documentation |
+| [Census Data Moat](./architecture/CENSUS_DATA_MOAT.md) | Proprietary demographics infrastructure |
+| [Edge Functions Index](./api/EDGE_FUNCTIONS_INDEX.md) | Complete API reference |
 | [Database Schema](./architecture/database-schema.md) | Data models and relationships |
 
 ## What is SiteIntel™?
@@ -22,7 +23,7 @@ SiteIntel™ Feasibility is an AI/GIS SaaS platform that transforms commercial r
 - **EPA Environmental Data** (ECHO facilities)
 - **USFWS Wetlands Inventory** (NWI)
 - **Google Places & Geocoding**
-- **Census Demographics**
+- **Census Data Moat** (Proprietary BigQuery-powered demographics)
 
 ## Platform Architecture
 
@@ -41,6 +42,7 @@ graph TB
     subgraph Data Layer
         DB[(PostgreSQL + PostGIS)]
         Storage[Supabase Storage]
+        Census[(Census Data Moat)]
     end
     
     subgraph External APIs
@@ -49,6 +51,7 @@ graph TB
         EPA[EPA ECHO]
         Google[Google APIs]
         TxDOT[TxDOT AADT]
+        BQ[BigQuery]
     end
     
     UI --> EF
@@ -56,11 +59,13 @@ graph TB
     EF --> Auth
     EF --> DB
     EF --> Storage
+    EF --> Census
     EF --> GIS
     EF --> FEMA
     EF --> EPA
     EF --> Google
     EF --> TxDOT
+    BQ --> Census
 ```
 
 ## Key Features
@@ -77,7 +82,13 @@ graph TB
 - Risk assessment
 - Market context analysis
 
-### 📊 Lender-Ready Reports
+### 📊 Census Data Moat
+- 83+ ACS demographic variables
+- 6 proprietary CRE indices
+- Sub-50ms spatial lookups
+- Zero Census API dependencies
+
+### 📋 Lender-Ready Reports
 - Professional PDF generation
 - Data citations and timestamps
 - Compliance-ready formatting
@@ -98,12 +109,21 @@ docs/
 │   ├── environment-setup.md   # Dev environment
 │   └── deployment.md          # Deployment guide
 ├── api/
-│   ├── edge-functions.md      # Edge function reference
+│   ├── EDGE_FUNCTIONS_INDEX.md # Complete API reference
+│   ├── edge-functions.md      # Legacy API docs
 │   └── external-integrations.md # External API docs
 ├── architecture/
 │   ├── overview.md            # System architecture
+│   ├── CENSUS_DATA_MOAT.md    # Demographics infrastructure
+│   ├── CANONICAL_SCHEMA.md    # Data model
 │   ├── data-flow.md           # Data pipeline
 │   └── database-schema.md     # Database design
+├── features/
+│   ├── DEMOGRAPHICS_ENRICHMENT.md # Demographics pipeline
+│   ├── REPORT_GENERATION.md   # Report generation
+│   └── PDF_GENERATION.md      # PDF pipeline
+├── migrations/
+│   └── CENSUS_MOAT_MIGRATION.md # Census migrations
 └── security/
     └── rls-policies.md        # Row-level security
 ```
@@ -115,12 +135,24 @@ docs/
 | Frontend | React 18, TypeScript, Vite |
 | Styling | Tailwind CSS, shadcn/ui |
 | State | TanStack Query, Zustand |
-| Maps | MapLibre GL, Leaflet |
+| Maps | MapLibre GL |
 | Backend | Supabase Edge Functions (Deno) |
 | Database | PostgreSQL + PostGIS |
 | Auth | Supabase Auth |
 | Payments | Stripe |
 | AI | OpenAI GPT-4 |
+| Demographics | BigQuery (Census ACS) |
+
+## Required Secrets
+
+| Secret | Description |
+|--------|-------------|
+| `OPENAI_API_KEY` | OpenAI API for GPT-4 |
+| `GOOGLE_MAPS_API_KEY` | Google Maps/Places |
+| `STRIPE_SECRET_KEY` | Stripe payments |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhooks |
+| `PDFSHIFT_API_KEY` | PDF generation |
+| `BIGQUERY_SERVICE_ACCOUNT_KEY` | Census Data Moat |
 
 ## Getting Help
 
