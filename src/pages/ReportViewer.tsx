@@ -1101,6 +1101,18 @@ export default function ReportViewer() {
           />
         )}
 
+        {/* Site Topography Card - Standalone */}
+        {(report.applications?.elevation || report.applications?.topography_map_url || report.applications?.soil_slope_percent) && (
+          <TopographyCard
+            elevation={report.applications?.elevation}
+            topographyMapUrl={report.applications?.topography_map_url}
+            slopePercent={report.applications?.soil_slope_percent}
+            latitude={report.applications?.geo_lat}
+            longitude={report.applications?.geo_lng}
+            className="mb-8"
+          />
+        )}
+
 
         {/* ⭐ NEW: Property Valuation Card */}
         {false && (report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
@@ -1665,12 +1677,11 @@ export default function ReportViewer() {
 
         {/* Detailed Analysis Tabs */}
         <Tabs defaultValue="zoning" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-1">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1">
             <TabsTrigger value="zoning" className="text-xs md:text-sm">Zoning</TabsTrigger>
             <TabsTrigger value="flood" className="text-xs md:text-sm">Flood Risk</TabsTrigger>
             <TabsTrigger value="utilities" className="text-xs md:text-sm">Utilities</TabsTrigger>
             <TabsTrigger value="environmental" className="text-xs md:text-sm">Environmental</TabsTrigger>
-            <TabsTrigger value="topography" className="text-xs md:text-sm">Topography</TabsTrigger>
             <TabsTrigger value="traffic" className="text-xs md:text-sm">Traffic</TabsTrigger>
             <TabsTrigger value="market" className="text-xs md:text-sm">Market</TabsTrigger>
             <TabsTrigger value="access" className="text-xs md:text-sm">
@@ -1747,15 +1758,6 @@ export default function ReportViewer() {
             />
           </TabsContent>
 
-          <TabsContent value="topography" className="mt-6">
-            <TopographyCard
-              elevation={report.applications?.elevation}
-              topographyMapUrl={report.applications?.topography_map_url}
-              slopePercent={report.applications?.soil_slope_percent}
-              latitude={report.applications?.geo_lat}
-              longitude={report.applications?.geo_lng}
-            />
-          </TabsContent>
 
           <TabsContent value="traffic" className="mt-6">
             <TrafficCard
