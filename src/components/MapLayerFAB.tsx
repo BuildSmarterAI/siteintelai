@@ -18,6 +18,7 @@ interface LayerVisibility {
   forceMain: boolean;
   floodZones: boolean;
   zoningDistricts: boolean;
+  topography: boolean;
 }
 
 interface MapLayerFABProps {
@@ -36,6 +37,7 @@ interface MapLayerFABProps {
   hasForceMain: boolean;
   hasFloodZones: boolean;
   hasZoningDistricts: boolean;
+  hasTopography?: boolean;
 }
 
 /**
@@ -62,11 +64,13 @@ export function MapLayerFAB({
   hasForceMain,
   hasFloodZones,
   hasZoningDistricts,
+  hasTopography = true,
 }: MapLayerFABProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const layers = [
     { key: 'parcel' as const, label: 'Property', show: true },
+    { key: 'topography' as const, label: 'Topography', show: hasTopography },
     { key: 'hcadParcels' as const, label: 'HCAD Parcels', show: hasHcadParcels },
     { key: 'waterLines' as const, label: 'Water Lines', show: hasWaterLines },
     { key: 'sewerLines' as const, label: 'Sewer Lines', show: hasSewerLines },
