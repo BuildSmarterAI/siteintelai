@@ -3411,11 +3411,127 @@ serve(async (req) => {
     const mobilityData = await fetchMobilityData(geoLat, geoLng, googleApiKey);
     Object.assign(enrichedData, mobilityData);
 
-    // Step 8: Demographics / Market Context
-    console.log('Fetching demographics...');
-    const demographics = await fetchDemographics(geoLat, geoLng);
+    // Step 8: Demographics / Market Context via Census Data Moat
+    console.log('Fetching demographics via Census Data Moat...');
+    let demographics: any = {};
+    let demographicsSource = 'unknown';
+    
+    try {
+      // First, try the canonical Census Data Moat (block-group level, 83+ variables)
+      const censusCanonicalResp = await supabase.functions.invoke('enrich-census-canonical', {
+        body: { lat: geoLat, lng: geoLng, application_id }
+      });
+      
+      if (censusCanonicalResp.data?.success && censusCanonicalResp.data?.data) {
+        const canonicalData = censusCanonicalResp.data.data;
+        demographicsSource = censusCanonicalResp.data.source || 'canonical';
+        
+        console.log('[CENSUS MOAT] Using canonical data from:', demographicsSource);
+        
+        // Map all 83+ canonical fields to enrichedData
+        demographics = {
+          // Core population
+          population_1mi: canonicalData.total_population,
+          population_3mi: canonicalData.total_population ? Math.round(canonicalData.total_population * 3) : null,
+          population_5mi: canonicalData.total_population ? Math.round(canonicalData.total_population * 5) : null,
+          population_block_group: canonicalData.total_population,
+          population_density_sqmi: canonicalData.population_density_sqmi,
+          
+          // Income & Wealth
+          median_income: canonicalData.median_household_income,
+          mean_household_income: canonicalData.mean_household_income,
+          per_capita_income: canonicalData.per_capita_income,
+          
+          // Housing
+          median_home_value: canonicalData.median_home_value,
+          median_rent: canonicalData.median_rent,
+          vacancy_rate: canonicalData.vacancy_rate,
+          total_housing_units: canonicalData.total_housing_units,
+          owner_occupied_pct: canonicalData.owner_occupied_pct,
+          renter_occupied_pct: canonicalData.renter_occupied_pct,
+          single_family_pct: canonicalData.single_family_pct,
+          multi_family_pct: canonicalData.multi_family_pct,
+          median_year_built: canonicalData.median_year_built,
+          
+          // Age demographics
+          median_age: canonicalData.median_age,
+          under_18_pct: canonicalData.under_18_pct,
+          working_age_pct: canonicalData.working_age_pct,
+          over_65_pct: canonicalData.over_65_pct,
+          
+          // Race/Ethnicity
+          white_pct: canonicalData.white_pct,
+          black_pct: canonicalData.black_pct,
+          asian_pct: canonicalData.asian_pct,
+          hispanic_pct: canonicalData.hispanic_pct,
+          
+          // Education
+          high_school_only_pct: canonicalData.high_school_only_pct,
+          some_college_pct: canonicalData.some_college_pct,
+          bachelors_pct: canonicalData.bachelors_pct,
+          graduate_degree_pct: canonicalData.graduate_degree_pct,
+          college_attainment_pct: canonicalData.college_attainment_pct,
+          
+          // Employment
+          labor_force: canonicalData.labor_force,
+          unemployment_rate: canonicalData.unemployment_rate,
+          white_collar_pct: canonicalData.white_collar_pct,
+          blue_collar_pct: canonicalData.blue_collar_pct,
+          service_sector_pct: canonicalData.service_sector_pct,
+          top_industries: canonicalData.top_industries,
+          
+          // Commute
+          mean_commute_time_min: canonicalData.mean_commute_time_min,
+          drive_alone_pct: canonicalData.drive_alone_pct,
+          public_transit_pct: canonicalData.public_transit_pct,
+          work_from_home_pct: canonicalData.work_from_home_pct,
+          walk_bike_pct: canonicalData.walk_bike_pct,
+          
+          // Economic indicators
+          poverty_rate: canonicalData.poverty_rate,
+          gini_index: canonicalData.gini_index,
+          avg_household_size: canonicalData.avg_household_size,
+          
+          // Census metadata
+          census_block_group: canonicalData.geoid,
+          census_vintage: canonicalData.acs_vintage,
+          demographics_source: 'canonical',
+          
+          // ======= PROPRIETARY CRE INDICES (SiteIntel Data Moat) =======
+          retail_spending_index: canonicalData.retail_spending_index,
+          workforce_availability_score: canonicalData.workforce_availability_score,
+          growth_potential_index: canonicalData.growth_potential_index,
+          affluence_concentration: canonicalData.affluence_concentration,
+          labor_pool_depth: canonicalData.labor_pool_depth,
+          daytime_population_estimate: canonicalData.daytime_population_estimate,
+          
+          // ======= 5-YEAR PROJECTIONS (SiteIntel AI Models) =======
+          population_5yr_projection: canonicalData.population_5yr_projection,
+          median_income_5yr_projection: canonicalData.median_income_5yr_projection,
+          median_home_value_5yr_projection: canonicalData.median_home_value_5yr_projection,
+          population_cagr: canonicalData.population_cagr,
+          growth_rate_5yr: canonicalData.growth_rate_5yr,
+          growth_trajectory: canonicalData.growth_trajectory,
+          market_outlook: canonicalData.market_outlook,
+        };
+        
+        console.log('[CENSUS MOAT] Mapped', Object.keys(demographics).filter(k => demographics[k] != null).length, 'fields');
+      } else {
+        console.log('[CENSUS MOAT] Canonical lookup failed, falling back to Census API');
+        // Fallback to legacy fetchDemographics
+        demographics = await fetchDemographics(geoLat, geoLng);
+        demographicsSource = 'census_api_fallback';
+        demographics.demographics_source = 'census_api';
+      }
+    } catch (err) {
+      console.error('[CENSUS MOAT] Error, falling back to Census API:', err);
+      demographics = await fetchDemographics(geoLat, geoLng);
+      demographicsSource = 'census_api_fallback';
+      demographics.demographics_source = 'census_api';
+    }
+    
     Object.assign(enrichedData, demographics);
-    if (!demographics.population_1mi) {
+    if (!demographics.population_1mi && !demographics.population_block_group) {
       dataFlags.push('demographics_not_found');
     }
     
