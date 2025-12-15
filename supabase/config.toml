@@ -236,3 +236,9 @@ verify_jwt = false
 
 [functions.fetch-parcels-geojson]
 verify_jwt = false
+
+[functions.seed-census-canonical]
+verify_jwt = false
+
+[functions.enrich-census-canonical]
+verify_jwt = true
