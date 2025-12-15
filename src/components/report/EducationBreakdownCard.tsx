@@ -19,16 +19,23 @@ export function EducationBreakdownCard({
   graduateDegreePct,
   collegeAttainmentPct,
 }: EducationBreakdownCardProps) {
-  const educationData = [
-    { name: "High School", value: highSchoolOnlyPct ?? 0, shortName: "HS" },
-    { name: "Some College", value: someCollegePct ?? 0, shortName: "Some" },
-    { name: "Bachelor's", value: bachelorsPct ?? 0, shortName: "BA/BS" },
-    { name: "Graduate", value: graduateDegreePct ?? 0, shortName: "Grad" },
-  ].filter(d => d.value > 0);
+  // Include all education levels, even if some are null
+  const educationLevels = [
+    { name: "High School", value: highSchoolOnlyPct, shortName: "HS" },
+    { name: "Some College", value: someCollegePct, shortName: "Some" },
+    { name: "Bachelor's", value: bachelorsPct, shortName: "BA/BS" },
+    { name: "Graduate", value: graduateDegreePct, shortName: "Grad" },
+  ];
 
-  const hasData = educationData.length > 0 || collegeAttainmentPct != null;
+  // For the chart, only include non-null values
+  const educationData = educationLevels
+    .filter(d => d.value != null && d.value > 0)
+    .map(d => ({ ...d, value: d.value as number }));
 
-  if (!hasData) return null;
+  // Check if we have ANY data to show
+  const hasAnyData = educationLevels.some(d => d.value != null) || collegeAttainmentPct != null;
+
+  if (!hasAnyData) return null;
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -64,8 +71,11 @@ export function EducationBreakdownCard({
                       labelFormatter={(label, payload) => payload?.[0]?.payload?.name || label}
                     />
                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                      {educationData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      {educationData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={COLORS[educationLevels.findIndex(e => e.name === entry.name) % COLORS.length]} 
+                        />
                       ))}
                     </Bar>
                   </BarChart>
@@ -84,7 +94,7 @@ export function EducationBreakdownCard({
             )}
 
             <div className="space-y-2">
-              {educationData.map((item, index) => (
+              {educationLevels.map((item, index) => (
                 <div key={item.name} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2">
                     <div 
@@ -93,7 +103,9 @@ export function EducationBreakdownCard({
                     />
                     <span className="text-sm text-muted-foreground">{item.name}</span>
                   </div>
-                  <span className="font-medium">{item.value.toFixed(1)}%</span>
+                  <span className="font-medium">
+                    {item.value != null ? `${item.value.toFixed(1)}%` : "—"}
+                  </span>
                 </div>
               ))}
             </div>
