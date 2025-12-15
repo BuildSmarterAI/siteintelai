@@ -42,6 +42,28 @@ const HOUSTON_BBOX = {
   lat: { min: 28.5, max: 30.5 }      // Latitude range
 };
 
+// Harris County Municipal Boundaries for geographic routing (WGS84 bounding boxes)
+// These define approximate city limits for automatic endpoint selection
+const MUNICIPAL_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: number; maxLat: number }> = {
+  baytown: { minLng: -95.05, maxLng: -94.85, minLat: 29.68, maxLat: 29.82 },
+  pearland: { minLng: -95.38, maxLng: -95.20, minLat: 29.50, maxLat: 29.60 },
+  league_city: { minLng: -95.15, maxLng: -94.95, minLat: 29.45, maxLat: 29.55 },
+  la_porte: { minLng: -95.05, maxLng: -94.90, minLat: 29.62, maxLat: 29.72 },
+  webster: { minLng: -95.15, maxLng: -95.08, minLat: 29.52, maxLat: 29.56 },
+  seabrook: { minLng: -95.05, maxLng: -94.95, minLat: 29.55, maxLat: 29.60 },
+};
+
+// Detect municipality from coordinates for automatic endpoint routing
+function detectMunicipality(lat: number, lng: number): string | null {
+  for (const [city, bounds] of Object.entries(MUNICIPAL_BOUNDS)) {
+    if (lng >= bounds.minLng && lng <= bounds.maxLng && 
+        lat >= bounds.minLat && lat <= bounds.maxLat) {
+      return city;
+    }
+  }
+  return null;
+}
+
 // Supabase client
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1343,6 +1365,210 @@ serve(async (req) => {
         // MUD/WCID already resolved by resolve-utility-ownership at the beginning
         console.log(`${county} County (outside city limits) - utility ownership resolved: MUD=${mud_district || 'none'}, WCID=${wcid_district || 'none'}, ETJ=${etj_provider || 'unknown'}`);
         flags.push("etj_provider_resolved_early");
+        
+        // MUNICIPAL ENDPOINT ROUTING: Check if parcel is within a known municipality with utility data
+        const detectedMunicipality = detectMunicipality(geo_lat, geo_lng);
+        const municipalEps = endpointCatalog.harris_county_municipalities;
+        
+        if (detectedMunicipality && municipalEps?.[detectedMunicipality]) {
+          console.log(`🏛️ [Municipal] Detected municipality: ${detectedMunicipality.toUpperCase()}`);
+          flags.push(`municipality_${detectedMunicipality}`);
+          const cityEps = municipalEps[detectedMunicipality];
+          
+          // Query municipal water endpoint
+          if (cityEps.water) {
+            try {
+              console.log(`💧 [${detectedMunicipality}] Querying municipal water lines...`);
+              const municipalWater = await queryArcGIS(
+                cityEps.water.url,
+                cityEps.water.outFields,
+                geo_lat,
+                geo_lng,
+                `${detectedMunicipality}_water`,
+                {
+                  timeout_ms: cityEps.water.timeout_ms,
+                  retry_attempts: cityEps.water.retry_attempts,
+                  retry_delays_ms: cityEps.water.retry_delays_ms,
+                  search_radius_ft: cityEps.water.search_radius_ft,
+                  crs: cityEps.water.crs,
+                  geometryType: cityEps.water.geometryType,
+                  spatialRel: cityEps.water.spatialRel
+                }
+              );
+              
+              if (municipalWater.length > 0) {
+                // Normalize municipal water fields to canonical format
+                water = municipalWater.map((f: any) => ({
+                  attributes: {
+                    DIAMETER: f.attributes.DIAMETER || f.attributes.PIPE_SIZE || f.attributes.SIZE || null,
+                    MATERIAL: f.attributes.MATERIAL || f.attributes.PIPE_MATERIAL || null,
+                    STATUS: f.attributes.STATUS || f.attributes.LIFECYCLE_STATUS || 'ACTIVE',
+                    OWNER: f.attributes.OWNER || f.attributes.OWNERSHIP || f.attributes.AUTHORITY || detectedMunicipality.toUpperCase(),
+                    FACILITYID: f.attributes.FACILITYID || null,
+                    INSTALL_YEAR: f.attributes.YEAR_INSTALLED || (f.attributes.INSTALL_DATE ? new Date(f.attributes.INSTALL_DATE).getFullYear() : null)
+                  },
+                  geometry: f.geometry
+                }));
+                flags.push(`water_via_${detectedMunicipality}`);
+                waterCrs = cityEps.water.crs || 4326;
+                console.log(`✅ [${detectedMunicipality}] Municipal water lines found: ${municipalWater.length}`);
+              }
+            } catch (err) {
+              console.warn(`⚠️ [${detectedMunicipality}] Municipal water query failed:`, err instanceof Error ? err.message : String(err));
+              flags.push(`${detectedMunicipality}_water_unavailable`);
+            }
+          }
+          
+          // Query municipal sewer endpoint(s)
+          const sewerEndpoints = [
+            cityEps.sewer,
+            cityEps.sewer_gravity,
+            cityEps.sewer_pressure
+          ].filter(Boolean);
+          
+          for (const sewerEp of sewerEndpoints) {
+            try {
+              const sewerType = sewerEp === cityEps.sewer_pressure ? 'pressure' : sewerEp === cityEps.sewer_gravity ? 'gravity' : 'main';
+              console.log(`🚽 [${detectedMunicipality}] Querying municipal sewer (${sewerType})...`);
+              const municipalSewer = await queryArcGIS(
+                sewerEp.url,
+                sewerEp.outFields,
+                geo_lat,
+                geo_lng,
+                `${detectedMunicipality}_sewer_${sewerType}`,
+                {
+                  timeout_ms: sewerEp.timeout_ms,
+                  retry_attempts: sewerEp.retry_attempts,
+                  retry_delays_ms: sewerEp.retry_delays_ms,
+                  search_radius_ft: sewerEp.search_radius_ft,
+                  crs: sewerEp.crs,
+                  geometryType: sewerEp.geometryType,
+                  spatialRel: sewerEp.spatialRel
+                }
+              );
+              
+              if (municipalSewer.length > 0) {
+                const normalizedSewer = municipalSewer.map((f: any) => ({
+                  attributes: {
+                    DIAMETER: f.attributes.DIAMETER || f.attributes.SIZE || null,
+                    MATERIAL: f.attributes.MATERIAL || null,
+                    STATUS: f.attributes.STATUS || f.attributes.LIFECYCLE_STATUS || 'ACTIVE',
+                    OWNER: f.attributes.OWNER || f.attributes.OWNERSHIP || detectedMunicipality.toUpperCase(),
+                    FACILITYID: f.attributes.FACILITYID || f.attributes.SEGMENT_ID || null,
+                    PIPE_TYPE: f.attributes.PIPE_TYPE || (f.attributes.FORCED_MAI === 'Y' ? 'FORCE_MAIN' : 'GRAVITY_MAIN'),
+                    INSTALL_YEAR: f.attributes.YEAR_INSTALLED || (f.attributes.INSTALL_DATE ? new Date(f.attributes.INSTALL_DATE).getFullYear() : null)
+                  },
+                  geometry: f.geometry,
+                  source: sewerType === 'pressure' ? 'force_main' : sewerType === 'gravity' ? 'gravity_main' : 'main'
+                }));
+                sewer = [...sewer, ...normalizedSewer];
+                flags.push(`sewer_via_${detectedMunicipality}_${sewerType}`);
+                sewerCrs = sewerEp.crs || 4326;
+                console.log(`✅ [${detectedMunicipality}] Municipal sewer (${sewerType}) found: ${municipalSewer.length}`);
+              }
+            } catch (err) {
+              console.warn(`⚠️ [${detectedMunicipality}] Municipal sewer query failed:`, err instanceof Error ? err.message : String(err));
+            }
+          }
+          
+          // Query municipal storm endpoint(s)
+          const stormEndpoints = [
+            cityEps.storm,
+            cityEps.storm_city,
+            cityEps.storm_non_city,
+            cityEps.storm_channels
+          ].filter(Boolean);
+          
+          for (const stormEp of stormEndpoints) {
+            try {
+              const stormType = stormEp === cityEps.storm_channels ? 'channels' : stormEp === cityEps.storm_city ? 'city' : stormEp === cityEps.storm_non_city ? 'non_city' : 'main';
+              console.log(`🌧️ [${detectedMunicipality}] Querying municipal storm (${stormType})...`);
+              const municipalStorm = await queryArcGIS(
+                stormEp.url,
+                stormEp.outFields,
+                geo_lat,
+                geo_lng,
+                `${detectedMunicipality}_storm_${stormType}`,
+                {
+                  timeout_ms: stormEp.timeout_ms,
+                  retry_attempts: stormEp.retry_attempts,
+                  retry_delays_ms: stormEp.retry_delays_ms,
+                  search_radius_ft: stormEp.search_radius_ft,
+                  crs: stormEp.crs,
+                  geometryType: stormEp.geometryType,
+                  spatialRel: stormEp.spatialRel
+                }
+              );
+              
+              if (municipalStorm.length > 0) {
+                const normalizedStorm = municipalStorm.map((f: any) => ({
+                  attributes: {
+                    FACILITYID: f.attributes.FACILITYID || null,
+                    DIAMETER: f.attributes.DIAMETER || f.attributes.PIPE_SIZE || f.attributes.SIZE_NUMBER || null,
+                    MATERIAL: f.attributes.MATERIAL || null,
+                    STATUS: f.attributes.STATUS || f.attributes.LIFECYCLE_STATUS || 'ACTIVE',
+                    OWNER: f.attributes.OWNER || f.attributes.MAINT_OWNER || f.attributes.MAINT_RESPONSIBILITY || detectedMunicipality.toUpperCase(),
+                    TYPE: f.attributes.TYPE || f.attributes.PIPE_TYPE || f.attributes.CULVERT_TYPE || f.attributes.CHANNEL_TYPE || 'PIPE',
+                    CONDITION: f.attributes.CONDITION || null,
+                    FLOW_DIR: f.attributes.FLOW_DIR || f.attributes.FLOW_DIRECTION || null,
+                    CHANNEL_NAME: f.attributes.CHANNEL_NAME || null
+                  },
+                  geometry: f.geometry
+                }));
+                storm = [...storm, ...normalizedStorm];
+                flags.push(`storm_via_${detectedMunicipality}_${stormType}`);
+                stormCrs = stormEp.crs || 4326;
+                console.log(`✅ [${detectedMunicipality}] Municipal storm (${stormType}) found: ${municipalStorm.length}`);
+              }
+            } catch (err) {
+              console.warn(`⚠️ [${detectedMunicipality}] Municipal storm query failed:`, err instanceof Error ? err.message : String(err));
+            }
+          }
+          
+          console.log(`📊 [${detectedMunicipality}] Municipal utility summary - Water: ${water.length}, Sewer: ${sewer.length}, Storm: ${storm.length}`);
+        }
+        
+        // FALLBACK: Query HCRWA regional water authority if no municipal water found
+        if (water.length === 0 && county?.toLowerCase().includes("harris") && endpointCatalog.harris_county?.hcrwa_water) {
+          try {
+            console.log('💧 [Harris County] Querying HCRWA regional water authority...');
+            const hcrwaWater = await queryArcGIS(
+              endpointCatalog.harris_county.hcrwa_water.url,
+              endpointCatalog.harris_county.hcrwa_water.outFields,
+              geo_lat,
+              geo_lng,
+              "harris_hcrwa_water",
+              {
+                timeout_ms: endpointCatalog.harris_county.hcrwa_water.timeout_ms,
+                retry_attempts: endpointCatalog.harris_county.hcrwa_water.retry_attempts,
+                retry_delays_ms: endpointCatalog.harris_county.hcrwa_water.retry_delays_ms,
+                search_radius_ft: endpointCatalog.harris_county.hcrwa_water.search_radius_ft,
+                crs: endpointCatalog.harris_county.hcrwa_water.crs,
+                geometryType: endpointCatalog.harris_county.hcrwa_water.geometryType,
+                spatialRel: endpointCatalog.harris_county.hcrwa_water.spatialRel
+              }
+            );
+            
+            if (hcrwaWater.length > 0) {
+              water = hcrwaWater.map((f: any) => ({
+                attributes: {
+                  DIAMETER: f.attributes.PIPE_DIAM || null,
+                  MATERIAL: null,
+                  STATUS: f.attributes.PIPE_STATUS || 'ACTIVE',
+                  OWNER: 'HCRWA',
+                  PROJECT_NAME: f.attributes.PROJECT_NAME || null,
+                  PHASE: f.attributes.PHASE || null
+                },
+                geometry: f.geometry
+              }));
+              flags.push("water_via_hcrwa");
+              waterCrs = endpointCatalog.harris_county.hcrwa_water.crs || 2278;
+              console.log(`✅ HCRWA water lines found: ${hcrwaWater.length}`);
+            }
+          } catch (err) {
+            console.warn('⚠️ HCRWA water query failed:', err instanceof Error ? err.message : String(err));
+          }
+        }
         
         // Query county-wide storm drainage (HCFCD) for Harris County
         if (county?.toLowerCase().includes("harris") && endpointCatalog.harris_county) {
