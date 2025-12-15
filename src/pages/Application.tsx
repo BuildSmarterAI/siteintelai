@@ -19,6 +19,7 @@ import { ContactStep } from "@/components/application/ContactStep";
 import { PropertyStep } from "@/components/application/PropertyStep";
 import { IntentStep } from "@/components/application/IntentStep";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
+import { useApplicationDraft } from "@/hooks/useApplicationDraft";
 import { Progress } from "@/components/ui/progress";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -46,6 +47,16 @@ export default function Application() {
     setErrors,
     updateMultipleFields
   } = useApplicationForm();
+
+  // Draft auto-save hook
+  const { 
+    draftId, 
+    lastSaved, 
+    isSaving: isDraftSaving, 
+    isLoading: isDraftLoading,
+    saveDraft,
+    clearDraft 
+  } = useApplicationDraft(formData, currentStep, updateMultipleFields);
 
   // Authentication and profile loading
   const [authLoading, setAuthLoading] = useState(true);
@@ -110,10 +121,16 @@ export default function Application() {
                 console.log('[Intent] New application - user must select intent');
               }
 
-              // Only auto-navigate to step 2 if user is on step 0 or 1
+              // Respect URL step parameter - don't auto-redirect if user is on a valid step
               const stepParam = new URLSearchParams(window.location.search).get('step');
               const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 0;
-              if (currentStepFromUrl <= 1) {
+              
+              // If user has a valid step in URL (e.g., returning to step 6), respect it
+              if (currentStepFromUrl >= 2) {
+                // User is past contact/intent - let them stay where they are
+                console.log('[Profile] User on step', currentStepFromUrl, '- respecting URL');
+                setCurrentStep(currentStepFromUrl);
+              } else if (currentStepFromUrl <= 1) {
                 if (intentCapturedThisSession && savedIntent) {
                   // Both contact info and intent captured - skip to step 2
                   navigate('/application?step=2', {
@@ -164,11 +181,57 @@ export default function Application() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load completed steps from localStorage on mount
+  // Auto-detect completed steps based on form data (resilient recovery)
+  const detectCompletedSteps = (data: typeof formData): Set<number> => {
+    const completed = new Set<number>();
+    
+    // Step 0: Intent type selected
+    if (data.intentType) {
+      completed.add(0);
+    }
+    
+    // Step 1: Contact info complete
+    const hasValidEmail = data.email && /\S+@\S+\.\S+/.test(data.email);
+    if (data.fullName && data.company && hasValidEmail && data.phone) {
+      completed.add(1);
+    }
+    
+    // Step 2: Property address provided
+    if (data.propertyAddress) {
+      completed.add(2);
+    }
+    
+    // Steps 3-5 are optional, mark as complete if we have any data
+    // Step 3: Project intent (optional fields)
+    if (data.projectType.length > 0 || data.buildingSize || data.stories) {
+      completed.add(3);
+    }
+    
+    // Step 4: Market info (optional)
+    if (data.submarket || data.accessPriorities.length > 0 || data.knownRisks.length > 0) {
+      completed.add(4);
+    }
+    
+    // Step 5: Final questions (optional)
+    if (data.hearAboutUs || data.additionalNotes) {
+      completed.add(5);
+    }
+    
+    return completed;
+  };
+
+  // Load completed steps from localStorage on mount, with auto-detection fallback
   useEffect(() => {
     const saved = localStorage.getItem('application_completed_steps');
     if (saved) {
-      setCompletedSteps(new Set(JSON.parse(saved)));
+      const savedSteps = new Set<number>(JSON.parse(saved));
+      // Merge with auto-detected steps for resilience
+      const autoDetected = detectCompletedSteps(formData);
+      const merged = new Set([...savedSteps, ...autoDetected]);
+      setCompletedSteps(merged);
+    } else {
+      // No saved data - auto-detect from form data
+      setCompletedSteps(detectCompletedSteps(formData));
     }
   }, []);
 
@@ -185,30 +248,44 @@ export default function Application() {
     });
   };
 
-  // Set initial step based on URL parameter with relaxed enforcement
+  // Set initial step based on URL parameter with resilient enforcement
   useEffect(() => {
     const stepParam = searchParams.get('step');
     if (!stepParam) return;
     const requestedStep = parseInt(stepParam, 10);
     if (requestedStep < 0 || requestedStep > 6) return;
 
-    // Check if all previous steps are completed
+    // Re-detect completed steps based on current form data for resilience
+    const detectedSteps = detectCompletedSteps(formData);
+    const mergedSteps = new Set([...completedSteps, ...detectedSteps]);
+    
+    // Update completed steps if detection found more
+    if (detectedSteps.size > 0 && mergedSteps.size > completedSteps.size) {
+      setCompletedSteps(mergedSteps);
+    }
+
+    // Check if all previous steps are completed (using merged data)
     const canAccessStep = Array.from({
       length: requestedStep
-    }, (_, i) => i).every(step => completedSteps.has(step));
+    }, (_, i) => i).every(step => mergedSteps.has(step));
+    
     if (canAccessStep) {
       setCurrentStep(requestedStep);
     } else if (requestedStep > currentStep) {
       // Only enforce when trying to jump forward via URL
       const firstIncompleteStep = Array.from({
         length: 6
-      }, (_, i) => i).find(step => !completedSteps.has(step)) || 0;
-      navigate(`/application?step=${firstIncompleteStep}`, {
-        replace: true
-      });
-      setCurrentStep(firstIncompleteStep);
+      }, (_, i) => i).find(step => !mergedSteps.has(step)) ?? 0;
+      
+      // Don't redirect if we're already at a valid step
+      if (firstIncompleteStep !== currentStep) {
+        navigate(`/application?step=${firstIncompleteStep}`, {
+          replace: true
+        });
+        setCurrentStep(firstIncompleteStep);
+      }
     }
-  }, [searchParams]); // Note: removed completedSteps to avoid fighting state updates
+  }, [searchParams, formData.intentType, formData.propertyAddress]); // Re-check when key data changes
 
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
@@ -593,11 +670,12 @@ export default function Application() {
           description: "Redirecting to next steps..."
         });
 
-        // Clear completed steps and session markers on successful submission
+        // Clear completed steps, session markers, and draft on successful submission
         localStorage.removeItem('application_completed_steps');
         sessionStorage.removeItem('application_in_progress');
         sessionStorage.removeItem('intent_captured_this_session');
-        console.log('[Submission] Cleared session markers for next application');
+        clearDraft(); // Clear draft after successful submission
+        console.log('[Submission] Cleared session markers and draft for next application');
 
         // Redirect to thank you page with application ID
         setTimeout(() => {
@@ -653,9 +731,24 @@ export default function Application() {
                 <span className="font-body text-sm font-semibold text-charcoal">
                   Step {currentStep} of {totalSteps}
                 </span>
-                <span className="font-body text-sm text-charcoal/60">
-                  {Math.round(getProgress())}% Complete
-                </span>
+                <div className="flex items-center gap-3">
+                  {/* Draft save indicator */}
+                  {isDraftSaving && (
+                    <span className="font-body text-xs text-charcoal/50 flex items-center gap-1">
+                      <Clock className="h-3 w-3 animate-spin" />
+                      Saving...
+                    </span>
+                  )}
+                  {!isDraftSaving && lastSaved && (
+                    <span className="font-body text-xs text-green-600 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Draft saved
+                    </span>
+                  )}
+                  <span className="font-body text-sm text-charcoal/60">
+                    {Math.round(getProgress())}% Complete
+                  </span>
+                </div>
               </div>
               <div className="w-full bg-charcoal/20 rounded-full h-3">
                 <div className="bg-navy h-3 rounded-full transition-all duration-500" style={{
