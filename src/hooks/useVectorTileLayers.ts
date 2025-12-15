@@ -2,6 +2,10 @@ import { useEffect, useRef, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useVectorTileSources } from './useTilesets';
 
+// Terrain/Hillshade source configuration (free MapLibre demo tiles)
+const TERRAIN_SOURCE_ID = 'terrain-dem-source';
+const HILLSHADE_LAYER_ID = 'terrain-hillshade';
+
 /**
  * Vector tile layer configuration for MapLibre
  * Defines styling for each layer category from CloudFront CDN tiles
@@ -402,6 +406,7 @@ export function useVectorTileLayers({
       utilities: ['siteintel-utilities-line'],
       traffic: ['siteintel-transportation-line'],
       zoningDistricts: ['siteintel-zoning-fill', 'siteintel-zoning-line'],
+      topography: [HILLSHADE_LAYER_ID],
     };
 
     for (const [key, layerIds] of Object.entries(visibilityMap)) {
@@ -419,6 +424,80 @@ export function useVectorTileLayers({
       }
     }
   }, [map, mapLoaded, layerVisibility]);
+
+  // Add terrain/hillshade layer when topography visibility is enabled
+  useEffect(() => {
+    if (!map || !mapLoaded || !map.isStyleLoaded()) return;
+    
+    const showTerrain = layerVisibility.topography ?? false;
+    
+    // Add terrain source if not exists
+    if (!map.getSource(TERRAIN_SOURCE_ID)) {
+      try {
+        map.addSource(TERRAIN_SOURCE_ID, {
+          type: 'raster-dem',
+          tiles: [
+            'https://demotiles.maplibre.org/terrain-tiles/{z}/{x}/{y}.png'
+          ],
+          tileSize: 256,
+          maxzoom: 14,
+        });
+        console.log('🏔️ Added terrain DEM source');
+      } catch (err) {
+        console.error('Failed to add terrain source:', err);
+        return;
+      }
+    }
+    
+    // Add or update hillshade layer
+    if (!map.getLayer(HILLSHADE_LAYER_ID)) {
+      try {
+        map.addLayer({
+          id: HILLSHADE_LAYER_ID,
+          type: 'hillshade',
+          source: TERRAIN_SOURCE_ID,
+          paint: {
+            'hillshade-exaggeration': 0.5,
+            'hillshade-shadow-color': '#0A0F2C', // Midnight Blue
+            'hillshade-highlight-color': '#FFFFFF',
+            'hillshade-accent-color': '#06B6D4', // Data Cyan
+          },
+          layout: {
+            visibility: showTerrain ? 'visible' : 'none',
+          },
+        }, 'siteintel-parcels-fill'); // Insert below parcels so they appear on top
+        console.log('🏔️ Added hillshade layer');
+      } catch (err) {
+        // Try adding without before parameter if layer doesn't exist
+        try {
+          map.addLayer({
+            id: HILLSHADE_LAYER_ID,
+            type: 'hillshade',
+            source: TERRAIN_SOURCE_ID,
+            paint: {
+              'hillshade-exaggeration': 0.5,
+              'hillshade-shadow-color': '#0A0F2C',
+              'hillshade-highlight-color': '#FFFFFF',
+              'hillshade-accent-color': '#06B6D4',
+            },
+            layout: {
+              visibility: showTerrain ? 'visible' : 'none',
+            },
+          });
+          console.log('🏔️ Added hillshade layer (fallback)');
+        } catch (err2) {
+          console.error('Failed to add hillshade layer:', err2);
+        }
+      }
+    } else {
+      // Update visibility
+      try {
+        map.setLayoutProperty(HILLSHADE_LAYER_ID, 'visibility', showTerrain ? 'visible' : 'none');
+      } catch (err) {
+        // Layer might be in a bad state
+      }
+    }
+  }, [map, mapLoaded, layerVisibility.topography]);
 
   return {
     sources,

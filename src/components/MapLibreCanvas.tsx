@@ -106,6 +106,7 @@ function getInitialLayerVisibility(
     forceMain: true,
     floodZones: true,
     zoningDistricts: true,
+    topography: false, // Off by default - terrain can be heavy
   };
   
   if (savedPreferences && Object.keys(savedPreferences).length > 0) {
@@ -144,6 +145,7 @@ interface LayerVisibility {
   forceMain: boolean;
   floodZones: boolean;
   zoningDistricts: boolean;
+  topography: boolean;
 }
 
 interface MapLibreCanvasProps {
@@ -2496,6 +2498,7 @@ export function MapLibreCanvas({
         hasForceMain={forceMain.length > 0}
         hasFloodZones={floodZones.length > 0}
         hasZoningDistricts={zoningDistricts.length > 0}
+        hasTopography={true}
       />
       
       {/* Measurement Results Panel */}
