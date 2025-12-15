@@ -201,7 +201,8 @@ export default function Application() {
       completed.add(2);
     }
     
-    // Steps 3-5 are optional, mark as complete if we have any data
+    // Steps 3-5 are optional fields - mark as complete if we've progressed past them
+    // OR if they have any data filled in
     // Step 3: Project intent (optional fields)
     if (data.projectType.length > 0 || data.buildingSize || data.stories) {
       completed.add(3);
@@ -212,8 +213,10 @@ export default function Application() {
       completed.add(4);
     }
     
-    // Step 5: Final questions (optional)
-    if (data.hearAboutUs || data.additionalNotes) {
+    // Step 5: Final questions - mark complete if consents are checked (required for step 6)
+    if (data.ndaConsent && data.contactConsent && data.privacyConsent) {
+      completed.add(5);
+    } else if (data.hearAboutUs || data.additionalNotes) {
       completed.add(5);
     }
     
@@ -265,27 +268,47 @@ export default function Application() {
     }
 
     // Check if all previous steps are completed (using merged data)
-    const canAccessStep = Array.from({
-      length: requestedStep
-    }, (_, i) => i).every(step => mergedSteps.has(step));
+    // For optional steps (3, 4, 5), allow access if we have the key required data
+    const hasRequiredData = mergedSteps.has(0) && mergedSteps.has(1) && mergedSteps.has(2);
+    const canAccessOptionalSteps = hasRequiredData && requestedStep >= 3;
     
-    if (canAccessStep) {
+    // If requesting step 3-6 and we have required data from steps 0-2, allow it
+    if (canAccessOptionalSteps) {
       setCurrentStep(requestedStep);
-    } else if (requestedStep > currentStep) {
-      // Only enforce when trying to jump forward via URL
-      const firstIncompleteStep = Array.from({
-        length: 6
-      }, (_, i) => i).find(step => !mergedSteps.has(step)) ?? 0;
-      
-      // Don't redirect if we're already at a valid step
-      if (firstIncompleteStep !== currentStep) {
-        navigate(`/application?step=${firstIncompleteStep}`, {
-          replace: true
+      // Mark intermediate optional steps as passed if accessing a later step
+      if (requestedStep > 3) {
+        setCompletedSteps(prev => {
+          const updated = new Set(prev);
+          for (let i = 3; i < requestedStep; i++) {
+            updated.add(i);
+          }
+          return updated;
         });
-        setCurrentStep(firstIncompleteStep);
+      }
+    } else {
+      // Standard check for steps 0-2
+      const canAccessStep = Array.from({
+        length: requestedStep
+      }, (_, i) => i).every(step => mergedSteps.has(step));
+      
+      if (canAccessStep) {
+        setCurrentStep(requestedStep);
+      } else if (requestedStep > currentStep) {
+        // Only enforce when trying to jump forward via URL
+        const firstIncompleteStep = Array.from({
+          length: 6
+        }, (_, i) => i).find(step => !mergedSteps.has(step)) ?? 0;
+        
+        // Don't redirect if we're already at a valid step
+        if (firstIncompleteStep !== currentStep) {
+          navigate(`/application?step=${firstIncompleteStep}`, {
+            replace: true
+          });
+          setCurrentStep(firstIncompleteStep);
+        }
       }
     }
-  }, [searchParams, formData.intentType, formData.propertyAddress]); // Re-check when key data changes
+  }, [searchParams, formData.intentType, formData.propertyAddress, completedSteps, currentStep, navigate]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
