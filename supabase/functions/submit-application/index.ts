@@ -111,6 +111,27 @@ serve(async (req) => {
       pageUrl,
     } = body;
 
+    // Validate required property address - CRITICAL: prevents data-less submissions
+    if (!propertyAddress || !geoLat || !geoLng) {
+      console.error(`❌ [TRACE:${traceId}] Missing property address or coordinates:`, {
+        propertyAddress: !!propertyAddress,
+        geoLat: !!geoLat,
+        geoLng: !!geoLng
+      });
+      return new Response(
+        JSON.stringify({ 
+          error: "Property address with coordinates is required",
+          code: "MISSING_PROPERTY_ADDRESS",
+          missing: {
+            propertyAddress: !propertyAddress,
+            geoLat: !geoLat,
+            geoLng: !geoLng
+          }
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Validate required consents
     if (!ndaConfidentiality || !consentContact || !consentTermsPrivacy) {
       console.error(`❌ [TRACE:${traceId}] Missing consents`);

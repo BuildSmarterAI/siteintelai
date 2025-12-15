@@ -484,6 +484,19 @@ export default function Application() {
         }
       }
 
+      // Extra guard: If trying to go to Step 6 (Review), ensure Step 2 (Property) is complete
+      if (currentStep === 5) {
+        if (!formData.propertyAddress || !formData.geoLat || !formData.geoLng) {
+          toast({
+            title: "Property Address Required",
+            description: "Please complete Step 2 (Property Information) before proceeding to Review.",
+            variant: "destructive"
+          });
+          goToStep(2);
+          return;
+        }
+      }
+
       // Mark current step as completed
       setCompletedSteps(prev => new Set([...prev, currentStep]));
 
@@ -510,187 +523,209 @@ export default function Application() {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep(6)) {
-      setIsLoading(true);
+    
+    // Frontend validation - check critical property data BEFORE submission
+    if (!formData.propertyAddress || formData.propertyAddress.trim() === '') {
+      toast({
+        title: "Missing Property Address",
+        description: "Please go back to Step 2 and select a property address.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!formData.geoLat || !formData.geoLng) {
+      toast({
+        title: "Missing Property Coordinates",
+        description: "Please go back to Step 2 and select a valid property with geocoded coordinates.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!validateStep(6)) {
+      return;
+    }
+    
+    setIsLoading(true);
 
-      // Detect conflicts between user input and HCAD data
-      const dataFlags = [];
-      if (unlockedFields.parcelId && hcadValues.parcelId && formData.parcelId !== hcadValues.parcelId) {
+    // Detect conflicts between user input and HCAD data
+    const dataFlags = [];
+    if (unlockedFields.parcelId && hcadValues.parcelId && formData.parcelId !== hcadValues.parcelId) {
+      dataFlags.push({
+        type: 'user_override',
+        field: 'parcel_id',
+        user_value: formData.parcelId,
+        hcad_value: hcadValues.parcelId,
+        confidence: 'low',
+        message: 'User manually overrode HCAD parcel ID'
+      });
+    }
+    if (unlockedFields.lotSize && hcadValues.lotSize) {
+      const userLotSize = parseFloat(formData.lotSize);
+      const hcadLotSize = parseFloat(hcadValues.lotSize);
+      const percentDiff = Math.abs((userLotSize - hcadLotSize) / hcadLotSize) * 100;
+      if (percentDiff > 10) {
         dataFlags.push({
           type: 'user_override',
-          field: 'parcel_id',
-          user_value: formData.parcelId,
-          hcad_value: hcadValues.parcelId,
-          confidence: 'low',
-          message: 'User manually overrode HCAD parcel ID'
+          field: 'lot_size',
+          user_value: `${formData.lotSize} ${formData.lotSizeUnit}`,
+          hcad_value: `${hcadValues.lotSize} acres`,
+          confidence: percentDiff > 25 ? 'very_low' : 'low',
+          percent_difference: percentDiff.toFixed(1),
+          message: `User lot size differs from HCAD by ${percentDiff.toFixed(1)}%`
         });
       }
-      if (unlockedFields.lotSize && hcadValues.lotSize) {
-        const userLotSize = parseFloat(formData.lotSize);
-        const hcadLotSize = parseFloat(hcadValues.lotSize);
-        const percentDiff = Math.abs((userLotSize - hcadLotSize) / hcadLotSize) * 100;
-        if (percentDiff > 10) {
-          dataFlags.push({
-            type: 'user_override',
-            field: 'lot_size',
-            user_value: `${formData.lotSize} ${formData.lotSizeUnit}`,
-            hcad_value: `${hcadValues.lotSize} acres`,
-            confidence: percentDiff > 25 ? 'very_low' : 'low',
-            percent_difference: percentDiff.toFixed(1),
-            message: `User lot size differs from HCAD by ${percentDiff.toFixed(1)}%`
-          });
-        }
-      }
-      if (unlockedFields.zoning && hcadValues.zoning && formData.zoning !== hcadValues.zoning) {
-        dataFlags.push({
-          type: 'user_override',
-          field: 'zoning',
-          user_value: formData.zoning,
-          hcad_value: hcadValues.zoning,
-          confidence: 'low',
-          message: 'User manually overrode HCAD zoning classification'
-        });
-      }
+    }
+    if (unlockedFields.zoning && hcadValues.zoning && formData.zoning !== hcadValues.zoning) {
+      dataFlags.push({
+        type: 'user_override',
+        field: 'zoning',
+        user_value: formData.zoning,
+        hcad_value: hcadValues.zoning,
+        confidence: 'low',
+        message: 'User manually overrode HCAD zoning classification'
+      });
+    }
 
-      // Prepare data for Supabase submission
-      const submissionData = {
-        fullName: formData.fullName,
-        company: formData.company,
-        email: formData.email,
-        phone: formData.phone,
-        intentType: formData.intentType,
-        propertyAddress: formData.propertyAddress,
-        parcelIdApn: formData.parcelId,
-        lotSizeValue: formData.lotSize,
-        lotSizeUnit: formData.lotSizeUnit,
-        existingImprovements: formData.currentUse,
-        zoningClassification: formData.zoning,
-        geoLat: formData.geoLat,
-        geoLng: formData.geoLng,
-        county: formData.county,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        neighborhood: formData.neighborhood,
-        sublocality: formData.sublocality,
-        placeId: formData.placeId,
-        projectType: formData.projectType,
-        buildingSizeValue: formData.buildingSize,
-        buildingSizeUnit: formData.buildingSizeUnit,
-        storiesHeight: formData.stories,
-        prototypeRequirements: formData.prototypeRequirements,
-        qualityLevel: formData.qualityLevel,
-        desiredBudget: formData.budget,
-        submarket: formData.submarket,
-        accessPriorities: formData.accessPriorities,
-        knownRisks: formData.knownRisks,
-        utilityAccess: formData.utilityAccess,
-        environmentalConstraints: formData.environmentalConstraints,
-        tenantRequirements: formData.tenantRequirements,
-        heardAbout: formData.hearAboutUs,
-        preferredContact: formData.contactMethod,
-        bestTime: formData.bestTime,
-        additionalNotes: formData.additionalNotes,
-        attachments: uploadedFiles.length > 0 ? uploadedFiles.map(f => ({
-          name: f.name,
-          size: f.size,
-          type: f.type
-        })) : null,
-        ndaConfidentiality: formData.ndaConsent,
-        consentContact: formData.contactConsent,
-        consentTermsPrivacy: formData.privacyConsent,
-        marketingOptIn: formData.marketingOptIn,
-        utmSource: new URLSearchParams(window.location.search).get('utm_source') || '',
-        utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || '',
-        utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
-        utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
-        pageUrl: window.location.href,
-        // Add drawn parcel data
-        drawnParcelGeometry: formData.drawnParcelGeometry,
-        drawnParcelName: formData.drawnParcelName,
-        // Include enriched GIS data from formData state
-        situsAddress: formData.situsAddress,
-        administrativeAreaLevel2: formData.administrativeAreaLevel2,
-        parcelOwner: formData.parcelOwner,
-        acreageCad: formData.acreageCad,
-        zoningCode: formData.zoningCode,
-        overlayDistrict: formData.overlayDistrict,
-        floodplainZone: formData.floodplainZone,
-        baseFloodElevation: formData.baseFloodElevation,
-        // Add conflict flags if any exist
-        dataFlags: dataFlags.length > 0 ? dataFlags : null
-      };
-      try {
-        // Get current session to pass auth token
-        const {
-          data: {
-            session
-          }
-        } = await supabase.auth.getSession();
-
-        // Verify user is authenticated
-        if (!session?.user) {
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to submit an application.",
-            variant: "destructive"
-          });
-          navigate("/auth");
-          return;
+    // Prepare data for Supabase submission
+    const submissionData = {
+      fullName: formData.fullName,
+      company: formData.company,
+      email: formData.email,
+      phone: formData.phone,
+      intentType: formData.intentType,
+      propertyAddress: formData.propertyAddress,
+      parcelIdApn: formData.parcelId,
+      lotSizeValue: formData.lotSize,
+      lotSizeUnit: formData.lotSizeUnit,
+      existingImprovements: formData.currentUse,
+      zoningClassification: formData.zoning,
+      geoLat: formData.geoLat,
+      geoLng: formData.geoLng,
+      county: formData.county,
+      city: formData.city,
+      state: formData.state,
+      zipCode: formData.zipCode,
+      neighborhood: formData.neighborhood,
+      sublocality: formData.sublocality,
+      placeId: formData.placeId,
+      projectType: formData.projectType,
+      buildingSizeValue: formData.buildingSize,
+      buildingSizeUnit: formData.buildingSizeUnit,
+      storiesHeight: formData.stories,
+      prototypeRequirements: formData.prototypeRequirements,
+      qualityLevel: formData.qualityLevel,
+      desiredBudget: formData.budget,
+      submarket: formData.submarket,
+      accessPriorities: formData.accessPriorities,
+      knownRisks: formData.knownRisks,
+      utilityAccess: formData.utilityAccess,
+      environmentalConstraints: formData.environmentalConstraints,
+      tenantRequirements: formData.tenantRequirements,
+      heardAbout: formData.hearAboutUs,
+      preferredContact: formData.contactMethod,
+      bestTime: formData.bestTime,
+      additionalNotes: formData.additionalNotes,
+      attachments: uploadedFiles.length > 0 ? uploadedFiles.map(f => ({
+        name: f.name,
+        size: f.size,
+        type: f.type
+      })) : null,
+      ndaConfidentiality: formData.ndaConsent,
+      consentContact: formData.contactConsent,
+      consentTermsPrivacy: formData.privacyConsent,
+      marketingOptIn: formData.marketingOptIn,
+      utmSource: new URLSearchParams(window.location.search).get('utm_source') || '',
+      utmMedium: new URLSearchParams(window.location.search).get('utm_medium') || '',
+      utmCampaign: new URLSearchParams(window.location.search).get('utm_campaign') || '',
+      utmTerm: new URLSearchParams(window.location.search).get('utm_term') || '',
+      pageUrl: window.location.href,
+      // Add drawn parcel data
+      drawnParcelGeometry: formData.drawnParcelGeometry,
+      drawnParcelName: formData.drawnParcelName,
+      // Include enriched GIS data from formData state
+      situsAddress: formData.situsAddress,
+      administrativeAreaLevel2: formData.administrativeAreaLevel2,
+      parcelOwner: formData.parcelOwner,
+      acreageCad: formData.acreageCad,
+      zoningCode: formData.zoningCode,
+      overlayDistrict: formData.overlayDistrict,
+      floodplainZone: formData.floodplainZone,
+      baseFloodElevation: formData.baseFloodElevation,
+      // Add conflict flags if any exist
+      dataFlags: dataFlags.length > 0 ? dataFlags : null
+    };
+    try {
+      // Get current session to pass auth token
+      const {
+        data: {
+          session
         }
-        const headers = {
-          'Authorization': `Bearer ${session.access_token}`
-        };
+      } = await supabase.auth.getSession();
 
-        // Submit to Supabase via edge function
-        const {
-          data: result,
-          error
-        } = await supabase.functions.invoke('submit-application', {
-          body: submissionData,
-          headers
-        });
-        if (error) {
-          throw error;
-        }
-
-        // Also trigger webhook if provided
-        if (webhookUrl) {
-          await fetch(webhookUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            mode: "no-cors",
-            body: JSON.stringify(submissionData)
-          });
-        }
+      // Verify user is authenticated
+      if (!session?.user) {
         toast({
-          title: "Application Submitted Successfully!",
-          description: "Redirecting to next steps..."
-        });
-
-        // Clear completed steps, session markers, and draft on successful submission
-        localStorage.removeItem('application_completed_steps');
-        sessionStorage.removeItem('application_in_progress');
-        sessionStorage.removeItem('intent_captured_this_session');
-        clearDraft(); // Clear draft after successful submission
-        console.log('[Submission] Cleared session markers and draft for next application');
-
-        // Redirect to thank you page with application ID
-        setTimeout(() => {
-          navigate(`/thank-you?applicationId=${result.id}`);
-        }, 1500);
-      } catch (error) {
-        console.error("Error submitting application:", error);
-        toast({
-          title: "Submission Error",
-          description: "There was an issue submitting your application. Please try again.",
+          title: "Authentication Required",
+          description: "Please log in to submit an application.",
           variant: "destructive"
         });
-      } finally {
-        setIsLoading(false);
+        navigate("/auth");
+        return;
       }
+      const headers = {
+        'Authorization': `Bearer ${session.access_token}`
+      };
+
+      // Submit to Supabase via edge function
+      const {
+        data: result,
+        error
+      } = await supabase.functions.invoke('submit-application', {
+        body: submissionData,
+        headers
+      });
+      if (error) {
+        throw error;
+      }
+
+      // Also trigger webhook if provided
+      if (webhookUrl) {
+        await fetch(webhookUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          mode: "no-cors",
+          body: JSON.stringify(submissionData)
+        });
+      }
+      toast({
+        title: "Application Submitted Successfully!",
+        description: "Redirecting to next steps..."
+      });
+
+      // Clear completed steps, session markers, and draft on successful submission
+      localStorage.removeItem('application_completed_steps');
+      sessionStorage.removeItem('application_in_progress');
+      sessionStorage.removeItem('intent_captured_this_session');
+      clearDraft(); // Clear draft after successful submission
+      console.log('[Submission] Cleared session markers and draft for next application');
+
+      // Redirect to thank you page with application ID
+      setTimeout(() => {
+        navigate(`/thank-you?applicationId=${result.id}`);
+      }, 1500);
+    } catch (error) {
+      console.error("Error submitting application:", error);
+      toast({
+        title: "Submission Error",
+        description: "There was an issue submitting your application. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   const calculateLeadScore = (): number => {
