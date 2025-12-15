@@ -51,7 +51,7 @@ export function useAdminReports(filters: AdminReportsFilters) {
           pdf_url,
           created_at,
           updated_at,
-          applications!inner (
+          applications!reports_application_id_fkey (
             formatted_address,
             parcel_id,
             email
