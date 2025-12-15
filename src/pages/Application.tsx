@@ -251,21 +251,28 @@ export default function Application() {
     });
   };
 
+  // Ref to track if initial URL step has been processed
+  const initialStepProcessedRef = useRef(false);
+  const lastStepParamRef = useRef<string | null>(null);
+
   // Set initial step based on URL parameter with resilient enforcement
   useEffect(() => {
     const stepParam = searchParams.get('step');
+    
+    // Skip if no step param or same as last processed
     if (!stepParam) return;
+    if (stepParam === lastStepParamRef.current && initialStepProcessedRef.current) return;
+    
     const requestedStep = parseInt(stepParam, 10);
     if (requestedStep < 0 || requestedStep > 6) return;
 
     // Re-detect completed steps based on current form data for resilience
     const detectedSteps = detectCompletedSteps(formData);
-    const mergedSteps = new Set([...completedSteps, ...detectedSteps]);
     
-    // Update completed steps if detection found more
-    if (detectedSteps.size > 0 && mergedSteps.size > completedSteps.size) {
-      setCompletedSteps(mergedSteps);
-    }
+    // Get current completed steps from localStorage for merge
+    const savedStepsRaw = localStorage.getItem('application_completed_steps');
+    const savedSteps = savedStepsRaw ? new Set<number>(JSON.parse(savedStepsRaw)) : new Set<number>();
+    const mergedSteps = new Set([...savedSteps, ...detectedSteps]);
 
     // Check if all previous steps are completed (using merged data)
     // For optional steps (3, 4, 5), allow access if we have the key required data
@@ -277,13 +284,13 @@ export default function Application() {
       setCurrentStep(requestedStep);
       // Mark intermediate optional steps as passed if accessing a later step
       if (requestedStep > 3) {
-        setCompletedSteps(prev => {
-          const updated = new Set(prev);
-          for (let i = 3; i < requestedStep; i++) {
-            updated.add(i);
-          }
-          return updated;
-        });
+        const updatedSteps = new Set(mergedSteps);
+        for (let i = 3; i < requestedStep; i++) {
+          updatedSteps.add(i);
+        }
+        setCompletedSteps(updatedSteps);
+      } else {
+        setCompletedSteps(mergedSteps);
       }
     } else {
       // Standard check for steps 0-2
@@ -293,22 +300,23 @@ export default function Application() {
       
       if (canAccessStep) {
         setCurrentStep(requestedStep);
-      } else if (requestedStep > currentStep) {
-        // Only enforce when trying to jump forward via URL
+        setCompletedSteps(mergedSteps);
+      } else {
+        // Redirect to first incomplete step
         const firstIncompleteStep = Array.from({
           length: 6
         }, (_, i) => i).find(step => !mergedSteps.has(step)) ?? 0;
         
-        // Don't redirect if we're already at a valid step
-        if (firstIncompleteStep !== currentStep) {
-          navigate(`/application?step=${firstIncompleteStep}`, {
-            replace: true
-          });
-          setCurrentStep(firstIncompleteStep);
-        }
+        navigate(`/application?step=${firstIncompleteStep}`, { replace: true });
+        setCurrentStep(firstIncompleteStep);
+        setCompletedSteps(mergedSteps);
       }
     }
-  }, [searchParams, formData.intentType, formData.propertyAddress, completedSteps, currentStep, navigate]);
+    
+    // Mark as processed
+    lastStepParamRef.current = stepParam;
+    initialStepProcessedRef.current = true;
+  }, [searchParams, formData, navigate]); // Removed completedSteps and currentStep to prevent loops
 
   const [isLoading, setIsLoading] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState("https://hook.us1.make.com/1a0o8mufqrhb6intqppg4drjnllcgw9k");
