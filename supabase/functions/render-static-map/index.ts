@@ -138,8 +138,8 @@ serve(async (req) => {
     const mapBuffer = new Uint8Array(mapArrayBuffer);
 
     // Generate different file names based on overlays present
-    const hasFlood = !!flood_geometry;
-    const fileName = `reports/${application_id}/static_map${hasFlood ? '_flood' : ''}.png`;
+    const hasFloodOverlay = !!flood_geometry;
+    const fileName = `reports/${application_id}/static_map${hasFloodOverlay ? '_flood' : ''}.png`;
     console.log(`[render-static-map] Uploading to Supabase Storage: ${fileName}`);
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -170,15 +170,14 @@ serve(async (req) => {
       .eq('application_id', application_id)
       .single();
 
-    const hasFlood = !!flood_geometry;
     const updatedAssets = {
       ...(report?.report_assets || {}),
       static_map_url: signedUrlData.signedUrl,
       static_map_generated_at: new Date().toISOString(),
       static_map_center: center,
       static_map_zoom: zoom,
-      has_flood_overlay: hasFlood,
-      flood_geometry_included: hasFlood
+      has_flood_overlay: hasFloodOverlay,
+      flood_geometry_included: hasFloodOverlay
     };
 
     await supabase

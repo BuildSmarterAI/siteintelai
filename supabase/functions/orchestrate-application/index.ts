@@ -792,15 +792,38 @@ async function orchestrate(appId: string, traceId: string): Promise<any> {
         console.log(`✅ [TRACE:${traceId}] [orchestrate] Already complete`);
         return { ok: true, status: 'complete', application_id: appId, trace_id: traceId };
 
-      case 'error':
-        console.log(`❌ [TRACE:${traceId}] [orchestrate] In error state, skipping`);
+      case 'error': {
+        // Error recovery: allow retry if attempts < MAX_ATTEMPTS
+        const attempts = app.attempts || 0;
+        if (attempts < MAX_ATTEMPTS) {
+          console.log(`🔄 [TRACE:${traceId}] [orchestrate] Retrying from error state (attempt ${attempts + 1}/${MAX_ATTEMPTS})`);
+          
+          // Increment attempts and reset to queued for fresh retry
+          await sbAdmin
+            .from('applications')
+            .update({ 
+              status: 'queued', 
+              status_rev: currentRev + 1,
+              attempts: attempts + 1,
+              error_code: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', appId);
+          
+          // Restart orchestration from queued
+          return orchestrate(appId, traceId);
+        }
+        
+        console.log(`❌ [TRACE:${traceId}] [orchestrate] In error state after ${MAX_ATTEMPTS} attempts, giving up`);
         return { 
           ok: false, 
           status: 'error', 
           error_code: app.error_code,
+          attempts: attempts,
           application_id: appId,
           trace_id: traceId
         };
+      }
 
       default:
         throw new Error(`Unknown status: ${app.status}`);
@@ -829,15 +852,32 @@ Deno.serve(async (req: Request) => {
   try {
     const url = new URL(req.url);
     let appId = url.searchParams.get('application_id');
+    let forceRetry = url.searchParams.get('force_retry') === 'true';
 
     // Fallback: accept application_id from POST/PUT body as well
     if (!appId && (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH')) {
       try {
         const body = await req.json();
         appId = body?.application_id || body?.app_id || null;
+        forceRetry = forceRetry || body?.force_retry === true;
       } catch (_) {
         // ignore JSON parse errors here
       }
+    }
+    
+    // If force_retry is set, reset the application to queued state first
+    if (appId && forceRetry) {
+      console.log(`🔄 [TRACE:${traceId}] [orchestrate-application] Force retry requested, resetting to queued`);
+      await sbAdmin
+        .from('applications')
+        .update({ 
+          status: 'queued', 
+          status_rev: 0,
+          attempts: 0,
+          error_code: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', appId);
     }
     
     if (!appId) {
