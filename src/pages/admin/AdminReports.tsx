@@ -20,6 +20,7 @@ import { AdminReportsTable } from '@/components/admin/reports/AdminReportsTable'
 import { useAdminReports, useBulkDeleteReports, useRegeneratePdf, type AdminReportsFilters } from '@/hooks/useAdminReports';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { FileText, RefreshCw, Trash2, Search, BarChart3, FileCheck, FileX, TrendingUp } from 'lucide-react';
+import { SidebarProvider } from '@/components/ui/sidebar';
 
 function StatCard({ title, value, icon: Icon, color }: { title: string; value: string | number; icon: React.ElementType; color: string }) {
   return (
@@ -76,8 +77,9 @@ export default function AdminReports() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <DataSourcesSidebar />
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <DataSourcesSidebar />
 
       <div className="flex-1 p-6 space-y-6">
         {/* Header */}
@@ -188,5 +190,6 @@ export default function AdminReports() {
         </AlertDialog>
       </div>
     </div>
+  </SidebarProvider>
   );
 }
