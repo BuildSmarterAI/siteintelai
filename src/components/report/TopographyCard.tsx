@@ -45,10 +45,10 @@ export function TopographyCard({
 
   return (
     <Card className={cn("overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm", className)}>
-      <CardHeader className="bg-gradient-to-r from-midnight-blue to-midnight-blue/90 text-foreground py-4">
+      <CardHeader className="bg-gradient-to-r from-[hsl(var(--midnight-blue))] to-[hsl(var(--midnight-blue)/0.9)] text-white py-4">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Mountain className="h-5 w-5 text-data-cyan" />
+            <Mountain className="h-5 w-5 text-[hsl(var(--data-cyan))]" />
             Site Topography
           </CardTitle>
           {usgsUrl && (
@@ -60,7 +60,7 @@ export function TopographyCard({
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* Elevation */}
-          <div className="bg-midnight-blue/50 rounded-xl p-4 border border-data-cyan/20">
+          <div className="bg-[hsl(var(--midnight-blue)/0.5)] rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
               <Ruler className="h-4 w-4" />
               <span>Site Elevation</span>
@@ -75,7 +75,7 @@ export function TopographyCard({
           </div>
 
           {/* Slope */}
-          <div className="bg-midnight-blue/50 rounded-xl p-4 border border-data-cyan/20">
+          <div className="bg-[hsl(var(--midnight-blue)/0.5)] rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
               <TrendingUp className="h-4 w-4" />
               <span>Ground Slope</span>
@@ -94,7 +94,7 @@ export function TopographyCard({
           </div>
 
           {/* USGS Map Link */}
-          <div className="bg-midnight-blue/50 rounded-xl p-4 border border-data-cyan/20 flex flex-col justify-between">
+          <div className="bg-[hsl(var(--midnight-blue)/0.5)] rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)] flex flex-col justify-between">
             <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
               <Mountain className="h-4 w-4" />
               <span>USGS National Map</span>
@@ -103,7 +103,7 @@ export function TopographyCard({
               <Button
                 variant="outline"
                 size="sm"
-                className="w-full border-data-cyan/50 text-data-cyan hover:bg-data-cyan/10"
+                className="w-full border-[hsl(var(--data-cyan)/0.5)] text-[hsl(var(--data-cyan))] hover:bg-[hsl(var(--data-cyan)/0.1)]"
                 onClick={() => window.open(usgsUrl, '_blank')}
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
@@ -117,9 +117,9 @@ export function TopographyCard({
 
         {/* Grading Assessment */}
         {slopeInfo && (
-          <div className="bg-midnight-blue/40 rounded-lg p-4 border border-data-cyan/10">
+          <div className="bg-[hsl(var(--midnight-blue)/0.4)] rounded-lg p-4 border border-[hsl(var(--data-cyan)/0.1)]">
             <div className="flex items-start gap-3">
-              <div className="text-data-cyan text-lg">💡</div>
+              <div className="text-[hsl(var(--data-cyan))] text-lg">💡</div>
               <div>
                 <div className="text-sm font-medium text-foreground mb-1">Grading Assessment</div>
                 <p className="text-sm text-muted-foreground">
@@ -154,7 +154,7 @@ export function TopographyCard({
             </Button>
             
             {showEmbed && (
-              <div className="mt-3 rounded-lg overflow-hidden border border-data-cyan/20">
+              <div className="mt-3 rounded-lg overflow-hidden border border-[hsl(var(--data-cyan)/0.2)]">
                 <iframe
                   src={usgsUrl}
                   width="100%"
