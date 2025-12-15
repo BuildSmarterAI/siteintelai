@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { ScoreDashboard } from "@/components/report/ScoreDashboard";
@@ -33,6 +33,8 @@ import { TrafficCard } from "@/components/report/TrafficCard";
 import { MarketCard } from "@/components/report/MarketCard";
 import { AccessCard } from "@/components/report/AccessCard";
 import { TopographyCard } from "@/components/report/TopographyCard";
+import { ZoningCard } from "@/components/report/ZoningCard";
+import { SectionNav } from "@/components/report/SectionNav";
 import { MapCanvas } from "@/components/MapCanvas";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
@@ -1882,47 +1884,31 @@ export default function ReportViewer() {
           </Card>}
 
         {/* Detailed Analysis Tabs */}
-        <Tabs defaultValue="zoning" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-1">
-            <TabsTrigger value="zoning" className="text-xs md:text-sm">Zoning</TabsTrigger>
-            <TabsTrigger value="flood" className="text-xs md:text-sm">Flood Risk</TabsTrigger>
-            <TabsTrigger value="utilities" className="text-xs md:text-sm">Utilities</TabsTrigger>
-            <TabsTrigger value="environmental" className="text-xs md:text-sm">Environmental</TabsTrigger>
-            <TabsTrigger value="traffic" className="text-xs md:text-sm">Traffic</TabsTrigger>
-            <TabsTrigger value="market" className="text-xs md:text-sm">Market</TabsTrigger>
-            <TabsTrigger value="access" className="text-xs md:text-sm">
-              <Car className="w-3 h-3 mr-1" />
-              Access
-            </TabsTrigger>
-          </TabsList>
+        {/* ========== DETAILED ANALYSIS SECTIONS ========== */}
+        <div className="space-y-8">
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <FileText className="h-6 w-6" />
+            Detailed Analysis
+          </h2>
 
-          <TabsContent value="zoning" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Zoning Analysis</CardTitle>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <Badge>Score: {zoning.component_score || 'N/A'}</Badge>
-                  {report.applications?.zoning_code && <Badge variant="outline">{report.applications.zoning_code}</Badge>}
-                  {/* Only show data source badges to enterprise users */}
-                  {productId === 'enterprise' && getSourcesForSection('zoning').map((source: any, idx: number) => <DataSourceBadge key={idx} datasetName={source.dataset_name} timestamp={source.timestamp} endpointUrl={source.endpoint_url} />)}
-                </div>
-              </CardHeader>
-              <CardContent className="prose prose-sm max-w-none">
-                <div dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(zoning.verdict || '<p>No zoning analysis available.</p>')
-                  }} />
-                
-                {zoning.permitted_uses && zoning.permitted_uses.length > 0 && <div className="mt-4">
-                    <h4 className="font-semibold">Permitted Uses</h4>
-                    <ul>
-                      {zoning.permitted_uses.map((use: string, i: number) => <li key={i}>{use}</li>)}
-                    </ul>
-                  </div>}
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* Sticky Section Navigation */}
+          <SectionNav />
 
-          <TabsContent value="flood" className="mt-6">
+          {/* 1. Zoning Analysis */}
+          <section id="section-zoning">
+            <ZoningCard
+              score={zoning.component_score || 0}
+              zoningCode={report.applications?.zoning_code}
+              zoningDescription={zoning.description}
+              permittedUses={zoning.permitted_uses}
+              conditionalUses={zoning.conditional_uses}
+              overlayDistricts={zoning.overlay_districts}
+              verdict={zoning.verdict}
+            />
+          </section>
+
+          {/* 2. Flood Risk */}
+          <section id="section-flood">
             <FloodRiskCard
               score={flood.component_score || 0}
               floodZone={report.applications?.floodplain_zone}
@@ -1933,24 +1919,26 @@ export default function ReportViewer() {
               nfipClaims={report.applications?.nfip_claims_count}
               verdict={flood.verdict}
             />
-          </TabsContent>
+          </section>
 
-          <TabsContent value="utilities" className="mt-6">
+          {/* 3. Utilities */}
+          <section id="section-utilities">
             <UtilitiesCard
               score={utilities.component_score || 0}
-              verdict={utilities.verdict}
-              powerKv={report.applications?.power_kv_nearby}
-              fiberAvailable={report.applications?.fiber_available}
-              broadbandProviders={report.applications?.broadband_providers}
               waterLines={report.applications?.water_lines}
               sewerLines={report.applications?.sewer_lines}
               stormLines={report.applications?.storm_lines}
+              powerKv={report.applications?.power_kv_nearby}
+              fiberAvailable={report.applications?.fiber_available}
+              broadbandProviders={report.applications?.broadband_providers}
               waterCapacity={report.applications?.water_capacity_mgd}
               sewerCapacity={report.applications?.sewer_capacity_mgd}
+              verdict={utilities.verdict}
             />
-          </TabsContent>
+          </section>
 
-          <TabsContent value="environmental" className="mt-6">
+          {/* 4. Environmental */}
+          <section id="section-environmental">
             <EnvironmentalCard
               score={environmental.component_score || 0}
               wetlandsType={report.applications?.wetlands_type}
@@ -1962,10 +1950,10 @@ export default function ReportViewer() {
               epaFacilitiesCount={report.applications?.epa_facilities_count}
               verdict={environmental.verdict}
             />
-          </TabsContent>
+          </section>
 
-
-          <TabsContent value="traffic" className="mt-6">
+          {/* 5. Traffic */}
+          <section id="section-traffic">
             <TrafficCard
               score={traffic.component_score || 0}
               aadt={report.applications?.traffic_aadt}
@@ -1978,9 +1966,10 @@ export default function ReportViewer() {
               trafficMapUrl={report.applications?.traffic_map_url}
               verdict={traffic.verdict}
             />
-          </TabsContent>
+          </section>
 
-          <TabsContent value="market" className="mt-6">
+          {/* 6. Market Demographics */}
+          <section id="section-market">
             <MarketCard
               score={marketDemographics.component_score || 0}
               population1mi={report.applications?.population_1mi}
@@ -1993,9 +1982,10 @@ export default function ReportViewer() {
               growthRate5yr={report.applications?.growth_rate_5yr}
               verdict={marketDemographics.verdict}
             />
-          </TabsContent>
+          </section>
 
-          <TabsContent value="access" className="mt-6">
+          {/* 7. Access & Connectivity */}
+          <section id="section-access">
             <AccessCard
               score={traffic.component_score || 0}
               distanceHighwayFt={report.applications?.distance_highway_ft}
@@ -2006,8 +1996,8 @@ export default function ReportViewer() {
               roadClassification={report.applications?.road_classification}
               driveTimeData={report.applications?.drivetimes}
             />
-          </TabsContent>
-        </Tabs>
+          </section>
+        </div>
 
         {/* Intent-Specific Next Steps */}
         {report.applications.intent_type && <Card className="mt-6 border-primary">
