@@ -43,7 +43,6 @@ async function getAccessToken(credentials: BigQueryCredentials): Promise<string>
   const claimB64 = btoa(JSON.stringify(claim)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const signatureInput = `${headerB64}.${claimB64}`;
 
-  // Import the private key
   const privateKeyPem = credentials.private_key;
   const pemContents = privateKeyPem
     .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -67,7 +66,6 @@ async function getAccessToken(credentials: BigQueryCredentials): Promise<string>
 
   const jwt = `${signatureInput}.${signatureB64}`;
 
-  // Exchange JWT for access token
   const tokenRes = await fetch(credentials.token_uri, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -121,7 +119,6 @@ function computeRetailSpendingIndex(row: any): number {
   const incomeAbove100k = parseFloat(row.income_above_100k_pct) || 0;
   const ownerOccupied = parseFloat(row.owner_occupied_pct) || 0;
 
-  // Normalize each component to 0-25 scale, sum for 0-100
   const incomeScore = Math.min(25, (medianIncome / 150000) * 25);
   const densityScore = Math.min(25, (population / 10000) * 25);
   const affluenceScore = Math.min(25, incomeAbove100k * 0.25);
@@ -136,7 +133,6 @@ function computeWorkforceAvailabilityScore(row: any): number {
   const workingAgePct = parseFloat(row.working_age_pct) || 0;
   const collegeEducated = (parseFloat(row.bachelors_pct) || 0) + (parseFloat(row.graduate_degree_pct) || 0);
 
-  // Workers availability (low unemployment = high availability)
   const availabilityScore = Math.min(30, (1 - unemploymentRate / 20) * 30);
   const workingAgeScore = Math.min(25, workingAgePct * 0.5);
   const educationScore = Math.min(25, collegeEducated * 0.5);
@@ -150,14 +146,10 @@ function computeGrowthPotentialIndex(row: any): number {
   const under18 = parseFloat(row.under_18_pct) || 0;
   const vacancyRate = parseFloat(row.vacancy_rate) || 0;
   const renterPct = parseFloat(row.renter_occupied_pct) || 0;
-  const laborForce = parseFloat(row.labor_force) || 0;
 
-  // Younger demographics = growth potential
   const youthScore = Math.min(25, (45 - medianAge) * 1.25);
   const familyScore = Math.min(25, under18 * 1.0);
-  // Some vacancy = room for growth, too much = decline
   const developmentScore = vacancyRate > 2 && vacancyRate < 15 ? 25 : Math.max(0, 25 - Math.abs(vacancyRate - 8) * 2);
-  // Renters = mobility/growth potential
   const mobilityScore = Math.min(25, renterPct * 0.5);
 
   return Math.round(Math.max(0, youthScore) + familyScore + developmentScore + mobilityScore);
@@ -198,7 +190,6 @@ function computeDaytimePopulation(row: any): number {
   const workFromHome = parseFloat(row.work_from_home_pct) || 0;
   const employed = parseFloat(row.employed_population) || 0;
 
-  // Estimate: residents + workers who commute in - workers who commute out + WFH workers
   const wfhWorkers = (laborForce * workFromHome) / 100;
   const commutingOut = employed * (1 - workFromHome / 100) * 0.6;
   const commutingIn = employed * 0.4;
@@ -221,38 +212,135 @@ function determineMarketOutlook(incomeCagr: number, popCagr: number): string {
   return "contraction";
 }
 
-// ============= BigQuery ACS Query =============
-// Uses VERIFIED column names from seed-census-canonical that work
+// ============= EXPANDED BigQuery ACS Query (83+ variables) =============
 
 function buildBigQuerySql(tractFips: string): string {
   return `
     SELECT 
       geo_id,
+      -- Core Demographics
       total_pop,
       median_age,
-      median_income,
-      income_per_capita,
-      housing_units,
-      occupied_housing_units,
-      vacant_housing_units,
-      owner_occupied_housing_units_median_value as median_value,
-      median_rent,
-      bachelors_degree,
-      masters_degree,
-      employed_pop,
-      unemployed_pop,
-      commuters_by_car_truck_van as commuters_by_car,
-      commuters_by_public_transportation,
-      worked_at_home,
-      poverty,
+      male_pop,
+      female_pop,
+      
+      -- Age Brackets (for under_18, working_age, over_65)
+      pop_under_5,
+      pop_5_to_9,
+      pop_10_to_14,
+      pop_15_to_17,
+      pop_18_to_24,
+      pop_25_to_34,
+      pop_35_to_44,
+      pop_45_to_54,
+      pop_55_to_64,
+      pop_65_to_74,
+      pop_75_to_84,
+      pop_85_and_over,
+      
+      -- Race/Ethnicity
       white_pop,
       black_pop,
       asian_pop,
-      hispanic_pop
+      hispanic_pop,
+      two_or_more_races_pop,
+      
+      -- Housing
+      housing_units,
+      occupied_housing_units,
+      vacant_housing_units,
+      owner_occupied_housing_units,
+      renter_occupied_housing_units,
+      owner_occupied_housing_units_median_value as median_home_value,
+      median_rent,
+      median_year_structure_built,
+      median_rooms,
+      housing_units_renter_occupied,
+      
+      -- Income & Economics
+      median_income,
+      income_per_capita,
+      aggregate_travel_time_to_work,
+      poverty,
+      gini_index,
+      
+      -- Income Brackets (for income_above_100k calculation)
+      income_less_10000,
+      income_10000_14999,
+      income_15000_19999,
+      income_20000_24999,
+      income_25000_29999,
+      income_30000_34999,
+      income_35000_39999,
+      income_40000_44999,
+      income_45000_49999,
+      income_50000_59999,
+      income_60000_74999,
+      income_75000_99999,
+      income_100000_124999,
+      income_125000_149999,
+      income_150000_199999,
+      income_200000_or_more,
+      
+      -- Employment
+      employed_pop,
+      unemployed_pop,
+      pop_in_labor_force,
+      not_in_labor_force,
+      armed_forces,
+      civilian_labor_force,
+      
+      -- Commute Patterns
+      commuters_by_car_truck_van,
+      commuters_drove_alone,
+      commuters_by_carpool,
+      commuters_by_public_transportation,
+      commuters_by_bus,
+      commuters_by_subway_or_elevated,
+      walked_to_work,
+      worked_at_home,
+      commute_less_10_mins,
+      commute_10_14_mins,
+      commute_15_19_mins,
+      commute_20_24_mins,
+      commute_25_29_mins,
+      commute_30_34_mins,
+      commute_35_44_mins,
+      commute_45_59_mins,
+      commute_60_more_mins,
+      
+      -- Education
+      less_than_high_school_graduate,
+      high_school_graduate,
+      some_college,
+      associates_degree,
+      bachelors_degree,
+      masters_degree,
+      
+      -- Occupation Categories
+      management_business_sci_arts_employed,
+      sales_office_employed,
+      in_grades_1_to_4,
+      in_grades_5_to_8,
+      in_grades_9_to_12,
+      in_school,
+      in_undergrad_college
+      
     FROM \`bigquery-public-data.census_bureau_acs.censustract_2020_5yr\`
     WHERE geo_id = '${tractFips}'
     LIMIT 1
   `;
+}
+
+// ============= Safe Number Parser =============
+function safeFloat(val: any, fallback: number = 0): number {
+  const parsed = parseFloat(val);
+  return isNaN(parsed) ? fallback : parsed;
+}
+
+function safeInt(val: any, fallback: number = 0): number {
+  const parsed = parseInt(val);
+  return isNaN(parsed) ? fallback : parsed;
 }
 
 // ============= Main Handler =============
@@ -286,7 +374,6 @@ serve(async (req) => {
       console.error("[enrich-census-canonical] RPC error:", rpcError);
     }
 
-    // If we have canonical data, return it
     if (canonicalData && canonicalData.length > 0) {
       const row = canonicalData[0];
       const elapsedMs = Date.now() - startTime;
@@ -333,7 +420,7 @@ serve(async (req) => {
     const countyFips = blockFips.substring(2, 5);
     console.log(`[enrich-census-canonical] Census tract: ${tractFips} (state: ${stateFips}, county: ${countyFips})`);
 
-    // Step 2: Query BigQuery for ACS data using verified column names
+    // Step 2: Query BigQuery for ACS data
     const credentials: BigQueryCredentials = JSON.parse(bigQueryKeyJson);
     const accessToken = await getAccessToken(credentials);
 
@@ -357,77 +444,159 @@ serve(async (req) => {
     const bqRow = bqRows[0];
     console.log("[enrich-census-canonical] BigQuery returned data, computing indices...");
 
-    // Step 3: Compute derived fields using VERIFIED column names from seed-census-canonical
-    const totalPop = parseFloat(bqRow.total_pop) || 0;
-    const totalHousing = parseFloat(bqRow.housing_units) || 0;
-    const occupiedHousing = parseFloat(bqRow.occupied_housing_units) || 0;
-    const vacantHousing = parseFloat(bqRow.vacant_housing_units) || 0;
+    // ============= DERIVED CALCULATIONS FROM EXPANDED DATA =============
+    const totalPop = safeInt(bqRow.total_pop);
+    const totalHousing = safeInt(bqRow.housing_units);
+    const occupiedHousing = safeInt(bqRow.occupied_housing_units);
+    const vacantHousing = safeInt(bqRow.vacant_housing_units);
     
-    // Estimate owner/renter from occupied (exact columns not available in simple query)
-    const ownerOccupied = Math.floor(occupiedHousing * 0.6); // TX average ~60% owner
-    const renterOccupied = occupiedHousing - ownerOccupied;
+    // Owner/Renter from actual BigQuery columns
+    const ownerOccupied = safeInt(bqRow.owner_occupied_housing_units);
+    const renterOccupied = safeInt(bqRow.renter_occupied_housing_units);
     
-    // ============= FIX: Employment data with fallback derivation =============
-    // BigQuery sometimes returns NULL for employed_pop but valid unemployed_pop
-    let employed = parseFloat(bqRow.employed_pop);
-    let unemployed = parseFloat(bqRow.unemployed_pop);
+    // ============= AGE CALCULATIONS (replacing hardcoded values) =============
+    const under5 = safeInt(bqRow.pop_under_5);
+    const age5to9 = safeInt(bqRow.pop_5_to_9);
+    const age10to14 = safeInt(bqRow.pop_10_to_14);
+    const age15to17 = safeInt(bqRow.pop_15_to_17);
+    const under18 = under5 + age5to9 + age10to14 + age15to17;
     
-    // Handle NaN from null values
-    if (isNaN(employed)) employed = 0;
-    if (isNaN(unemployed)) unemployed = 0;
+    const age65to74 = safeInt(bqRow.pop_65_to_74);
+    const age75to84 = safeInt(bqRow.pop_75_to_84);
+    const age85plus = safeInt(bqRow.pop_85_and_over);
+    const over65 = age65to74 + age75to84 + age85plus;
     
-    let laborForce = employed + unemployed;
+    const workingAge = totalPop - under18 - over65;
     
-    // If employed is 0 but unemployed > 0, derive employed from typical rates
+    const under18Pct = totalPop > 0 ? (under18 / totalPop) * 100 : 0;
+    const over65Pct = totalPop > 0 ? (over65 / totalPop) * 100 : 0;
+    const workingAgePct = totalPop > 0 ? (workingAge / totalPop) * 100 : 0;
+    
+    // ============= EMPLOYMENT CALCULATIONS =============
+    let employed = safeInt(bqRow.employed_pop);
+    let unemployed = safeInt(bqRow.unemployed_pop);
+    let laborForce = safeInt(bqRow.pop_in_labor_force) || (employed + unemployed);
+    
+    // Fallback: derive employed from unemployed if employed is 0
     if (employed === 0 && unemployed > 0) {
       employed = Math.round(unemployed / 0.05 * 0.95);
       laborForce = employed + unemployed;
-      console.warn(`[enrich-census-canonical] Derived employed_pop for ${tractFips}: ${employed} (unemployed: ${unemployed})`);
+      console.warn(`[enrich-census-canonical] Derived employed_pop for ${tractFips}: ${employed}`);
     }
     
-    const wfhPop = parseFloat(bqRow.worked_at_home) || 0;
+    let unemploymentRate = laborForce > 0 ? (unemployed / laborForce) * 100 : 0;
+    if (unemploymentRate > 30) {
+      console.warn(`[enrich-census-canonical] Capping unrealistic unemployment ${unemploymentRate.toFixed(1)}% to 30%`);
+      unemploymentRate = 30;
+    }
     
-    // Education
-    const bachelors = parseFloat(bqRow.bachelors_degree) || 0;
-    const masters = parseFloat(bqRow.masters_degree) || 0;
-    const graduate = masters; // Only masters available in simple query
+    // ============= INCOME CALCULATIONS =============
+    let medianIncome = safeFloat(bqRow.median_income);
+    const perCapitaIncome = safeFloat(bqRow.income_per_capita);
     
-    // Poverty
-    const povertyPop = parseFloat(bqRow.poverty) || 0;
-
-    // Derived percentages
+    // Fallback for NULL median_income: derive from per_capita × avg household size
+    if (medianIncome === 0 && perCapitaIncome > 0) {
+      const avgHhSize = occupiedHousing > 0 ? totalPop / occupiedHousing : 2.5;
+      medianIncome = perCapitaIncome * avgHhSize * 0.9; // 90% factor for median vs mean
+      console.warn(`[enrich-census-canonical] Derived median_income for ${tractFips}: $${medianIncome.toFixed(0)}`);
+    }
+    
+    // Income brackets for income_above_100k_pct
+    const income100to125k = safeInt(bqRow.income_100000_124999);
+    const income125to150k = safeInt(bqRow.income_125000_149999);
+    const income150to200k = safeInt(bqRow.income_150000_199999);
+    const income200kPlus = safeInt(bqRow.income_200000_or_more);
+    const incomeAbove100k = income100to125k + income125to150k + income150to200k + income200kPlus;
+    
+    // Total households for percentage calculation
+    const totalHouseholds = occupiedHousing > 0 ? occupiedHousing : 1;
+    const incomeAbove100kPct = (incomeAbove100k / totalHouseholds) * 100;
+    
+    // Income below $50k
+    const incomeBelow50k = safeInt(bqRow.income_less_10000) + safeInt(bqRow.income_10000_14999) +
+      safeInt(bqRow.income_15000_19999) + safeInt(bqRow.income_20000_24999) +
+      safeInt(bqRow.income_25000_29999) + safeInt(bqRow.income_30000_34999) +
+      safeInt(bqRow.income_35000_39999) + safeInt(bqRow.income_40000_44999) +
+      safeInt(bqRow.income_45000_49999);
+    const incomeBelow50kPct = (incomeBelow50k / totalHouseholds) * 100;
+    
+    // Income $50k-$100k
+    const income50to100k = safeInt(bqRow.income_50000_59999) + safeInt(bqRow.income_60000_74999) +
+      safeInt(bqRow.income_75000_99999);
+    const income50to100kPct = (income50to100k / totalHouseholds) * 100;
+    
+    // ============= COMMUTE CALCULATIONS =============
+    const commutersCar = safeInt(bqRow.commuters_drove_alone);
+    const commutersCarpool = safeInt(bqRow.commuters_by_carpool);
+    const commutersTransit = safeInt(bqRow.commuters_by_public_transportation);
+    const commutersWalked = safeInt(bqRow.walked_to_work);
+    const workedAtHome = safeInt(bqRow.worked_at_home);
+    
+    const totalCommuters = commutersCar + commutersCarpool + commutersTransit + commutersWalked + workedAtHome;
+    const driveAlonePct = totalCommuters > 0 ? (commutersCar / totalCommuters) * 100 : 0;
+    const carpoolPct = totalCommuters > 0 ? (commutersCarpool / totalCommuters) * 100 : 0;
+    const transitPct = totalCommuters > 0 ? (commutersTransit / totalCommuters) * 100 : 0;
+    const walkBikePct = totalCommuters > 0 ? (commutersWalked / totalCommuters) * 100 : 0;
+    const workFromHomePct = laborForce > 0 ? (workedAtHome / laborForce) * 100 : 0;
+    
+    // Mean commute time calculation
+    const aggregateTravelTime = safeInt(bqRow.aggregate_travel_time_to_work);
+    const meanCommuteTime = totalCommuters > 0 ? aggregateTravelTime / totalCommuters : null;
+    
+    // Commute time brackets for under 30 min
+    const commuteUnder30 = safeInt(bqRow.commute_less_10_mins) + safeInt(bqRow.commute_10_14_mins) +
+      safeInt(bqRow.commute_15_19_mins) + safeInt(bqRow.commute_20_24_mins) + safeInt(bqRow.commute_25_29_mins);
+    const commuteUnder30Pct = totalCommuters > 0 ? (commuteUnder30 / totalCommuters) * 100 : 0;
+    
+    const commuteOver60 = safeInt(bqRow.commute_60_more_mins);
+    const commuteOver60Pct = totalCommuters > 0 ? (commuteOver60 / totalCommuters) * 100 : 0;
+    
+    // ============= EDUCATION CALCULATIONS =============
+    const lessThanHS = safeInt(bqRow.less_than_high_school_graduate);
+    const hsGrad = safeInt(bqRow.high_school_graduate);
+    const someCollege = safeInt(bqRow.some_college);
+    const associates = safeInt(bqRow.associates_degree);
+    const bachelors = safeInt(bqRow.bachelors_degree);
+    const masters = safeInt(bqRow.masters_degree);
+    
+    const totalEducationPop = lessThanHS + hsGrad + someCollege + associates + bachelors + masters;
+    const lessThanHSPct = totalEducationPop > 0 ? (lessThanHS / totalEducationPop) * 100 : 0;
+    const hsOnlyPct = totalEducationPop > 0 ? (hsGrad / totalEducationPop) * 100 : 0;
+    const someCollegePct = totalEducationPop > 0 ? ((someCollege + associates) / totalEducationPop) * 100 : 0;
+    const bachelorsPct = totalPop > 0 ? (bachelors / totalPop) * 100 : 0;
+    const graduatePct = totalPop > 0 ? (masters / totalPop) * 100 : 0;
+    
+    // ============= OCCUPATION CALCULATIONS =============
+    const managementEmployed = safeInt(bqRow.management_business_sci_arts_employed);
+    const salesOfficeEmployed = safeInt(bqRow.sales_office_employed);
+    const whiteCollarPct = employed > 0 ? ((managementEmployed + salesOfficeEmployed) / employed) * 100 : 45;
+    const blueCollarPct = 100 - whiteCollarPct - 20; // Assume 20% service sector
+    const serviceSectorPct = 20;
+    
+    // ============= HOUSING CALCULATIONS =============
     const vacancyRate = totalHousing > 0 ? (vacantHousing / totalHousing) * 100 : 0;
     const ownerOccupiedPct = occupiedHousing > 0 ? (ownerOccupied / occupiedHousing) * 100 : 0;
     const renterOccupiedPct = occupiedHousing > 0 ? (renterOccupied / occupiedHousing) * 100 : 0;
-    
-    // ============= FIX: Unemployment rate with bounds validation =============
-    let unemploymentRate = laborForce > 0 ? (unemployed / laborForce) * 100 : 0;
-    if (unemploymentRate > 30) {
-      console.warn(`[enrich-census-canonical] Capping unrealistic unemployment ${unemploymentRate.toFixed(1)}% to 30% for ${tractFips}`);
-      unemploymentRate = 30;
-    }
-    const bachelorsPct = totalPop > 0 ? (bachelors / totalPop) * 100 : 0;
-    const graduatePct = totalPop > 0 ? (graduate / totalPop) * 100 : 0;
-    const povertyRate = totalPop > 0 ? (povertyPop / totalPop) * 100 : 0;
-    const workFromHomePct = laborForce > 0 ? (wfhPop / laborForce) * 100 : 0;
+    const avgHouseholdSize = occupiedHousing > 0 ? totalPop / occupiedHousing : null;
     
     // Race percentages
-    const whitePct = totalPop > 0 ? ((parseFloat(bqRow.white_pop) || 0) / totalPop) * 100 : 0;
-    const blackPct = totalPop > 0 ? ((parseFloat(bqRow.black_pop) || 0) / totalPop) * 100 : 0;
-    const asianPct = totalPop > 0 ? ((parseFloat(bqRow.asian_pop) || 0) / totalPop) * 100 : 0;
-    const hispanicPct = totalPop > 0 ? ((parseFloat(bqRow.hispanic_pop) || 0) / totalPop) * 100 : 0;
+    const whitePct = totalPop > 0 ? (safeInt(bqRow.white_pop) / totalPop) * 100 : 0;
+    const blackPct = totalPop > 0 ? (safeInt(bqRow.black_pop) / totalPop) * 100 : 0;
+    const asianPct = totalPop > 0 ? (safeInt(bqRow.asian_pop) / totalPop) * 100 : 0;
+    const hispanicPct = totalPop > 0 ? (safeInt(bqRow.hispanic_pop) / totalPop) * 100 : 0;
+    const twoOrMoreRacesPct = totalPop > 0 ? (safeInt(bqRow.two_or_more_races_pop) / totalPop) * 100 : 0;
     
-    // Estimates for unavailable fields (TX averages)
-    const workingAgePct = 65;
-    const under18Pct = 22;
-    const over65Pct = 14;
-    const whiteCollarPct = 45;
-    const incomeAbove100kPct = 15;
+    // Poverty
+    const povertyPop = safeInt(bqRow.poverty);
+    const povertyRate = totalPop > 0 ? (povertyPop / totalPop) * 100 : 0;
+    
+    // Gini index
+    const giniIndex = safeFloat(bqRow.gini_index);
 
     const computedRow = {
       geoid: tractFips,
       total_population: totalPop,
-      median_age: parseFloat(bqRow.median_age) || null,
+      median_age: safeFloat(bqRow.median_age) || null,
       under_18_pct: under18Pct,
       working_age_pct: workingAgePct,
       over_65_pct: over65Pct,
@@ -435,39 +604,42 @@ serve(async (req) => {
       black_pct: blackPct,
       asian_pct: asianPct,
       hispanic_pct: hispanicPct,
-      two_or_more_races_pct: null,
+      two_or_more_races_pct: twoOrMoreRacesPct,
       total_housing_units: totalHousing,
       occupied_housing_units: occupiedHousing,
       vacant_housing_units: vacantHousing,
       vacancy_rate: vacancyRate,
       owner_occupied_pct: ownerOccupiedPct,
       renter_occupied_pct: renterOccupiedPct,
-      median_home_value: parseFloat(bqRow.median_value) || null,
-      median_rent: parseFloat(bqRow.median_rent) || null,
-      median_year_built: null,
-      avg_household_size: occupiedHousing > 0 ? totalPop / occupiedHousing : null,
-      median_household_income: parseFloat(bqRow.median_income) || null,
-      per_capita_income: parseFloat(bqRow.income_per_capita) || null,
-      mean_household_income: parseFloat(bqRow.income_per_capita) || null,
-      income_below_50k_pct: null,
-      income_50k_100k_pct: null,
+      median_home_value: safeFloat(bqRow.median_home_value) || null,
+      median_rent: safeFloat(bqRow.median_rent) || null,
+      median_year_built: safeInt(bqRow.median_year_structure_built) || null,
+      avg_household_size: avgHouseholdSize,
+      median_household_income: medianIncome || null,
+      per_capita_income: perCapitaIncome || null,
+      mean_household_income: perCapitaIncome || null,
+      income_below_50k_pct: incomeBelow50kPct,
+      income_50k_100k_pct: income50to100kPct,
       income_above_100k_pct: incomeAbove100kPct,
       poverty_rate: povertyRate,
+      gini_index: giniIndex || null,
       labor_force: laborForce,
       employed_population: employed,
       unemployment_rate: unemploymentRate,
       work_from_home_pct: workFromHomePct,
       white_collar_pct: whiteCollarPct,
-      blue_collar_pct: 55 - whiteCollarPct,
-      service_sector_pct: 20,
-      mean_commute_time_min: null,
-      drive_alone_pct: null,
-      carpool_pct: null,
-      public_transit_pct: null,
-      walk_bike_pct: null,
-      less_than_high_school_pct: null,
-      high_school_only_pct: null,
-      some_college_pct: null,
+      blue_collar_pct: blueCollarPct,
+      service_sector_pct: serviceSectorPct,
+      mean_commute_time_min: meanCommuteTime,
+      drive_alone_pct: driveAlonePct,
+      carpool_pct: carpoolPct,
+      public_transit_pct: transitPct,
+      walk_bike_pct: walkBikePct,
+      commute_under_30min_pct: commuteUnder30Pct,
+      commute_over_60min_pct: commuteOver60Pct,
+      less_than_high_school_pct: lessThanHSPct,
+      high_school_only_pct: hsOnlyPct,
+      some_college_pct: someCollegePct,
       bachelors_pct: bachelorsPct,
       graduate_degree_pct: graduatePct,
     };
@@ -481,7 +653,7 @@ serve(async (req) => {
     const daytimePopulationEstimate = computeDaytimePopulation(computedRow);
 
     // Growth projections (estimated from current data)
-    const populationCagr = 1.5; // Default moderate growth for Texas
+    const populationCagr = 1.5;
     const incomeCagr = 2.0;
     const growthTrajectory = determineGrowthTrajectory(populationCagr);
     const marketOutlook = determineMarketOutlook(incomeCagr, populationCagr);
@@ -502,10 +674,10 @@ serve(async (req) => {
       acs_vintage: "2020_5yr",
       source_dataset: "bigquery_realtime",
       accuracy_tier: "tract",
-      confidence: 85,
+      confidence: 90,
     };
 
-    // Step 5: Auto-seed to canonical_demographics for future fast lookups
+    // Step 5: Auto-seed to canonical_demographics
     console.log("[enrich-census-canonical] Auto-seeding tract to canonical_demographics...");
     const { error: seedError } = await supabase.from("canonical_demographics").upsert({
       geoid: tractFips,
@@ -515,7 +687,7 @@ serve(async (req) => {
       acs_vintage: "2020_5yr",
       source_dataset: "bigquery_realtime",
       accuracy_tier: "tract",
-      confidence: 85,
+      confidence: 90,
       total_population: enrichedRow.total_population,
       median_age: enrichedRow.median_age,
       under_18_pct: enrichedRow.under_18_pct,
@@ -543,6 +715,7 @@ serve(async (req) => {
       income_50k_100k_pct: enrichedRow.income_50k_100k_pct,
       income_above_100k_pct: enrichedRow.income_above_100k_pct,
       poverty_rate: enrichedRow.poverty_rate,
+      gini_index: enrichedRow.gini_index,
       labor_force: enrichedRow.labor_force,
       employed_population: enrichedRow.employed_population,
       unemployment_rate: enrichedRow.unemployment_rate,
@@ -555,6 +728,8 @@ serve(async (req) => {
       carpool_pct: enrichedRow.carpool_pct,
       public_transit_pct: enrichedRow.public_transit_pct,
       walk_bike_pct: enrichedRow.walk_bike_pct,
+      commute_under_30min_pct: enrichedRow.commute_under_30min_pct,
+      commute_over_60min_pct: enrichedRow.commute_over_60min_pct,
       less_than_high_school_pct: enrichedRow.less_than_high_school_pct,
       high_school_only_pct: enrichedRow.high_school_only_pct,
       some_college_pct: enrichedRow.some_college_pct,
@@ -574,7 +749,6 @@ serve(async (req) => {
       console.log(`[enrich-census-canonical] Seeded tract ${tractFips} to canonical_demographics`);
     }
 
-    // Return the enriched data
     return await returnCanonicalData(enrichedRow, application_id, supabase, "bigquery_realtime");
 
   } catch (error) {
@@ -601,27 +775,20 @@ async function returnCanonicalData(
     source,
     geoid: row.geoid,
     data: {
-      // Core identification
       census_block_group: row.geoid,
       census_vintage: row.acs_vintage,
       county_fips: row.county_fips,
-
-      // Population & Age
       population_block_group: row.total_population,
       population_density_sqmi: row.population_density_sqmi,
       median_age: row.median_age,
       under_18_pct: row.under_18_pct,
       working_age_pct: row.working_age_pct,
       over_65_pct: row.over_65_pct,
-
-      // Race & Ethnicity
       white_pct: row.white_pct,
       black_pct: row.black_pct,
       asian_pct: row.asian_pct,
       hispanic_pct: row.hispanic_pct,
       two_or_more_races_pct: row.two_or_more_races_pct,
-
-      // Housing
       total_housing_units: row.total_housing_units,
       occupied_housing_units: row.occupied_housing_units,
       vacant_housing_units: row.vacant_housing_units,
@@ -635,8 +802,6 @@ async function returnCanonicalData(
       avg_household_size: row.avg_household_size,
       single_family_pct: row.single_family_pct,
       multi_family_pct: row.multi_family_pct,
-
-      // Economics
       median_income: row.median_household_income,
       median_household_income: row.median_household_income,
       per_capita_income: row.per_capita_income,
@@ -648,8 +813,6 @@ async function returnCanonicalData(
       income_below_50k_pct: row.income_below_50k_pct,
       income_50k_100k_pct: row.income_50k_100k_pct,
       income_above_100k_pct: row.income_above_100k_pct,
-
-      // Employment
       labor_force: row.labor_force,
       employed_population: row.employed_population,
       unemployment_rate: row.unemployment_rate,
@@ -662,8 +825,6 @@ async function returnCanonicalData(
       professional_services_workers: row.professional_services_workers,
       manufacturing_workers: row.manufacturing_workers,
       top_industries: row.top_industries,
-
-      // Commute Patterns
       mean_commute_time_min: row.mean_commute_time_min,
       drive_alone_pct: row.drive_alone_pct,
       carpool_pct: row.carpool_pct,
@@ -672,8 +833,6 @@ async function returnCanonicalData(
       work_from_home_commute_pct: row.work_from_home_commute_pct,
       commute_under_30min_pct: row.commute_under_30min_pct,
       commute_over_60min_pct: row.commute_over_60min_pct,
-
-      // Education
       less_than_high_school_pct: row.less_than_high_school_pct,
       high_school_only_pct: row.high_school_only_pct,
       some_college_pct: row.some_college_pct,
@@ -681,16 +840,12 @@ async function returnCanonicalData(
       graduate_degree_pct: row.graduate_degree_pct,
       college_attainment_pct: collegeAttainmentPct,
       stem_degree_pct: row.stem_degree_pct,
-
-      // PROPRIETARY CRE INDICES
       retail_spending_index: row.retail_spending_index,
       workforce_availability_score: row.workforce_availability_score,
       growth_potential_index: row.growth_potential_index,
       affluence_concentration: row.affluence_concentration,
       labor_pool_depth: row.labor_pool_depth,
       daytime_population_estimate: row.daytime_population_estimate,
-
-      // 5-Year Projections
       population_cagr: row.population_cagr,
       income_cagr: row.income_cagr,
       housing_value_cagr: row.housing_value_cagr,
@@ -702,8 +857,6 @@ async function returnCanonicalData(
       growth_trajectory: row.growth_trajectory,
       market_outlook: row.market_outlook,
       projection_confidence: row.projection_confidence,
-
-      // Metadata
       demographics_source: source === "canonical" ? "census_moat" : "bigquery_realtime",
       accuracy_tier: row.accuracy_tier,
       confidence: row.confidence,
@@ -711,7 +864,6 @@ async function returnCanonicalData(
     },
   };
 
-  // If application_id provided, update the application with demographics data
   if (application_id) {
     const updateData = {
       census_block_group: result.data.census_block_group,
