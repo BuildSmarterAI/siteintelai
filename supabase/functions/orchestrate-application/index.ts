@@ -773,10 +773,25 @@ async function orchestrate(appId: string, traceId: string): Promise<any> {
         console.log(`🔄 [TRACE:${traceId}] [orchestrate] ========== PHASE: rendering → complete ==========`);
         const phaseStart = Date.now();
         
-        await renderAndStorePDF(app, traceId);
+        // PDF generation is NON-BLOCKING - attempt but don't fail the whole pipeline
+        try {
+          await renderAndStorePDF(app, traceId);
+          console.log(`✅ [TRACE:${traceId}] PDF generated successfully`);
+        } catch (pdfErr: any) {
+          console.warn(`⚠️ [TRACE:${traceId}] PDF generation failed (non-blocking):`, pdfErr?.message || pdfErr);
+          // Add flag indicating PDF failed but continue to complete
+          const existingFlags = app.data_flags || [];
+          await sbAdmin
+            .from('applications')
+            .update({
+              data_flags: [...existingFlags, 'pdf_generation_failed']
+            })
+            .eq('id', appId);
+        }
         
         orchestrationMetrics.phases['pdf_render'] = Date.now() - phaseStart;
         
+        // ALWAYS proceed to complete - the UI report is ready, PDF is optional
         await bump(appId, 'complete', currentRev, traceId);
         
         // Log final timing metrics

@@ -763,6 +763,7 @@ export default function ReportViewer() {
             pdfUrl={report.pdf_url}
             onDownloadPdf={() => window.open(report.pdf_url!, '_blank')}
             pdfGenerating={pdfGenerating}
+            pdfError={pdfError}
           />
         </div>
       )}
