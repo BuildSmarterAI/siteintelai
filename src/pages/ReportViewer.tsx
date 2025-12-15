@@ -18,7 +18,7 @@ import { ExecutiveSummaryCard } from "@/components/report/ExecutiveSummaryCard";
 import { PropertyOwnerCard } from "@/components/report/PropertyOwnerCard";
 import { ValuationCard } from "@/components/report/ValuationCard";
 import { ProjectFeasibilityCard } from "@/components/report/ProjectFeasibilityCard";
-import { AttachmentsCard } from "@/components/report/AttachmentsCard";
+
 import { FloodRiskCard } from "@/components/report/FloodRiskCard";
 import { UtilitiesCard } from "@/components/report/UtilitiesCard";
 import { EnvironmentalCard } from "@/components/report/EnvironmentalCard";
@@ -1096,13 +1096,6 @@ export default function ReportViewer() {
           />
         )}
 
-        {/* Attachments Card - New */}
-        <AttachmentsCard
-          attachments={(report.applications as any)?.attachments}
-          reportAssets={report.report_assets}
-          pdfUrl={report.pdf_url}
-          className="mb-8"
-        />
 
         {/* ⭐ NEW: Property Valuation Card */}
         {false && (report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
