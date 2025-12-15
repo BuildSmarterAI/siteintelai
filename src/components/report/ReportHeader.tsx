@@ -10,7 +10,8 @@ import {
   Database,
   Sparkles,
   Copy,
-  CheckCircle2
+  CheckCircle2,
+  AlertTriangle
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ interface ReportHeaderProps {
   pdfUrl?: string | null;
   onDownloadPdf?: () => void;
   pdfGenerating?: boolean;
+  pdfError?: boolean;
 }
 
 export function ReportHeader({
@@ -38,6 +40,7 @@ export function ReportHeader({
   pdfUrl,
   onDownloadPdf,
   pdfGenerating,
+  pdfError,
 }: ReportHeaderProps) {
   const [copied, setCopied] = useState(false);
   const [dataNodes, setDataNodes] = useState<Array<{ id: number; x: number; y: number; delay: number }>>([]);
@@ -150,6 +153,11 @@ export function ReportHeader({
                 </motion.div>
                 Generating...
               </Button>
+            ) : pdfError ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-amber-500/20 text-amber-300 text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                <span>PDF unavailable</span>
+              </div>
             ) : null}
           </div>
         </div>

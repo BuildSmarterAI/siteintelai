@@ -24,7 +24,7 @@ export default function ThankYou() {
     checkAuth();
   }, []);
 
-  // Function to check for latest report
+  // Function to check for latest report - redirects even if app is in error state
   const checkForReport = async () => {
     if (!applicationId) return;
     
@@ -32,9 +32,10 @@ export default function ThankYou() {
     console.log('[Checking for report]', { applicationId });
     
     try {
-      const { data, error } = await supabase
+      // Check for report directly - don't rely on app status
+      const { data: report, error } = await supabase
         .from('reports')
-        .select('id, status')
+        .select('id, status, feasibility_score')
         .eq('application_id', applicationId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -42,8 +43,9 @@ export default function ThankYou() {
 
       if (error) throw error;
 
-      if (data && (data.status === 'completed' || data.status === 'partial')) {
-        console.log('[Report found]', { reportId: data.id, status: data.status });
+      // If report exists and is completed/partial, redirect immediately
+      if (report && (report.status === 'completed' || report.status === 'partial')) {
+        console.log('[Report found]', { reportId: report.id, status: report.status, score: report.feasibility_score });
         setReportReady(true);
         
         // Clear polling and timeout
@@ -52,10 +54,36 @@ export default function ThankYou() {
         
         // Navigate to report
         setRedirecting(true);
-        navigate(`/report/${data.id}`);
-      } else {
-        console.log('[Report not ready yet]', data?.status || 'none');
+        navigate(`/report/${report.id}`);
+        return;
       }
+      
+      // Also check if app hit error but a report still exists (e.g., PDF failed after report created)
+      const { data: app } = await supabase
+        .from('applications')
+        .select('status')
+        .eq('id', applicationId)
+        .single();
+        
+      if (app?.status === 'error' && report?.id) {
+        console.log('[App errored but report exists, redirecting]', { reportId: report.id });
+        setReportReady(true);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        setRedirecting(true);
+        navigate(`/report/${report.id}`);
+        return;
+      }
+      
+      // If app is in error state with no report, show error
+      if (app?.status === 'error' && !report) {
+        console.log('[App errored with no report]');
+        setReportError(true);
+        if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+        return;
+      }
+      
+      console.log('[Report not ready yet]', report?.status || 'none', 'app:', app?.status);
     } catch (err) {
       console.error('[Report check failed]', err);
     } finally {
