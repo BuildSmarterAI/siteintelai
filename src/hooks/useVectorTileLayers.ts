@@ -185,6 +185,15 @@ export function useVectorTileLayers({
   const addedLayersRef = useRef<Set<string>>(new Set());
   const clickHandlerRef = useRef<((e: any) => void) | null>(null);
   const errorHandlerRef = useRef<((e: any) => void) | null>(null);
+  
+  // Use ref to avoid stale closure in click handler
+  const onParcelClickRef = useRef(onParcelClick);
+  
+  // Keep ref updated with latest callback
+  useEffect(() => {
+    onParcelClickRef.current = onParcelClick;
+    console.log('[useVectorTileLayers] onParcelClick ref updated:', !!onParcelClick);
+  }, [onParcelClick]);
 
   console.log('🔍 TILE DEBUG: useVectorTileLayers render', {
     hasMap: !!map,
@@ -193,6 +202,7 @@ export function useVectorTileLayers({
     tilesetCount: tilesets?.length || 0,
     sourceCount: Object.keys(sources).length,
     styleVersion,
+    hasOnParcelClick: !!onParcelClick,
   });
 
   // Function to add all sources and layers
@@ -306,7 +316,7 @@ export function useVectorTileLayers({
       addedLayers: Array.from(addedLayersRef.current),
     });
 
-    // Add click handler for parcels
+    // Add click handler for parcels - uses ref to avoid stale closure
     if (map.getLayer('siteintel-parcels-fill')) {
       // Remove existing handler if any
       if (clickHandlerRef.current) {
@@ -314,13 +324,25 @@ export function useVectorTileLayers({
       }
       
       clickHandlerRef.current = (e: any) => {
-        if (e.features && e.features.length > 0 && onParcelClick) {
-          console.log('🔍 TILE DEBUG: Parcel clicked from vector tile', e.features[0]);
-          onParcelClick(e.features[0]);
+        console.log('[useVectorTileLayers] Click event on parcels-fill layer', {
+          hasFeatures: !!e.features?.length,
+          hasCallback: !!onParcelClickRef.current,
+        });
+        
+        if (e.features && e.features.length > 0) {
+          const feature = e.features[0];
+          console.log('[useVectorTileLayers] Clicked parcel properties:', feature.properties);
+          
+          if (onParcelClickRef.current) {
+            onParcelClickRef.current(feature);
+          } else {
+            console.warn('[useVectorTileLayers] No click callback available');
+          }
         }
       };
       
       map.on('click', 'siteintel-parcels-fill', clickHandlerRef.current);
+      console.log('[useVectorTileLayers] Registered click handler on siteintel-parcels-fill');
       
       // Hover effects
       map.on('mouseenter', 'siteintel-parcels-fill', () => {
@@ -330,7 +352,7 @@ export function useVectorTileLayers({
         map.getCanvas().style.cursor = '';
       });
     }
-  }, [map, sources, onParcelClick]);
+  }, [map, sources]); // onParcelClick removed - using ref instead
 
   // Add vector tile sources and layers to map
   useEffect(() => {

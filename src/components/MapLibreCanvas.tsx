@@ -232,6 +232,9 @@ export function MapLibreCanvas({
   const retryParcelLoad = useRef<(() => void) | null>(null);
   const measurementSourceId = 'measurement-source';
   
+  // Use ref to avoid stale closure in click handlers
+  const onParcelSelectRef = useRef(onParcelSelect);
+  
   // Basemap style state (persisted in localStorage)
   const [basemapStyle, setBasemapStyle] = useState<'streets' | 'satellite' | 'hybrid'>(() => {
     const saved = localStorage.getItem('mapBasemapStyle');
@@ -307,6 +310,12 @@ export function MapLibreCanvas({
       fallbackSource: fallbackMetadata?.source,
     });
   }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance, shouldUseFallback, fallbackLoading, fallbackFeatureCount, isFallbackMode, fallbackMetadata]);
+
+  // Keep ref updated with latest callback to avoid stale closures
+  useEffect(() => {
+    onParcelSelectRef.current = onParcelSelect;
+    console.log('[MapLibreCanvas] onParcelSelect ref updated:', !!onParcelSelect);
+  }, [onParcelSelect]);
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
   const toMapLibre = (coords: [number, number]): [number, number] => [coords[1], coords[0]];
@@ -2047,9 +2056,13 @@ export function MapLibreCanvas({
     const sourceId = 'siteintel-parcels';
     const fillLayerId = 'siteintel-parcels-fill';
 
-    // Helper to query parcel by coordinates (used as fallback)
+    console.log('[MapLibreCanvas] Setting up parcel click handlers', {
+      hasOnParcelSelect: !!onParcelSelectRef.current,
+    });
+
+    // Helper to query parcel by coordinates (used as fallback) - uses ref to avoid stale closure
     const queryParcelByCoordinates = async (lng: number, lat: number) => {
-      console.log('🔍 Querying canonical parcel by coordinates:', { lat, lng });
+      console.log('🔍 Querying canonical parcel by coordinates:', { lat, lng, hasCallback: !!onParcelSelectRef.current });
       
       try {
         const { data, error } = await supabase.functions.invoke('query-canonical-parcel', {
@@ -2080,7 +2093,11 @@ export function MapLibreCanvas({
             },
             geometry: null // Geometry not needed for popup display
           };
-          onParcelSelect?.(feature as any);
+          if (onParcelSelectRef.current) {
+            onParcelSelectRef.current(feature as any);
+          } else {
+            console.warn('[MapLibreCanvas] No onParcelSelect callback available');
+          }
           return true;
         } else {
           console.log('ℹ️ No parcel found at these coordinates');
@@ -2101,8 +2118,13 @@ export function MapLibreCanvas({
       setParcelLoading(false);
       setParcelLoadError(null);
       
-      // Click handler for vector tile parcels
+      // Click handler for vector tile parcels - uses ref to avoid stale closure
       const handleParcelClick = async (e: maplibregl.MapLayerMouseEvent) => {
+        console.log('[MapLibreCanvas] handleParcelClick fired', {
+          hasFeatures: !!e.features?.length,
+          hasCallback: !!onParcelSelectRef.current,
+        });
+        
         if (!e.features || e.features.length === 0) {
           // No features at click - try coordinate query as fallback
           await queryParcelByCoordinates(e.lngLat.lng, e.lngLat.lat);
@@ -2111,11 +2133,12 @@ export function MapLibreCanvas({
         
         const feature = e.features[0];
         const props = feature.properties || {};
+        console.log('[MapLibreCanvas] Clicked parcel properties:', props);
         
         // Extract parcel ID from tile properties
         const parcelId = props.source_parcel_id || props.parcel_id || props.apn || props.id;
         
-        if (parcelId && onParcelSelect) {
+        if (parcelId && onParcelSelectRef.current) {
           console.log('🔍 Fetching canonical parcel details for:', parcelId);
           
           try {
@@ -2144,26 +2167,31 @@ export function MapLibreCanvas({
                   source_agency: data.parcel.source_agency,
                 }
               };
-              onParcelSelect(enrichedFeature);
+              onParcelSelectRef.current(enrichedFeature);
             } else {
               // Use tile properties if canonical lookup fails
-              onParcelSelect(feature);
+              onParcelSelectRef.current(feature);
             }
           } catch (err) {
             console.warn('⚠️ Canonical parcel lookup failed, using tile data:', err);
-            onParcelSelect(feature);
+            if (onParcelSelectRef.current) {
+              onParcelSelectRef.current(feature);
+            }
           }
-        } else if (onParcelSelect) {
+        } else if (onParcelSelectRef.current) {
           // No parcel ID in tile - fallback to coordinate query
           const found = await queryParcelByCoordinates(e.lngLat.lng, e.lngLat.lat);
-          if (!found) {
+          if (!found && onParcelSelectRef.current) {
             // Last resort: use tile properties
-            onParcelSelect(feature);
+            onParcelSelectRef.current(feature);
           }
+        } else {
+          console.warn('[MapLibreCanvas] No onParcelSelect callback in handleParcelClick');
         }
       };
       
       map.current.on('click', fillLayerId, handleParcelClick);
+      console.log('[MapLibreCanvas] Registered click handler on', fillLayerId);
       
       // Cursor handlers
       map.current.on('mouseenter', fillLayerId, () => {
@@ -2201,6 +2229,7 @@ export function MapLibreCanvas({
     };
     
     map.current.on('click', handleMapClick);
+    console.log('[MapLibreCanvas] Registered fallback map click handler');
     
     // Also show pointer cursor at zoom > 14 to indicate clickability
     const updateCursor = () => {
@@ -2221,7 +2250,7 @@ export function MapLibreCanvas({
       map.current?.off('zoom', updateCursor);
       if (map.current) map.current.getCanvas().style.cursor = '';
     };
-  }, [mapLoaded, showParcels, onParcelSelect]);
+  }, [mapLoaded, showParcels]); // onParcelSelect removed - using ref instead
 
   // Update 3D buildings visibility based on 3D mode
   useEffect(() => {
