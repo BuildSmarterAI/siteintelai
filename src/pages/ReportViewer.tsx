@@ -879,8 +879,7 @@ export default function ReportViewer() {
           </div>}
 
         {/* Full Report Content - only show if authenticated or owner */}
-        {!showPreview && <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-6">
+        {!showPreview && <div className="space-y-6">
               {/* Lender Ready Badge */}
               <LenderReadyBadge
                 reportId={report.id}
@@ -1838,10 +1837,8 @@ export default function ReportViewer() {
                 </>}
             </CardContent>
           </Card>}
-            </div>
-
-            {/* Data Sources Sidebar */}
-            <div className="lg:col-span-1">
+            {/* Verified Data Sources - Bottom Section */}
+            <div className="mt-12 pt-8 border-t border-border">
               <DataSourcesDisplay dataSources={dataSources} accessLevel={!isAuthenticated ? 'public' : !isOwner ? 'authenticated' : productId === 'enterprise' ? 'enterprise' : 'owner'} />
             </div>
           </div>}
