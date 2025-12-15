@@ -65,6 +65,14 @@ export function useFallbackParcels({
   const debounceTimeout = useRef<number | null>(null);
   const lastBbox = useRef<string | null>(null);
   const layersAdded = useRef(false);
+  
+  // Use ref to avoid stale closure in click handler
+  const onParcelClickRef = useRef(onParcelClick);
+  
+  // Keep ref updated with latest callback
+  useEffect(() => {
+    onParcelClickRef.current = onParcelClick;
+  }, [onParcelClick]);
 
   // Fetch parcels for current viewport
   const fetchParcelsForViewport = useCallback(async () => {
@@ -130,6 +138,7 @@ export function useFallbackParcels({
   }, [map, enabled, minZoom]);
 
   // Update map GeoJSON source with new features
+  // Remove onParcelClick from dependencies since we use ref
   const updateMapSource = useCallback(
     (features: ParcelFeature[]) => {
       if (!map) return;
@@ -193,20 +202,31 @@ export function useFallbackParcels({
           });
         }
 
-        // Click handler
+        // Click handler - uses ref to avoid stale closure
         map.on("click", FALLBACK_FILL_LAYER_ID, (e) => {
-          if (e.features && e.features.length > 0 && onParcelClick) {
+          console.log("[useFallbackParcels] Click event on fill layer", {
+            hasFeatures: !!e.features?.length,
+            hasCallback: !!onParcelClickRef.current,
+          });
+          
+          if (e.features && e.features.length > 0) {
             const feature = e.features[0];
-            onParcelClick({
-              parcel_id: feature.properties?.parcel_id,
-              owner_name: feature.properties?.owner_name,
-              situs_address: feature.properties?.situs_address,
-              acreage: feature.properties?.acreage,
-              land_use_desc: feature.properties?.land_use_desc,
-              jurisdiction: feature.properties?.jurisdiction,
-              source: feature.properties?.source,
-              geometry: feature.geometry,
-            });
+            console.log("[useFallbackParcels] Clicked parcel properties:", feature.properties);
+            
+            if (onParcelClickRef.current) {
+              onParcelClickRef.current({
+                parcel_id: feature.properties?.parcel_id,
+                owner_name: feature.properties?.owner_name,
+                situs_address: feature.properties?.situs_address,
+                acreage: feature.properties?.acreage,
+                land_use_desc: feature.properties?.land_use_desc,
+                jurisdiction: feature.properties?.jurisdiction,
+                source: feature.properties?.source,
+                geometry: feature.geometry,
+              });
+            } else {
+              console.warn("[useFallbackParcels] No click callback available");
+            }
           }
         });
 
@@ -221,7 +241,7 @@ export function useFallbackParcels({
         layersAdded.current = true;
       }
     },
-    [map, onParcelClick]
+    [map] // onParcelClick removed - using ref instead
   );
 
   // Debounced handler for map movement
