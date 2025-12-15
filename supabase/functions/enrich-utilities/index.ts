@@ -620,6 +620,30 @@ serve(async (req) => {
       throw new Error("Must provide either application_id or latitude/longitude");
     }
     
+    // FALLBACK: Detect county from coordinates if not set
+    if (!county && geo_lat && geo_lng) {
+      const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: number; maxLat: number }> = {
+        'Harris County': { minLng: -95.91, maxLng: -94.91, minLat: 29.49, maxLat: 30.17 },
+        'Montgomery County': { minLng: -95.72, maxLng: -95.03, minLat: 30.05, maxLat: 30.7 },
+        'Fort Bend County': { minLng: -96.18, maxLng: -95.44, minLat: 29.26, maxLat: 29.74 },
+        'Travis County': { minLng: -98.17, maxLng: -97.37, minLat: 30.07, maxLat: 30.63 },
+        'Bexar County': { minLng: -98.81, maxLng: -98.21, minLat: 29.17, maxLat: 29.73 },
+      };
+      
+      for (const [countyName, bounds] of Object.entries(COUNTY_BOUNDS)) {
+        if (geo_lng >= bounds.minLng && geo_lng <= bounds.maxLng && 
+            geo_lat >= bounds.minLat && geo_lat <= bounds.maxLat) {
+          county = countyName;
+          console.log(`📍 [TRACE:${traceId}] County detected from coordinates: ${county}`);
+          break;
+        }
+      }
+      
+      if (!county) {
+        console.log(`⚠️ [TRACE:${traceId}] Could not detect county from coordinates (${geo_lat}, ${geo_lng})`);
+      }
+    }
+    
     // PHASE 1: Coordinates Resolved
     console.log(`✅ [TRACE:${traceId}] [ENRICH-UTILITIES] Coordinates resolved:`, {
       geo_lat,

@@ -3694,7 +3694,9 @@ serve(async (req) => {
         updateData.formatted_address = enrichedData.situs_address;
       }
       if (enrichedData.place_id) updateData.place_id = enrichedData.place_id;
-      if (enrichedData.administrative_area_level_2) updateData.county = enrichedData.administrative_area_level_2;
+      // Use countyName directly (extracted from geocoding) as primary source
+      if (countyName) updateData.county = countyName;
+      else if (enrichedData.administrative_area_level_2) updateData.county = enrichedData.administrative_area_level_2;
       if (enrichedData.city) updateData.city = enrichedData.city;
       if (enrichedData.administrative_area_level_1) updateData.administrative_area_level_1 = enrichedData.administrative_area_level_1;
       if (enrichedData.postal_code) updateData.postal_code = enrichedData.postal_code;
