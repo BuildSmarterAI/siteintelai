@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,13 @@ import { ExecutiveSummaryCard } from "@/components/report/ExecutiveSummaryCard";
 import { PropertyOwnerCard } from "@/components/report/PropertyOwnerCard";
 import { ValuationCard } from "@/components/report/ValuationCard";
 import { ProjectFeasibilityCard } from "@/components/report/ProjectFeasibilityCard";
+
+// PRD-compliant components
+import { ExecutiveVerdictBar, VerdictType } from "@/components/report/ExecutiveVerdictBar";
+import { KillFactorPanel, KillFactorItem } from "@/components/report/KillFactorPanel";
+import { RiskDriverList, RiskDriver } from "@/components/report/RiskDriverList";
+import { NextActionsBlock, NextAction } from "@/components/report/NextActionsBlock";
+import { FeasibilityScoreCard } from "@/components/report/FeasibilityScoreCard";
 
 import { FloodRiskCard } from "@/components/report/FloodRiskCard";
 import { UtilitiesCard } from "@/components/report/UtilitiesCard";
@@ -879,7 +886,208 @@ export default function ReportViewer() {
           </div>}
 
         {/* Full Report Content - only show if authenticated or owner */}
-        {!showPreview && <div className="space-y-6">
+        {!showPreview && (() => {
+          // Compute verdict based on score and kill factors
+          const score = report.feasibility_score ?? 0;
+          const hasKillFactors = 
+            report.applications?.floodplain_zone?.toLowerCase().includes('floodway') ||
+            (report.applications?.wetlands_area_pct ?? 0) >= 50 ||
+            !hasUtilitiesAvailable();
+          
+          const computeVerdict = (): VerdictType => {
+            if (hasKillFactors) return "DO_NOT_PROCEED";
+            if (score >= 75) return "PROCEED";
+            if (score >= 50) return "CONDITIONAL";
+            return "DO_NOT_PROCEED";
+          };
+          
+          const verdict = computeVerdict();
+          
+          const getJustification = () => {
+            if (verdict === "PROCEED") return "Site meets all critical thresholds for development. Proceed to due diligence.";
+            if (verdict === "CONDITIONAL") return "Site has addressable constraints. Review required actions before proceeding.";
+            return "Critical constraints detected. Site may not be suitable for intended use.";
+          };
+          
+          // Build kill factors for PRD panel
+          const buildKillFactors = () => {
+            const dealKillers: KillFactorItem[] = [];
+            const conditionalRisks: KillFactorItem[] = [];
+            const advisoryNotes: KillFactorItem[] = [];
+            
+            // Check floodway
+            if (report.applications?.floodplain_zone?.toLowerCase().includes('floodway')) {
+              dealKillers.push({
+                id: 'floodway',
+                title: 'FEMA Floodway Designation',
+                status: 'FAIL',
+                impact: 'No development permitted in regulatory floodway without LOMR/CLOMR.',
+                requiredAction: 'Obtain FEMA Letter of Map Revision (LOMR) or site alternative parcel.',
+                confidence: 95,
+                source: 'FEMA NFHL',
+                sourceUrl: 'https://msc.fema.gov/portal/home',
+              });
+            } else if (report.applications?.floodplain_zone === 'AE' || report.applications?.floodplain_zone === 'A') {
+              conditionalRisks.push({
+                id: 'flood_ae',
+                title: `FEMA Zone ${report.applications?.floodplain_zone}`,
+                status: 'WARN',
+                impact: 'Flood insurance required. Elevation certificate needed.',
+                requiredAction: 'Obtain elevation certificate and flood insurance quote.',
+                confidence: 90,
+                source: 'FEMA NFHL',
+              });
+            }
+            
+            // Check wetlands
+            const wetlandsPct = report.applications?.wetlands_area_pct ?? 0;
+            if (wetlandsPct >= 50) {
+              dealKillers.push({
+                id: 'wetlands_critical',
+                title: `Wetlands Coverage: ${wetlandsPct.toFixed(0)}%`,
+                status: 'FAIL',
+                impact: 'More than half the parcel is wetlands. Significant buildable area reduction.',
+                requiredAction: 'Army Corps 404 permit required. Consider parcel acquisition strategy.',
+                confidence: 85,
+                source: 'USFWS NWI',
+              });
+            } else if (wetlandsPct >= 25) {
+              conditionalRisks.push({
+                id: 'wetlands_warning',
+                title: `Wetlands Coverage: ${wetlandsPct.toFixed(0)}%`,
+                status: 'WARN',
+                impact: 'Significant wetlands present requiring mitigation.',
+                requiredAction: 'Engage wetlands consultant for 404 permit assessment.',
+                confidence: 80,
+                source: 'USFWS NWI',
+              });
+            }
+            
+            // Check utilities
+            if (!hasUtilitiesAvailable()) {
+              dealKillers.push({
+                id: 'no_utilities',
+                title: 'No Public Utilities',
+                status: 'FAIL',
+                impact: 'No public water or sewer within 1000ft. Will require expensive utility extension.',
+                requiredAction: 'Obtain utility extension cost estimate from provider.',
+                confidence: 88,
+                source: 'City GIS',
+              });
+            }
+            
+            // Add advisory notes from environmental
+            if (report.applications?.environmental_sites?.length) {
+              advisoryNotes.push({
+                id: 'env_sites',
+                title: `Environmental Sites Nearby (${report.applications.environmental_sites.length})`,
+                status: 'PASS',
+                impact: 'Nearby regulated facilities may require Phase I ESA.',
+                confidence: 75,
+                source: 'EPA ECHO',
+              });
+            }
+            
+            return { dealKillers, conditionalRisks, advisoryNotes };
+          };
+          
+          const killFactorData = buildKillFactors();
+          
+          // Build risk drivers
+          const buildRiskDrivers = () => {
+            const positives: RiskDriver[] = [];
+            const penalties: RiskDriver[] = [];
+            
+            if (report.applications?.zoning_code) {
+              positives.push({ id: 'zoning', label: 'Zoning Compatible', delta: 15, sectionId: 'section-zoning' });
+            }
+            if (hasUtilitiesAvailable()) {
+              positives.push({ id: 'utilities', label: 'Utilities Available', delta: 12, sectionId: 'section-utilities' });
+            }
+            if (report.applications?.traffic_aadt && report.applications.traffic_aadt > 10000) {
+              positives.push({ id: 'traffic', label: 'High Traffic Visibility', delta: 8, sectionId: 'section-traffic' });
+            }
+            
+            if (report.applications?.floodplain_zone && report.applications.floodplain_zone !== 'X') {
+              penalties.push({ id: 'flood', label: 'Flood Zone Constraint', delta: -15, sectionId: 'section-flood' });
+            }
+            if ((report.applications?.wetlands_area_pct ?? 0) > 0) {
+              penalties.push({ id: 'wetlands', label: 'Wetlands Present', delta: -10, sectionId: 'section-environmental' });
+            }
+            if (report.applications?.environmental_sites?.length) {
+              penalties.push({ id: 'env', label: 'Environmental Concerns', delta: -5, sectionId: 'section-environmental' });
+            }
+            
+            return { positives, penalties };
+          };
+          
+          const riskDrivers = buildRiskDrivers();
+          
+          // Build next actions
+          const buildNextActions = (): NextAction[] => {
+            const actions: NextAction[] = [];
+            
+            if (verdict === "CONDITIONAL") {
+              if (killFactorData.conditionalRisks.some(k => k.id.includes('flood'))) {
+                actions.push({ id: 'flood_cert', label: 'Obtain FEMA Elevation Certificate', owner: 'consultant', priority: 1 });
+              }
+              if (killFactorData.conditionalRisks.some(k => k.id.includes('wetlands'))) {
+                actions.push({ id: 'wetlands_assess', label: 'Complete 404 Permit Pre-Assessment', owner: 'consultant', priority: 1 });
+              }
+              actions.push({ id: 'due_diligence', label: 'Schedule Phase I ESA', owner: 'developer', priority: 2 });
+            } else if (verdict === "PROCEED") {
+              actions.push({ id: 'title', label: 'Order Title Commitment', owner: 'lender', priority: 1 });
+              actions.push({ id: 'survey', label: 'Commission ALTA Survey', owner: 'developer', priority: 2 });
+              actions.push({ id: 'appraisal', label: 'Order MAI Appraisal', owner: 'lender', priority: 3 });
+            }
+            
+            return actions;
+          };
+          
+          const nextActions = buildNextActions();
+          
+          const scrollToSection = (sectionId: string) => {
+            document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
+          };
+          
+          return (
+            <div className="space-y-6">
+              {/* PRD: 1. Executive Verdict Bar - Sticky */}
+              <ExecutiveVerdictBar
+                verdict={verdict}
+                justification={getJustification()}
+                confidence={calculateConfidence()}
+                timestamp={new Date(report.created_at).toLocaleDateString()}
+                onScrollToKillFactors={() => scrollToSection('section-kill-factors')}
+              />
+
+              {/* PRD: 2. Kill Factor Panel */}
+              <KillFactorPanel
+                dealKillers={killFactorData.dealKillers}
+                conditionalRisks={killFactorData.conditionalRisks}
+                advisoryNotes={killFactorData.advisoryNotes}
+              />
+
+              {/* PRD: 3. Feasibility Score Card */}
+              <FeasibilityScoreCard
+                score={report.feasibility_score ?? 0}
+                scoreBand={report.score_band || 'C'}
+                address={report.applications?.formatted_address || 'Unknown Address'}
+              />
+
+              {/* PRD: 4. Risk Driver List */}
+              <RiskDriverList
+                positives={riskDrivers.positives}
+                penalties={riskDrivers.penalties}
+                onScrollToSection={scrollToSection}
+              />
+
+              {/* PRD: 5. Next Actions Block */}
+              <NextActionsBlock
+                actions={nextActions}
+                verdictType={verdict}
+              />
+
               {/* Lender Ready Badge */}
               <LenderReadyBadge
                 reportId={report.id}
@@ -905,32 +1113,6 @@ export default function ReportViewer() {
                 dataSourcesCount={12}
                 lastUpdated={report.applications?.updated_at}
                 dataFreshness={getDataFreshness()}
-              />
-
-              {/* Score Dashboard - Hero Section */}
-              <ScoreDashboard
-                overallScore={report.feasibility_score ?? 0}
-                scoreBand={report.score_band || 'C'}
-                address={report.applications?.formatted_address || 'Unknown Address'}
-                zoningScore={parsedData.zoning?.component_score || 0}
-                floodScore={parsedData.flood?.component_score || 0}
-                utilitiesScore={parsedData.utilities?.component_score || 0}
-                trafficScore={parsedData.traffic?.component_score || 0}
-                environmentalScore={parsedData.environmental?.component_score || 0}
-                keyOpportunities={summary.key_opportunities || []}
-                keyRisks={summary.key_risks || []}
-                createdAt={report.created_at}
-              />
-
-              {/* Kill Factors Banner */}
-              <KillFactorsBanner
-                floodZone={report.applications?.floodplain_zone}
-                wetlandsPercent={report.applications?.wetlands_area_pct ?? 0}
-                hasUtilities={hasUtilitiesAvailable()}
-                environmentalIssues={
-                  report.applications?.environmental_sites?.map((s: any) => s.name || s.type) || []
-                }
-                customKillFactors={parsedData.environmental?.kill_factors || []}
               />
 
               {/* Executive Summary - Enhanced Card */}
@@ -1841,7 +2023,9 @@ export default function ReportViewer() {
             <div className="mt-12 pt-8 border-t border-border">
               <DataSourcesDisplay dataSources={dataSources} accessLevel={!isAuthenticated ? 'public' : !isOwner ? 'authenticated' : productId === 'enterprise' ? 'enterprise' : 'owner'} />
             </div>
-          </div>}
+          </div>
+        );
+        })()}
       </main>
 
       {/* AI Chat Assistant */}

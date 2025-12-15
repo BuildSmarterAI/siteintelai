@@ -103,6 +103,20 @@ All colors MUST be HSL.
     --status-info: 199 89% 48%;
     --status-pending: 217 91% 60%;
     
+    /* PRD Verdict State Colors */
+    --verdict-proceed: 142 71% 45%;           /* Green - PROCEED */
+    --verdict-proceed-bg: 142 71% 45% / 0.1;
+    --verdict-conditional: 38 92% 50%;        /* Amber - CONDITIONAL */
+    --verdict-conditional-bg: 38 92% 50% / 0.1;
+    --verdict-blocked: 0 84% 60%;             /* Red - DO NOT PROCEED */
+    --verdict-blocked-bg: 0 84% 60% / 0.1;
+    
+    /* Surface Hierarchy Tokens */
+    --surface-elevated: 0 0% 100%;
+    --surface-sunken: 220 14% 96%;
+    --surface-overlay: 0 0% 100% / 0.95;
+    --border-subtle: 220 13% 91%;
+    
     /* Hospitality Intelligence (HII) Module Colors */
     --hii-high: 142 71% 45%;        /* #15803D - Green for high activity */
     --hii-medium: 48 96% 53%;       /* #FACC15 - Yellow for medium activity */
