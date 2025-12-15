@@ -92,10 +92,16 @@ export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
   return (
     <Sidebar 
       className={cn(
-        "border-r border-border/50 bg-[hsl(var(--midnight-blue))] transition-all duration-300",
+        "border-r border-white/10 transition-all duration-300",
         isCollapsed ? "w-16" : "w-56"
       )}
       collapsible="icon"
+      style={{
+        '--sidebar-background': 'var(--midnight-blue)',
+        '--sidebar-foreground': '210 20% 98%',
+        '--sidebar-accent': '0 0% 100% / 0.1',
+        '--sidebar-accent-foreground': '0 0% 100%',
+      } as React.CSSProperties}
     >
       <SidebarHeader className="border-b border-white/10 p-3">
         <div className="flex items-center justify-between">
