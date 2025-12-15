@@ -25,7 +25,7 @@ import { KillFactorPanel, KillFactorItem } from "@/components/report/KillFactorP
 import { RiskDriverList, RiskDriver } from "@/components/report/RiskDriverList";
 import { NextActionsBlock, NextAction } from "@/components/report/NextActionsBlock";
 import { FeasibilityScoreCard } from "@/components/report/FeasibilityScoreCard";
-
+import { DecisionMap } from "@/components/report/DecisionMap";
 import { FloodRiskCard } from "@/components/report/FloodRiskCard";
 import { UtilitiesCard } from "@/components/report/UtilitiesCard";
 import { EnvironmentalCard } from "@/components/report/EnvironmentalCard";
@@ -1066,6 +1066,10 @@ export default function ReportViewer() {
                 dealKillers={killFactorData.dealKillers}
                 conditionalRisks={killFactorData.conditionalRisks}
                 advisoryNotes={killFactorData.advisoryNotes}
+                onItemClick={(item) => {
+                  // Highlight on map when clicking a kill factor
+                  console.log('[ReportViewer] Kill factor clicked:', item.id);
+                }}
               />
 
               {/* PRD: 3. Feasibility Score Card */}
@@ -1087,6 +1091,27 @@ export default function ReportViewer() {
                 actions={nextActions}
                 verdictType={verdict}
               />
+
+              {/* PRD: 6. Decision Map - Preset-controlled */}
+              {report.applications?.geo_lat && report.applications?.geo_lng && (
+                <DecisionMap
+                  center={[report.applications.geo_lat, report.applications.geo_lng]}
+                  zoom={15}
+                  parcel={mapLayers?.parcel}
+                  floodZones={[]} // Passed via vector tiles
+                  waterLines={mapLayers?.waterLines || []}
+                  sewerLines={mapLayers?.sewerLines || []}
+                  stormLines={mapLayers?.stormLines || []}
+                  zoningDistricts={mapLayers?.zoningDistricts || []}
+                  drawnParcels={mapLayers?.drawnParcels || []}
+                  killFactors={killFactorData}
+                  onKillFactorClick={(factorId) => {
+                    console.log('[ReportViewer] Map kill factor sync:', factorId);
+                  }}
+                  propertyAddress={report.applications?.formatted_address}
+                  className="mb-6"
+                />
+              )}
 
               {/* Lender Ready Badge */}
               <LenderReadyBadge

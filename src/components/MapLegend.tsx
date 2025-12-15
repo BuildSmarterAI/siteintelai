@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Map } from 'lucide-react';
+import { ChevronDown, ChevronUp, Map, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 
 interface MapLegendProps {
   hasFloodZones?: boolean;
@@ -16,6 +18,10 @@ interface MapLegendProps {
   hasStormManholes?: boolean;
   hasForceMain?: boolean;
   hasZoningDistricts?: boolean;
+  // Preset context
+  presetId?: string;
+  presetLabel?: string;
+  onResetToDefault?: () => void;
 }
 
 /**
@@ -26,6 +32,7 @@ interface MapLegendProps {
  * - Mobile/Tablet (<1024px): Drawer with trigger button in top-left
  * 
  * Provides color-coded keys for flood zones, traffic, parcels, and employment
+ * Now supports preset context display
  * 
  * @accessibility WCAG 2.1 AA compliant with keyboard nav and 48px touch targets
  */
@@ -40,12 +47,36 @@ export function MapLegend({
   hasStormManholes = false,
   hasForceMain = false,
   hasZoningDistricts = false,
+  presetId,
+  presetLabel,
+  onResetToDefault,
 }: MapLegendProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const legendContent = (
-    <div className="space-y-3 text-xs">{/* Content moved below */}
+    <div className="space-y-3 text-xs">
+      {/* Preset indicator */}
+      {presetLabel && (
+        <div className="flex items-center justify-between pb-2 border-b">
+          <div className="flex items-center gap-1.5">
+            <Target className="h-3.5 w-3.5 text-[hsl(var(--primary))]" />
+            <span className="font-medium text-foreground">{presetLabel}</span>
+          </div>
+          {presetId !== 'decision_mode' && onResetToDefault && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onResetToDefault}
+              className="h-6 px-2 text-[10px]"
+            >
+              Reset
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Parcel Boundary */}
       {/* Parcel Boundary */}
       <div className="space-y-1.5">
         <p className="font-medium text-foreground">Parcel</p>
