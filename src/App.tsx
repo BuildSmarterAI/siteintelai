@@ -70,6 +70,7 @@ import TileArchitecture from "./pages/docs/TileArchitecture";
 import CanonicalSchema from "./pages/docs/CanonicalSchema";
 import TileManagement from "./pages/admin/TileManagement";
 import AdminReports from "./pages/admin/AdminReports";
+import MarketIntelligence from "./pages/MarketIntelligence";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -78,9 +79,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isFullscreenPage = location.pathname === '/investor-deck';
   const isDocsPage = location.pathname.startsWith('/docs');
   const isReportPage = location.pathname.startsWith('/report/');
+  const isMarketIntelPage = location.pathname === '/market-intelligence';
 
-  // Fullscreen pages, docs, and reports render without any layout wrapper
-  if (isFullscreenPage || isDocsPage || isReportPage) {
+  // Fullscreen pages, docs, reports, and market intelligence render without any layout wrapper
+  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage) {
     return <>{children}</>;
   }
 
@@ -163,6 +165,7 @@ const App = () => (
               <Route path="/admin/tiles" element={<TileManagement />} />
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
+              <Route path="/market-intelligence" element={<MarketIntelligence />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
               <Route path="/beta-thank-you" element={<BetaThankYou />} />

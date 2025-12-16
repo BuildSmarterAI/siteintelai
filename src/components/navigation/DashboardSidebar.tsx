@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, FileText, PlusCircle, Settings, LayoutDashboard, TrendingUp } from "lucide-react";
+import { Home, FileText, PlusCircle, LayoutDashboard, TrendingUp, Globe2 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +17,7 @@ const navigationItems = [
   { title: "Overview", url: "/dashboard", icon: LayoutDashboard },
   { title: "All Reports", url: "/dashboard?tab=all", icon: FileText },
   { title: "Portfolio Analytics", url: "/analytics", icon: TrendingUp },
+  { title: "Market Intelligence", url: "/market-intelligence", icon: Globe2, badge: "NEW" },
   { title: "New Application", url: "/application?step=1", icon: PlusCircle },
 ];
 
@@ -68,7 +69,16 @@ export function DashboardSidebar() {
                     <SidebarMenuButton asChild className={getNavClass(active)}>
                       <NavLink to={item.url} end>
                         <item.icon className={`${collapsed ? "" : "mr-3"} h-5 w-5`} />
-                        {!collapsed && <span>{item.title}</span>}
+                        {!collapsed && (
+                          <span className="flex items-center gap-2">
+                            {item.title}
+                            {'badge' in item && item.badge && (
+                              <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-[hsl(var(--feasibility-orange))] text-white rounded">
+                                {item.badge}
+                              </span>
+                            )}
+                          </span>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
