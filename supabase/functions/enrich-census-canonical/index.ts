@@ -275,12 +275,12 @@ function buildBigQuerySql(tractFips: string): string {
       occupied_housing_units,
       vacant_housing_units,
       owner_occupied_housing_units,
-      renter_occupied_housing_units,
+      -- Compute renter-occupied from occupied - owner (column doesn't exist directly in ACS)
+      (COALESCE(occupied_housing_units, 0) - COALESCE(owner_occupied_housing_units, 0)) as renter_occupied_housing_units,
       owner_occupied_housing_units_median_value as median_home_value,
       median_rent,
       median_year_structure_built,
       median_rooms,
-      housing_units_renter_occupied,
       
       -- Income & Economics
       median_income,
