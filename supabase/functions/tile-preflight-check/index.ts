@@ -36,8 +36,9 @@ const CANONICAL_LAYERS = [
   { layer: 'parcels', table: 'canonical_parcels', geomColumn: 'geom' },
   { layer: 'zoning', table: 'zoning_canonical', geomColumn: 'geom' },
   { layer: 'utilities', table: 'utilities_canonical', geomColumn: 'geom' },
-  { layer: 'flood', table: 'flood_zones_canonical', geomColumn: 'geom' },
+  { layer: 'flood', table: 'fema_flood_canonical', geomColumn: 'geom' },  // Fixed: was flood_zones_canonical
   { layer: 'wetlands', table: 'wetlands_canonical', geomColumn: 'geom' },
+  { layer: 'transportation', table: 'transportation_canonical', geomColumn: 'geom' },  // Added
 ];
 
 const REQUIRED_SECRETS = [

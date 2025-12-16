@@ -194,14 +194,14 @@ def register_tileset(
     job = {
         "id": str(uuid4()),
         "tileset_key": tileset_key,
-        "job_type": "full",
-        "status": "complete",
+        "job_type": "full",  # Enum: full, incremental, repair
+        "status": "complete",  # Enum: queued, fetching, normalizing, tiling, uploading, registering, complete, error, cancelled
         "started_at": datetime.utcnow().isoformat(),
-        "finished_at": datetime.utcnow().isoformat(),
+        "completed_at": datetime.utcnow().isoformat(),  # Fixed: was 'finished_at'
         "input_records": record_count,
         "output_tiles": tile_count,
         "duration_ms": job_duration_ms,
-        "triggered_by": "github_actions",
+        "trigger_type": "github_actions",  # Fixed: was 'triggered_by' (UUID field)
     }
     
     response = requests.post(
