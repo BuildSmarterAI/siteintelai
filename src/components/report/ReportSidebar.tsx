@@ -13,7 +13,8 @@ import {
   AlertTriangle,
   PanelLeftClose,
   PanelLeft,
-  Home
+  Home,
+  LayoutDashboard
 } from "lucide-react";
 import {
   Sidebar,
@@ -24,6 +25,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -161,6 +163,26 @@ export function ReportSidebar({ hasKillFactors = false }: ReportSidebarProps) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="border-t border-white/10 p-3">
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className={cn(
+                "w-full justify-start gap-3 rounded-lg px-3 py-2.5 transition-all",
+                "text-white/70 hover:text-white hover:bg-white/10"
+              )}
+              tooltip={isCollapsed ? "Dashboard" : undefined}
+            >
+              <Link to="/dashboard">
+                <LayoutDashboard className="h-4 w-4 shrink-0" />
+                {!isCollapsed && <span>Dashboard</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
