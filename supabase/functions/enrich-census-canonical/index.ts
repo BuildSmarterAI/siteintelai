@@ -213,6 +213,8 @@ function determineMarketOutlook(incomeCagr: number, popCagr: number): string {
 }
 
 // ============= EXPANDED BigQuery ACS Query (83+ variables) =============
+// NOTE: ACS uses gender-specific age columns (male_under_5, female_under_5, etc.)
+// We compute combined age brackets by summing male + female columns
 
 function buildBigQuerySql(tractFips: string): string {
   return `
@@ -224,19 +226,42 @@ function buildBigQuerySql(tractFips: string): string {
       male_pop,
       female_pop,
       
-      -- Age Brackets (for under_18, working_age, over_65)
-      pop_under_5,
-      pop_5_to_9,
-      pop_10_to_14,
-      pop_15_to_17,
-      pop_18_to_24,
-      pop_25_to_34,
-      pop_35_to_44,
-      pop_45_to_54,
-      pop_55_to_64,
-      pop_65_to_74,
-      pop_75_to_84,
-      pop_85_and_over,
+      -- Age Brackets: Computed by summing male + female columns
+      (COALESCE(male_under_5, 0) + COALESCE(female_under_5, 0)) as pop_under_5,
+      (COALESCE(male_5_to_9, 0) + COALESCE(female_5_to_9, 0)) as pop_5_to_9,
+      (COALESCE(male_10_to_14, 0) + COALESCE(female_10_to_14, 0)) as pop_10_to_14,
+      (COALESCE(male_15_to_17, 0) + COALESCE(female_15_to_17, 0)) as pop_15_to_17,
+      
+      -- 18-24: male_18_to_19 + male_20 + male_21 + male_22_to_24 + female equivalents
+      (COALESCE(male_18_to_19, 0) + COALESCE(male_20, 0) + COALESCE(male_21, 0) + COALESCE(male_22_to_24, 0) +
+       COALESCE(female_18_to_19, 0) + COALESCE(female_20, 0) + COALESCE(female_21, 0) + COALESCE(female_22_to_24, 0)) as pop_18_to_24,
+      
+      -- 25-34: male_25_to_29 + male_30_to_34 + female equivalents
+      (COALESCE(male_25_to_29, 0) + COALESCE(male_30_to_34, 0) +
+       COALESCE(female_25_to_29, 0) + COALESCE(female_30_to_34, 0)) as pop_25_to_34,
+      
+      -- 35-44: male_35_to_39 + male_40_to_44 + female equivalents
+      (COALESCE(male_35_to_39, 0) + COALESCE(male_40_to_44, 0) +
+       COALESCE(female_35_to_39, 0) + COALESCE(female_40_to_44, 0)) as pop_35_to_44,
+      
+      -- 45-54: male_45_to_49 + male_50_to_54 + female equivalents
+      (COALESCE(male_45_to_49, 0) + COALESCE(male_50_to_54, 0) +
+       COALESCE(female_45_to_49, 0) + COALESCE(female_50_to_54, 0)) as pop_45_to_54,
+      
+      -- 55-64: male_55_to_59 + male_60_to_61 + male_62_to_64 + female equivalents
+      (COALESCE(male_55_to_59, 0) + COALESCE(male_60_to_61, 0) + COALESCE(male_62_to_64, 0) +
+       COALESCE(female_55_to_59, 0) + COALESCE(female_60_to_61, 0) + COALESCE(female_62_to_64, 0)) as pop_55_to_64,
+      
+      -- 65-74: male_65_to_66 + male_67_to_69 + male_70_to_74 + female equivalents
+      (COALESCE(male_65_to_66, 0) + COALESCE(male_67_to_69, 0) + COALESCE(male_70_to_74, 0) +
+       COALESCE(female_65_to_66, 0) + COALESCE(female_67_to_69, 0) + COALESCE(female_70_to_74, 0)) as pop_65_to_74,
+      
+      -- 75-84: male_75_to_79 + male_80_to_84 + female equivalents
+      (COALESCE(male_75_to_79, 0) + COALESCE(male_80_to_84, 0) +
+       COALESCE(female_75_to_79, 0) + COALESCE(female_80_to_84, 0)) as pop_75_to_84,
+      
+      -- 85+: male_85_and_over + female_85_and_over
+      (COALESCE(male_85_and_over, 0) + COALESCE(female_85_and_over, 0)) as pop_85_and_over,
       
       -- Race/Ethnicity
       white_pop,
