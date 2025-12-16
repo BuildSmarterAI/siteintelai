@@ -512,6 +512,87 @@ async function enrichTraffic(app: any, traceId: string) {
   }
 }
 
+/**
+ * Census Moat: Enrich application with comprehensive demographics from BigQuery
+ * Provides 83+ ACS variables and 6 proprietary CRE indices
+ */
+async function enrichCensusData(app: any, traceId: string) {
+  console.log(`📊 [TRACE:${traceId}] [enrichCensusData] ================== ENTRY ==================`);
+  
+  const phaseStart = Date.now();
+  
+  // Re-fetch app to get latest coordinates
+  const freshApp = await refreshAppData(app.id, traceId);
+  
+  if (!freshApp.geo_lat || !freshApp.geo_lng) {
+    console.warn(`⚠️ [TRACE:${traceId}] [enrichCensusData] Missing coordinates, skipping census enrichment`);
+    return { success: false, error: 'Missing coordinates' };
+  }
+  
+  try {
+    console.log(`📤 [TRACE:${traceId}] [enrichCensusData] Invoking enrich-census-canonical with:`, {
+      application_id: freshApp.id,
+      lat: freshApp.geo_lat,
+      lng: freshApp.geo_lng,
+      trace_id: traceId
+    });
+    
+    const response = await sbAdmin.functions.invoke('enrich-census-canonical', {
+      body: { 
+        application_id: freshApp.id,
+        lat: freshApp.geo_lat,
+        lng: freshApp.geo_lng,
+        trace_id: traceId
+      }
+    });
+    
+    if (response.error) {
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichCensusData] enrich-census-canonical failed (non-blocking):`, response.error);
+      
+      // Update data_flags to indicate census enrichment failed but continue
+      await sbAdmin
+        .from('applications')
+        .update({
+          data_flags: [...(freshApp.data_flags || []), 'census_enrichment_failed']
+        })
+        .eq('id', freshApp.id);
+      
+      return { success: false, error: response.error.message };
+    }
+    
+    const censusData = response.data;
+    
+    console.log(`📥 [TRACE:${traceId}] [enrichCensusData] enrich-census-canonical response:`, {
+      success: censusData?.success,
+      source: censusData?.source,
+      geoid: censusData?.geoid,
+      has_indices: !!(censusData?.data?.retail_spending_index || censusData?.retail_spending_index)
+    });
+    
+    const elapsed = Date.now() - phaseStart;
+    console.log(`📊 [TRACE:${traceId}] [enrichCensusData] ================== EXIT ==================`);
+    console.log(`📊 [TRACE:${traceId}] [enrichCensusData] Phase complete in ${elapsed}ms, source: ${censusData?.source || 'unknown'}`);
+    
+    return censusData || { success: false };
+    
+  } catch (err: any) {
+    console.warn(`⚠️ [TRACE:${traceId}] [enrichCensusData] Exception caught (non-blocking):`, err);
+    
+    try {
+      await sbAdmin
+        .from('applications')
+        .update({
+          data_flags: [...(freshApp.data_flags || []), 'census_exception']
+        })
+        .eq('id', freshApp.id);
+    } catch (updateErr) {
+      console.warn(`⚠️ [TRACE:${traceId}] [enrichCensusData] Failed to update data_flags:`, updateErr);
+    }
+    
+    return { success: false, error: String(err) };
+  }
+}
+
 async function runFeasibilityAI(app: any, traceId: string) {
   console.log(`🤖 [TRACE:${traceId}] [runFeasibilityAI] ================== ENTRY ==================`);
   console.log(`🤖 [TRACE:${traceId}] [runFeasibilityAI] Starting for app ${app.id}`);
@@ -746,6 +827,12 @@ async function orchestrate(appId: string, traceId: string): Promise<any> {
         const trafficStart = Date.now();
         await enrichTraffic(app, traceId);
         orchestrationMetrics.phases['enrich_traffic'] = Date.now() - trafficStart;
+        
+        // CENSUS MOAT: Enrich demographics from BigQuery (83+ variables + proprietary indices)
+        console.log(`📊 [TRACE:${traceId}] [orchestrate] Running Census Moat enrichment...`);
+        const censusStart = Date.now();
+        await enrichCensusData(app, traceId);
+        orchestrationMetrics.phases['enrich_census'] = Date.now() - censusStart;
         
         // Validate data before moving to AI phase
         console.log(`🔄 [TRACE:${traceId}] [orchestrate] Running data validation...`);
