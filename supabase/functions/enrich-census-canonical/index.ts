@@ -280,7 +280,6 @@ function buildBigQuerySql(tractFips: string): string {
       owner_occupied_housing_units_median_value as median_home_value,
       median_rent,
       median_year_structure_built,
-      median_rooms,
       
       -- Income & Economics
       median_income,
