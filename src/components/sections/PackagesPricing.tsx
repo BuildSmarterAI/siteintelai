@@ -29,8 +29,8 @@ export const PackagesPricing = () => {
       action: "free"
     },
     {
-      name: "Professional Report", 
-      price: "$795",
+      name: "Site Feasibility Intelligence™", 
+      price: "$1,495",
       timeline: "30-60 seconds",
       description: "Full PDF + JSON with cited FEMA & ArcGIS data.",
       benefit: "Lender-ready feasibility report with comprehensive analysis and source citations.",

@@ -37,8 +37,8 @@ const tiers = [
     popular: false,
   },
   {
-    name: "Professional Report",
-    price: "$795",
+    name: "Site Feasibility Intelligence™",
+    price: "$1,495",
     priceDetail: "per report",
     description: "Complete lender-ready feasibility analysis",
     icon: FileText,
