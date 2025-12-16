@@ -56,7 +56,7 @@ const Developers = () => {
       },
       "offers": {
         "@type": "Offer",
-        "price": "795",
+        "price": "1495",
         "priceCurrency": "USD"
       },
       "aggregateRating": {
@@ -584,17 +584,17 @@ const Developers = () => {
                         RECOMMENDED
                       </Badge>
                     </td>
-                    <td className="py-4 px-6 font-body font-semibold text-charcoal">SiteIntel™ Feasibility</td>
+                    <td className="py-4 px-6 font-body font-semibold text-charcoal">Site Feasibility Intelligence™</td>
                     <td className="py-4 px-6">
-                      <div className="font-body font-semibold text-feasibility-orange mb-2">$795</div>
+                      <div className="font-body font-semibold text-feasibility-orange mb-2">$1,495</div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <motion.div
                           className="bg-gradient-to-r from-feasibility-orange to-status-warning h-2 rounded-full"
                           initial={{ width: 0 }}
-                          whileInView={{ width: '7.95%' }}
+                          whileInView={{ width: '14.95%' }}
                           viewport={{ once: true }}
                           transition={{ duration: 1, delay: 0.3 }}
-                          aria-label="Cost bar showing 7.95% of traditional cost"
+                          aria-label="Cost bar showing 14.95% of traditional cost"
                         />
                       </div>
                     </td>

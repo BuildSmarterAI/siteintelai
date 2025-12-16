@@ -58,7 +58,7 @@ const Lenders = () => {
       "description": "AI-verified feasibility reports for commercial real estate underwriting. Standardized, audit-ready intelligence that reduces review time by 85%.",
       "offers": {
         "@type": "Offer",
-        "price": "795",
+        "price": "1495",
         "priceCurrency": "USD"
       },
       "audience": {
@@ -829,12 +829,12 @@ const Lenders = () => {
                     </td>
                     <td className="font-body p-6 font-semibold text-status-success">Audit-Ready</td>
                     <td className="font-body p-6 font-bold text-navy">
-                      $795
+                      $1,495
                       <div className="mt-2 bg-gray-200 h-2 rounded-full overflow-hidden">
                         <motion.div 
                           className="h-full bg-feasibility-orange"
                           initial={{ width: 0 }}
-                          whileInView={{ width: "15.9%" }}
+                          whileInView={{ width: "29.9%" }}
                           viewport={{ once: true }}
                           transition={{ duration: 1, delay: 0.5 }}
                         />

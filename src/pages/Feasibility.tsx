@@ -138,9 +138,9 @@ const Feasibility = () => {
                   <div className="text-4xl font-bold text-[#06B6D4] mb-2">10 min</div>
                   <div className="text-white/80">Average Turnaround</div>
                 </div>
-                <div>
-                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">$795</div>
-                  <div className="text-white/80">Starting Price</div>
+              <div>
+                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">$1,495</div>
+                  <div className="text-white/80">Access Fee</div>
                 </div>
               </div>
               <div className="mt-6 pt-6 border-t border-white/10 text-center">

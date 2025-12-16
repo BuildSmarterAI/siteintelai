@@ -428,7 +428,7 @@ const BusinessModelSlide = () => (
         <h3 className="text-lg font-semibold text-white/60 uppercase tracking-wide">Revenue Streams</h3>
         {[
           { icon: Building2, title: "SaaS Subscription", desc: "$1,950/mo Pro tier", highlight: true },
-          { icon: FileText, title: "Per-Feasibility Credits", desc: "$795 per report" },
+          { icon: FileText, title: "Site Feasibility Intelligence™", desc: "$1,495 per asset" },
           { icon: Database, title: "Enterprise API", desc: "$9,990/mo + usage" },
           { icon: Briefcase, title: "Lender Packages", desc: "Custom enterprise deals" }
         ].map((item, i) => (
