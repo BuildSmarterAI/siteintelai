@@ -39,11 +39,7 @@ export function WorkforceCommuteCard({
     .map(d => ({ ...d, value: d.value as number }));
 
   const hasSectorData = sectorData.length > 0;
-  const hasAnyData = sectorLevels.some(d => d.value != null) || 
-    meanCommuteTimeMin != null || driveAlonePct != null || 
-    publicTransitPct != null || walkBikePct != null;
-
-  if (!hasAnyData) return null;
+  // Always display card, show "—" for missing data
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">

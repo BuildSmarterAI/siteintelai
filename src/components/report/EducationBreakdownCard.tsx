@@ -32,10 +32,7 @@ export function EducationBreakdownCard({
     .filter(d => d.value != null && d.value > 0)
     .map(d => ({ ...d, value: d.value as number }));
 
-  // Check if we have ANY data to show
-  const hasAnyData = educationLevels.some(d => d.value != null) || collegeAttainmentPct != null;
-
-  if (!hasAnyData) return null;
+  // Always display card, show "—" for missing data
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
