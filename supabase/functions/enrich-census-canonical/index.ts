@@ -335,8 +335,8 @@ function buildBigQuerySql(tractFips: string): string {
       
       -- Education
       less_than_high_school_graduate,
-      high_school_graduate,
-      some_college,
+      high_school_including_ged as high_school_graduate,
+      some_college_and_associates_degree as some_college,
       associates_degree,
       bachelors_degree,
       masters_degree,
