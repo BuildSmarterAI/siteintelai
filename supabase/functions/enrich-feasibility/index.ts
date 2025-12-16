@@ -2042,6 +2042,74 @@ serve(async (req) => {
       });
     }
 
+    // Step 1.5: Hybrid Address Validation (COH for Houston, Google AV for non-Houston)
+    try {
+      console.log('[enrich-feasibility] Starting hybrid address validation...');
+      
+      const validationResponse = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/validate-address`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({ address, lat: geoLat, lng: geoLng }),
+        }
+      );
+
+      const validationData = await validationResponse.json();
+
+      if (validationData.success && validationData.data) {
+        const validation = validationData.data;
+        
+        enrichedData.address_validated = validation.validated;
+        enrichedData.address_confidence = validation.confidence;
+        enrichedData.address_validation_source = validation.source;
+        
+        // Use standardized address if available and confidence is high
+        if (validation.validated && validation.standardized_address && validation.confidence >= 0.7) {
+          enrichedData.validated_address = validation.standardized_address;
+        }
+        
+        // Store USPS data if available
+        if (validation.usps_data) {
+          enrichedData.usps_dpv_confirmation = validation.usps_data.dpv_confirmation;
+          enrichedData.usps_carrier_route = validation.usps_data.carrier_route;
+        }
+        
+        // Add appropriate data flags
+        if (validation.validated) {
+          dataFlags.push('address_validated');
+          if (validation.cache_hit) {
+            dataFlags.push('address_validation_cached');
+          }
+        } else {
+          dataFlags.push('address_validation_failed');
+        }
+        
+        // Add warnings to data flags
+        if (validation.warnings && validation.warnings.length > 0) {
+          for (const warning of validation.warnings) {
+            console.warn('[enrich-feasibility] Address validation warning:', warning);
+          }
+        }
+        
+        console.log('[enrich-feasibility] Address validation complete:', {
+          validated: validation.validated,
+          confidence: validation.confidence,
+          source: validation.source,
+          cache_hit: validation.cache_hit,
+        });
+      } else {
+        console.warn('[enrich-feasibility] Address validation returned no data');
+        dataFlags.push('address_validation_unavailable');
+      }
+    } catch (validationError) {
+      console.warn('[enrich-feasibility] Address validation failed (non-blocking):', validationError);
+      dataFlags.push('address_validation_error');
+    }
+
     // Step 2: Check if county has endpoints
     const endpoints = ENDPOINT_CATALOG[countyName];
     if (!endpoints) {
