@@ -6,18 +6,18 @@ import { Check, Zap, Crown } from "lucide-react";
 
 const tiers = [
   {
-    name: "Pay-Per-Use",
+    name: "Site Feasibility Intelligence™",
     icon: Zap,
-    price: "$795",
-    description: "Perfect for single-project analysis",
+    price: "$1,495",
+    description: "Complete lender-ready feasibility analysis",
     features: [
-      "Single cost analysis report",
-      "Full data citations",
-      "PDF export",
+      "Full feasibility analysis report",
+      "Complete data citations",
+      "PDF + JSON export",
       "72-hour access",
       "Email support"
     ],
-    cta: "Get Cost Report",
+    cta: "Access Intelligence",
     variant: "default" as const,
     popular: false
   },

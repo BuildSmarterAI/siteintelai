@@ -133,7 +133,7 @@ export const KeyAdvantages = () => {
                     $10K+ Saved Per Site
                   </h3>
                   <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7]">
-                    Traditional feasibility studies cost $10,000–$25,000 and take 3+ weeks. SiteIntel delivers the same intelligence for $795 in minutes.
+                    Traditional feasibility studies cost $10,000–$25,000 and take 3+ weeks. SiteIntel delivers the same intelligence for $1,495 in minutes.
                   </p>
                 </div>
               </div>

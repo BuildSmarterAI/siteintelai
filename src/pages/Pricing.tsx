@@ -399,7 +399,7 @@ export default function Pricing() {
             </Button>
             {isAuthenticated ? (
               <PaymentButton type="report" size="lg" className="bg-background/20 text-primary-foreground border-primary-foreground/30 hover:bg-background/30">
-                Purchase Report — $795
+                Access Intelligence — $1,495
               </PaymentButton>
             ) : (
               <Button asChild size="lg" variant="outline" className="bg-background/20 text-primary-foreground border-primary-foreground/30 hover:bg-background/30">

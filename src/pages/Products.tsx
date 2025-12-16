@@ -213,12 +213,12 @@ const Products = () => {
             
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 text-left">
-                <h3 className="text-2xl font-bold text-white mb-2">Pay-Per-Use</h3>
-                <div className="text-4xl font-bold text-[#FF7A00] mb-6">$795<span className="text-lg text-white/60">/report</span></div>
+                <h3 className="text-2xl font-bold text-white mb-2">Site Feasibility Intelligence™</h3>
+                <div className="text-4xl font-bold text-[#FF7A00] mb-6">$1,495<span className="text-lg text-white/60">/asset</span></div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-start gap-2 text-white/80">
                     <Check className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                    <span>Single feasibility or cost report</span>
+                    <span>Complete lender-ready feasibility analysis</span>
                   </li>
                   <li className="flex items-start gap-2 text-white/80">
                     <Check className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />

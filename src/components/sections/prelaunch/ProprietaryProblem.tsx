@@ -116,7 +116,7 @@ export const ProprietaryProblem = () => {
             <ArrowDown className="w-5 h-5 text-[hsl(27,100%,50%)] rotate-0 sm:-rotate-90" />
             <div className="text-center sm:text-left">
               <span className="text-[hsl(27,100%,50%)] text-sm uppercase tracking-wider">SiteIntel</span>
-              <p className="text-white font-semibold">24 hours, $795</p>
+              <p className="text-white font-semibold">24 hours, $1,495</p>
             </div>
           </motion.div>
 
