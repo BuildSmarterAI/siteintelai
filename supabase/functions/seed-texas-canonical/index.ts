@@ -651,33 +651,7 @@ Deno.serve(async (req: Request) => {
     const bboxKey = countyPrefix ? LAYER_TO_COUNTY[countyPrefix] : (body.metro || 'houston');
     const bbox = DEFAULT_BBOXES[bboxKey] || await getMetroBbox(supabase, body.metro || 'houston');
 
-    // Determine which layers to seed
-    let layersToSeed: LayerConfig[] = [];
-    let targetMetro = body.metro || 'houston';
-    
-    // Get bbox for target metro
-    const bbox = await getMetroBbox(supabase, targetMetro);
-    console.log(`[seed-texas-canonical] Using bbox for ${targetMetro}:`, JSON.stringify(bbox));
-
-    // Filter configs by metro and optional layer/category filters
-    layersToSeed = HARDCODED_CONFIGS.filter(config => {
-      // Filter by metro (if specified)
-      if (body.metro && config.metro !== body.metro) return false;
-      
-      // Filter by specific layer
-      if (body.layer_key && config.layer_key !== body.layer_key) return false;
-      
-      // Filter by layer list
-      if (body.layers?.length && !body.layers.includes(config.layer_key)) return false;
-      
-      // Filter by category (match target table prefix)
-      if (body.category) {
-        const categoryMatch = config.target_table.includes(body.category.toLowerCase());
-        if (!categoryMatch) return false;
-      }
-      
-      return true;
-    });
+    console.log(`[seed-texas-canonical] Using bbox for ${bboxKey}:`, JSON.stringify(bbox));
 
     // If metro specified but no hardcoded configs, check database for layers
     if (layersToSeed.length === 0 && body.metro) {
@@ -733,7 +707,7 @@ Deno.serve(async (req: Request) => {
     const summary = {
       success: results.some(r => r.success),
       version: '2.0.0',
-      metro: targetMetro,
+      metro: body.metro || bboxKey,
       bbox,
       layers_processed: results.length,
       layers_successful: results.filter(r => r.success).length,
