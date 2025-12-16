@@ -1930,6 +1930,7 @@ serve(async (req) => {
     let geoLat: number | null = null;
     let geoLng: number | null = null;
     let countyName: string | null = null;
+    let parcelGeometry: any = null;
 
     // Step 1: Geocode the address
     try {
@@ -2841,6 +2842,7 @@ serve(async (req) => {
         // Store geometry if available (GeoJSON polygon)
         if (selectedFeature.geometry) {
           enrichedData.geom = selectedFeature.geometry;
+          parcelGeometry = selectedFeature.geometry;
         }
         
         console.log('Parcel data mapped:', {
