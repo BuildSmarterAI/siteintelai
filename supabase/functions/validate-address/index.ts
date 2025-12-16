@@ -61,15 +61,15 @@ async function checkCache(
     
     const { data, error } = await supabase
       .from('geocoder_cache')
-      .select('result, created_at')
-      .eq('query', cacheKey)
+      .select('result_data, created_at')
+      .eq('input_hash', cacheKey)
       .eq('query_type', 'address_validation')
       .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
       .single();
 
     if (data && !error) {
       console.log('[validate-address] Cache hit for:', address);
-      const cached = data.result as AddressValidationResponse;
+      const cached = data.result_data as AddressValidationResponse;
       return { ...cached, source: 'cache', cache_hit: true };
     }
   } catch (err) {
@@ -87,12 +87,15 @@ async function saveToCache(
     const cacheKey = `av_${address.toLowerCase().trim()}`;
     
     await supabase.from('geocoder_cache').upsert({
-      query: cacheKey,
+      input_hash: cacheKey,
+      input_query: address,
       query_type: 'address_validation',
-      result: result,
+      result_data: result,
+      confidence: result.confidence,
       created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     }, {
-      onConflict: 'query,query_type'
+      onConflict: 'input_hash'
     });
     
     console.log('[validate-address] Cached result for:', address);
