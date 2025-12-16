@@ -40,18 +40,18 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
-    // Create a one-time payment session for SiteIntel Professional Report
+    // Create a one-time payment session for Site Feasibility Intelligence™
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1SHcbNAsWVx52wY3n2MXt76a", // SiteIntel Professional Report
+          price: "price_1SeqwnAsWVx52wY38U6jif0R", // Site Feasibility Intelligence™ - $1,495
           quantity: 1,
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard?payment=success`,
+      success_url: `${req.headers.get("origin")}/dashboard?payment=success&product=sfi`,
       cancel_url: `${req.headers.get("origin")}/dashboard?payment=canceled`,
     });
 
