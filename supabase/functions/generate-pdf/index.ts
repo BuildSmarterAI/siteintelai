@@ -214,7 +214,7 @@ function generateReportHTML(report: any, application: any, jsonData: any, report
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BuildSmarter™ Feasibility Report</title>
+  <title>SiteIntel™ Site Feasibility Intelligence Report</title>
   <style>
     @page {
       size: Letter;
@@ -368,7 +368,7 @@ function generateReportHTML(report: any, application: any, jsonData: any, report
 <body>
   <!-- Cover Page -->
   <div class="cover-page">
-    <div class="logo">BuildSmarter™</div>
+    <div class="logo">SiteIntel™</div>
     <h1>Feasibility Report</h1>
     
     <div class="score-badge">
@@ -559,7 +559,8 @@ function generateReportHTML(report: any, application: any, jsonData: any, report
 
   <!-- Footer -->
   <div class="footer">
-    <p>© ${new Date().getFullYear()} BuildSmarter AI • Generated automatically — buildsmarter.io • Report ID: ${report.id}</p>
+    <p>Report prepared by SiteIntel™ Intelligence Systems • Verified ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })} • Report ID: ${report.id}</p>
+    <p style="margin-top: 4pt; font-size: 9pt;">© ${new Date().getFullYear()} SiteIntel™ • siteintel.io</p>
   </div>
 </body>
 </html>

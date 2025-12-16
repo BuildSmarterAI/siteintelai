@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FileText, TrendingUp, AlertTriangle, Lightbulb, ChevronDown, Sparkles } from "lucide-react";
+import { FileText, TrendingUp, AlertTriangle, Lightbulb, ChevronDown, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -68,9 +68,9 @@ export function ExecutiveSummaryCard({
             <div>
               <CardTitle className="text-white flex items-center gap-2">
                 Executive Summary
-                <Badge variant="outline" className="text-[10px] border-[hsl(var(--data-cyan))] text-[hsl(var(--data-cyan))] bg-transparent">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  AI GENERATED
+                <Badge variant="outline" className="text-[10px] border-green-500/50 text-green-400 bg-green-500/10">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  DATA-VERIFIED
                 </Badge>
               </CardTitle>
               <p className="text-xs text-white/60 mt-1">Comprehensive feasibility analysis</p>
