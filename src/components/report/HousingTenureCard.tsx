@@ -39,13 +39,7 @@ export function HousingTenureCard({
   const hasTenureData = tenureData.length > 0;
   const hasStructureData = structureData.length > 0;
   
-  // Check if ANY data exists
-  const hasAnyData = ownerOccupiedPct != null || renterOccupiedPct != null ||
-    singleFamilyPct != null || multiFamilyPct != null ||
-    totalHousingUnits != null || populationBlockGroup != null || 
-    medianYearBuilt != null || avgHouseholdSize != null;
-
-  if (!hasAnyData) return null;
+  // Always display card, show "—" for missing data
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">

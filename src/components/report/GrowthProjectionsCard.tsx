@@ -38,15 +38,7 @@ export function GrowthProjectionsCard({
   medianHomeValue5yrProjection,
   populationDensitySqmi,
 }: GrowthProjectionsCardProps) {
-  // Show card if we have ANY of these fields
-  const hasAnyData = populationCagr != null || 
-    daytimePopulationEstimate != null || 
-    population5yrProjection != null ||
-    medianIncome5yrProjection != null ||
-    medianHomeValue5yrProjection != null ||
-    populationDensitySqmi != null;
-
-  if (!hasAnyData) return null;
+  // Always display card, show "—" for missing data
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
@@ -62,47 +54,34 @@ export function GrowthProjectionsCard({
           <div className="space-y-4">
             <h4 className="text-sm font-medium text-muted-foreground">Current Metrics</h4>
             
-            {populationCagr != null && (
-              <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 rounded-lg p-4 border border-emerald-500/20">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <p className="text-xs text-muted-foreground">Population CAGR</p>
-                </div>
-                <p className={`text-2xl font-bold ${populationCagr >= 0 ? 'text-emerald-500' : 'text-destructive'}`}>
-                  {formatPercent(populationCagr)}
-                </p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Compound Annual Growth Rate</p>
+            <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 rounded-lg p-4 border border-emerald-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="h-4 w-4 text-emerald-500" />
+                <p className="text-xs text-muted-foreground">Population CAGR</p>
               </div>
-            )}
+              <p className={`text-2xl font-bold ${populationCagr != null && populationCagr >= 0 ? 'text-emerald-500' : populationCagr != null ? 'text-destructive' : 'text-foreground'}`}>
+                {formatPercent(populationCagr)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Compound Annual Growth Rate</p>
+            </div>
 
-            {daytimePopulationEstimate != null && (
-              <div className="bg-background/50 rounded-lg p-4 border border-border/30">
-                <div className="flex items-center gap-2 mb-1">
-                  <Sun className="h-4 w-4 text-amber-500" />
-                  <p className="text-xs text-muted-foreground">Daytime Population</p>
-                </div>
-                <p className="text-xl font-bold">{formatNumber(daytimePopulationEstimate)}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">Workers + Residents</p>
+            <div className="bg-background/50 rounded-lg p-4 border border-border/30">
+              <div className="flex items-center gap-2 mb-1">
+                <Sun className="h-4 w-4 text-amber-500" />
+                <p className="text-xs text-muted-foreground">Daytime Population</p>
               </div>
-            )}
+              <p className="text-xl font-bold">{formatNumber(daytimePopulationEstimate)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Workers + Residents</p>
+            </div>
 
-            {populationDensitySqmi != null && (
-              <div className="bg-background/50 rounded-lg p-4 border border-border/30">
-                <div className="flex items-center gap-2 mb-1">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-xs text-muted-foreground">Population Density</p>
-                </div>
-                <p className="text-xl font-bold">{formatNumber(Math.round(populationDensitySqmi))}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">per sq. mile</p>
+            <div className="bg-background/50 rounded-lg p-4 border border-border/30">
+              <div className="flex items-center gap-2 mb-1">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs text-muted-foreground">Population Density</p>
               </div>
-            )}
-
-            {/* Show placeholder if no current metrics */}
-            {populationCagr == null && daytimePopulationEstimate == null && populationDensitySqmi == null && (
-              <div className="text-sm text-muted-foreground italic">
-                No current growth metrics available
-              </div>
-            )}
+              <p className="text-xl font-bold">{populationDensitySqmi != null ? formatNumber(Math.round(populationDensitySqmi)) : "—"}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">per sq. mile</p>
+            </div>
           </div>
 
           {/* 5-Year Projections Column */}

@@ -40,7 +40,7 @@ export function DemographicsBreakdownCard({
   const hasAgeData = ageData.length > 0;
   const hasEthnicityData = ethnicityData.length > 0;
 
-  if (!hasAgeData && !hasEthnicityData) return null;
+  // Always display card, show "—" for missing data
 
   return (
     <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
