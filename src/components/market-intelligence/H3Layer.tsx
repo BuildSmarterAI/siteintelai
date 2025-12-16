@@ -127,10 +127,15 @@ export function H3Layer({
     map.setLayoutProperty(OUTLINE_LAYER_ID, 'visibility', visible ? 'visible' : 'none');
 
     return () => {
-      // Cleanup on unmount
-      if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
-      if (map.getLayer(OUTLINE_LAYER_ID)) map.removeLayer(OUTLINE_LAYER_ID);
-      if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+      // Cleanup on unmount - check if map style still exists
+      if (!map.getStyle()) return;
+      try {
+        if (map.getLayer(LAYER_ID)) map.removeLayer(LAYER_ID);
+        if (map.getLayer(OUTLINE_LAYER_ID)) map.removeLayer(OUTLINE_LAYER_ID);
+        if (map.getSource(SOURCE_ID)) map.removeSource(SOURCE_ID);
+      } catch (e) {
+        // Map may already be destroyed
+      }
     };
   }, [map, cells, minValue, maxValue, metric, opacity, visible]);
 
