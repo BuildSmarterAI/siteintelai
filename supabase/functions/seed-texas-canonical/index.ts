@@ -24,8 +24,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Hardcoded layer configs as fallback (Houston legacy configs)
 const HARDCODED_CONFIGS: LayerConfig[] = [
+  // ========== HARRIS COUNTY (HCAD) ==========
   {
-    layer_key: 'houston_parcels',
+    layer_key: 'harris_parcels',
     source_url: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0',
     target_table: 'canonical_parcels',
     metro: 'houston',
@@ -46,8 +47,140 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
       source_system: 'HCAD',
       source_agency: 'Harris County Appraisal District'
     },
-    max_records: 300,
+    max_records: 500,
   },
+
+  // ========== FORT BEND COUNTY (FBCAD) ==========
+  {
+    layer_key: 'fortbend_parcels',
+    source_url: 'https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'houston',
+    field_mappings: [
+      { source: 'propnumber', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'propnumber', target: 'apn', transform: 'trim' },
+      { source: 'ownername', target: 'owner_name', transform: 'uppercase' },
+      { source: 'situs', target: 'situs_address', transform: 'trim' },
+      { source: 'acres', target: 'acreage', transform: 'parse_float' },
+      { source: 'proptype', target: 'land_use_code', transform: 'trim' },
+      { source: 'city', target: 'city', transform: 'trim' },
+      { source: 'zip', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Fort Bend County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'FBCAD',
+      source_agency: 'Fort Bend County Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== MONTGOMERY COUNTY (MCAD) ==========
+  {
+    layer_key: 'montgomery_parcels',
+    source_url: 'https://gis.mctx.org/arcgis/rest/services/Parcels/MapServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'houston',
+    field_mappings: [
+      { source: 'PROP_ID', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'PROP_ID', target: 'apn', transform: 'trim' },
+      { source: 'OWNER_NAME', target: 'owner_name', transform: 'uppercase' },
+      { source: 'SITUS_ADDR', target: 'situs_address', transform: 'trim' },
+      { source: 'ACRES', target: 'acreage', transform: 'parse_float' },
+      { source: 'PROP_TYPE', target: 'land_use_code', transform: 'trim' },
+      { source: 'SITUS_CITY', target: 'city', transform: 'trim' },
+      { source: 'SITUS_ZIP', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Montgomery County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'MCAD',
+      source_agency: 'Montgomery County Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== TRAVIS COUNTY (TCAD) ==========
+  {
+    layer_key: 'travis_parcels',
+    source_url: 'https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/TCAD_public/FeatureServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'austin',
+    field_mappings: [
+      { source: 'prop_id', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'prop_id', target: 'apn', transform: 'trim' },
+      { source: 'owner_name', target: 'owner_name', transform: 'uppercase' },
+      { source: 'situs_address', target: 'situs_address', transform: 'trim' },
+      { source: 'acres', target: 'acreage', transform: 'parse_float' },
+      { source: 'land_use', target: 'land_use_code', transform: 'trim' },
+      { source: 'city', target: 'city', transform: 'trim' },
+      { source: 'zip', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Travis County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'TCAD',
+      source_agency: 'Travis County Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== BEXAR COUNTY (BCAD) ==========
+  {
+    layer_key: 'bexar_parcels',
+    source_url: 'https://gis.bexar.org/arcgis/rest/services/BCAD/Parcels/MapServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'san_antonio',
+    field_mappings: [
+      { source: 'PROP_ID', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'PROP_ID', target: 'apn', transform: 'trim' },
+      { source: 'OWNER', target: 'owner_name', transform: 'uppercase' },
+      { source: 'SITUS', target: 'situs_address', transform: 'trim' },
+      { source: 'ACRES', target: 'acreage', transform: 'parse_float' },
+      { source: 'LAND_USE', target: 'land_use_code', transform: 'trim' },
+      { source: 'CITY', target: 'city', transform: 'trim' },
+      { source: 'ZIP', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Bexar County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'BCAD',
+      source_agency: 'Bexar County Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== WILLIAMSON COUNTY (WCAD) ==========
+  {
+    layer_key: 'williamson_parcels',
+    source_url: 'https://gis.wilco.org/arcgis/rest/services/Parcels/MapServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'austin',
+    field_mappings: [
+      { source: 'PROP_ID', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'PROP_ID', target: 'apn', transform: 'trim' },
+      { source: 'OWNER_NAME', target: 'owner_name', transform: 'uppercase' },
+      { source: 'SITUS', target: 'situs_address', transform: 'trim' },
+      { source: 'ACRES', target: 'acreage', transform: 'parse_float' },
+      { source: 'LAND_USE', target: 'land_use_code', transform: 'trim' },
+      { source: 'CITY', target: 'city', transform: 'trim' },
+      { source: 'ZIP', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Williamson County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'WCAD',
+      source_agency: 'Williamson County Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== HOUSTON UTILITIES ==========
   {
     layer_key: 'houston_sewer_lines',
     source_url: 'https://houstonwatergis.org/arcgis/rest/services/INFORHW/HWWastewaterLineIPS/MapServer/0',
@@ -91,11 +224,13 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     },
     max_records: 500,
   },
+
+  // ========== FEMA FLOOD ZONES ==========
   {
     layer_key: 'fema_flood_zones',
     source_url: 'https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/USA_Flood_Hazard_Reduced_Set_gdb/FeatureServer/0',
     target_table: 'fema_flood_canonical',
-    metro: 'houston', // Can be used for any metro
+    metro: 'houston',
     field_mappings: [
       { source: 'FLD_ZONE', target: 'flood_zone', transform: 'uppercase' },
       { source: 'ZONE_SUBTY', target: 'flood_zone_subtype', transform: 'uppercase' },
@@ -110,11 +245,13 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     },
     max_records: 500,
   },
+
+  // ========== NWI WETLANDS ==========
   {
     layer_key: 'nwi_wetlands',
     source_url: 'https://fwspublicservices.wim.usgs.gov/wetlandsmapservice/rest/services/Wetlands/MapServer/0',
     target_table: 'wetlands_canonical',
-    metro: 'houston', // National dataset
+    metro: 'houston',
     field_mappings: [
       { source: 'WETLAND_TYPE', target: 'wetland_code', transform: 'uppercase' },
       { source: 'WETLAND_TYPE', target: 'wetland_type', transform: 'trim' },
@@ -123,11 +260,13 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     constants: { source_dataset: 'nwi_wetlands' },
     max_records: 500,
   },
+
+  // ========== TXDOT AADT ==========
   {
     layer_key: 'txdot_aadt',
     source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0',
     target_table: 'transportation_canonical',
-    metro: 'houston', // Statewide
+    metro: 'houston',
     field_mappings: [
       { source: 'AADT_CUR', target: 'aadt', transform: 'parse_int' },
       { source: 'YR', target: 'aadt_year', transform: 'parse_int' },
@@ -144,6 +283,8 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     },
     max_records: 500,
   },
+
+  // ========== CCN WATER/SEWER ==========
   {
     layer_key: 'puct_ccn_water',
     source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/1',
@@ -190,6 +331,8 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     },
     max_records: 300,
   },
+
+  // ========== RRC PIPELINES ==========
   {
     layer_key: 'rrc_pipelines',
     source_url: 'https://www.gis.hctx.net/arcgishcpid/rest/services/TXRRC/Pipelines/MapServer/0',
@@ -216,12 +359,20 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
   },
 ];
 
-// Default bounding boxes (fallback if not in database)
+// Default bounding boxes - county-specific and metro-level (fallback if not in database)
 const DEFAULT_BBOXES: Record<string, BBox> = {
-  houston: { xmin: -95.8, ymin: 29.5, xmax: -95.0, ymax: 30.2 },
-  dallas: { xmin: -97.5, ymin: 32.5, xmax: -96.5, ymax: 33.2 },
-  austin: { xmin: -98.1, ymin: 30.0, xmax: -97.4, ymax: 30.6 },
-  san_antonio: { xmin: -98.8, ymin: 29.2, xmax: -98.2, ymax: 29.7 },
+  // County-specific bounding boxes
+  harris:     { xmin: -95.91, ymin: 29.49, xmax: -94.91, ymax: 30.17 },
+  fortbend:   { xmin: -96.01, ymin: 29.35, xmax: -95.45, ymax: 29.82 },
+  montgomery: { xmin: -95.86, ymin: 30.07, xmax: -95.07, ymax: 30.67 },
+  travis:     { xmin: -98.17, ymin: 30.07, xmax: -97.37, ymax: 30.63 },
+  bexar:      { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
+  williamson: { xmin: -98.05, ymin: 30.48, xmax: -97.28, ymax: 30.91 },
+  // Metro-level bounding boxes (union of counties)
+  houston:    { xmin: -96.01, ymin: 29.35, xmax: -94.91, ymax: 30.67 },
+  dallas:     { xmin: -97.5, ymin: 32.5, xmax: -96.5, ymax: 33.2 },
+  austin:     { xmin: -98.17, ymin: 30.07, xmax: -97.28, ymax: 30.91 },
+  san_antonio: { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
 };
 
 interface LayerConfig {
@@ -233,6 +384,17 @@ interface LayerConfig {
   constants: Record<string, any>;
   max_records?: number;
 }
+
+// Map layer_key prefixes to county bbox keys
+const LAYER_TO_COUNTY: Record<string, string> = {
+  harris: 'harris',
+  fortbend: 'fortbend',
+  montgomery: 'montgomery',
+  travis: 'travis',
+  bexar: 'bexar',
+  williamson: 'williamson',
+  houston: 'harris', // Houston utilities use Harris bbox
+};
 
 interface SeedResult {
   layer_key: string;
@@ -439,6 +601,7 @@ Deno.serve(async (req: Request) => {
       layer_key?: string; 
       layers?: string[];
       category?: string;
+      county?: string;  // NEW: Filter by county (harris, fortbend, montgomery, travis, bexar, williamson)
     } = {};
     try {
       body = await req.json();
@@ -447,6 +610,46 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log(`[seed-texas-canonical] Request params:`, JSON.stringify(body));
+
+    // Determine which layers to seed
+    let layersToSeed: LayerConfig[] = [...HARDCODED_CONFIGS];
+    
+    // Filter by county if specified
+    if (body.county) {
+      const countyLower = body.county.toLowerCase().replace(/\s+/g, '');
+      layersToSeed = layersToSeed.filter(config => 
+        config.layer_key.startsWith(countyLower) ||
+        config.constants.jurisdiction?.toLowerCase().includes(body.county!.toLowerCase())
+      );
+    }
+    
+    // Filter by metro if specified
+    if (body.metro) {
+      layersToSeed = layersToSeed.filter(config => config.metro === body.metro);
+    }
+
+    // Filter by specific layer
+    if (body.layer_key) {
+      layersToSeed = layersToSeed.filter(config => config.layer_key === body.layer_key);
+    }
+
+    // Filter by layer list
+    if (body.layers?.length) {
+      layersToSeed = layersToSeed.filter(config => body.layers!.includes(config.layer_key));
+    }
+
+    // Filter by category
+    if (body.category) {
+      layersToSeed = layersToSeed.filter(config => 
+        config.target_table.includes(body.category!.toLowerCase())
+      );
+    }
+
+    // Determine bbox for first layer (use county-specific if available)
+    const firstLayerKey = layersToSeed[0]?.layer_key || '';
+    const countyPrefix = Object.keys(LAYER_TO_COUNTY).find(prefix => firstLayerKey.startsWith(prefix));
+    const bboxKey = countyPrefix ? LAYER_TO_COUNTY[countyPrefix] : (body.metro || 'houston');
+    const bbox = DEFAULT_BBOXES[bboxKey] || await getMetroBbox(supabase, body.metro || 'houston');
 
     // Determine which layers to seed
     let layersToSeed: LayerConfig[] = [];
