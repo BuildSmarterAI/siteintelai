@@ -3738,6 +3738,161 @@ export type Database = {
         }
         Relationships: []
       }
+      market_metrics_parcel_cache: {
+        Row: {
+          center_lat: number
+          center_lng: number
+          computed_at: string
+          expires_at: string
+          geohash: string
+          id: string
+          metrics: Json
+          parcel_id: string | null
+        }
+        Insert: {
+          center_lat: number
+          center_lng: number
+          computed_at?: string
+          expires_at?: string
+          geohash: string
+          id?: string
+          metrics: Json
+          parcel_id?: string | null
+        }
+        Update: {
+          center_lat?: number
+          center_lng?: number
+          computed_at?: string
+          expires_at?: string
+          geohash?: string
+          id?: string
+          metrics?: Json
+          parcel_id?: string | null
+        }
+        Relationships: []
+      }
+      market_metrics_trade_area: {
+        Row: {
+          affluence_concentration: number | null
+          bachelor_degree_pct: number | null
+          computed_at: string
+          data_sources: Json | null
+          daytime_population: number | null
+          growth_potential_index: number | null
+          growth_rate_5yr: number | null
+          id: string
+          labor_pool_depth: number | null
+          mean_household_income: number | null
+          median_age: number | null
+          median_home_value: number | null
+          median_income: number | null
+          owner_occupied_pct: number | null
+          renter_occupied_pct: number | null
+          retail_spending_index: number | null
+          total_housing_units: number | null
+          total_population: number | null
+          trade_area_id: string
+          unemployment_rate: number | null
+          vacancy_rate: number | null
+          workforce_availability_score: number | null
+        }
+        Insert: {
+          affluence_concentration?: number | null
+          bachelor_degree_pct?: number | null
+          computed_at?: string
+          data_sources?: Json | null
+          daytime_population?: number | null
+          growth_potential_index?: number | null
+          growth_rate_5yr?: number | null
+          id?: string
+          labor_pool_depth?: number | null
+          mean_household_income?: number | null
+          median_age?: number | null
+          median_home_value?: number | null
+          median_income?: number | null
+          owner_occupied_pct?: number | null
+          renter_occupied_pct?: number | null
+          retail_spending_index?: number | null
+          total_housing_units?: number | null
+          total_population?: number | null
+          trade_area_id: string
+          unemployment_rate?: number | null
+          vacancy_rate?: number | null
+          workforce_availability_score?: number | null
+        }
+        Update: {
+          affluence_concentration?: number | null
+          bachelor_degree_pct?: number | null
+          computed_at?: string
+          data_sources?: Json | null
+          daytime_population?: number | null
+          growth_potential_index?: number | null
+          growth_rate_5yr?: number | null
+          id?: string
+          labor_pool_depth?: number | null
+          mean_household_income?: number | null
+          median_age?: number | null
+          median_home_value?: number | null
+          median_income?: number | null
+          owner_occupied_pct?: number | null
+          renter_occupied_pct?: number | null
+          retail_spending_index?: number | null
+          total_housing_units?: number | null
+          total_population?: number | null
+          trade_area_id?: string
+          unemployment_rate?: number | null
+          vacancy_rate?: number | null
+          workforce_availability_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "market_metrics_trade_area_trade_area_id_fkey"
+            columns: ["trade_area_id"]
+            isOneToOne: false
+            referencedRelation: "trade_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      market_presets: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          drive_time_minutes: number | null
+          id: string
+          is_default: boolean | null
+          name: string
+          preset_type: string
+          radius_miles: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          drive_time_minutes?: number | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          preset_type: string
+          radius_miles?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          drive_time_minutes?: number | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          preset_type?: string
+          radius_miles?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       metro_regions: {
         Row: {
           bbox: Json | null
@@ -5110,6 +5265,103 @@ export type Database = {
             columns: ["source_map_server_id"]
             isOneToOne: false
             referencedRelation: "map_servers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_area_h3: {
+        Row: {
+          created_at: string
+          growth_rate: number | null
+          h3_index: string
+          id: string
+          median_income: number | null
+          population: number | null
+          resolution: number
+          spending_index: number | null
+          trade_area_id: string
+        }
+        Insert: {
+          created_at?: string
+          growth_rate?: number | null
+          h3_index: string
+          id?: string
+          median_income?: number | null
+          population?: number | null
+          resolution: number
+          spending_index?: number | null
+          trade_area_id: string
+        }
+        Update: {
+          created_at?: string
+          growth_rate?: number | null
+          h3_index?: string
+          id?: string
+          median_income?: number | null
+          population?: number | null
+          resolution?: number
+          spending_index?: number | null
+          trade_area_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_area_h3_trade_area_id_fkey"
+            columns: ["trade_area_id"]
+            isOneToOne: false
+            referencedRelation: "trade_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_areas: {
+        Row: {
+          area_sq_miles: number | null
+          center_lat: number
+          center_lng: number
+          created_at: string
+          geometry: Json
+          h3_resolution: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          preset_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          area_sq_miles?: number | null
+          center_lat: number
+          center_lng: number
+          created_at?: string
+          geometry: Json
+          h3_resolution?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          preset_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          area_sq_miles?: number | null
+          center_lat?: number
+          center_lng?: number
+          created_at?: string
+          geometry?: Json
+          h3_resolution?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          preset_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_areas_preset_id_fkey"
+            columns: ["preset_id"]
+            isOneToOne: false
+            referencedRelation: "market_presets"
             referencedColumns: ["id"]
           },
         ]
