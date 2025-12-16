@@ -169,19 +169,31 @@ export default function TileManagement() {
     toast.success("Data refreshed");
   };
 
-  const handleTriggerGeneration = async () => {
+  const handleTriggerGeneration = async (layers?: string[]) => {
     setTriggeringRefresh(true);
     try {
-      // In a real implementation, this would trigger the GitHub Actions workflow
-      // via the GitHub API or a webhook endpoint
-      toast.info("Tile generation workflow triggered. Check GitHub Actions for progress.", {
-        action: {
-          label: "View Actions",
-          onClick: () => window.open("https://github.com/your-org/siteintel/actions", "_blank"),
-        },
+      const { data, error } = await supabase.functions.invoke("trigger-tile-generation", {
+        body: { layers, force: false },
       });
-    } catch (error) {
-      toast.error("Failed to trigger tile generation");
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success(data.message, {
+          action: data.github_workflow_triggered
+            ? {
+                label: "View Actions",
+                onClick: () => window.open("https://github.com/siteintel/siteintel/actions", "_blank"),
+              }
+            : undefined,
+        });
+        await refetchJobs();
+      } else {
+        toast.error("Failed to trigger tile generation: " + (data?.message || "Unknown error"));
+      }
+    } catch (error: any) {
+      console.error("Trigger error:", error);
+      toast.error("Failed to trigger tile generation: " + (error.message || "Unknown error"));
     } finally {
       setTriggeringRefresh(false);
     }
@@ -222,7 +234,7 @@ export default function TileManagement() {
               Refresh
             </Button>
             <Button
-              onClick={handleTriggerGeneration}
+              onClick={() => handleTriggerGeneration()}
               disabled={triggeringRefresh}
               size="sm"
             >
@@ -366,7 +378,7 @@ export default function TileManagement() {
                   </Button>
                   <Button
                     size="sm"
-                    onClick={handleTriggerGeneration}
+                    onClick={() => handleTriggerGeneration()}
                     disabled={triggeringRefresh}
                   >
                     <Play className="w-4 h-4 mr-2" />
