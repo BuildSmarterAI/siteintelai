@@ -17,14 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
 import { ContactStep } from "@/components/application/ContactStep";
 import { PropertyStep } from "@/components/application/PropertyStep";
-import { IntentStep } from "@/components/application/IntentStep";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
 import { useApplicationDraft } from "@/hooks/useApplicationDraft";
 import { Progress } from "@/components/ui/progress";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { IntentBadge } from "@/components/IntentBadge";
 import { OnboardingTour } from "@/components/OnboardingTour";
 export default function Application() {
   const {
@@ -69,11 +67,8 @@ export default function Application() {
     // Check if this is a new application session
     const applicationInProgress = sessionStorage.getItem('application_in_progress');
     if (!applicationInProgress) {
-      // New application - clear previous intent from localStorage
-      localStorage.removeItem('user_intent_captured');
-      localStorage.removeItem('user_intent_type');
       sessionStorage.setItem('application_in_progress', 'true');
-      console.log('[New Application] Cleared previous intent data');
+      console.log('[New Application] Started new application session');
     }
     async function loadUserData() {
       try {
@@ -103,47 +98,26 @@ export default function Application() {
             // Check if profile is COMPLETE (all 4 required fields)
             const profileComplete = profile.full_name && profile.email && profile.phone && profile.company;
             if (profileComplete) {
-              // Profile is complete - skip Step 1 (Contact)
+              // Profile is complete - skip Step 0 (Contact)
               setProfileStatus('complete');
               setHasCompleteProfile(true);
-              setCompletedSteps(prev => new Set([...prev, 1]));
-
-              // Check if intent has been captured FOR THIS SESSION
-              const intentCapturedThisSession = sessionStorage.getItem('intent_captured_this_session');
-              const savedIntent = localStorage.getItem('user_intent_type') as 'build' | 'buy' | null;
-              if (intentCapturedThisSession && savedIntent) {
-                // Intent already captured this session - auto-advance
-                setCompletedSteps(prev => new Set([...prev, 0]));
-                updateField('intentType', savedIntent);
-                console.log('[Intent] Using saved intent from this session:', savedIntent);
-              } else {
-                // Always start at Step 0 for new applications
-                console.log('[Intent] New application - user must select intent');
-              }
+              setCompletedSteps(prev => new Set([...prev, 0]));
 
               // Respect URL step parameter - don't auto-redirect if user is on a valid step
               const stepParam = new URLSearchParams(window.location.search).get('step');
               const currentStepFromUrl = stepParam ? parseInt(stepParam, 10) : 0;
               
-              // If user has a valid step in URL (e.g., returning to step 6), respect it
-              if (currentStepFromUrl >= 2) {
-                // User is past contact/intent - let them stay where they are
+              // If user has a valid step in URL (e.g., returning to step 5), respect it
+              if (currentStepFromUrl >= 1) {
+                // User is past contact - let them stay where they are
                 console.log('[Profile] User on step', currentStepFromUrl, '- respecting URL');
                 setCurrentStep(currentStepFromUrl);
-              } else if (currentStepFromUrl <= 1) {
-                if (intentCapturedThisSession && savedIntent) {
-                  // Both contact info and intent captured - skip to step 2
-                  navigate('/application?step=2', {
-                    replace: true
-                  });
-                  setCurrentStep(2);
-                } else {
-                  // Intent not captured - ensure user starts at step 0
-                  navigate('/application?step=0', {
-                    replace: true
-                  });
-                  setCurrentStep(0);
-                }
+              } else {
+                // Contact info complete - skip to step 1 (Property)
+                navigate('/application?step=1', {
+                  replace: true
+                });
+                setCurrentStep(1);
               }
             } else if (profile.full_name && profile.email) {
               // Profile is PARTIAL - show friendly message and let them complete
@@ -185,39 +159,32 @@ export default function Application() {
   const detectCompletedSteps = (data: typeof formData): Set<number> => {
     const completed = new Set<number>();
     
-    // Step 0: Intent type selected
-    if (data.intentType) {
+    // Step 0: Contact info complete
+    const hasValidEmail = data.email && /\S+@\S+\.\S+/.test(data.email);
+    if (data.fullName && data.company && hasValidEmail && data.phone) {
       completed.add(0);
     }
     
-    // Step 1: Contact info complete
-    const hasValidEmail = data.email && /\S+@\S+\.\S+/.test(data.email);
-    if (data.fullName && data.company && hasValidEmail && data.phone) {
+    // Step 1: Property address provided
+    if (data.propertyAddress) {
       completed.add(1);
     }
     
-    // Step 2: Property address provided
-    if (data.propertyAddress) {
+    // Steps 2-4 are optional fields - mark as complete if we've progressed past them
+    // OR if they have any data filled in
+    // Step 2: Building Details (optional fields)
+    if (data.projectType.length > 0 || data.buildingSize || data.stories || data.constructionType) {
       completed.add(2);
     }
     
-    // Steps 3-5 are optional fields - mark as complete if we've progressed past them
-    // OR if they have any data filled in
-    // Step 3: Project intent (optional fields)
-    if (data.projectType.length > 0 || data.buildingSize || data.stories) {
+    // Step 3: Additional Context (optional)
+    if (data.submarket || data.accessPriorities.length > 0 || data.knownRisks.length > 0) {
       completed.add(3);
     }
     
-    // Step 4: Market info (optional)
-    if (data.submarket || data.accessPriorities.length > 0 || data.knownRisks.length > 0) {
+    // Step 4: Final questions (optional)
+    if (data.hearAboutUs || data.additionalNotes) {
       completed.add(4);
-    }
-    
-    // Step 5: Final questions - mark complete if consents are checked (required for step 6)
-    if (data.ndaConsent && data.contactConsent && data.privacyConsent) {
-      completed.add(5);
-    } else if (data.hearAboutUs || data.additionalNotes) {
-      completed.add(5);
     }
     
     return completed;
@@ -382,7 +349,7 @@ export default function Application() {
     lotSize?: string;
     zoning?: string;
   }>({});
-  const totalSteps = 6;
+  const totalSteps = 5;
   const handleInputChange = (field: string, value: string | boolean | string[]) => {
     // Clear any pending enrichment timeout when user manually changes fields
     if (enrichmentTimeoutRef.current) {
@@ -515,15 +482,15 @@ export default function Application() {
         }
       }
 
-      // Extra guard: If trying to go to Step 6 (Review), ensure Step 2 (Property) is complete
-      if (currentStep === 5) {
+      // Extra guard: If trying to go to Step 4 (Review), ensure Step 1 (Property) is complete
+      if (currentStep === 3) {
         if (!formData.propertyAddress || !formData.geoLat || !formData.geoLng) {
           toast({
             title: "Property Address Required",
-            description: "Please complete Step 2 (Property Information) before proceeding to Review.",
+            description: "Please complete Step 1 (Property Information) before proceeding to Review.",
             variant: "destructive"
           });
-          goToStep(2);
+          goToStep(1);
           return;
         }
       }
@@ -539,8 +506,8 @@ export default function Application() {
     }
   };
   const handlePrev = () => {
-    // Don't allow going back from Step 2 to Step 1 (contact info is locked)
-    if (currentStep === 2) {
+    // Don't allow going back from Step 1 to Step 0 (contact info is locked)
+    if (currentStep === 1) {
       toast({
         title: "Contact Information Locked",
         description: "Your contact details have been saved and cannot be modified during this session."
@@ -548,7 +515,7 @@ export default function Application() {
       return;
     }
 
-    // Allow going back to Step 0 from Step 1
+    // Allow going back to previous steps
     const prevStep = Math.max(currentStep - 1, 0);
     goToStep(prevStep);
   };
@@ -559,7 +526,7 @@ export default function Application() {
     if (!formData.propertyAddress || formData.propertyAddress.trim() === '') {
       toast({
         title: "Missing Property Address",
-        description: "Please go back to Step 2 and select a property address.",
+        description: "Please go back to Step 1 and select a property address.",
         variant: "destructive"
       });
       return;
@@ -839,11 +806,11 @@ export default function Application() {
                 <Card className="shadow-2xl border-2 border-charcoal/10">
                   <CardHeader className="bg-gradient-to-r from-charcoal to-navy text-white">
                     <CardTitle className="font-headline text-xl">
-                      {currentStep === 1 && "Contact Information"}
-                      {currentStep === 2 && "Property Information"}
-                      {currentStep === 3 && "Project Intent & Building Parameters"}
-                      {currentStep === 4 && "Market & Risks"}
-                      {currentStep === 5 && "Final Questions"}
+                      {currentStep === 0 && "Contact Information"}
+                      {currentStep === 1 && "Property Information"}
+                      {currentStep === 2 && "What Do You Want to Build?"}
+                      {currentStep === 3 && "Additional Context"}
+                      {currentStep === 4 && "Final Questions"}
                     </CardTitle>
                   </CardHeader>
                    <CardContent className="p-8">
@@ -856,27 +823,8 @@ export default function Application() {
                      </div>
                      <form onSubmit={handleSubmit}>
                       
-                       {/* Step 0: Intent Selection */}
+                       {/* Step 0: Contact Information */}
                        {currentStep === 0 && <div className="space-y-6 animate-fade-in">
-                           {/* Validation Error Banner */}
-                           {errors.intentType && <div className="mb-4 p-4 bg-destructive/10 border-l-4 border-destructive rounded-r">
-                               <div className="flex items-center gap-3">
-                                 <AlertCircle className="w-5 h-5 text-destructive" />
-                                 <p className="text-destructive font-medium">{errors.intentType}</p>
-                               </div>
-                             </div>}
-                           <IntentStep selectedIntent={formData.intentType} onSelect={intent => {
-                        updateField('intentType', intent);
-                        // Brief delay for visual feedback, then auto-advance
-                        setTimeout(() => {
-                          setCompletedSteps(prev => new Set([...prev, 0]));
-                          goToStep(1);
-                        }, 500);
-                      }} />
-                         </div>}
-                       
-                        {/* Step 1: Contact Information */}
-                        {currentStep === 1 && <div className="space-y-6 animate-fade-in">
                            {/* Loading State */}
                            {authLoading ? <Card>
                                <CardContent className="py-8 text-center">
@@ -906,9 +854,9 @@ export default function Application() {
                         if (Object.keys(updates).length > 0) {
                           updateMultipleFields(updates);
 
-                          // If all required contact fields are present, mark Step 1 as complete
+                          // If all required contact fields are present, mark Step 0 as complete
                           if (profile.full_name && profile.email && profile.phone && profile.company) {
-                            setCompletedSteps(prev => new Set([...prev, 1]));
+                            setCompletedSteps(prev => new Set([...prev, 0]));
                           }
                         }
                       }} /> : null}
@@ -927,7 +875,7 @@ export default function Application() {
                                      <p className="text-sm text-muted-foreground mb-4">
                                        Your contact information has been loaded: <strong>{formData.fullName}</strong> ({formData.email})
                                      </p>
-                                     <Button onClick={() => goToStep(2)} className="gap-2">
+                                     <Button onClick={() => goToStep(1)} className="gap-2">
                                        Continue to Property Details <ArrowRight className="h-4 w-4" />
                                      </Button>
                                    </div>
@@ -947,8 +895,8 @@ export default function Application() {
                              </>}
                           </div>}
 
-                       {/* Step 2: Property Information */}
-                       {currentStep === 2 && <div className="space-y-6 animate-fade-in">
+                       {/* Step 1: Property Information */}
+                       {currentStep === 1 && <div className="space-y-6 animate-fade-in">
                            {/* Validation Summary Banner */}
                            {Object.keys(errors).length > 0 && <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
                                <div className="flex items-start gap-3">
@@ -1516,8 +1464,8 @@ export default function Application() {
                             </Card>}
                         </div>}
 
-                      {/* Step 3: Project Intent & Building Parameters */}
-                      {currentStep === 3 && <div className="space-y-6 animate-fade-in">
+                      {/* Step 2: Building Details (What Do You Want to Build?) */}
+                      {currentStep === 2 && <div className="space-y-6 animate-fade-in">
                            <div>
                              <Label className="font-body font-semibold text-charcoal">
                                Desired Project Type
@@ -2002,8 +1950,8 @@ export default function Application() {
                           </div>
                         </div>}
 
-                      {/* Step 4: Market & Risks */}
-                      {currentStep === 4 && <div className="space-y-6 animate-fade-in">
+                      {/* Step 3: Additional Context */}
+                      {currentStep === 3 && <div className="space-y-6 animate-fade-in">
 
                           <div>
                             <Label className="font-body font-semibold text-charcoal">
@@ -2060,8 +2008,8 @@ export default function Application() {
                           </div>
                         </div>}
 
-                      {/* Step 5: Final Questions */}
-                      {currentStep === 5 && <div className="space-y-6 animate-fade-in">
+                      {/* Step 4: Final Questions & Review */}
+                      {currentStep === 4 && <div className="space-y-6 animate-fade-in">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div>
                                <Label htmlFor="hearAboutUs" className="font-body font-semibold text-charcoal flex items-center gap-1">
@@ -2201,10 +2149,10 @@ export default function Application() {
 
                       {/* Navigation Buttons */}
                       <div className="flex justify-between items-center mt-12 pt-8 border-t border-charcoal/20">
-                        {currentStep > 1 && currentStep !== 2 ? <Button type="button" variant="outline" onClick={handlePrev} className="flex items-center gap-2">
+                        {currentStep > 0 && currentStep !== 1 ? <Button type="button" variant="outline" onClick={handlePrev} className="flex items-center gap-2">
                             <ArrowLeft className="w-4 h-4" />
                             Previous
-                          </Button> : currentStep === 2 ? <div className="text-sm text-muted-foreground flex items-center gap-2">
+                          </Button> : currentStep === 1 ? <div className="text-sm text-muted-foreground flex items-center gap-2">
                             <Shield className="w-4 h-4" />
                             Contact information secured
                           </div> : <div />}
@@ -2214,7 +2162,7 @@ export default function Application() {
                               Next
                               <ArrowRight className="w-4 h-4" />
                             </Button>
-                            {currentStep === 2 && !formData.propertyAddress && <p className="text-xs text-charcoal/60">
+                            {currentStep === 1 && !formData.propertyAddress && <p className="text-xs text-charcoal/60">
                                 Complete all required fields to continue
                               </p>}
                           </div> : <Button type="submit" disabled={isLoading} className="bg-maxx-red hover:bg-maxx-red/90 text-white flex items-center gap-2">
