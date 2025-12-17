@@ -257,3 +257,6 @@ verify_jwt = false
 
 [functions.trigger-tile-generation]
 verify_jwt = true
+
+[functions.compute-trade-area-metrics]
+verify_jwt = false
