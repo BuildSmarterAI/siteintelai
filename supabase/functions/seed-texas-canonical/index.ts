@@ -1,6 +1,26 @@
 // deno-lint-ignore-file no-explicit-any
-// seed-texas-canonical - Unified multi-metro ETL seeding function
-// Version: 2.0.0 - Hybrid architecture with database-driven configs
+/**
+ * seed-texas-canonical - Unified multi-metro ETL seeding function
+ * Version: 2.1.0 - Expanded Texas county coverage
+ * 
+ * ============================================================================
+ * HOW TO ADD A NEW COUNTY:
+ * ============================================================================
+ * 1. Find the county CAD ArcGIS REST endpoint (usually at [county]cad.org or county GIS portal)
+ * 2. Query the endpoint's ?f=json to discover field names
+ * 3. Add a LayerConfig entry to HARDCODED_CONFIGS with field_mappings
+ * 4. Add bbox to DEFAULT_BBOXES (get from county GIS or use approx coords)
+ * 5. Add to LAYER_TO_COUNTY mapping
+ * 6. Invoke: POST /seed-texas-canonical { "county": "newcounty" }
+ * 
+ * For shapefile-only counties (Galveston, Brazoria), use shapefile_ingestor instead.
+ * Real-time fallback queries non-seeded counties via enrich-feasibility ENDPOINT_CATALOG.
+ * 
+ * Current REST API Counties: Harris, Fort Bend, Montgomery, Travis, Bexar, Williamson,
+ *                            Dallas, Collin, Denton, Kaufman, Rockwall (via Dallas endpoint), Tarrant
+ * Shapefile-only (future): Galveston, Brazoria
+ * ============================================================================
+ */
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { 
   transformFunctions, 
@@ -176,6 +196,60 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
       dataset_version: '2025_01',
       source_system: 'WCAD',
       source_agency: 'Williamson County Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== DALLAS AREA (Multi-county: Dallas, Collin, Denton, Kaufman, Rockwall) ==========
+  // This single endpoint covers 5 counties via Dallas City Hall GIS
+  {
+    layer_key: 'dallas_area_parcels',
+    source_url: 'https://egis.dallascityhall.com/arcgis/rest/services/Basemap/DallasTaxParcels/MapServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'dallas',
+    field_mappings: [
+      { source: 'ACCT', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'ACCT', target: 'apn', transform: 'trim' },
+      { source: 'TAXPANAME1', target: 'owner_name', transform: 'uppercase' },
+      { source: 'ST_NUM', target: 'situs_address', transform: 'trim' }, // Will need address concat in transform
+      { source: 'AREA_FEET', target: 'acreage', transform: 'sqft_to_acres' },
+      { source: 'LAND_USE', target: 'land_use_code', transform: 'trim' },
+      { source: 'CITY', target: 'city', transform: 'trim' },
+      { source: 'ZIP', target: 'zip', transform: 'trim' },
+      { source: 'COUNTY', target: 'county_fips', transform: 'trim' }, // For filtering by county
+    ],
+    constants: { 
+      jurisdiction: 'Dallas Area', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'DCAD_MULTI',
+      source_agency: 'Dallas City Hall GIS (Multi-County)'
+    },
+    max_records: 500,
+  },
+
+  // ========== TARRANT COUNTY (TAD) ==========
+  {
+    layer_key: 'tarrant_parcels',
+    source_url: 'https://mapit.tarrantcounty.com/arcgis/rest/services/Dynamic/TADParcels/FeatureServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'dallas',
+    field_mappings: [
+      { source: 'ACCOUNT', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'ACCOUNT', target: 'apn', transform: 'trim' },
+      { source: 'OWNER_NAME', target: 'owner_name', transform: 'uppercase' },
+      { source: 'SITUS_ADDR', target: 'situs_address', transform: 'trim' },
+      { source: 'LAND_ACRES', target: 'acreage', transform: 'parse_float' },
+      { source: 'LAND_USE', target: 'land_use_code', transform: 'trim' },
+      { source: 'SITUS_CITY', target: 'city', transform: 'trim' },
+      { source: 'SITUS_ZIP', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Tarrant County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'TAD',
+      source_agency: 'Tarrant Appraisal District'
     },
     max_records: 500,
   },
@@ -361,18 +435,27 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
 
 // Default bounding boxes - county-specific and metro-level (fallback if not in database)
 const DEFAULT_BBOXES: Record<string, BBox> = {
-  // County-specific bounding boxes
+  // Houston Metro counties
   harris:     { xmin: -95.91, ymin: 29.49, xmax: -94.91, ymax: 30.17 },
   fortbend:   { xmin: -96.01, ymin: 29.35, xmax: -95.45, ymax: 29.82 },
   montgomery: { xmin: -95.86, ymin: 30.07, xmax: -95.07, ymax: 30.67 },
+  // Austin Metro counties
   travis:     { xmin: -98.17, ymin: 30.07, xmax: -97.37, ymax: 30.63 },
-  bexar:      { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
   williamson: { xmin: -98.05, ymin: 30.48, xmax: -97.28, ymax: 30.91 },
-  // Metro-level bounding boxes (union of counties)
-  houston:    { xmin: -96.01, ymin: 29.35, xmax: -94.91, ymax: 30.67 },
-  dallas:     { xmin: -97.5, ymin: 32.5, xmax: -96.5, ymax: 33.2 },
-  austin:     { xmin: -98.17, ymin: 30.07, xmax: -97.28, ymax: 30.91 },
-  san_antonio: { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
+  // San Antonio Metro
+  bexar:      { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
+  // Dallas-Fort Worth Metro counties
+  dallas:     { xmin: -97.05, ymin: 32.55, xmax: -96.46, ymax: 33.02 },
+  tarrant:    { xmin: -97.55, ymin: 32.55, xmax: -97.03, ymax: 33.00 },
+  collin:     { xmin: -96.99, ymin: 33.00, xmax: -96.29, ymax: 33.48 },
+  denton:     { xmin: -97.38, ymin: 33.00, xmax: -96.82, ymax: 33.48 },
+  kaufman:    { xmin: -96.55, ymin: 32.45, xmax: -96.02, ymax: 32.85 },
+  rockwall:   { xmin: -96.50, ymin: 32.82, xmax: -96.28, ymax: 33.00 },
+  // Metro-level bounding boxes (union of counties for broad queries)
+  houston:      { xmin: -96.01, ymin: 29.35, xmax: -94.91, ymax: 30.67 },
+  dallas_metro: { xmin: -97.55, ymin: 32.45, xmax: -96.02, ymax: 33.48 }, // All DFW counties
+  austin:       { xmin: -98.17, ymin: 30.07, xmax: -97.28, ymax: 30.91 },
+  san_antonio:  { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
 };
 
 interface LayerConfig {
@@ -387,13 +470,23 @@ interface LayerConfig {
 
 // Map layer_key prefixes to county bbox keys
 const LAYER_TO_COUNTY: Record<string, string> = {
+  // Houston Metro
   harris: 'harris',
   fortbend: 'fortbend',
   montgomery: 'montgomery',
-  travis: 'travis',
-  bexar: 'bexar',
-  williamson: 'williamson',
   houston: 'harris', // Houston utilities use Harris bbox
+  // Austin Metro
+  travis: 'travis',
+  williamson: 'williamson',
+  // San Antonio
+  bexar: 'bexar',
+  // Dallas-Fort Worth Metro
+  dallas_area: 'dallas_metro', // Multi-county endpoint uses full DFW bbox
+  tarrant: 'tarrant',
+  collin: 'collin',
+  denton: 'denton',
+  kaufman: 'kaufman',
+  rockwall: 'rockwall',
 };
 
 interface SeedResult {
