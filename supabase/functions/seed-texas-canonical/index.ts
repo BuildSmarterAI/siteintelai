@@ -17,8 +17,9 @@
  * Real-time fallback queries non-seeded counties via enrich-feasibility ENDPOINT_CATALOG.
  * 
  * Current REST API Counties: Harris, Fort Bend, Montgomery, Travis, Bexar, Williamson,
- *                            Dallas, Collin, Denton, Kaufman, Rockwall (via Dallas endpoint), Tarrant
- * Shapefile-only (future): Galveston, Brazoria
+ *                            Dallas, Collin, Denton, Kaufman, Rockwall (via Dallas endpoint), Tarrant,
+ *                            El Paso, Hays, Brazoria
+ * Shapefile-only (future): Galveston, Hidalgo, Cameron, Lubbock
  * ============================================================================
  */
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -254,6 +255,81 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     max_records: 500,
   },
 
+  // ========== EL PASO COUNTY (EPCAD) ==========
+  {
+    layer_key: 'elpaso_parcels',
+    source_url: 'https://services2.arcgis.com/fKvlzLJczghwPYHS/ArcGIS/rest/services/ElPasoCADWebService/FeatureServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'el_paso',
+    field_mappings: [
+      { source: 'prop_id_text', target: 'source_parcel_id', transform: 'trim' },
+      { source: 'prop_id_text', target: 'apn', transform: 'trim' },
+      { source: 'file_as_name', target: 'owner_name', transform: 'uppercase' },
+      { source: 'situs_num', target: 'situs_address', transform: 'trim' },
+      { source: 'legal_acreage', target: 'acreage', transform: 'parse_float' },
+      { source: 'situs_city', target: 'city', transform: 'trim' },
+      { source: 'situs_zip', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'El Paso County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'EPCAD',
+      source_agency: 'El Paso Central Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== HAYS COUNTY (HCAD_HAYS) ==========
+  {
+    layer_key: 'hays_parcels',
+    source_url: 'https://services7.arcgis.com/Q6vsXnxTnYcWB7qg/ArcGIS/rest/services/HAYS_PARCELS/FeatureServer/0',
+    target_table: 'canonical_parcels',
+    metro: 'austin',
+    field_mappings: [
+      { source: 'PropertyID', target: 'source_parcel_id', transform: 'to_string' },
+      { source: 'CADID', target: 'apn', transform: 'trim' },
+      { source: 'OwnerName', target: 'owner_name', transform: 'uppercase' },
+      { source: 'Address1', target: 'situs_address', transform: 'trim' },
+      { source: 'GIS_ACREAG', target: 'acreage', transform: 'parse_float' },
+      { source: 'City', target: 'city', transform: 'trim' },
+      { source: 'Zip', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Hays County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'HCAD_HAYS',
+      source_agency: 'Hays Central Appraisal District'
+    },
+    max_records: 500,
+  },
+
+  // ========== BRAZORIA COUNTY (BCAD_BRAZORIA) ==========
+  {
+    layer_key: 'brazoria_parcels',
+    source_url: 'https://arcgis-web.brazoriacountytx.gov/arcgis/rest/services/general/Parcels/MapServer/1',
+    target_table: 'canonical_parcels',
+    metro: 'houston',
+    field_mappings: [
+      { source: 'prop_id', target: 'source_parcel_id', transform: 'to_string' },
+      { source: 'geo_id', target: 'apn', transform: 'trim' },
+      { source: 'py_owner_name', target: 'owner_name', transform: 'uppercase' },
+      { source: 'SITUS', target: 'situs_address', transform: 'trim' },
+      { source: 'legal_acreage', target: 'acreage', transform: 'parse_float' },
+      { source: 'situs_city', target: 'city', transform: 'trim' },
+      { source: 'situs_zip', target: 'zip', transform: 'trim' },
+    ],
+    constants: { 
+      jurisdiction: 'Brazoria County', 
+      state: 'TX', 
+      dataset_version: '2025_01',
+      source_system: 'BCAD_BRAZORIA',
+      source_agency: 'Brazoria County Appraisal District'
+    },
+    max_records: 500,
+  },
+
   // ========== HOUSTON UTILITIES ==========
   {
     layer_key: 'houston_sewer_lines',
@@ -451,10 +527,16 @@ const DEFAULT_BBOXES: Record<string, BBox> = {
   denton:     { xmin: -97.38, ymin: 33.00, xmax: -96.82, ymax: 33.48 },
   kaufman:    { xmin: -96.55, ymin: 32.45, xmax: -96.02, ymax: 32.85 },
   rockwall:   { xmin: -96.50, ymin: 32.82, xmax: -96.28, ymax: 33.00 },
+  // El Paso Metro
+  el_paso:    { xmin: -106.70, ymin: 31.50, xmax: -106.10, ymax: 32.10 },
+  // Austin Metro expansion
+  hays:       { xmin: -98.30, ymin: 29.80, xmax: -97.70, ymax: 30.30 },
+  // Houston Metro expansion
+  brazoria:   { xmin: -95.90, ymin: 28.90, xmax: -95.00, ymax: 29.60 },
   // Metro-level bounding boxes (union of counties for broad queries)
-  houston:      { xmin: -96.01, ymin: 29.35, xmax: -94.91, ymax: 30.67 },
+  houston:      { xmin: -96.01, ymin: 28.90, xmax: -94.91, ymax: 30.67 }, // Updated to include Brazoria
   dallas_metro: { xmin: -97.55, ymin: 32.45, xmax: -96.02, ymax: 33.48 }, // All DFW counties
-  austin:       { xmin: -98.17, ymin: 30.07, xmax: -97.28, ymax: 30.91 },
+  austin:       { xmin: -98.30, ymin: 29.80, xmax: -97.28, ymax: 30.91 }, // Updated to include Hays
   san_antonio:  { xmin: -98.81, ymin: 29.17, xmax: -98.09, ymax: 29.73 },
 };
 
@@ -487,6 +569,12 @@ const LAYER_TO_COUNTY: Record<string, string> = {
   denton: 'denton',
   kaufman: 'kaufman',
   rockwall: 'rockwall',
+  // El Paso Metro
+  elpaso: 'el_paso',
+  // Austin Metro expansion
+  hays: 'hays',
+  // Houston Metro expansion
+  brazoria: 'brazoria',
 };
 
 interface SeedResult {
