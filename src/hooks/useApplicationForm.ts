@@ -1,14 +1,14 @@
 import { useState, useCallback } from 'react';
 
 export interface ApplicationFormData {
-  // Step 1: Contact Information
+  // Step 0: Contact Information
   fullName: string;
   company: string;
   email: string;
   phone: string;
   
-  // Step 2: Property Information
-  intentType: 'build' | 'buy' | '';
+  // Step 1: Property Information
+  intentType: 'build' | 'buy' | ''; // Always 'build' for feasibility
   propertyAddress: string;
   parcelId: string;
   lotSize: string;
@@ -25,7 +25,7 @@ export interface ApplicationFormData {
   sublocality: string;
   placeId: string;
   
-  // Step 3: Project Intent & Building Parameters
+  // Step 2: Building Details (What Do You Want to Build?)
   projectType: string[];
   projectTypeOther: string;
   buildingSize: string;
@@ -35,8 +35,14 @@ export interface ApplicationFormData {
   prototypeRequirements: string;
   qualityLevel: string;
   budget: string;
+  // NEW: Enhanced building fields for cost/timeline estimation
+  constructionType: string;
+  parkingSpaces: string;
+  parkingRatio: string;
+  specialFeatures: string[];
+  targetCompletionDate: string;
   
-  // Step 4: Market & Risks
+  // Step 3: Additional Context (Market & Risks)
   submarket: string;
   accessPriorities: string[];
   knownRisks: string[];
@@ -44,11 +50,13 @@ export interface ApplicationFormData {
   environmentalConstraints: string[];
   tenantRequirements: string;
   
-  // Step 5: Final Questions
+  // Step 4: Final Questions
   hearAboutUs: string;
   contactMethod: string;
   bestTime: string;
   additionalNotes: string;
+  
+  // Step 5: Review & Consent
   ndaConsent: boolean;
   contactConsent: boolean;
   privacyConsent: boolean;
@@ -82,7 +90,7 @@ const initialFormData: ApplicationFormData = {
   company: "",
   email: "",
   phone: "",
-  intentType: "",
+  intentType: "build", // Always 'build' for feasibility reports
   propertyAddress: "",
   parcelId: "",
   lotSize: "",
@@ -107,6 +115,11 @@ const initialFormData: ApplicationFormData = {
   prototypeRequirements: "",
   qualityLevel: "",
   budget: "",
+  constructionType: "",
+  parkingSpaces: "",
+  parkingRatio: "",
+  specialFeatures: [],
+  targetCompletionDate: "",
   submarket: "",
   accessPriorities: [],
   knownRisks: [],
@@ -146,11 +159,8 @@ export function useApplicationForm() {
   const validateStep = useCallback((step: number): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Step 0: Contact Information
     if (step === 0) {
-      if (!formData.intentType) newErrors.intentType = "Please select your primary goal";
-    }
-
-    if (step === 1) {
       if (!formData.fullName) newErrors.fullName = "Full name is required";
       if (!formData.company) newErrors.company = "Company is required";
       if (!formData.email) newErrors.email = "Email is required";
@@ -160,23 +170,28 @@ export function useApplicationForm() {
       }
     }
 
-    if (step === 2) {
+    // Step 1: Property Information
+    if (step === 1) {
       if (!formData.propertyAddress) newErrors.propertyAddress = "Property address is required";
     }
 
+    // Step 2: Building Details (optional)
+    if (step === 2) {
+      // All fields optional
+    }
+
+    // Step 3: Additional Context (optional)
     if (step === 3) {
       // All fields optional
     }
 
+    // Step 4: Final Questions (optional)
     if (step === 4) {
       // All fields optional
     }
 
+    // Step 5: Review & Consent
     if (step === 5) {
-      // All fields optional
-    }
-
-    if (step === 6) {
       if (!formData.ndaConsent) newErrors.ndaConsent = "NDA consent is required";
       if (!formData.contactConsent) newErrors.contactConsent = "Contact consent is required";
       if (!formData.privacyConsent) newErrors.privacyConsent = "Privacy & Terms consent is required";
