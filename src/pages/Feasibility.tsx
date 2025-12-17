@@ -158,7 +158,7 @@ const Feasibility = () => {
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg"
             >
-              <Link to="/application?step=2">Run Free QuickCheck →</Link>
+              <Link to="/application">Get Your Report - $1,495</Link>
             </Button>
             <p className="mt-4 text-white/60 text-sm">
               60-second turnaround · Powered by proprietary AI

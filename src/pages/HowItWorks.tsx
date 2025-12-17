@@ -125,7 +125,7 @@ const HowItWorks = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              Every QuickCheck activates SiteIntel's proprietary data fusion engine—powered by Texas-trained AI models that synthesize verified federal and municipal sources in seconds to produce a single, lender-ready source of truth.
+              Every report activates SiteIntel's proprietary data fusion engine—powered by Texas-trained AI models that synthesize verified federal and municipal sources in seconds to produce a single, lender-ready source of truth.
             </motion.p>
 
             <motion.div
@@ -138,7 +138,7 @@ const HowItWorks = () => {
                 size="lg"
                 className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-6"
               >
-                <Link to="/application?step=2">Run a Feasibility QuickCheck →</Link>
+                <Link to="/application">Get Your Feasibility Report - $1,495</Link>
               </Button>
             </motion.div>
           </div>
@@ -353,7 +353,7 @@ const HowItWorks = () => {
                   >
                     <Play className="h-10 w-10 text-white ml-1" />
                   </motion.div>
-                  <p className="text-white/70 text-sm">Demo: QuickCheck in Action</p>
+                  <p className="text-white/70 text-sm">Demo: Feasibility Report in Action</p>
                   <p className="text-white/50 text-xs mt-2">Powered by proprietary AI trained on Texas commercial real estate</p>
                 </div>
               </motion.div>
@@ -488,7 +488,7 @@ const HowItWorks = () => {
                 size="lg"
                 className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_8px_40px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg w-full md:w-auto"
               >
-                <Link to="/application?step=2">Run a Feasibility QuickCheck →</Link>
+                <Link to="/application">Get Your Feasibility Report - $1,495</Link>
               </Button>
             </motion.div>
           </div>

@@ -10,7 +10,7 @@ export const Footer = () => {
         { label: "Feasibility Intelligence", href: "/products/feasibility" },
         { label: "Cost Intelligence", href: "/products/cost-intelligence" },
         { label: "Schedule Intelligence", href: "/products/schedule-intelligence" },
-        { label: "Run Free QuickCheck", href: "/application?step=2" },
+        { label: "Get Your Report", href: "/application" },
       ],
     },
     {

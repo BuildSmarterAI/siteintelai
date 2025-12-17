@@ -642,17 +642,17 @@ const Developers = () => {
                 See Your Site's Feasibility in 60 Seconds
               </h2>
               <p className="font-body text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed">
-                Run your first QuickCheck™ free and discover how commercial developers and investors are modernizing feasibility analysis with SiteIntel™ Feasibility.
+                Get your feasibility report and discover how commercial developers and investors are modernizing site analysis with SiteIntel™ Feasibility.
               </p>
               <Button
                 asChild
                 variant="default"
                 size="lg"
                 className="bg-white text-maxx-red hover:bg-white/90 text-lg md:text-xl px-8 py-4 h-auto font-cta focus:outline-none focus:ring-4 focus:ring-white/50"
-                aria-label="Run free QuickCheck now"
+                aria-label="Get feasibility report"
               >
-                <Link to="/application?step=2">
-                  Run Free QuickCheck™ Now →
+                <Link to="/application">
+                  Get Your Report - $1,495
                 </Link>
               </Button>
             </div>

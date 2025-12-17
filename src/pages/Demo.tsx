@@ -740,7 +740,7 @@ const Demo = () => {
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link to="/application">
-                  Try Free QuickCheck
+                  Get Your Report
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Link>
               </Button>

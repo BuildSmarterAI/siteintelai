@@ -101,7 +101,7 @@ const About = () => {
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-6"
             >
-              <Link to="/application?step=2">Run a Feasibility QuickCheck →</Link>
+              <Link to="/application">Get Your Feasibility Report - $1,495</Link>
             </Button>
           </div>
         </div>

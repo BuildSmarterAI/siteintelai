@@ -12,7 +12,6 @@ const PRODUCT_TIERS = {
     price: '$1,950/month',
     features: [
       '10 Professional Reports per month',
-      'Unlimited QuickChecks',
       'Priority Support',
       'API Access'
     ]
@@ -87,9 +86,6 @@ export const SubscriptionStatus = () => {
               <span>Reports used this month</span>
               <span className="font-medium">{credits.reports_used} / {credits.reports_limit}</span>
             </div>
-            {credits.quickchecks_unlimited && (
-              <div className="text-xs text-muted-foreground">Unlimited QuickChecks included</div>
-            )}
           </div>
         )}
         {tierInfo && (

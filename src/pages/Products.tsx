@@ -78,7 +78,7 @@ const Products = () => {
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-6 text-lg"
             >
-              <Link to="/application?step=2">Start Free QuickCheck →</Link>
+              <Link to="/application">Get Your Report - $1,495</Link>
             </Button>
           </motion.div>
         </section>
@@ -273,14 +273,14 @@ const Products = () => {
               Ready to Build with <span className="text-[#FF7A00]">Intelligence</span>?
             </h2>
             <p className="text-xl text-white/70 mb-10">
-              Start with a free QuickCheck and experience the power of AI-driven feasibility analysis.
+              Experience the power of AI-driven feasibility analysis with our comprehensive $1,495 report.
             </p>
             <Button
               asChild
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_8px_40px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg"
             >
-              <Link to="/application?step=2">Run Free QuickCheck →</Link>
+              <Link to="/application">Get Your Report - $1,495</Link>
             </Button>
           </div>
         </section>

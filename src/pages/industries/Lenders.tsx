@@ -240,9 +240,9 @@ const Lenders = () => {
                   variant="maxx-red"
                   size="lg"
                   className="text-lg px-10 py-6 h-auto font-cta font-bold relative overflow-hidden group"
-                  onClick={() => window.location.href = '/application?step=2'}
+                  onClick={() => window.location.href = '/application'}
                 >
-                  <span className="relative z-10">Run Free QuickCheck™ →</span>
+                  <span className="relative z-10">Get Report - $1,495</span>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                     animate={prefersReducedMotion ? {} : {
@@ -861,9 +861,9 @@ const Lenders = () => {
               <Button 
                 variant="maxx-red" 
                 size="lg"
-                onClick={() => window.location.href = '/application?step=2'}
+                onClick={() => window.location.href = '/application'}
               >
-                Run Free QuickCheck™ →
+                Get Your Report - $1,495
               </Button>
             </motion.div>
           </div>
@@ -1028,7 +1028,7 @@ const Lenders = () => {
               
               <p className="font-body text-xl text-white/90 mb-8 max-w-3xl mx-auto leading-relaxed">
                 Start using AI-verified feasibility reports that reduce underwriting friction and speed 
-                loan decisions. Run a QuickCheck™ now to see how SiteIntel™ transforms commercial 
+                loan decisions. Get your report now to see how SiteIntel™ transforms commercial 
                 lending workflow in minutes.
               </p>
               
@@ -1037,9 +1037,9 @@ const Lenders = () => {
                   variant="maxx-red"
                   size="lg"
                   className="text-lg px-10 py-6 h-auto font-cta font-bold"
-                  onClick={() => window.location.href = '/application?step=2'}
+                  onClick={() => window.location.href = '/application'}
                 >
-                  Run Free QuickCheck™ →
+                  Get Your Report - $1,495
                 </Button>
                 <Button 
                   variant="outline"
