@@ -82,7 +82,7 @@ const SurveyUpload = () => {
     { 
       step: "03", 
       title: "Get Report", 
-      description: "Receive your Survey-Enhanced QuickCheck™ instantly." 
+      description: "Receive your Survey-Enhanced Feasibility Report™ instantly." 
     },
   ];
 
@@ -118,7 +118,7 @@ const SurveyUpload = () => {
     <>
       <Helmet>
         <title>Survey Upload | Extract Buildable Envelope Instantly | SiteIntel™</title>
-        <meta name="description" content="Upload your survey (PDF, DWG, DXF) and get instant buildable envelope, setbacks, easements, and feasibility analysis. Survey-Enhanced QuickCheck™ for Texas developers." />
+        <meta name="description" content="Upload your survey (PDF, DWG, DXF) and get instant buildable envelope, setbacks, easements, and feasibility analysis. Survey-Enhanced Feasibility Report™ for Texas developers." />
       </Helmet>
 
       <div className="min-h-screen bg-background">
@@ -345,7 +345,7 @@ const SurveyUpload = () => {
             >
               <Link to="/beta-signup">
                 <Button variant="expandIcon" Icon={ArrowRight} iconPlacement="right" size="lg">
-                  Get Survey-Enhanced QuickCheck™
+                  Get Survey-Enhanced Report
                 </Button>
               </Link>
             </motion.div>

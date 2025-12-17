@@ -70,7 +70,7 @@ const TexasDevelopers = () => {
     ],
     siteintel: [
       "60 seconds to full report",
-      "$699 per QuickCheck™",
+      "$1,495 per Feasibility Report™",
       "15+ live data sources",
       "Current FEMA + local flood data",
       "AI-detected constraints",
@@ -435,7 +435,7 @@ const TexasDevelopers = () => {
                       <div className="w-10 h-10 rounded-full bg-status-success/20 flex items-center justify-center">
                         <CheckCircle className="w-5 h-5 text-status-success" />
                       </div>
-                      <h3 className="font-headline text-xl font-semibold text-foreground">SiteIntel™ QuickCheck</h3>
+                      <h3 className="font-headline text-xl font-semibold text-foreground">SiteIntel™ Feasibility Report</h3>
                     </div>
                     <ul className="space-y-4">
                       {comparisonData.siteintel.map((item, i) => (
@@ -474,7 +474,7 @@ const TexasDevelopers = () => {
                   location: "Houston, TX"
                 },
                 {
-                  quote: "I run 10 sites through QuickCheck before breakfast. It's changed how we source deals.",
+                  quote: "I run multiple sites through SiteIntel before breakfast. It's changed how we source deals.",
                   author: "Retail Developer",
                   location: "Austin, TX"
                 },
@@ -535,13 +535,13 @@ const TexasDevelopers = () => {
                     Get Early Access →
                   </Button>
                 </Link>
-                <Link to="/application?step=2">
+                <Link to="/application">
                   <Button
                     variant="outline"
                     size="lg"
                     className="border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg w-full sm:w-auto"
                   >
-                    Try Free QuickCheck
+                    Get Your Report - $1,495
                   </Button>
                 </Link>
               </div>

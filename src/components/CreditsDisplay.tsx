@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { FileText, Zap, Crown } from "lucide-react";
+import { FileText, Crown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface CreditsData {
@@ -122,12 +122,6 @@ export const CreditsDisplay = () => {
           )}
         </div>
 
-        {credits.quickchecks_unlimited && (
-          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <Zap className="h-3.5 w-3.5" />
-            <span>Unlimited QuickChecks</span>
-          </div>
-        )}
       </CardContent>
     </Card>
   );

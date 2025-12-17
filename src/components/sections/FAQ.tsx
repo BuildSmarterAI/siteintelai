@@ -17,7 +17,7 @@ export const FAQ = () => {
     },
     {
       question: "How fast can I get results?",
-      answer: "Free QuickCheck: 60 seconds. Professional Report: 30-60 seconds. Pro Subscription includes 10 reports per month with priority processing."
+      answer: "Your comprehensive feasibility report is delivered in 60 seconds. Each report is $1,495 and includes complete zoning, flood, utility, environmental, and traffic analysis."
     },
     {
       question: "Do I lose my fee if I hire Maxx Builders?",
