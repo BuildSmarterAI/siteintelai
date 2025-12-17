@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Search, MapPin, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddressSearchInputProps {
   onSelect: (lat: number, lng: number, address: string) => void;
@@ -14,51 +15,128 @@ interface Suggestion {
   lng?: number;
 }
 
-// Houston area default suggestions
+// Houston area default suggestions as fallback
 const DEFAULT_SUGGESTIONS: Suggestion[] = [
   { place_id: '1', description: 'Downtown Houston, TX', lat: 29.7604, lng: -95.3698 },
   { place_id: '2', description: 'The Woodlands, TX', lat: 30.1658, lng: -95.4613 },
   { place_id: '3', description: 'Sugar Land, TX', lat: 29.6196, lng: -95.6349 },
-  { place_id: '4', description: 'Katy, TX', lat: 29.7858, lng: -95.8245 },
-  { place_id: '5', description: 'Pearland, TX', lat: 29.5636, lng: -95.2860 },
+  { place_id: '4', description: 'Austin, TX', lat: 30.2672, lng: -97.7431 },
+  { place_id: '5', description: 'Dallas, TX', lat: 32.7767, lng: -96.7970 },
 ];
+
+function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
 
 export function AddressSearchInput({ onSelect, className }: AddressSearchInputProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleSearch = useCallback(async (value: string) => {
-    setQuery(value);
-    
+  const fetchSuggestions = useCallback(async (value: string) => {
     if (value.length < 3) {
       setSuggestions([]);
+      setIsLoading(false);
       return;
     }
 
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     
-    // Filter default suggestions based on query
-    const filtered = DEFAULT_SUGGESTIONS.filter(s => 
-      s.description.toLowerCase().includes(value.toLowerCase())
-    );
-    
-    // Simulate API delay
-    await new Promise(r => setTimeout(r, 200));
-    
-    setSuggestions(filtered.length > 0 ? filtered : DEFAULT_SUGGESTIONS.slice(0, 3));
-    setIsLoading(false);
-    setShowSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('google-places', {
+        body: { input: value }
+      });
+
+      if (error) {
+        console.error('Google Places error:', error);
+        setSuggestions(DEFAULT_SUGGESTIONS.slice(0, 3));
+        return;
+      }
+
+      if (data?.predictions && data.predictions.length > 0) {
+        setSuggestions(data.predictions.map((p: any) => ({
+          place_id: p.place_id,
+          description: p.description,
+        })));
+      } else {
+        // No results, show defaults
+        setSuggestions(DEFAULT_SUGGESTIONS.slice(0, 3));
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setSuggestions(DEFAULT_SUGGESTIONS.slice(0, 3));
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const handleSelect = (suggestion: Suggestion) => {
+  // Debounced search
+  const debouncedSearch = useCallback(
+    debounce((value: string) => fetchSuggestions(value), 300),
+    [fetchSuggestions]
+  );
+
+  const handleSearch = useCallback((value: string) => {
+    setQuery(value);
+    setShowSuggestions(true);
+    debouncedSearch(value);
+  }, [debouncedSearch]);
+
+  const handleSelect = async (suggestion: Suggestion) => {
+    setQuery(suggestion.description);
+    setShowSuggestions(false);
+
+    // If already has coords (from defaults), use them directly
     if (suggestion.lat && suggestion.lng) {
-      setQuery(suggestion.description);
-      setShowSuggestions(false);
       onSelect(suggestion.lat, suggestion.lng, suggestion.description);
+      return;
+    }
+
+    // Otherwise, geocode the address
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('geocode-with-cache', {
+        body: { query: suggestion.description, query_type: 'address' }
+      });
+
+      if (error) {
+        console.error('Geocode error:', error);
+        return;
+      }
+
+      if (data?.lat && data?.lng) {
+        onSelect(data.lat, data.lng, suggestion.description);
+      } else if (data?.latitude && data?.longitude) {
+        // Handle alternate response format
+        onSelect(data.latitude, data.longitude, suggestion.description);
+      }
+    } catch (err) {
+      console.error('Geocode error:', err);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return (
     <div className={cn("relative", className)}>
