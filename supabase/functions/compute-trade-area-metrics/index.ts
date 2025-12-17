@@ -27,31 +27,31 @@ interface H3CellData {
 }
 
 interface TradeAreaMetrics {
-  totalPopulation: number;
-  medianIncome: number;
-  medianAge: number;
-  medianHomeValue: number;
-  ownerOccupiedPct: number;
-  renterOccupiedPct: number;
-  totalHousingUnits: number;
-  populationDensity: number;
-  under18Pct: number;
-  over65Pct: number;
-  workingAgePct: number;
-  whiteCollarPct: number;
-  blueCollarPct: number;
-  unemploymentRate: number;
-  povertyRate: number;
-  collegeEducatedPct: number;
-  retailSpendingIndex: number;
-  workforceAvailabilityScore: number;
-  growthPotentialIndex: number;
-  affluenceConcentration: number;
-  laborPoolDepth: number;
-  daytimePopulationEstimate: number;
-  growthRate5yr: number;
-  medianIncomeProjection: number;
-  homeValueProjection: number;
+  total_population: number;
+  median_income: number;
+  median_age: number;
+  median_home_value: number;
+  owner_occupied_pct: number;
+  renter_occupied_pct: number;
+  total_housing_units: number;
+  population_density: number;
+  under_18_pct: number;
+  over_65_pct: number;
+  working_age_pct: number;
+  white_collar_pct: number;
+  blue_collar_pct: number;
+  unemployment_rate: number;
+  poverty_rate: number;
+  bachelor_degree_pct: number;
+  retail_spending_index: number;
+  workforce_availability_score: number;
+  growth_potential_index: number;
+  affluence_concentration: number;
+  labor_pool_depth: number;
+  daytime_population: number;
+  growth_rate_5yr: number;
+  median_income_projection: number;
+  home_value_projection: number;
 }
 
 serve(async (req) => {
@@ -209,64 +209,64 @@ function aggregateMetrics(cells: any[]): TradeAreaMetrics {
     return validVals.reduce((a, b) => a + b, 0) / validVals.length;
   };
 
-  // Aggregate all metrics
+  // Aggregate all metrics with snake_case keys
   return {
-    totalPopulation: totalPop,
-    medianIncome: Math.round(weightedAvg('median_household_income')),
-    medianAge: Math.round(weightedAvg('median_age') * 10) / 10,
-    medianHomeValue: Math.round(weightedAvg('median_home_value')),
-    ownerOccupiedPct: Math.round(simpleAvg('owner_occupied_pct') * 10) / 10,
-    renterOccupiedPct: Math.round(simpleAvg('renter_occupied_pct') * 10) / 10,
-    totalHousingUnits: demographics.reduce((sum, d) => sum + (d.total_housing_units || 0), 0),
-    populationDensity: Math.round(simpleAvg('population_density_sqmi')),
-    under18Pct: Math.round(simpleAvg('under_18_pct') * 10) / 10,
-    over65Pct: Math.round(simpleAvg('over_65_pct') * 10) / 10,
-    workingAgePct: Math.round(simpleAvg('working_age_pct') * 10) / 10,
-    whiteCollarPct: Math.round(simpleAvg('white_collar_pct') * 10) / 10,
-    blueCollarPct: Math.round(simpleAvg('blue_collar_pct') * 10) / 10,
-    unemploymentRate: Math.round(simpleAvg('unemployment_rate') * 10) / 10,
-    povertyRate: Math.round(simpleAvg('poverty_rate') * 10) / 10,
-    collegeEducatedPct: Math.round((simpleAvg('bachelors_pct') + simpleAvg('graduate_degree_pct')) * 10) / 10,
+    total_population: totalPop,
+    median_income: Math.round(weightedAvg('median_household_income')),
+    median_age: Math.round(weightedAvg('median_age') * 10) / 10,
+    median_home_value: Math.round(weightedAvg('median_home_value')),
+    owner_occupied_pct: Math.round(simpleAvg('owner_occupied_pct') * 10) / 10,
+    renter_occupied_pct: Math.round(simpleAvg('renter_occupied_pct') * 10) / 10,
+    total_housing_units: demographics.reduce((sum, d) => sum + (d.total_housing_units || 0), 0),
+    population_density: Math.round(simpleAvg('population_density_sqmi')),
+    under_18_pct: Math.round(simpleAvg('under_18_pct') * 10) / 10,
+    over_65_pct: Math.round(simpleAvg('over_65_pct') * 10) / 10,
+    working_age_pct: Math.round(simpleAvg('working_age_pct') * 10) / 10,
+    white_collar_pct: Math.round(simpleAvg('white_collar_pct') * 10) / 10,
+    blue_collar_pct: Math.round(simpleAvg('blue_collar_pct') * 10) / 10,
+    unemployment_rate: Math.round(simpleAvg('unemployment_rate') * 10) / 10,
+    poverty_rate: Math.round(simpleAvg('poverty_rate') * 10) / 10,
+    bachelor_degree_pct: Math.round((simpleAvg('bachelors_pct') + simpleAvg('graduate_degree_pct')) * 10) / 10,
     // Proprietary CRE indices
-    retailSpendingIndex: Math.round(simpleAvg('retail_spending_index')),
-    workforceAvailabilityScore: Math.round(simpleAvg('workforce_availability_score')),
-    growthPotentialIndex: Math.round(simpleAvg('growth_potential_index')),
-    affluenceConcentration: Math.round(simpleAvg('affluence_concentration')),
-    laborPoolDepth: Math.round(simpleAvg('labor_pool_depth')),
-    daytimePopulationEstimate: demographics.reduce((sum, d) => sum + (d.daytime_population_estimate || 0), 0),
+    retail_spending_index: Math.round(simpleAvg('retail_spending_index')),
+    workforce_availability_score: Math.round(simpleAvg('workforce_availability_score')),
+    growth_potential_index: Math.round(simpleAvg('growth_potential_index')),
+    affluence_concentration: Math.round(simpleAvg('affluence_concentration')),
+    labor_pool_depth: Math.round(simpleAvg('labor_pool_depth')),
+    daytime_population: demographics.reduce((sum, d) => sum + (d.daytime_population_estimate || 0), 0),
     // Growth projections (5-year)
-    growthRate5yr: Math.round(simpleAvg('growth_potential_index') * 0.8 * 10) / 10, // Derived estimate
-    medianIncomeProjection: Math.round(weightedAvg('median_household_income') * 1.12), // 12% growth estimate
-    homeValueProjection: Math.round(weightedAvg('median_home_value') * 1.15), // 15% growth estimate
+    growth_rate_5yr: Math.round(simpleAvg('growth_potential_index') * 0.8 * 10) / 10,
+    median_income_projection: Math.round(weightedAvg('median_household_income') * 1.12),
+    home_value_projection: Math.round(weightedAvg('median_home_value') * 1.15),
   };
 }
 
 function getEmptyMetrics(): TradeAreaMetrics {
   return {
-    totalPopulation: 0,
-    medianIncome: 0,
-    medianAge: 0,
-    medianHomeValue: 0,
-    ownerOccupiedPct: 0,
-    renterOccupiedPct: 0,
-    totalHousingUnits: 0,
-    populationDensity: 0,
-    under18Pct: 0,
-    over65Pct: 0,
-    workingAgePct: 0,
-    whiteCollarPct: 0,
-    blueCollarPct: 0,
-    unemploymentRate: 0,
-    povertyRate: 0,
-    collegeEducatedPct: 0,
-    retailSpendingIndex: 0,
-    workforceAvailabilityScore: 0,
-    growthPotentialIndex: 0,
-    affluenceConcentration: 0,
-    laborPoolDepth: 0,
-    daytimePopulationEstimate: 0,
-    growthRate5yr: 0,
-    medianIncomeProjection: 0,
-    homeValueProjection: 0,
+    total_population: 0,
+    median_income: 0,
+    median_age: 0,
+    median_home_value: 0,
+    owner_occupied_pct: 0,
+    renter_occupied_pct: 0,
+    total_housing_units: 0,
+    population_density: 0,
+    under_18_pct: 0,
+    over_65_pct: 0,
+    working_age_pct: 0,
+    white_collar_pct: 0,
+    blue_collar_pct: 0,
+    unemployment_rate: 0,
+    poverty_rate: 0,
+    bachelor_degree_pct: 0,
+    retail_spending_index: 0,
+    workforce_availability_score: 0,
+    growth_potential_index: 0,
+    affluence_concentration: 0,
+    labor_pool_depth: 0,
+    daytime_population: 0,
+    growth_rate_5yr: 0,
+    median_income_projection: 0,
+    home_value_projection: 0,
   };
 }
