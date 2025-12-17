@@ -376,7 +376,7 @@ function resolveStormProvider(
       provider_name: wcidResult.name || `WCID #${wcidResult.district_no}`,
       provider_type: 'wcid',
       ccn_number: null,
-      resolution_method: 'wcid_overlay',
+      resolution_method: 'county_default',
       confidence: 0.80,
       capacity_status: 'available',
       contact_phone: null,
@@ -390,7 +390,7 @@ function resolveStormProvider(
       provider_name: `City of ${city} Stormwater`,
       provider_type: 'municipal',
       ccn_number: null,
-      resolution_method: 'city_default',
+      resolution_method: 'city_limits',
       confidence: 0.70,
       capacity_status: 'available',
       contact_phone: null,
@@ -729,7 +729,7 @@ serve(async (req) => {
     
     // Step 9: Determine serviceability
     const waterServiceability = waterProvider ? 'available' : 'unavailable';
-    const sewerServiceability = sewerProvider ? 'gravity_available' : 'septic_required';
+    const sewerServiceability = sewerProvider ? 'gravity_available' : 'septic_only';
     
     // Build result
     const result: ResolutionResult = {
