@@ -88,7 +88,8 @@ async function queryBigQuery(accessToken: string, projectId: string, query: stri
     body: JSON.stringify({
       query,
       useLegacySql: false,
-      maxResults: 20000,
+      maxResults: 10000,
+      timeoutMs: 300000, // 5 minutes for large Texas-wide queries
     }),
   });
 
@@ -98,7 +99,30 @@ async function queryBigQuery(accessToken: string, projectId: string, query: stri
     throw new Error(`BigQuery error: ${JSON.stringify(data.error)}`);
   }
 
-  return data.rows || [];
+  // Handle pagination if there are more results
+  let rows = data.rows || [];
+  let pageToken = data.pageToken;
+  
+  while (pageToken) {
+    console.log(`[seed-census-canonical] Fetching next page with token ${pageToken.slice(0, 20)}...`);
+    const pageResponse = await fetch(
+      `https://bigquery.googleapis.com/bigquery/v2/projects/${projectId}/queries/${data.jobReference.jobId}?pageToken=${pageToken}&maxResults=10000`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const pageData = await pageResponse.json();
+    if (pageData.error) {
+      throw new Error(`BigQuery pagination error: ${JSON.stringify(pageData.error)}`);
+    }
+    rows = rows.concat(pageData.rows || []);
+    pageToken = pageData.pageToken;
+    console.log(`[seed-census-canonical] Total rows so far: ${rows.length}`);
+  }
+
+  return rows;
 }
 
 // ============= Safe Number Parsers =============
@@ -288,6 +312,7 @@ serve(async (req) => {
     const limitClause = limit ? `LIMIT ${limit}` : '';
 
     // EXPANDED Query with 83+ ACS variables - NO DEFAULT LIMIT for full Texas coverage
+    // NOTE: ACS uses gender-specific age columns - we compute combined age brackets by summing male + female
     const query = `
       SELECT 
         geo.geo_id as geoid,
@@ -301,19 +326,42 @@ serve(async (req) => {
         acs.male_pop,
         acs.female_pop,
         
-        -- Age Brackets
-        acs.pop_under_5,
-        acs.pop_5_to_9,
-        acs.pop_10_to_14,
-        acs.pop_15_to_17,
-        acs.pop_18_to_24,
-        acs.pop_25_to_34,
-        acs.pop_35_to_44,
-        acs.pop_45_to_54,
-        acs.pop_55_to_64,
-        acs.pop_65_to_74,
-        acs.pop_75_to_84,
-        acs.pop_85_and_over,
+        -- Age Brackets: Computed by summing male + female columns
+        (COALESCE(acs.male_under_5, 0) + COALESCE(acs.female_under_5, 0)) as pop_under_5,
+        (COALESCE(acs.male_5_to_9, 0) + COALESCE(acs.female_5_to_9, 0)) as pop_5_to_9,
+        (COALESCE(acs.male_10_to_14, 0) + COALESCE(acs.female_10_to_14, 0)) as pop_10_to_14,
+        (COALESCE(acs.male_15_to_17, 0) + COALESCE(acs.female_15_to_17, 0)) as pop_15_to_17,
+        
+        -- 18-24: male_18_to_19 + male_20 + male_21 + male_22_to_24 + female equivalents
+        (COALESCE(acs.male_18_to_19, 0) + COALESCE(acs.male_20, 0) + COALESCE(acs.male_21, 0) + COALESCE(acs.male_22_to_24, 0) +
+         COALESCE(acs.female_18_to_19, 0) + COALESCE(acs.female_20, 0) + COALESCE(acs.female_21, 0) + COALESCE(acs.female_22_to_24, 0)) as pop_18_to_24,
+        
+        -- 25-34: male_25_to_29 + male_30_to_34 + female equivalents
+        (COALESCE(acs.male_25_to_29, 0) + COALESCE(acs.male_30_to_34, 0) +
+         COALESCE(acs.female_25_to_29, 0) + COALESCE(acs.female_30_to_34, 0)) as pop_25_to_34,
+        
+        -- 35-44: male_35_to_39 + male_40_to_44 + female equivalents
+        (COALESCE(acs.male_35_to_39, 0) + COALESCE(acs.male_40_to_44, 0) +
+         COALESCE(acs.female_35_to_39, 0) + COALESCE(acs.female_40_to_44, 0)) as pop_35_to_44,
+        
+        -- 45-54: male_45_to_49 + male_50_to_54 + female equivalents
+        (COALESCE(acs.male_45_to_49, 0) + COALESCE(acs.male_50_to_54, 0) +
+         COALESCE(acs.female_45_to_49, 0) + COALESCE(acs.female_50_to_54, 0)) as pop_45_to_54,
+        
+        -- 55-64: male_55_to_59 + male_60_to_61 + male_62_to_64 + female equivalents
+        (COALESCE(acs.male_55_to_59, 0) + COALESCE(acs.male_60_to_61, 0) + COALESCE(acs.male_62_to_64, 0) +
+         COALESCE(acs.female_55_to_59, 0) + COALESCE(acs.female_60_to_61, 0) + COALESCE(acs.female_62_to_64, 0)) as pop_55_to_64,
+        
+        -- 65-74: male_65_to_66 + male_67_to_69 + male_70_to_74 + female equivalents
+        (COALESCE(acs.male_65_to_66, 0) + COALESCE(acs.male_67_to_69, 0) + COALESCE(acs.male_70_to_74, 0) +
+         COALESCE(acs.female_65_to_66, 0) + COALESCE(acs.female_67_to_69, 0) + COALESCE(acs.female_70_to_74, 0)) as pop_65_to_74,
+        
+        -- 75-84: male_75_to_79 + male_80_to_84 + female equivalents
+        (COALESCE(acs.male_75_to_79, 0) + COALESCE(acs.male_80_to_84, 0) +
+         COALESCE(acs.female_75_to_79, 0) + COALESCE(acs.female_80_to_84, 0)) as pop_75_to_84,
+        
+        -- 85+: male_85_and_over + female_85_and_over
+        (COALESCE(acs.male_85_and_over, 0) + COALESCE(acs.female_85_and_over, 0)) as pop_85_and_over,
         
         -- Race/Ethnicity
         acs.white_pop,
@@ -327,11 +375,11 @@ serve(async (req) => {
         acs.occupied_housing_units,
         acs.vacant_housing_units,
         acs.owner_occupied_housing_units,
-        acs.renter_occupied_housing_units,
+        -- Compute renter-occupied from occupied - owner (column doesn't exist directly in ACS)
+        (COALESCE(acs.occupied_housing_units, 0) - COALESCE(acs.owner_occupied_housing_units, 0)) as renter_occupied_housing_units,
         acs.owner_occupied_housing_units_median_value as median_value,
         acs.median_rent,
         acs.median_year_structure_built,
-        acs.median_rooms,
         
         -- Income & Economics
         acs.median_income,
@@ -383,8 +431,8 @@ serve(async (req) => {
         
         -- Education
         acs.less_than_high_school_graduate,
-        acs.high_school_graduate,
-        acs.some_college,
+        acs.high_school_including_ged as high_school_graduate,
+        acs.some_college_and_associates_degree as some_college,
         acs.associates_degree,
         acs.bachelors_degree,
         acs.masters_degree,
