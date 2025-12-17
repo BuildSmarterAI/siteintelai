@@ -39,8 +39,11 @@ export default function MarketIntelligence() {
   const h3Cells = tradeAreaData?.cells;
   const coverage = tradeAreaData?.coverage;
 
+  // Round to 6 decimal places (~10cm precision) to prevent floating-point drift
+  const roundCoord = (n: number) => Math.round(n * 1000000) / 1000000;
+
   const handleAddressSelect = (lat: number, lng: number, address: string) => {
-    setCenter({ lat, lng });
+    setCenter({ lat: roundCoord(lat), lng: roundCoord(lng) });
     setSelectedAddress(address);
   };
 
@@ -105,7 +108,14 @@ export default function MarketIntelligence() {
                   centerLng={center.lng}
                   radiusMiles={radiusMiles}
                   metric={selectedMetric}
-                  onCenterChange={(lat, lng) => setCenter({ lat, lng })}
+                  onCenterChange={(lat, lng) => {
+                    const newLat = roundCoord(lat);
+                    const newLng = roundCoord(lng);
+                    // Only update if coordinates changed significantly
+                    if (newLat !== center.lat || newLng !== center.lng) {
+                      setCenter({ lat: newLat, lng: newLng });
+                    }
+                  }}
                   externalCells={h3Cells}
                   externalMinValue={tradeAreaData?.minValue}
                   externalMaxValue={tradeAreaData?.maxValue}

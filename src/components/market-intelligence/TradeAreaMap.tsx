@@ -37,6 +37,7 @@ export function TradeAreaMap({
 }: TradeAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const isProgrammaticMove = useRef(false);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showH3, setShowH3] = useState(true);
 
@@ -77,6 +78,11 @@ export function TradeAreaMap({
     });
 
     map.on('moveend', () => {
+      // Skip callback if this was a programmatic move
+      if (isProgrammaticMove.current) {
+        isProgrammaticMove.current = false;
+        return;
+      }
       const center = map.getCenter();
       onCenterChange?.(center.lat, center.lng);
     });
@@ -90,6 +96,9 @@ export function TradeAreaMap({
   // Update map center when props change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
+    
+    // Mark as programmatic move to prevent feedback loop
+    isProgrammaticMove.current = true;
     
     mapRef.current.flyTo({
       center: [centerLng, centerLat],
