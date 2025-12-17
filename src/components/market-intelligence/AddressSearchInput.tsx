@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Search, MapPin, Loader2 } from 'lucide-react';
+import { Search, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -15,13 +15,32 @@ interface Suggestion {
   lng?: number;
 }
 
-// Houston area default suggestions as fallback
+// Expanded Texas city defaults for CRE markets
 const DEFAULT_SUGGESTIONS: Suggestion[] = [
-  { place_id: '1', description: 'Downtown Houston, TX', lat: 29.7604, lng: -95.3698 },
-  { place_id: '2', description: 'The Woodlands, TX', lat: 30.1658, lng: -95.4613 },
-  { place_id: '3', description: 'Sugar Land, TX', lat: 29.6196, lng: -95.6349 },
-  { place_id: '4', description: 'Austin, TX', lat: 30.2672, lng: -97.7431 },
-  { place_id: '5', description: 'Dallas, TX', lat: 32.7767, lng: -96.7970 },
+  // Houston Metro
+  { place_id: 'houston', description: 'Downtown Houston, TX', lat: 29.7604, lng: -95.3698 },
+  { place_id: 'woodlands', description: 'The Woodlands, TX', lat: 30.1658, lng: -95.4613 },
+  { place_id: 'sugarland', description: 'Sugar Land, TX', lat: 29.6196, lng: -95.6349 },
+  { place_id: 'katy', description: 'Katy, TX', lat: 29.7858, lng: -95.8245 },
+  { place_id: 'pearland', description: 'Pearland, TX', lat: 29.5636, lng: -95.2860 },
+  { place_id: 'cypress', description: 'Cypress, TX', lat: 29.9691, lng: -95.6970 },
+  { place_id: 'conroe', description: 'Conroe, TX', lat: 30.3119, lng: -95.4560 },
+  // Austin Metro
+  { place_id: 'austin', description: 'Austin, TX', lat: 30.2672, lng: -97.7431 },
+  { place_id: 'roundrock', description: 'Round Rock, TX', lat: 30.5083, lng: -97.6789 },
+  { place_id: 'cedarpark', description: 'Cedar Park, TX', lat: 30.5052, lng: -97.8203 },
+  { place_id: 'georgetown', description: 'Georgetown, TX', lat: 30.6333, lng: -97.6780 },
+  // San Antonio Metro
+  { place_id: 'sanantonio', description: 'San Antonio, TX', lat: 29.4241, lng: -98.4936 },
+  { place_id: 'newbraunfels', description: 'New Braunfels, TX', lat: 29.7030, lng: -98.1245 },
+  // Dallas-Fort Worth Metro
+  { place_id: 'dallas', description: 'Dallas, TX', lat: 32.7767, lng: -96.7970 },
+  { place_id: 'fortworth', description: 'Fort Worth, TX', lat: 32.7555, lng: -97.3308 },
+  { place_id: 'plano', description: 'Plano, TX', lat: 33.0198, lng: -96.6989 },
+  { place_id: 'frisco', description: 'Frisco, TX', lat: 33.1507, lng: -96.8236 },
+  { place_id: 'arlington', description: 'Arlington, TX', lat: 32.7357, lng: -97.1081 },
+  { place_id: 'mckinney', description: 'McKinney, TX', lat: 33.1972, lng: -96.6397 },
+  { place_id: 'denton', description: 'Denton, TX', lat: 33.2148, lng: -97.1331 },
 ];
 
 function debounce<T extends (...args: any[]) => any>(fn: T, delay: number) {
@@ -37,6 +56,7 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchSuggestions = useCallback(async (value: string) => {
@@ -59,24 +79,37 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
         body: { input: value }
       });
 
-      if (error) {
-        console.error('Google Places error:', error);
-        setSuggestions(DEFAULT_SUGGESTIONS.slice(0, 3));
+      if (error || data?.status === 'REQUEST_DENIED') {
+        console.warn('Google Places unavailable, using fallback');
+        setIsOfflineMode(true);
+        // Filter defaults by query
+        const filtered = DEFAULT_SUGGESTIONS.filter(s => 
+          s.description.toLowerCase().includes(value.toLowerCase())
+        );
+        setSuggestions(filtered.length > 0 ? filtered : DEFAULT_SUGGESTIONS.slice(0, 5));
         return;
       }
 
       if (data?.predictions && data.predictions.length > 0) {
+        setIsOfflineMode(false);
         setSuggestions(data.predictions.map((p: any) => ({
           place_id: p.place_id,
           description: p.description,
         })));
       } else {
-        // No results, show defaults
-        setSuggestions(DEFAULT_SUGGESTIONS.slice(0, 3));
+        // No results from API, filter defaults
+        const filtered = DEFAULT_SUGGESTIONS.filter(s => 
+          s.description.toLowerCase().includes(value.toLowerCase())
+        );
+        setSuggestions(filtered.length > 0 ? filtered : []);
       }
     } catch (err) {
       console.error('Search error:', err);
-      setSuggestions(DEFAULT_SUGGESTIONS.slice(0, 3));
+      setIsOfflineMode(true);
+      const filtered = DEFAULT_SUGGESTIONS.filter(s => 
+        s.description.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(filtered.length > 0 ? filtered : DEFAULT_SUGGESTIONS.slice(0, 5));
     } finally {
       setIsLoading(false);
     }
@@ -93,6 +126,35 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
     setShowSuggestions(true);
     debouncedSearch(value);
   }, [debouncedSearch]);
+
+  // Direct geocode on Enter key
+  const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && query.length >= 3) {
+      e.preventDefault();
+      setShowSuggestions(false);
+      setIsLoading(true);
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('geocode-with-cache', {
+          body: { query: query, query_type: 'address' }
+        });
+
+        if (!error && data) {
+          const lat = data.lat || data.latitude;
+          const lng = data.lng || data.longitude;
+          if (lat && lng) {
+            onSelect(lat, lng, query);
+          }
+        }
+      } catch (err) {
+        console.error('Direct geocode error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+    }
+  };
 
   const handleSelect = async (suggestion: Suggestion) => {
     setQuery(suggestion.description);
@@ -119,7 +181,6 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
       if (data?.lat && data?.lng) {
         onSelect(data.lat, data.lng, suggestion.description);
       } else if (data?.latitude && data?.longitude) {
-        // Handle alternate response format
         onSelect(data.latitude, data.longitude, suggestion.description);
       }
     } catch (err) {
@@ -147,7 +208,8 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => setShowSuggestions(true)}
-          placeholder="Search address or location..."
+          onKeyDown={handleKeyDown}
+          placeholder="Search address or select a city..."
           className={cn(
             "w-full pl-10 pr-10 py-3 rounded-xl",
             "bg-white border border-slate-200",
@@ -161,12 +223,20 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
         )}
       </div>
 
+      {/* Offline mode indicator */}
+      {isOfflineMode && query.length >= 3 && (
+        <div className="flex items-center gap-1.5 mt-1 px-2 text-xs text-amber-600">
+          <AlertCircle className="h-3 w-3" />
+          <span>Using preset locations. Press Enter to search any address.</span>
+        </div>
+      )}
+
       {/* Suggestions dropdown */}
       {showSuggestions && (suggestions.length > 0 || query.length === 0) && (
-        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+        <div className="absolute z-50 w-full mt-2 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden max-h-80 overflow-y-auto">
           {query.length === 0 && (
             <div className="px-4 py-2 text-xs font-medium text-slate-500 bg-slate-50">
-              Popular Locations
+              Texas CRE Markets
             </div>
           )}
           <ul>
@@ -182,6 +252,11 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
               </li>
             ))}
           </ul>
+          {query.length >= 3 && (
+            <div className="px-4 py-2 text-xs text-slate-400 bg-slate-50 border-t border-slate-100">
+              Press Enter to search "{query}"
+            </div>
+          )}
         </div>
       )}
 
