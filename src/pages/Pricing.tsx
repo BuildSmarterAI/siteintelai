@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Zap, FileText, Crown, Building2, HelpCircle } from "lucide-react";
+import { Check, FileText, Building2, HelpCircle, Database, Clock, Shield } from "lucide-react";
 import { PaymentButton } from "@/components/PaymentButton";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -13,98 +13,40 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const tiers = [
-  {
-    name: "QuickCheck",
-    price: "Free",
-    description: "Instant feasibility snapshot",
-    icon: Zap,
-    features: [
-      { name: "Instant Feasibility Score (A/B/C)", included: true },
-      { name: "Basic Zoning Check", included: true },
-      { name: "Flood Zone Indicator", included: true },
-      { name: "Parcel Boundary Preview", included: true },
-      { name: "Full AI-Generated Report", included: false },
-      { name: "Detailed Utility Analysis", included: false },
-      { name: "EPA Environmental Data", included: false },
-      { name: "Traffic & AADT Data", included: false },
-      { name: "PDF Export", included: false },
-      { name: "Lender-Ready Documentation", included: false },
-    ],
-    cta: "Run Free QuickCheck",
-    href: "/application?step=2",
-    variant: "outline" as const,
-    popular: false,
-  },
-  {
-    name: "Site Feasibility Intelligence™",
-    price: "$1,495",
-    priceDetail: "per report",
-    description: "Complete lender-ready feasibility analysis",
-    icon: FileText,
-    features: [
-      { name: "Instant Feasibility Score (A/B/C)", included: true },
-      { name: "Basic Zoning Check", included: true },
-      { name: "Flood Zone Indicator", included: true },
-      { name: "Parcel Boundary Preview", included: true },
-      { name: "Full AI-Generated Report", included: true },
-      { name: "Detailed Utility Analysis", included: true },
-      { name: "EPA Environmental Data", included: true },
-      { name: "Traffic & AADT Data", included: true },
-      { name: "PDF Export", included: true },
-      { name: "Lender-Ready Documentation", included: true },
-    ],
-    cta: "Purchase Report",
-    paymentType: "report" as const,
-    variant: "default" as const,
-    popular: true,
-    isPrimary: true,
-  },
-  {
-    name: "Pro Subscription",
-    price: "$1,950",
-    priceDetail: "/month",
-    description: "For teams running multiple analyses",
-    icon: Crown,
-    features: [
-      { name: "Instant Feasibility Score (A/B/C)", included: true },
-      { name: "Basic Zoning Check", included: true },
-      { name: "Flood Zone Indicator", included: true },
-      { name: "Parcel Boundary Preview", included: true },
-      { name: "Full AI-Generated Report", included: true },
-      { name: "Detailed Utility Analysis", included: true },
-      { name: "EPA Environmental Data", included: true },
-      { name: "Traffic & AADT Data", included: true },
-      { name: "PDF Export", included: true },
-      { name: "Lender-Ready Documentation", included: true },
-      { name: "10 Reports per Month", included: true },
-      { name: "Unlimited QuickChecks", included: true },
-      { name: "Priority Support", included: true },
-      { name: "API Access", included: true },
-    ],
-    cta: "Subscribe Now",
-    paymentType: "subscription" as const,
-    variant: "default" as const,
-    popular: false,
-  },
+const features = [
+  "AI Feasibility Score (0-100)",
+  "Detailed Zoning Analysis", 
+  "FEMA Flood Zone Data",
+  "Parcel Boundary & CAD Data",
+  "Utility Infrastructure Analysis",
+  "EPA Environmental Data",
+  "TxDOT Traffic & AADT Data",
+  "Market Demographics",
+  "AI-Generated Narrative Report",
+  "Lender-Ready PDF Export",
+  "60-Second Delivery",
 ];
 
 const faqs = [
   {
     question: "How quickly do I receive my report?",
-    answer: "Professional Reports are generated in under 10 minutes. Our AI pipeline pulls data from 8+ authoritative sources (FEMA, EPA, TxDOT, county CAD records, and more) and synthesizes it into a comprehensive feasibility analysis.",
+    answer: "Reports are generated in under 60 seconds. Our AI pipeline pulls data from 8+ authoritative sources (FEMA, EPA, TxDOT, county CAD records, and more) and synthesizes it into a comprehensive feasibility analysis.",
+  },
+  {
+    question: "What's included in the $1,495 report?",
+    answer: "Everything you need for site due diligence: AI feasibility score, detailed zoning analysis, FEMA flood zone data, utility infrastructure analysis, EPA environmental data, TxDOT traffic counts, market demographics, AI-generated narrative report, and a lender-ready PDF export.",
   },
   {
     question: "Are the reports accepted by lenders?",
     answer: "Yes. Our reports are designed to meet lender requirements with proper citations, verified data sources, and audit-ready documentation. Every data point includes its source and timestamp for full transparency.",
   },
   {
-    question: "What's included in the free QuickCheck?",
-    answer: "QuickCheck provides an instant feasibility grade (A, B, or C) based on zoning compatibility, flood risk, and basic parcel data. It's perfect for quickly screening properties before committing to a full analysis.",
+    question: "How is this different from a traditional feasibility study?",
+    answer: "Traditional feasibility studies cost $5,000-$15,000 and take 2-4 weeks. SiteIntel delivers the same authoritative data analysis in 60 seconds for $1,495, with full source citations and lender-ready formatting.",
   },
   {
-    question: "Can I upgrade from pay-per-report to Pro?",
-    answer: "Absolutely! You can upgrade to Pro at any time. Your purchased report credits remain available, and you'll immediately gain access to your monthly allocation plus all Pro features.",
+    question: "Can I purchase multiple reports?",
+    answer: "Yes, each report is $1,495 per property. For teams processing 50+ properties per month, contact us about enterprise pricing with volume discounts.",
   },
   {
     question: "What payment methods do you accept?",
@@ -115,12 +57,8 @@ const faqs = [
     answer: "If our system cannot generate a report due to insufficient data for your property, you will not be charged. For other issues, contact our support team within 7 days of purchase for a full refund.",
   },
   {
-    question: "Do unused Pro credits roll over?",
-    answer: "Monthly report credits reset each billing cycle and do not roll over. However, any individually purchased report credits remain available until used.",
-  },
-  {
     question: "What areas do you cover?",
-    answer: "We currently provide comprehensive coverage for Harris, Fort Bend, and Montgomery counties in Texas. We're actively expanding to additional Texas metros and will announce new coverage areas soon.",
+    answer: "We currently provide comprehensive coverage for 18 Texas counties including Harris, Fort Bend, Montgomery, Travis, Bexar, Dallas, Tarrant, and more. We're actively expanding coverage and will announce new areas soon.",
   },
 ];
 
@@ -147,165 +85,78 @@ export default function Pricing() {
       <section className="pt-32 pb-16 px-6 bg-gradient-to-b from-secondary to-background">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="outline" className="mb-4 border-accent text-accent">
-            Transparent Pricing
+            Simple Pricing
           </Badge>
           <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl text-foreground mb-6">
-            Flexible Pricing for Every Project
+            Complete Feasibility Intelligence
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            From quick feasibility checks to comprehensive lender-ready reports. 
-            Pay per report or save with a Pro subscription.
+            One comprehensive report with everything you need for confident site decisions. 
+            Lender-ready analysis delivered in 60 seconds.
           </p>
         </div>
       </section>
 
-      {/* Pricing Cards */}
+      {/* Single Pricing Card */}
       <section className="py-16 px-6">
-        <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-3 gap-8">
-            {tiers.map((tier) => (
-              <Card 
-                key={tier.name}
-                className={`relative flex flex-col ${
-                  tier.popular 
-                    ? "border-primary shadow-lg shadow-primary/20 scale-105" 
-                    : "border-border"
-                }`}
-              >
-                {tier.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                    Most Popular
-                  </Badge>
-                )}
-                <CardHeader className="text-center pb-4">
-                  <div className="mx-auto mb-4 p-3 rounded-full bg-muted w-fit">
-                    <tier.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                  <CardDescription>{tier.description}</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-4xl font-bold text-foreground">{tier.price}</span>
-                    {tier.priceDetail && (
-                      <span className="text-muted-foreground ml-1">{tier.priceDetail}</span>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col">
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {tier.features.map((feature) => (
-                      <li key={feature.name} className="flex items-start gap-3">
-                        {feature.included ? (
-                          <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                        ) : (
-                          <X className="h-5 w-5 text-muted-foreground/50 shrink-0 mt-0.5" />
-                        )}
-                        <span className={feature.included ? "text-foreground" : "text-muted-foreground/50"}>
-                          {feature.name}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  {tier.href ? (
-                    <Button asChild variant={tier.variant} className="w-full">
-                      <Link to={tier.href}>{tier.cta}</Link>
-                    </Button>
-                  ) : tier.paymentType && isAuthenticated ? (
-                    <PaymentButton 
-                      type={tier.paymentType} 
-                      variant={tier.variant} 
-                      className={`w-full ${tier.isPrimary ? "bg-primary hover:bg-primary/90" : ""}`}
-                    >
-                      {tier.cta}
-                    </PaymentButton>
-                  ) : tier.paymentType ? (
-                    <Button 
-                      asChild 
-                      variant={tier.variant} 
-                      className={`w-full ${tier.isPrimary ? "bg-primary hover:bg-primary/90" : ""}`}
-                    >
-                      <Link to="/auth">Sign in to {tier.cta}</Link>
-                    </Button>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Feature Comparison Table */}
-      <section className="py-16 px-6 bg-muted/30">
-        <div className="container mx-auto max-w-5xl">
-          <h2 className="font-headline text-3xl md:text-4xl text-center text-foreground mb-12">
-            Compare All Features
-          </h2>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-4 px-4 font-semibold text-foreground">Feature</th>
-                  <th className="text-center py-4 px-4 font-semibold text-foreground">QuickCheck</th>
-                  <th className="text-center py-4 px-4 font-semibold text-primary">Professional</th>
-                  <th className="text-center py-4 px-4 font-semibold text-foreground">Pro Sub</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { feature: "Feasibility Score", quick: true, pro: true, sub: true },
-                  { feature: "Zoning Check", quick: "Basic", pro: "Detailed", sub: "Detailed" },
-                  { feature: "Flood Zone Analysis", quick: "Indicator", pro: "Full FEMA Data", sub: "Full FEMA Data" },
-                  { feature: "Parcel Data", quick: "Preview", pro: "Complete", sub: "Complete" },
-                  { feature: "Utility Analysis", quick: false, pro: true, sub: true },
-                  { feature: "Environmental (EPA)", quick: false, pro: true, sub: true },
-                  { feature: "Traffic Data (TxDOT)", quick: false, pro: true, sub: true },
-                  { feature: "AI Narrative Report", quick: false, pro: true, sub: true },
-                  { feature: "PDF Export", quick: false, pro: true, sub: true },
-                  { feature: "Lender-Ready Format", quick: false, pro: true, sub: true },
-                  { feature: "Reports Included", quick: "—", pro: "1", sub: "10/month" },
-                  { feature: "API Access", quick: false, pro: false, sub: true },
-                  { feature: "Priority Support", quick: false, pro: false, sub: true },
-                ].map((row, idx) => (
-                  <tr key={idx} className="border-b border-border/50">
-                    <td className="py-3 px-4 text-foreground">{row.feature}</td>
-                    <td className="py-3 px-4 text-center">
-                      {typeof row.quick === "boolean" ? (
-                        row.quick ? (
-                          <Check className="h-5 w-5 text-green-500 mx-auto" />
-                        ) : (
-                          <X className="h-5 w-5 text-muted-foreground/50 mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-muted-foreground text-sm">{row.quick}</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center bg-primary/5">
-                      {typeof row.pro === "boolean" ? (
-                        row.pro ? (
-                          <Check className="h-5 w-5 text-green-500 mx-auto" />
-                        ) : (
-                          <X className="h-5 w-5 text-muted-foreground/50 mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-foreground font-medium text-sm">{row.pro}</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      {typeof row.sub === "boolean" ? (
-                        row.sub ? (
-                          <Check className="h-5 w-5 text-green-500 mx-auto" />
-                        ) : (
-                          <X className="h-5 w-5 text-muted-foreground/50 mx-auto" />
-                        )
-                      ) : (
-                        <span className="text-muted-foreground text-sm">{row.sub}</span>
-                      )}
-                    </td>
-                  </tr>
+        <div className="container mx-auto max-w-lg">
+          <Card className="relative border-primary shadow-lg shadow-primary/20">
+            <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
+              Complete Package
+            </Badge>
+            <CardHeader className="text-center pb-4">
+              <div className="mx-auto mb-4 p-3 rounded-full bg-muted w-fit">
+                <FileText className="h-8 w-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl">Site Feasibility Intelligence™</CardTitle>
+              <CardDescription>Complete lender-ready feasibility analysis</CardDescription>
+              <div className="mt-4">
+                <span className="text-5xl font-bold text-foreground">$1,495</span>
+                <span className="text-muted-foreground ml-2">per report</span>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col">
+              <ul className="space-y-3 mb-8">
+                {features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+                    <span className="text-foreground">{feature}</span>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ul>
+              
+              {isAuthenticated ? (
+                <PaymentButton 
+                  type="report" 
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6"
+                >
+                  Get Your Report - $1,495
+                </PaymentButton>
+              ) : (
+                <Button 
+                  asChild 
+                  className="w-full bg-primary hover:bg-primary/90 text-lg py-6"
+                >
+                  <Link to="/auth">Get Your Report - $1,495</Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Trust Indicators */}
+          <div className="flex flex-wrap justify-center gap-6 mt-8 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Database className="h-5 w-5 text-accent" />
+              <span className="text-sm">FEMA • EPA • TxDOT</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-accent" />
+              <span className="text-sm">60-Second Delivery</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-accent" />
+              <span className="text-sm">Lender-Ready</span>
+            </div>
           </div>
         </div>
       </section>
@@ -332,7 +183,7 @@ export default function Pricing() {
               </span>
               <span className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-500" />
-                Cancel subscription anytime
+                Secure payment via Stripe
               </span>
             </div>
           </div>
@@ -365,7 +216,7 @@ export default function Pricing() {
               Frequently Asked Questions
             </h2>
             <p className="text-muted-foreground">
-              Everything you need to know about our pricing and reports.
+              Everything you need to know about our reports and pricing.
             </p>
           </div>
 
@@ -390,23 +241,22 @@ export default function Pricing() {
           <h2 className="font-headline text-3xl md:text-4xl text-primary-foreground mb-6">
             Ready to Make Smarter Site Decisions?
           </h2>
-          <p className="text-primary-foreground/80 mb-8">
-            Start with a free QuickCheck or get your first Professional Report today.
+          <p className="text-primary-foreground/80 mb-8 text-lg">
+            Get complete feasibility intelligence in 60 seconds.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild variant="outline" size="lg" className="bg-primary-foreground text-primary hover:bg-primary-foreground/90">
-              <Link to="/application?step=2">Run Free QuickCheck</Link>
+          {isAuthenticated ? (
+            <PaymentButton 
+              type="report" 
+              variant="secondary" 
+              className="text-lg px-8 py-6"
+            >
+              Get Your Report - $1,495
+            </PaymentButton>
+          ) : (
+            <Button asChild variant="secondary" size="lg" className="text-lg px-8 py-6">
+              <Link to="/auth">Get Your Report - $1,495</Link>
             </Button>
-            {isAuthenticated ? (
-              <PaymentButton type="report" size="lg" className="bg-background/20 text-primary-foreground border-primary-foreground/30 hover:bg-background/30">
-                Access Intelligence — $1,495
-              </PaymentButton>
-            ) : (
-              <Button asChild size="lg" variant="outline" className="bg-background/20 text-primary-foreground border-primary-foreground/30 hover:bg-background/30">
-                <Link to="/auth">Sign In to Purchase</Link>
-              </Button>
-            )}
-          </div>
+          )}
         </div>
       </section>
     </div>
