@@ -37,8 +37,12 @@ export function useComputeTradeAreaMetrics(options: UseComputeTradeAreaOptions) 
     enabled = true 
   } = options;
 
+  // Round coordinates to 6 decimal places to prevent floating-point drift causing refetches
+  const roundedLat = Math.round(centerLat * 1000000) / 1000000;
+  const roundedLng = Math.round(centerLng * 1000000) / 1000000;
+
   return useQuery({
-    queryKey: ['trade-area-computed', centerLat, centerLng, radiusMiles, metric, h3Resolution],
+    queryKey: ['trade-area-computed', roundedLat, roundedLng, radiusMiles, metric, h3Resolution],
     queryFn: async (): Promise<ComputeTradeAreaResponse> => {
       console.log('[useComputeTradeAreaMetrics] Fetching trade area data...');
       
