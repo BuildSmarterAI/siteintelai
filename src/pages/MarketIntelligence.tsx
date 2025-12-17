@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/navigation/DashboardSidebar';
 import { PresetSelector } from '@/components/market-intelligence/PresetSelector';
@@ -34,9 +34,12 @@ export default function MarketIntelligence() {
     metric: selectedMetric,
   });
 
-  // Use real metrics if available, fallback to mock
-  const metrics = tradeAreaData?.metrics || generateMockMetrics(radiusMiles);
-  const h3Cells = tradeAreaData?.cells;
+  // Use real metrics if available; memoize mock fallback so it doesn't change every render
+  const fallbackMetrics = useMemo(() => generateMockMetrics(radiusMiles), [center.lat, center.lng, radiusMiles]);
+  const metrics = tradeAreaData?.metrics || fallbackMetrics;
+
+  // Avoid showing mock hexes while real data is loading (prevents "changing" hexagons)
+  const h3Cells = tradeAreaData?.cells ?? [];
   const coverage = tradeAreaData?.coverage;
 
   // Round to 6 decimal places (~10cm precision) to prevent floating-point drift
