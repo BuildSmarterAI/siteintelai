@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { DashboardSidebar } from '@/components/navigation/DashboardSidebar';
 import { PresetSelector } from '@/components/market-intelligence/PresetSelector';
@@ -9,8 +9,9 @@ import { GrowthProjectionCard } from '@/components/market-intelligence/GrowthPro
 import { MetricSelector, MetricType } from '@/components/market-intelligence/MetricSelector';
 import { AddressSearchInput } from '@/components/market-intelligence/AddressSearchInput';
 import { useMarketPresets } from '@/hooks/useMarketPresets';
+import { useComputeTradeAreaMetrics } from '@/hooks/useComputeTradeAreaMetrics';
 import { generateMockMetrics } from '@/hooks/useTradeAreaMetrics';
-import { Globe2, Sparkles } from 'lucide-react';
+import { Globe2, Sparkles, Loader2 } from 'lucide-react';
 
 // Default center: Downtown Houston
 const DEFAULT_CENTER = { lat: 29.7604, lng: -95.3698 };
@@ -25,8 +26,18 @@ export default function MarketIntelligence() {
   // Get radius from selected preset
   const radiusMiles = selectedPreset?.radius_miles || 1;
 
-  // Generate mock metrics based on radius
-  const metrics = useMemo(() => generateMockMetrics(radiusMiles), [radiusMiles, center]);
+  // Fetch real Census data via edge function
+  const { data: tradeAreaData, isLoading: metricsLoading, error: metricsError } = useComputeTradeAreaMetrics({
+    centerLat: center.lat,
+    centerLng: center.lng,
+    radiusMiles,
+    metric: selectedMetric,
+  });
+
+  // Use real metrics if available, fallback to mock
+  const metrics = tradeAreaData?.metrics || generateMockMetrics(radiusMiles);
+  const h3Cells = tradeAreaData?.cells;
+  const coverage = tradeAreaData?.coverage;
 
   const handleAddressSelect = (lat: number, lng: number, address: string) => {
     setCenter({ lat, lng });
@@ -95,6 +106,10 @@ export default function MarketIntelligence() {
                   radiusMiles={radiusMiles}
                   metric={selectedMetric}
                   onCenterChange={(lat, lng) => setCenter({ lat, lng })}
+                  externalCells={h3Cells}
+                  externalMinValue={tradeAreaData?.minValue}
+                  externalMaxValue={tradeAreaData?.maxValue}
+                  isLoading={metricsLoading}
                 />
               </div>
             </div>
@@ -115,6 +130,36 @@ export default function MarketIntelligence() {
                   </div>
                 </div>
 
+                {/* Coverage Info */}
+                {coverage && (
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
+                      Data Coverage
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-[hsl(var(--data-cyan))] rounded-full transition-all"
+                          style={{ width: `${coverage.coveragePercent}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700">
+                        {coverage.coveragePercent}%
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400 mt-1">
+                      {coverage.coveredCells}/{coverage.requestedCells} Census tracts
+                    </div>
+                  </div>
+                )}
+
+                {metricsLoading && (
+                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--data-cyan))]" />
+                    <span className="text-sm text-slate-600">Loading Census data...</span>
+                  </div>
+                )}
+
                 <MetricsSummaryPanel 
                   metrics={metrics} 
                   radiusMiles={radiusMiles}
@@ -126,7 +171,7 @@ export default function MarketIntelligence() {
 
                 {/* Data Attribution */}
                 <div className="text-xs text-slate-400 text-center py-4">
-                  Data sources: U.S. Census ACS 2022, ESRI Demographics
+                  {tradeAreaData?.dataSource || 'Data sources: U.S. Census ACS 2022, ESRI Demographics'}
                   <br />
                   Last updated: {new Date().toLocaleDateString()}
                 </div>

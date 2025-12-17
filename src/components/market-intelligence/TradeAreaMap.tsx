@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import maplibregl, { Map as MapLibreMap } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { H3Layer, H3Legend } from './H3Layer';
-import { useH3Cells } from '@/hooks/useH3Cells';
+import { useH3Cells, H3CellData } from '@/hooks/useH3Cells';
 import { cn } from '@/lib/utils';
 import { Layers, ZoomIn, ZoomOut, Locate } from 'lucide-react';
 
@@ -13,6 +13,11 @@ interface TradeAreaMapProps {
   metric: 'population' | 'income' | 'growth' | 'spending';
   onCenterChange?: (lat: number, lng: number) => void;
   className?: string;
+  // External H3 cell data (from real Census data)
+  externalCells?: H3CellData[];
+  externalMinValue?: number;
+  externalMaxValue?: number;
+  isLoading?: boolean;
 }
 
 const MAPTILER_KEY = 'get_your_own_key'; // Will use OSM tiles instead
@@ -25,20 +30,29 @@ export function TradeAreaMap({
   metric,
   onCenterChange,
   className,
+  externalCells,
+  externalMinValue,
+  externalMaxValue,
+  isLoading,
 }: TradeAreaMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [showH3, setShowH3] = useState(true);
 
-  // Generate H3 cells for visualization
-  const { cells, minValue, maxValue } = useH3Cells({
+  // Use external cells if provided, otherwise generate mock cells
+  const mockCells = useH3Cells({
     centerLat,
     centerLng,
     radiusMiles,
     resolution: radiusMiles <= 1 ? 9 : radiusMiles <= 3 ? 8 : 7,
     metric,
   });
+
+  // Prefer external (real) data over mock
+  const cells = externalCells || mockCells.cells;
+  const minValue = externalMinValue ?? mockCells.minValue;
+  const maxValue = externalMaxValue ?? mockCells.maxValue;
 
   // Initialize map
   useEffect(() => {
@@ -161,8 +175,19 @@ export function TradeAreaMap({
       <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1.5 shadow-md">
         <span className="text-sm font-medium text-slate-700">
           {cells.length} hexagons
+          {externalCells && <span className="ml-1 text-xs text-[hsl(var(--data-cyan))]">(Census)</span>}
         </span>
       </div>
+
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center rounded-lg">
+          <div className="flex items-center gap-2 text-slate-600">
+            <div className="animate-spin h-5 w-5 border-2 border-slate-300 border-t-[hsl(var(--data-cyan))] rounded-full" />
+            <span className="text-sm font-medium">Loading Census data...</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
