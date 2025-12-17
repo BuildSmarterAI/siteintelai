@@ -116,16 +116,19 @@ Deno.serve(async (req) => {
     const googleResponse = await fetch(googleUrl);
     const googleData = await googleResponse.json();
 
-    if (googleData.status !== 'OK' || !googleData.results?.length) {
-      console.error(`[geocode-with-cache] Google API error: ${googleData.status}`);
-      return new Response(
-        JSON.stringify({ 
-          error: `Geocoding failed: ${googleData.status}`,
-          google_status: googleData.status 
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+     if (googleData.status !== 'OK' || !googleData.results?.length) {
+       // IMPORTANT: return 200 so clients don't crash on non-2xx responses.
+       // Clients can treat this as "no result" and fall back to presets.
+       console.error(`[geocode-with-cache] Google API error: ${googleData.status}`);
+       return new Response(
+         JSON.stringify({
+           success: false,
+           error: `Geocoding failed: ${googleData.status}`,
+           google_status: googleData.status,
+         }),
+         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+       );
+     }
 
     const result = googleData.results[0];
     const location = result.geometry.location;
