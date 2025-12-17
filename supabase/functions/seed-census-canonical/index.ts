@@ -238,7 +238,27 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  console.log("[seed-census-canonical] Starting BigQuery ETL with expanded 83+ variables...");
+  
+  // Parse request body for optional filtering
+  let countyFips: string[] | null = null;
+  let limit: number | null = null;
+  
+  try {
+    const body = await req.json();
+    // Optional: filter by county FIPS codes (e.g., ["201", "157", "339"] for Harris, Fort Bend, Montgomery)
+    if (body.county_fips && Array.isArray(body.county_fips)) {
+      countyFips = body.county_fips;
+    }
+    // Optional: limit for testing (default: no limit = all ~5,265 Texas tracts)
+    if (body.limit && typeof body.limit === 'number') {
+      limit = body.limit;
+    }
+  } catch {
+    // No body or invalid JSON, proceed with defaults (full Texas)
+  }
+
+  console.log("[seed-census-canonical] Starting BigQuery ETL for Texas Census tracts...");
+  console.log(`[seed-census-canonical] Filters: county_fips=${countyFips?.join(',') || 'ALL'}, limit=${limit || 'NONE'}`);
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -256,7 +276,18 @@ serve(async (req) => {
     const accessToken = await getAccessToken(credentials);
     console.log("[seed-census-canonical] Authentication successful");
 
-    // EXPANDED Query with 83+ ACS variables
+    // Build WHERE clause for optional county filtering
+    let whereClause = "geo.geo_id LIKE '48%'"; // Texas state FIPS = 48
+    if (countyFips && countyFips.length > 0) {
+      // County FIPS is characters 3-5 of geo_id (e.g., 48201 = Harris County)
+      const countyConditions = countyFips.map(fips => `geo.geo_id LIKE '48${fips}%'`).join(' OR ');
+      whereClause = `(${countyConditions})`;
+    }
+    
+    // Optional LIMIT clause for testing
+    const limitClause = limit ? `LIMIT ${limit}` : '';
+
+    // EXPANDED Query with 83+ ACS variables - NO DEFAULT LIMIT for full Texas coverage
     const query = `
       SELECT 
         geo.geo_id as geoid,
@@ -365,13 +396,13 @@ serve(async (req) => {
       FROM \`${BIGQUERY_GEO_TABLE}\` geo
       LEFT JOIN \`${BIGQUERY_ACS_TABLE}\` acs
         ON geo.geo_id = acs.geo_id
-      WHERE geo.geo_id LIKE '48%'
-      LIMIT 1000
+      WHERE ${whereClause}
+      ${limitClause}
     `;
 
     console.log("[seed-census-canonical] Querying BigQuery for Texas census tracts...");
     const rows = await queryBigQuery(accessToken, credentials.project_id, query);
-    console.log(`[seed-census-canonical] Fetched ${rows.length} census tracts`);
+    console.log(`[seed-census-canonical] Fetched ${rows.length} census tracts from BigQuery`);
 
     const canonicalRecords: any[] = [];
     const projectionRecords: any[] = [];
@@ -674,27 +705,55 @@ serve(async (req) => {
 
     console.log(`[seed-census-canonical] Transformed ${canonicalRecords.length} records with expanded data`);
 
-    // Upsert to canonical_demographics
+    // Batch upsert to canonical_demographics (batch size 500 for reliability)
+    const BATCH_SIZE = 500;
+    let totalUpserted = 0;
+    
     if (canonicalRecords.length > 0) {
-      const { error: demoError } = await supabase
-        .from("canonical_demographics")
-        .upsert(canonicalRecords, { onConflict: "geoid" });
+      console.log(`[seed-census-canonical] Upserting ${canonicalRecords.length} records in batches of ${BATCH_SIZE}...`);
+      
+      for (let i = 0; i < canonicalRecords.length; i += BATCH_SIZE) {
+        const batch = canonicalRecords.slice(i, i + BATCH_SIZE);
+        const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+        const totalBatches = Math.ceil(canonicalRecords.length / BATCH_SIZE);
+        
+        console.log(`[seed-census-canonical] Processing batch ${batchNum}/${totalBatches} (${batch.length} records)...`);
+        
+        const { error: demoError } = await supabase
+          .from("canonical_demographics")
+          .upsert(batch, { onConflict: "geoid" });
 
-      if (demoError) {
-        console.error("[seed-census-canonical] Error upserting demographics:", demoError);
-        throw demoError;
+        if (demoError) {
+          console.error(`[seed-census-canonical] Error upserting batch ${batchNum}:`, demoError);
+          throw demoError;
+        }
+        
+        totalUpserted += batch.length;
+        console.log(`[seed-census-canonical] Batch ${batchNum} complete. Progress: ${totalUpserted}/${canonicalRecords.length} (${Math.round(totalUpserted/canonicalRecords.length*100)}%)`);
+        
+        // Small delay between batches to avoid rate limiting
+        if (i + BATCH_SIZE < canonicalRecords.length) {
+          await new Promise(r => setTimeout(r, 100));
+        }
       }
-      console.log(`[seed-census-canonical] Upserted ${canonicalRecords.length} canonical_demographics records`);
+      
+      console.log(`[seed-census-canonical] Upserted ${totalUpserted} canonical_demographics records`);
 
-      // Update geometry via SQL
+      // Update geometry via SQL (also batched)
       if (geomUpdates.length > 0) {
         console.log(`[seed-census-canonical] Updating ${geomUpdates.length} tract geometries...`);
         let geomSuccessCount = 0;
         let geomErrorCount = 0;
         
-        const batchSize = 50;
-        for (let i = 0; i < geomUpdates.length; i += batchSize) {
-          const batch = geomUpdates.slice(i, i + batchSize);
+        const geomBatchSize = 50;
+        for (let i = 0; i < geomUpdates.length; i += geomBatchSize) {
+          const batch = geomUpdates.slice(i, i + geomBatchSize);
+          const batchNum = Math.floor(i / geomBatchSize) + 1;
+          const totalBatches = Math.ceil(geomUpdates.length / geomBatchSize);
+          
+          if (batchNum % 20 === 0 || batchNum === 1) {
+            console.log(`[seed-census-canonical] Geometry batch ${batchNum}/${totalBatches}...`);
+          }
           
           for (const { geoid, geomJson } of batch) {
             try {
@@ -716,8 +775,8 @@ serve(async (req) => {
             }
           }
           
-          if (i + batchSize < geomUpdates.length) {
-            await new Promise(r => setTimeout(r, 100));
+          if (i + geomBatchSize < geomUpdates.length) {
+            await new Promise(r => setTimeout(r, 50));
           }
         }
         
@@ -725,40 +784,57 @@ serve(async (req) => {
       }
     }
 
-    // Upsert projections
+    // Batch upsert projections
     if (projectionRecords.length > 0) {
-      const { error: projError } = await supabase
-        .from("demographics_projections")
-        .upsert(projectionRecords, { onConflict: "geoid" });
+      console.log(`[seed-census-canonical] Upserting ${projectionRecords.length} projection records...`);
+      for (let i = 0; i < projectionRecords.length; i += BATCH_SIZE) {
+        const batch = projectionRecords.slice(i, i + BATCH_SIZE);
+        const { error: projError } = await supabase
+          .from("demographics_projections")
+          .upsert(batch, { onConflict: "geoid" });
 
-      if (projError) {
-        console.error("[seed-census-canonical] Error upserting projections:", projError);
-      } else {
-        console.log(`[seed-census-canonical] Upserted ${projectionRecords.length} projection records`);
+        if (projError) {
+          console.error("[seed-census-canonical] Error upserting projections:", projError);
+        }
+        
+        if (i + BATCH_SIZE < projectionRecords.length) {
+          await new Promise(r => setTimeout(r, 50));
+        }
       }
+      console.log(`[seed-census-canonical] Upserted ${projectionRecords.length} projection records`);
     }
 
-    // Upsert historical
+    // Batch upsert historical
     if (historicalRecords.length > 0) {
-      const { error: histError } = await supabase
-        .from("demographics_historical")
-        .upsert(historicalRecords, { onConflict: "geoid,acs_vintage" });
+      console.log(`[seed-census-canonical] Upserting ${historicalRecords.length} historical records...`);
+      for (let i = 0; i < historicalRecords.length; i += BATCH_SIZE) {
+        const batch = historicalRecords.slice(i, i + BATCH_SIZE);
+        const { error: histError } = await supabase
+          .from("demographics_historical")
+          .upsert(batch, { onConflict: "geoid,acs_vintage" });
 
-      if (histError) {
-        console.error("[seed-census-canonical] Error upserting historical:", histError);
-      } else {
-        console.log(`[seed-census-canonical] Upserted ${historicalRecords.length} historical records`);
+        if (histError) {
+          console.error("[seed-census-canonical] Error upserting historical:", histError);
+        }
+        
+        if (i + BATCH_SIZE < historicalRecords.length) {
+          await new Promise(r => setTimeout(r, 50));
+        }
       }
+      console.log(`[seed-census-canonical] Upserted ${historicalRecords.length} historical records`);
     }
 
     const elapsedMs = Date.now() - startTime;
-    console.log(`[seed-census-canonical] ETL complete in ${elapsedMs}ms`);
+    const elapsedMin = (elapsedMs / 60000).toFixed(1);
+    console.log(`[seed-census-canonical] ETL complete in ${elapsedMs}ms (${elapsedMin} min)`);
 
     return new Response(
       JSON.stringify({
         success: true,
         records_processed: canonicalRecords.length,
         elapsed_ms: elapsedMs,
+        elapsed_min: parseFloat(elapsedMin),
+        county_filter: countyFips || "ALL_TEXAS",
         message: `Seeded ${canonicalRecords.length} Texas tracts with expanded 83+ ACS variables and 6 proprietary indices`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
