@@ -24,6 +24,14 @@ const STATE_PROGRESS: Record<string, number> = {
 const MAX_ATTEMPTS = 3;
 const BASE_DELAY_MS = 2000; // 2s, 4s, 8s
 
+// ===== CIRCUIT BREAKER CONFIG =====
+// Maximum retry attempts before marking application as permanently failed
+const MAX_APPLICATION_ATTEMPTS = 3;
+
+// API call budget per application - PREVENTS RUNAWAY API COSTS
+// Normal enrichment uses ~30-50 API calls, set budget at 150 for buffer
+const MAX_API_CALLS_PER_APPLICATION = 150;
+
 // Generate short trace ID for request correlation
 function generateTraceId(): string {
   return crypto.randomUUID().slice(0, 8);
@@ -783,11 +791,55 @@ async function orchestrate(appId: string, traceId: string): Promise<any> {
   }
 
   const currentRev = app.status_rev || 0;
+  const currentAttempts = app.attempts || 0;
+  
+  // ===== CIRCUIT BREAKER: Check if app has exceeded max attempts =====
+  if (currentAttempts >= MAX_APPLICATION_ATTEMPTS) {
+    console.error(`⛔ [TRACE:${traceId}] [orchestrate] CIRCUIT BREAKER TRIGGERED: App ${appId} has ${currentAttempts} attempts (max: ${MAX_APPLICATION_ATTEMPTS})`);
+    
+    await sbAdmin
+      .from('applications')
+      .update({
+        status: 'error_permanent',
+        error_code: 'MAX_RETRIES_EXCEEDED',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', appId);
+    
+    throw new Error(`Application exceeded max retry attempts: ${currentAttempts}/${MAX_APPLICATION_ATTEMPTS}`);
+  }
+  
+  // ===== API BUDGET CHECK: Count existing API calls for this application =====
+  const { count: apiCallCount, error: countError } = await sbAdmin
+    .from('api_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('application_id', appId);
+  
+  if (!countError && apiCallCount !== null && apiCallCount >= MAX_API_CALLS_PER_APPLICATION) {
+    console.error(`💸 [TRACE:${traceId}] [orchestrate] API BUDGET EXCEEDED: App ${appId} has ${apiCallCount} API calls (max: ${MAX_API_CALLS_PER_APPLICATION})`);
+    
+    await sbAdmin
+      .from('applications')
+      .update({
+        status: 'error',
+        error_code: 'API_BUDGET_EXCEEDED',
+        data_flags: [...(app.data_flags || []), 'api_budget_exceeded'],
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', appId);
+    
+    throw new Error(`Application exceeded API budget: ${apiCallCount}/${MAX_API_CALLS_PER_APPLICATION} calls`);
+  }
+  
+  console.log(`📊 [TRACE:${traceId}] [orchestrate] Budget check: ${apiCallCount || 0}/${MAX_API_CALLS_PER_APPLICATION} API calls used`);
+  // ===== END BUDGET CHECK =====
   
   console.log(`🔄 [TRACE:${traceId}] [orchestrate] Application State:`, JSON.stringify({
     id: app.id,
     status: app.status,
     status_rev: currentRev,
+    attempts: currentAttempts,
+    api_calls_used: apiCallCount || 0,
     geo_lat: app.geo_lat,
     geo_lng: app.geo_lng,
     has_coords: !!(app.geo_lat && app.geo_lng),
