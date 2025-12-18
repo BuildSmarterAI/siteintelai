@@ -33,7 +33,8 @@ import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
 import { RealTimeMonitorTab } from "@/components/admin/RealTimeMonitorTab";
 import { ScraperApiTab } from "@/components/admin/ScraperApiTab";
 import { GisHealthTab } from "@/components/admin/GisHealthTab";
-import { MapPin } from "lucide-react";
+import { ApiCostTab } from "@/components/admin/ApiCostTab";
+import { MapPin, DollarSign } from "lucide-react";
 
 interface CronJob {
   id: string;
@@ -70,6 +71,7 @@ const CRON_JOBS = [
   { name: 'credit-reset', schedule: 'Monthly (1st)', description: 'Reset subscription credits' },
   { name: 'cache-cleanup', schedule: 'Daily at 4 AM', description: 'Purge expired cache entries' },
   { name: 'alert-check', schedule: 'Every 15 minutes', description: 'Check system alert conditions' },
+  { name: 'aggregate-api-costs', schedule: 'Hourly', description: 'Aggregate API costs and check budgets' },
 ];
 
 export default function SystemHealth() {
@@ -342,6 +344,10 @@ export default function SystemHealth() {
               <MapPin className="w-4 h-4" />
               GIS Health
             </TabsTrigger>
+            <TabsTrigger value="costs" className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              API Costs
+            </TabsTrigger>
             <TabsTrigger value="tiles" className="flex items-center gap-2" onClick={() => window.location.href = '/admin/tile-management'}>
               <Layers className="w-4 h-4" />
               Tiles
@@ -535,6 +541,11 @@ export default function SystemHealth() {
           {/* GIS Health Tab */}
           <TabsContent value="gis-health">
             <GisHealthTab />
+          </TabsContent>
+
+          {/* API Costs Tab */}
+          <TabsContent value="costs">
+            <ApiCostTab />
           </TabsContent>
         </Tabs>
       </div>
