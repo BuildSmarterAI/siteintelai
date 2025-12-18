@@ -190,6 +190,7 @@ export function PropertyStepMapFirst({
           zoom={mapZoom}
           showParcels={true}
           onParcelSelect={handleMapParcelSelect}
+          onMapLoad={() => setIsMapLoading(false)}
           className="w-full h-full"
         />
       </div>
