@@ -132,6 +132,60 @@ serve(async (req) => {
       );
     }
 
+    // ===== IDEMPOTENCY CHECK: Prevent duplicate applications for same address =====
+    // This stops the duplicate application problem that caused API cost explosion
+    const formattedAddress = typeof propertyAddress === 'object' 
+      ? propertyAddress.formatted_address 
+      : propertyAddress;
+    
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    
+    const { data: existingApps, error: dupeCheckError } = await supabase
+      .from('applications')
+      .select('id, status, created_at')
+      .eq('user_id', user.id)
+      .eq('formatted_address', formattedAddress)
+      .gte('created_at', twentyFourHoursAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (!dupeCheckError && existingApps && existingApps.length > 0) {
+      const existing = existingApps[0];
+      console.log(`⚠️ [TRACE:${traceId}] Duplicate application detected:`, {
+        existing_id: existing.id,
+        existing_status: existing.status,
+        created_at: existing.created_at
+      });
+      
+      // If existing app is still processing, return it instead of creating duplicate
+      if (['queued', 'enriching', 'ai', 'rendering'].includes(existing.status)) {
+        return new Response(
+          JSON.stringify({ 
+            success: true,
+            application_id: existing.id,
+            message: "Application already in progress for this address",
+            duplicate: true,
+            status: existing.status
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      // If existing app completed or errored, check if they really want another
+      if (existing.status === 'complete') {
+        return new Response(
+          JSON.stringify({ 
+            error: "A report for this address was already generated in the last 24 hours",
+            code: "DUPLICATE_ADDRESS",
+            existing_application_id: existing.id
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+    // ===== END IDEMPOTENCY CHECK =====
+
     // Validate required consents
     if (!ndaConfidentiality || !consentContact || !consentTermsPrivacy) {
       console.error(`❌ [TRACE:${traceId}] Missing consents`);

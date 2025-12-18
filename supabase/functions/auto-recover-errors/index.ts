@@ -16,33 +16,39 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MAX_RECOVERY_PER_RUN = 10;
-const ERROR_AGE_THRESHOLD_HOURS = 1; // Only recover errors older than 1 hour
+const MAX_RECOVERY_PER_RUN = 5; // Reduced from 10 to limit blast radius
+const ERROR_AGE_THRESHOLD_HOURS = 2; // Increased from 1 to reduce retry frequency
+const MAX_ATTEMPTS_BEFORE_PERMANENT = 3; // CIRCUIT BREAKER: Stop retrying after 3 attempts
 
 async function autoRecoverErrors(): Promise<{
   recovered: number;
   triggered: number;
+  skipped_permanent: number;
   errors: string[];
 }> {
   const result = {
     recovered: 0,
     triggered: 0,
+    skipped_permanent: 0,
     errors: [] as string[]
   };
 
   console.log(`🔄 [auto-recover-errors] Starting automatic error recovery cron`);
   console.log(`⏰ [auto-recover-errors] Current time: ${new Date().toISOString()}`);
+  console.log(`🛡️ [auto-recover-errors] Circuit breaker: max ${MAX_ATTEMPTS_BEFORE_PERMANENT} attempts`);
 
-  // Calculate threshold time (1 hour ago)
+  // Calculate threshold time (2 hours ago)
   const thresholdTime = new Date();
   thresholdTime.setHours(thresholdTime.getHours() - ERROR_AGE_THRESHOLD_HOURS);
 
-  // Fetch error applications older than threshold with valid coordinates
+  // CIRCUIT BREAKER: Only fetch apps with attempts < MAX_ATTEMPTS_BEFORE_PERMANENT
+  // This prevents infinite retry loops that cause API cost explosions
   const { data: errorApps, error: fetchError } = await sbAdmin
     .from('applications')
-    .select('id, status, geo_lat, geo_lng, error_code, updated_at, formatted_address')
+    .select('id, status, geo_lat, geo_lng, error_code, updated_at, formatted_address, attempts')
     .or('status.eq.error,enrichment_status.eq.failed')
     .lt('updated_at', thresholdTime.toISOString())
+    .lt('attempts', MAX_ATTEMPTS_BEFORE_PERMANENT) // CRITICAL: Skip apps that have already failed too many times
     .not('formatted_address', 'is', null)
     .order('updated_at', { ascending: true })
     .limit(MAX_RECOVERY_PER_RUN);
@@ -62,13 +68,32 @@ async function autoRecoverErrors(): Promise<{
 
   for (const app of errorApps) {
     try {
+      // CIRCUIT BREAKER: Double-check attempts count
+      const currentAttempts = app.attempts || 0;
+      if (currentAttempts >= MAX_ATTEMPTS_BEFORE_PERMANENT) {
+        console.log(`⛔ [${app.id}] Skipping - already at ${currentAttempts} attempts (max: ${MAX_ATTEMPTS_BEFORE_PERMANENT})`);
+        result.skipped_permanent++;
+        
+        // Mark as permanently failed to prevent future recovery attempts
+        await sbAdmin
+          .from('applications')
+          .update({
+            status: 'error_permanent',
+            error_code: 'MAX_RETRIES_EXCEEDED',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', app.id);
+        
+        continue;
+      }
+
       const hasCoordinates = app.geo_lat && app.geo_lng;
       const newStatus = hasCoordinates ? 'enriching' : 'queued';
       const newStatusPercent = hasCoordinates ? 40 : 5;
 
-      console.log(`🔧 [${app.id}] Recovering (error: ${app.error_code}, has_coords: ${hasCoordinates})`);
+      console.log(`🔧 [${app.id}] Recovering (error: ${app.error_code}, has_coords: ${hasCoordinates}, attempt: ${currentAttempts + 1}/${MAX_ATTEMPTS_BEFORE_PERMANENT})`);
 
-      // Reset application status
+      // Reset application status but INCREMENT attempts counter
       const { error: updateError } = await sbAdmin
         .from('applications')
         .update({
@@ -77,7 +102,7 @@ async function autoRecoverErrors(): Promise<{
           status_percent: newStatusPercent,
           error_code: null,
           enrichment_status: 'pending',
-          attempts: 0,
+          attempts: currentAttempts + 1, // INCREMENT, not reset!
           data_flags: [],
           updated_at: new Date().toISOString()
         })
@@ -124,6 +149,7 @@ async function autoRecoverErrors(): Promise<{
       result: {
         recovered: result.recovered,
         triggered: result.triggered,
+        skipped_permanent: result.skipped_permanent,
         errors: result.errors
       },
       started_at: new Date().toISOString(),
@@ -136,6 +162,7 @@ async function autoRecoverErrors(): Promise<{
   console.log(`📊 [auto-recover-errors] Summary:`, {
     recovered: result.recovered,
     triggered: result.triggered,
+    skipped_permanent: result.skipped_permanent,
     errors: result.errors.length
   });
 
