@@ -26,7 +26,10 @@ import {
   Radio,
   GitBranch,
   Plug,
-  Layers
+  Layers,
+  MapPin, 
+  DollarSign,
+  Shield,
 } from "lucide-react";
 import { ApiPerformanceTab } from "@/components/admin/ApiPerformanceTab";
 import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
@@ -34,7 +37,7 @@ import { RealTimeMonitorTab } from "@/components/admin/RealTimeMonitorTab";
 import { ScraperApiTab } from "@/components/admin/ScraperApiTab";
 import { GisHealthTab } from "@/components/admin/GisHealthTab";
 import { ApiCostTab } from "@/components/admin/ApiCostTab";
-import { MapPin, DollarSign } from "lucide-react";
+import { CostProtectionDashboard } from "@/components/admin/CostProtectionDashboard";
 
 interface CronJob {
   id: string;
@@ -348,6 +351,10 @@ export default function SystemHealth() {
               <DollarSign className="w-4 h-4" />
               API Costs
             </TabsTrigger>
+            <TabsTrigger value="cost-protection" className="flex items-center gap-2">
+              <Shield className="w-4 h-4" />
+              Cost Protection
+            </TabsTrigger>
             <TabsTrigger value="tiles" className="flex items-center gap-2" onClick={() => window.location.href = '/admin/tile-management'}>
               <Layers className="w-4 h-4" />
               Tiles
@@ -546,6 +553,11 @@ export default function SystemHealth() {
           {/* API Costs Tab */}
           <TabsContent value="costs">
             <ApiCostTab />
+          </TabsContent>
+
+          {/* Cost Protection Tab */}
+          <TabsContent value="cost-protection">
+            <CostProtectionDashboard />
           </TabsContent>
         </Tabs>
       </div>
