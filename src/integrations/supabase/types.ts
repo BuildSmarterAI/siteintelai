@@ -82,6 +82,114 @@ export type Database = {
           },
         ]
       }
+      api_budget_config: {
+        Row: {
+          budget_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          source: string | null
+          threshold_critical: number
+          threshold_warn: number
+          updated_at: string | null
+        }
+        Insert: {
+          budget_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          source?: string | null
+          threshold_critical?: number
+          threshold_warn?: number
+          updated_at?: string | null
+        }
+        Update: {
+          budget_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          source?: string | null
+          threshold_critical?: number
+          threshold_warn?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      api_cost_config: {
+        Row: {
+          cost_per_call: number
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_free: boolean | null
+          monthly_free_tier: number | null
+          notes: string | null
+          provider: string | null
+          source: string
+          updated_at: string | null
+        }
+        Insert: {
+          cost_per_call?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_free?: boolean | null
+          monthly_free_tier?: number | null
+          notes?: string | null
+          provider?: string | null
+          source: string
+          updated_at?: string | null
+        }
+        Update: {
+          cost_per_call?: number
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_free?: boolean | null
+          monthly_free_tier?: number | null
+          notes?: string | null
+          provider?: string | null
+          source?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      api_cost_snapshots: {
+        Row: {
+          call_count: number
+          created_at: string | null
+          cumulative_daily_cost: number | null
+          error_count: number
+          estimated_cost: number
+          hour: string
+          id: string
+          source: string
+          success_count: number
+        }
+        Insert: {
+          call_count?: number
+          created_at?: string | null
+          cumulative_daily_cost?: number | null
+          error_count?: number
+          estimated_cost?: number
+          hour: string
+          id?: string
+          source: string
+          success_count?: number
+        }
+        Update: {
+          call_count?: number
+          created_at?: string | null
+          cumulative_daily_cost?: number | null
+          error_count?: number
+          estimated_cost?: number
+          hour?: string
+          id?: string
+          source?: string
+          success_count?: number
+        }
+        Relationships: []
+      }
       api_health_snapshots: {
         Row: {
           avg_duration_ms: number | null
