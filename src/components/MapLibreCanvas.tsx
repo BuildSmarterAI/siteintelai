@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, CloudOff, Cloud } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, CloudOff, Cloud, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import * as turf from '@turf/turf';
 import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
 import { useFallbackParcels } from '@/hooks/useFallbackParcels';
+import { useCountyTileOverlays } from '@/hooks/useCountyTileOverlays';
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
@@ -107,6 +108,7 @@ function getInitialLayerVisibility(
     floodZones: true,
     zoningDistricts: true,
     topography: false, // Off by default - terrain can be heavy
+    countyParcels: true, // County CAD tile overlays - enabled by default
   };
   
   if (savedPreferences && Object.keys(savedPreferences).length > 0) {
@@ -146,6 +148,7 @@ interface LayerVisibility {
   floodZones: boolean;
   zoningDistricts: boolean;
   topography: boolean;
+  countyParcels: boolean;
 }
 
 interface MapLibreCanvasProps {
@@ -296,6 +299,25 @@ export function MapLibreCanvas({
     debounceMs: 500,
   });
 
+  // County CAD tile overlays - direct from county ArcGIS servers
+  // Auto-detects counties in viewport and loads their parcel tile services
+  const {
+    activeCounties,
+    isLoading: countyTilesLoading,
+    error: countyTilesError,
+    availableCounties,
+  } = useCountyTileOverlays({
+    map: mapInstance,
+    mapLoaded,
+    enabled: layerVisibility.countyParcels && showParcels,
+    autoDetect: true,
+    opacity: 0.7,
+    onCountyAdded: (county) => {
+      console.log(`[MapLibreCanvas] County tile overlay added: ${county.name}`);
+      toast.info(`Loading ${county.name} parcels`, { duration: 2000 });
+    },
+  });
+
   // Debug log vector tile and fallback state
   useEffect(() => {
     console.log('🔍 TILE DEBUG: MapLibreCanvas parcel display state', {
@@ -312,8 +334,12 @@ export function MapLibreCanvas({
       fallbackFeatureCount,
       isFallbackMode,
       fallbackSource: fallbackMetadata?.source,
+      // County tiles state
+      countyTilesEnabled: layerVisibility.countyParcels,
+      activeCounties: activeCounties.map(c => c.name),
+      countyTilesLoading,
     });
-  }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance, shouldUseFallback, fallbackLoading, fallbackFeatureCount, isFallbackMode, fallbackMetadata]);
+  }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance, shouldUseFallback, fallbackLoading, fallbackFeatureCount, isFallbackMode, fallbackMetadata, layerVisibility.countyParcels, activeCounties, countyTilesLoading]);
 
   // Keep ref updated with latest callback to avoid stale closures
   useEffect(() => {
@@ -2313,14 +2339,30 @@ export function MapLibreCanvas({
       )}
 
       {/* Data Source Status Badge */}
-      {(hasVectorTiles && activeVectorSources.length > 0) || isFallbackMode || fallbackFeatureCount > 0 ? (
-        <div className={`absolute bottom-4 right-4 z-10 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex items-center gap-2 ${
+      {(hasVectorTiles && activeVectorSources.length > 0) || isFallbackMode || fallbackFeatureCount > 0 || activeCounties.length > 0 ? (
+        <div className={`absolute bottom-4 right-4 z-10 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex flex-col gap-1 ${
           isFallbackMode 
             ? 'bg-amber-500/10 border-amber-500/30' 
+            : activeCounties.length > 0 && !hasVectorTiles
+            ? 'bg-emerald-500/10 border-emerald-500/30'
             : 'bg-background/95 border-border'
         }`}>
+          {/* County Tiles Status */}
+          {activeCounties.length > 0 && layerVisibility.countyParcels && (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-emerald-500" />
+              <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                County CAD Tiles
+              </span>
+              <span className="text-xs text-muted-foreground">
+                ({activeCounties.map(c => c.name.replace(' County', '')).join(', ')})
+              </span>
+            </div>
+          )}
+          
+          {/* Vector Tiles / Fallback Status */}
           {isFallbackMode ? (
-            <>
+            <div className="flex items-center gap-2">
               <CloudOff className="h-4 w-4 text-amber-500" />
               <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
                 External Parcels
@@ -2330,22 +2372,22 @@ export function MapLibreCanvas({
                   ({fallbackMetadata.canonical_count} SiteIntel + {fallbackMetadata.external_count} External)
                 </span>
               )}
-            </>
-          ) : fallbackFeatureCount > 0 && !hasVectorTiles ? (
-            <>
+            </div>
+          ) : fallbackFeatureCount > 0 && !hasVectorTiles && activeCounties.length === 0 ? (
+            <div className="flex items-center gap-2">
               <Cloud className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">
                 SiteIntel Parcels ({fallbackFeatureCount})
               </span>
-            </>
-          ) : (
-            <>
+            </div>
+          ) : hasVectorTiles && activeVectorSources.length > 0 ? (
+            <div className="flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">
                 SiteIntel Tiles ({activeVectorSources.length} layers)
               </span>
-            </>
-          )}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -2502,6 +2544,8 @@ export function MapLibreCanvas({
         hasFloodZones={floodZones.length > 0}
         hasZoningDistricts={zoningDistricts.length > 0}
         hasTopography={true}
+        hasCountyParcels={showParcels}
+        activeCountyCount={activeCounties.length}
       />
       
       {/* Measurement Results Panel */}
