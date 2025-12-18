@@ -264,3 +264,9 @@ verify_jwt = false
 
 [functions.aggregate-api-costs]
 verify_jwt = false
+
+[functions.send-cost-alert]
+verify_jwt = false
+
+[functions.cost-circuit-breaker]
+verify_jwt = false
