@@ -1,6 +1,7 @@
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle, Clock, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface ApplicationProgressProps {
   currentStep: number;
@@ -9,6 +10,7 @@ interface ApplicationProgressProps {
   isDraftSaving?: boolean;
   lastSaved?: Date | null;
   className?: string;
+  completedSteps?: number[];
 }
 
 const STEP_LABELS = [
@@ -25,7 +27,8 @@ export function ApplicationProgress({
   stepTitle,
   isDraftSaving,
   lastSaved,
-  className
+  className,
+  completedSteps = []
 }: ApplicationProgressProps) {
   const progress = (currentStep / totalSteps) * 100;
 
@@ -44,26 +47,45 @@ export function ApplicationProgress({
             
             {/* Step indicators - hidden on mobile */}
             <div className="hidden md:flex items-center gap-1">
-              {STEP_LABELS.map((label, idx) => (
-                <div
-                  key={label}
-                  className={cn(
-                    "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors",
-                    idx < currentStep && "bg-primary/10 text-primary",
-                    idx === currentStep && "bg-primary text-primary-foreground",
-                    idx > currentStep && "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {idx < currentStep ? (
-                    <CheckCircle className="h-3 w-3" />
-                  ) : (
-                    <span className="w-4 h-4 flex items-center justify-center text-[10px]">
-                      {idx + 1}
-                    </span>
-                  )}
-                  <span className="hidden lg:inline">{label}</span>
-                </div>
-              ))}
+              {STEP_LABELS.map((label, idx) => {
+                const isCompleted = completedSteps.includes(idx) || idx < currentStep;
+                const isCurrent = idx === currentStep;
+                const isPending = idx > currentStep && !completedSteps.includes(idx);
+                
+                return (
+                  <motion.div
+                    key={label}
+                    initial={false}
+                    animate={{
+                      scale: isCurrent ? 1.05 : 1,
+                    }}
+                    className={cn(
+                      "flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium transition-colors",
+                      isCompleted && !isCurrent && "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+                      isCurrent && "bg-primary text-primary-foreground shadow-sm",
+                      isPending && "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {isCompleted && !isCurrent ? (
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                      </motion.div>
+                    ) : (
+                      <span className={cn(
+                        "w-4 h-4 flex items-center justify-center text-[10px] rounded-full",
+                        isCurrent && "bg-primary-foreground/20"
+                      )}>
+                        {idx + 1}
+                      </span>
+                    )}
+                    <span className="hidden lg:inline">{label}</span>
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
 
@@ -80,15 +102,23 @@ export function ApplicationProgress({
           {/* Right: Draft status */}
           <div className="flex items-center gap-2 text-sm flex-shrink-0">
             {isDraftSaving ? (
-              <span className="text-muted-foreground flex items-center gap-1.5">
+              <motion.span 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-muted-foreground flex items-center gap-1.5"
+              >
                 <Clock className="h-3.5 w-3.5 animate-spin" />
                 <span className="hidden sm:inline">Saving...</span>
-              </span>
+              </motion.span>
             ) : lastSaved ? (
-              <span className="text-green-600 flex items-center gap-1.5">
-                <Save className="h-3.5 w-3.5" />
+              <motion.span 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-green-600 dark:text-green-400 flex items-center gap-1.5"
+              >
+                <CheckCircle className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Draft saved</span>
-              </span>
+              </motion.span>
             ) : null}
             
             {/* Desktop progress */}

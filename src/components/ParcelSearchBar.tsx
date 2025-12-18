@@ -268,12 +268,12 @@ export function ParcelSearchBar({
   };
 
   return (
-    <div className={`absolute left-4 z-20 w-[420px] ${containerClassName ?? 'top-4'}`}>
+    <div className={`absolute left-4 z-20 w-[480px] ${containerClassName ?? 'top-4'}`}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <div className="flex gap-2">
           {/* County Filter */}
           <Select value={selectedCounty} onValueChange={setSelectedCounty}>
-            <SelectTrigger className="w-[140px] bg-background/95 backdrop-blur-sm shadow-lg border-primary/20">
+            <SelectTrigger className="w-[130px] h-14 bg-background/95 backdrop-blur-sm shadow-xl border-primary/20 rounded-xl">
               <Filter className="h-4 w-4 mr-1 text-muted-foreground" />
               <SelectValue />
             </SelectTrigger>
@@ -288,9 +288,9 @@ export function ParcelSearchBar({
 
           <PopoverTrigger asChild>
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
               {isSearching && (
-                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary animate-spin z-10" />
+                <Loader2 className="absolute right-12 top-1/2 -translate-y-1/2 h-5 w-5 text-primary animate-spin z-10" />
               )}
               <Input
                 ref={inputRef}
@@ -305,12 +305,13 @@ export function ParcelSearchBar({
                   }
                 }}
                 onBlur={() => setIsFocused(false)}
-                className="pl-10 pr-16 bg-background/95 backdrop-blur-sm shadow-lg border-primary/20"
+                className="h-14 pl-12 pr-16 text-base bg-background/95 backdrop-blur-sm shadow-xl border-primary/20 rounded-xl ring-offset-background focus-visible:ring-2 focus-visible:ring-primary/50 transition-shadow"
                 data-parcel-search-input
+                aria-label="Property search input"
               />
               {/* Animated placeholder */}
               {!isFocused && searchQuery.length === 0 && (
-                <div className="absolute inset-0 flex items-center pointer-events-none pl-10">
+                <div className="absolute inset-0 flex items-center pointer-events-none pl-12">
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={placeholderIndex}
@@ -318,14 +319,14 @@ export function ParcelSearchBar({
                       animate={{ opacity: 0.5, y: 0 }}
                       exit={{ opacity: 0, y: -8 }}
                       transition={{ duration: 0.3 }}
-                      className="text-muted-foreground text-sm"
+                      className="text-muted-foreground"
                     >
                       {PLACEHOLDER_EXAMPLES[placeholderIndex]}
                     </motion.span>
                   </AnimatePresence>
                 </div>
               )}
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hidden md:block">
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70 hidden md:flex items-center gap-1 bg-muted/50 px-2 py-1 rounded-md">
                 ⌘K
               </span>
             </div>
@@ -335,10 +336,10 @@ export function ParcelSearchBar({
             variant="secondary"
             size="icon"
             onClick={handleCurrentLocation}
-            className="shadow-lg"
+            className="h-14 w-14 shadow-xl rounded-xl"
             title="Use current location"
           >
-            <Navigation className="h-4 w-4" />
+            <Navigation className="h-5 w-5" />
           </Button>
         </div>
 
