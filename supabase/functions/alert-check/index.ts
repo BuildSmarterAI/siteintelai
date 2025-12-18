@@ -7,7 +7,7 @@ const corsHeaders = {
 
 interface AlertCondition {
   name: string;
-  check: () => Promise<{ triggered: boolean; value: number; message: string }>;
+  check: (supabase: any) => Promise<{ triggered: boolean; value: number; message: string }>;
   severity: 'info' | 'warning' | 'error' | 'critical';
   threshold?: number;
 }
@@ -44,12 +44,129 @@ Deno.serve(async (req) => {
 
     // Define alert conditions
     const conditions: AlertCondition[] = [
-      // 1. Enrichment queue depth
+      // 1. Daily spend warning
+      {
+        name: 'daily_spend_warning',
+        severity: 'warning',
+        threshold: 50,
+        check: async (supabase) => {
+          const today = new Date().toISOString().split('T')[0];
+          
+          const { data: costData } = await supabase
+            .from('api_cost_snapshots')
+            .select('estimated_cost')
+            .gte('hour', `${today}T00:00:00`)
+            .lte('hour', `${today}T23:59:59`);
+          
+          const dailySpend = costData?.reduce((sum: number, row: any) => sum + (row.estimated_cost || 0), 0) || 0;
+          
+          const { data: thresholdData } = await supabase
+            .from('api_budget_config')
+            .select('threshold_warn')
+            .eq('budget_type', 'daily')
+            .eq('is_active', true)
+            .single();
+          
+          const threshold = thresholdData?.threshold_warn || 50;
+          
+          return {
+            triggered: dailySpend >= threshold,
+            value: dailySpend,
+            message: `Daily API spend: $${dailySpend.toFixed(2)} (warning threshold: $${threshold})`,
+          };
+        },
+      },
+      // 2. Daily spend critical
+      {
+        name: 'daily_spend_critical',
+        severity: 'critical',
+        threshold: 100,
+        check: async (supabase) => {
+          const today = new Date().toISOString().split('T')[0];
+          
+          const { data: costData } = await supabase
+            .from('api_cost_snapshots')
+            .select('estimated_cost')
+            .gte('hour', `${today}T00:00:00`)
+            .lte('hour', `${today}T23:59:59`);
+          
+          const dailySpend = costData?.reduce((sum: number, row: any) => sum + (row.estimated_cost || 0), 0) || 0;
+          
+          const { data: thresholdData } = await supabase
+            .from('api_budget_config')
+            .select('threshold_critical')
+            .eq('budget_type', 'daily')
+            .eq('is_active', true)
+            .single();
+          
+          const threshold = thresholdData?.threshold_critical || 100;
+          
+          return {
+            triggered: dailySpend >= threshold,
+            value: dailySpend,
+            message: `CRITICAL: Daily API spend $${dailySpend.toFixed(2)} exceeds $${threshold}`,
+          };
+        },
+      },
+      // 3. Monthly spend warning
+      {
+        name: 'monthly_spend_warning',
+        severity: 'warning',
+        threshold: 1000,
+        check: async (supabase) => {
+          const monthStart = new Date();
+          monthStart.setDate(1);
+          monthStart.setHours(0, 0, 0, 0);
+          
+          const { data: costData } = await supabase
+            .from('api_cost_snapshots')
+            .select('estimated_cost')
+            .gte('hour', monthStart.toISOString());
+          
+          const monthlySpend = costData?.reduce((sum: number, row: any) => sum + (row.estimated_cost || 0), 0) || 0;
+          
+          const { data: thresholdData } = await supabase
+            .from('api_budget_config')
+            .select('threshold_warn')
+            .eq('budget_type', 'monthly')
+            .eq('is_active', true)
+            .single();
+          
+          const threshold = thresholdData?.threshold_warn || 1000;
+          
+          return {
+            triggered: monthlySpend >= threshold,
+            value: monthlySpend,
+            message: `Monthly API spend: $${monthlySpend.toFixed(2)} (warning threshold: $${threshold})`,
+          };
+        },
+      },
+      // 4. Emergency mode active
+      {
+        name: 'emergency_mode_active',
+        severity: 'critical',
+        check: async (supabase) => {
+          const { data } = await supabase
+            .from('system_config')
+            .select('value')
+            .eq('key', 'emergency_cost_mode')
+            .single();
+          
+          const isActive = data?.value === 'true';
+          
+          return {
+            triggered: isActive,
+            value: isActive ? 1 : 0,
+            message: isActive ? 'Emergency cost mode is ACTIVE - API calls are being throttled' : 'Normal operation',
+          };
+        },
+      },
+      // 5. Enrichment queue depth
       {
         name: 'enrichment_queue_depth',
         severity: 'warning',
         threshold: 50,
-        check: async () => {
+        check: async (supabase) => {
           const { count } = await supabase
             .from('applications')
             .select('*', { count: 'exact', head: true })
@@ -64,12 +181,12 @@ Deno.serve(async (req) => {
           };
         },
       },
-      // 2. API failure rate (last hour)
+      // 6. API failure rate (last hour)
       {
         name: 'api_failure_rate',
         severity: 'error',
         threshold: 10,
-        check: async () => {
+        check: async (supabase) => {
           const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
           
           const { data: logs } = await supabase
@@ -81,7 +198,7 @@ Deno.serve(async (req) => {
             return { triggered: false, value: 0, message: 'No API calls in last hour' };
           }
           
-          const failureCount = logs.filter(l => !l.success).length;
+          const failureCount = logs.filter((l: any) => !l.success).length;
           const failureRate = (failureCount / logs.length) * 100;
           
           return {
@@ -91,148 +208,12 @@ Deno.serve(async (req) => {
           };
         },
       },
-      // 3. Failed cron jobs (last 24 hours)
-      {
-        name: 'cron_job_failures',
-        severity: 'warning',
-        check: async () => {
-          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-          
-          const { count } = await supabase
-            .from('cron_job_history')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'error')
-            .gte('started_at', oneDayAgo);
-          
-          const failures = count || 0;
-          return {
-            triggered: failures > 3,
-            value: failures,
-            message: `${failures} cron jobs failed in the last 24 hours`,
-          };
-        },
-      },
-      // 4. Stale GIS data
-      {
-        name: 'stale_gis_layers',
-        severity: 'info',
-        check: async () => {
-          const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-          
-          // Check gis_layer_versions if exists
-          const { count, error } = await supabase
-            .from('api_logs')
-            .select('*', { count: 'exact', head: true })
-            .eq('endpoint', 'gis-refresh-scheduler')
-            .eq('success', true)
-            .gte('timestamp', twoDaysAgo);
-          
-          // If no successful refresh in 2 days, alert
-          const hasRecentRefresh = (count || 0) > 0;
-          return {
-            triggered: !hasRecentRefresh,
-            value: count || 0,
-            message: hasRecentRefresh 
-              ? `GIS layers refreshed ${count} times in last 48 hours`
-              : 'No GIS layer refresh in the last 48 hours',
-          };
-        },
-      },
-      // 5. High response times
-      {
-        name: 'high_api_latency',
-        severity: 'warning',
-        threshold: 5000,
-        check: async () => {
-          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-          
-          const { data: logs } = await supabase
-            .from('api_logs')
-            .select('duration_ms')
-            .gte('timestamp', oneHourAgo)
-            .gt('duration_ms', 5000);
-          
-          const slowCalls = logs?.length || 0;
-          return {
-            triggered: slowCalls > 10,
-            value: slowCalls,
-            message: `${slowCalls} API calls exceeded 5 second threshold in last hour`,
-          };
-        },
-      },
-      // 6. Unacknowledged critical alerts
-      {
-        name: 'unacknowledged_critical',
-        severity: 'critical',
-        check: async () => {
-          const { count } = await supabase
-            .from('system_alerts')
-            .select('*', { count: 'exact', head: true })
-            .eq('severity', 'critical')
-            .eq('acknowledged', false);
-          
-          const unacked = count || 0;
-          return {
-            triggered: unacked > 0,
-            value: unacked,
-            message: `${unacked} critical alerts require attention`,
-          };
-        },
-      },
-      // 7. API source failure spike (any single API drops below 80%)
-      {
-        name: 'api_source_failure_spike',
-        severity: 'warning',
-        threshold: 80,
-        check: async () => {
-          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-          
-          const { data: logs } = await supabase
-            .from('api_logs')
-            .select('source, success')
-            .gte('timestamp', oneHourAgo);
-          
-          if (!logs || logs.length === 0) {
-            return { triggered: false, value: 100, message: 'No API calls to analyze' };
-          }
-          
-          // Group by source
-          const bySource: Record<string, { total: number; success: number }> = {};
-          for (const log of logs) {
-            const src = log.source || 'unknown';
-            if (!bySource[src]) bySource[src] = { total: 0, success: 0 };
-            bySource[src].total++;
-            if (log.success) bySource[src].success++;
-          }
-          
-          // Find lowest success rate
-          let lowestRate = 100;
-          let lowestSource = '';
-          for (const [source, stats] of Object.entries(bySource)) {
-            if (stats.total >= 5) { // Only check sources with meaningful traffic
-              const rate = (stats.success / stats.total) * 100;
-              if (rate < lowestRate) {
-                lowestRate = rate;
-                lowestSource = source;
-              }
-            }
-          }
-          
-          return {
-            triggered: lowestRate < 80,
-            value: Math.round(lowestRate * 10) / 10,
-            message: lowestRate < 80 
-              ? `API source '${lowestSource}' has ${lowestRate.toFixed(1)}% success rate (below 80% threshold)`
-              : `All API sources above 80% success rate`,
-          };
-        },
-      },
-      // 8. Pipeline stuck (application in enriching state > 10 minutes)
+      // 7. Pipeline stuck (application in enriching state > 10 minutes)
       {
         name: 'pipeline_stuck',
         severity: 'error',
         threshold: 10,
-        check: async () => {
+        check: async (supabase) => {
           const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
           
           const { count } = await supabase
@@ -249,12 +230,12 @@ Deno.serve(async (req) => {
           };
         },
       },
-      // 9. Queue backlog (more than 20 applications queued)
+      // 8. Queue backlog (more than 20 applications queued)
       {
         name: 'queue_backlog',
         severity: 'warning',
         threshold: 20,
-        check: async () => {
+        check: async (supabase) => {
           const { count } = await supabase
             .from('applications')
             .select('*', { count: 'exact', head: true })
@@ -268,17 +249,42 @@ Deno.serve(async (req) => {
           };
         },
       },
+      // 9. API latency spike
+      {
+        name: 'api_latency_spike',
+        severity: 'warning',
+        threshold: 5000,
+        check: async (supabase) => {
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+          
+          const { data } = await supabase
+            .from('api_health_snapshots')
+            .select('p95_duration_ms')
+            .gte('hour', oneHourAgo)
+            .not('p95_duration_ms', 'is', null);
+          
+          const avgP95 = data && data.length > 0
+            ? data.reduce((sum: number, row: any) => sum + row.p95_duration_ms, 0) / data.length
+            : 0;
+          
+          return {
+            triggered: avgP95 > 5000,
+            value: avgP95,
+            message: `API P95 latency: ${avgP95.toFixed(0)}ms (threshold: 5000ms)`,
+          };
+        },
+      },
       // 10. Critical API down (Google or FEMA 0% for 30 minutes)
       {
         name: 'critical_api_down',
         severity: 'critical',
-        check: async () => {
+        check: async (supabase) => {
           const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
           
           const { data: logs } = await supabase
             .from('api_logs')
             .select('source, success')
-            .in('source', ['google_places', 'google_geocoding', 'fema_nfhl', 'fema_openfema'])
+            .in('source', ['google_places', 'google_geocoding', 'google_places_nearby', 'google_elevation_api', 'fema_nfhl', 'fema_openfema'])
             .gte('timestamp', thirtyMinAgo);
           
           if (!logs || logs.length === 0) {
@@ -316,7 +322,7 @@ Deno.serve(async (req) => {
     // Run all checks
     for (const condition of conditions) {
       try {
-        const result = await condition.check();
+        const result = await condition.check(supabase);
         
         console.log(`[${jobName}] Check '${condition.name}': value=${result.value}, triggered=${result.triggered}`);
 
@@ -325,7 +331,7 @@ Deno.serve(async (req) => {
           metric_name: condition.name,
           metric_value: result.value,
           metric_unit: 'count',
-        });
+        }).catch(() => {}); // Ignore metric insert errors
 
         if (result.triggered) {
           // Check if similar unacknowledged alert exists (to avoid duplicates)
@@ -358,6 +364,32 @@ Deno.serve(async (req) => {
               alertsCreated.push(alert);
               console.log(`[${jobName}] Created ${condition.severity} alert: ${condition.name}`);
             }
+
+            // Send Slack alert for critical issues
+            if (condition.severity === 'critical') {
+              try {
+                const today = new Date().toISOString().split('T')[0];
+                const { data: costData } = await supabase
+                  .from('api_cost_snapshots')
+                  .select('estimated_cost')
+                  .gte('hour', `${today}T00:00:00`);
+                
+                const dailySpend = costData?.reduce((sum: number, row: any) => sum + (row.estimated_cost || 0), 0) || 0;
+
+                await supabase.functions.invoke('send-cost-alert', {
+                  body: {
+                    severity: 'critical',
+                    title: result.message,
+                    daily_spend: dailySpend,
+                    monthly_spend: 0,
+                    threshold_breached: condition.name,
+                    recommended_actions: ['Check system health dashboard', 'Review recent deployments']
+                  }
+                });
+              } catch (e) {
+                console.error(`[${jobName}] Failed to send Slack alert:`, e);
+              }
+            }
           } else {
             console.log(`[${jobName}] Skipping duplicate alert for ${condition.name}`);
           }
@@ -381,7 +413,7 @@ Deno.serve(async (req) => {
           metadata: {
             checks_run: conditions.length,
             alerts_created: alertsCreated.length,
-            alert_types: alertsCreated.map(a => a.alert_type),
+            alert_types: alertsCreated.map((a: any) => a.alert_type),
           },
         })
         .eq('id', jobId);
