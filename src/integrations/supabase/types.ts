@@ -115,6 +115,42 @@ export type Database = {
         }
         Relationships: []
       }
+      api_cache_universal: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          endpoint: string
+          expires_at: string
+          hit_count: number | null
+          id: string
+          provider: string
+          request_params: Json | null
+          response: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          endpoint: string
+          expires_at: string
+          hit_count?: number | null
+          id?: string
+          provider: string
+          request_params?: Json | null
+          response: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          endpoint?: string
+          expires_at?: string
+          hit_count?: number | null
+          id?: string
+          provider?: string
+          request_params?: Json | null
+          response?: Json
+        }
+        Relationships: []
+      }
       api_cost_config: {
         Row: {
           cost_per_call: number
@@ -5142,6 +5178,30 @@ export type Database = {
         }
         Relationships: []
       }
+      system_config: {
+        Row: {
+          description: string | null
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          description?: string | null
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          description?: string | null
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       system_metrics: {
         Row: {
           dimensions: Json | null
@@ -6780,6 +6840,7 @@ export type Database = {
             Returns: string
           }
       calculate_acreage: { Args: { geom: unknown }; Returns: number }
+      cleanup_expired_api_cache: { Args: never; Returns: number }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
@@ -6971,6 +7032,7 @@ export type Database = {
           technology: string
         }[]
       }
+      get_cached_api_response: { Args: { p_cache_key: string }; Returns: Json }
       get_cached_utility_assignment: {
         Args: { p_lat: number; p_lng: number; p_tolerance_meters?: number }
         Returns: {
@@ -7959,6 +8021,17 @@ export type Database = {
       st_wrapx: {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
+      }
+      store_cached_api_response: {
+        Args: {
+          p_cache_key: string
+          p_endpoint: string
+          p_provider: string
+          p_request_params: Json
+          p_response: Json
+          p_ttl_hours?: number
+        }
+        Returns: undefined
       }
       unlockrows: { Args: { "": string }; Returns: number }
       update_demographics_geometry: {
