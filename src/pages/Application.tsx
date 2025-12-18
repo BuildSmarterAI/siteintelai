@@ -26,6 +26,7 @@ import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { DrawParcelControl } from "@/components/DrawParcelControl";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import * as turf from '@turf/turf';
 export default function Application() {
   const {
     toast
@@ -748,6 +749,40 @@ export default function Application() {
     "Review & Submit"
   ];
 
+  // Calculate progress percentage
+  const getProgress = () => {
+    return ((currentStep + 1) / totalSteps) * 100;
+  };
+
+  // Render multi-select checkboxes helper
+  const renderMultiSelectCheckboxes = (
+    fieldName: string,
+    options: string[],
+    selectedValues: string[]
+  ) => {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {options.map((option) => (
+          <div key={option} className="flex items-center space-x-2">
+            <Checkbox
+              id={`${fieldName}-${option}`}
+              checked={selectedValues.includes(option)}
+              onCheckedChange={(checked) => {
+                handleMultiSelectChange(fieldName, option, !!checked);
+              }}
+            />
+            <Label
+              htmlFor={`${fieldName}-${option}`}
+              className="text-sm cursor-pointer"
+            >
+              {option}
+            </Label>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return <div className="min-h-screen bg-background">
       {/* Sticky Progress Bar */}
       <ApplicationProgress
@@ -755,7 +790,7 @@ export default function Application() {
         totalSteps={totalSteps}
         stepTitle={stepTitles[currentStep] || "Application"}
         isDraftSaving={isDraftSaving}
-        lastSaved={lastSaved}
+        lastSaved={lastSaved ? new Date(lastSaved) : null}
       />
 
       {/* Main Content - Full Width for Step 1 */}
@@ -1020,545 +1055,7 @@ export default function Application() {
                           </>}
                        </div>}
 
-                    {/* Step 1 is now handled separately above */}
-
-                        // Update address and coordinates
-                        setFormData(prev => ({
-                          ...prev,
-                          propertyAddress: address,
-                          geoLat: lat,
-                          geoLng: lng
-                        }));
-                        setIsAddressLoading(true);
-                        toast({
-                          title: "Location Selected",
-                          description: "Fetching property details..."
-                        });
-                        try {
-                          // Call enrichment API
-                          const {
-                            data,
-                            error
-                          } = await supabase.functions.invoke('enrich-feasibility', {
-                            body: {
-                              lat,
-                              lng,
-                              formatted_address: address,
-                              mode: 'geocode_only'
-                            }
-                          });
-                          if (error) {
-                            console.error('[Enrichment Error]', error);
-                            toast({
-                              title: "Enrichment Failed",
-                              description: "Could not load property details. Please enter them manually.",
-                              variant: "destructive"
-                            });
-                            return;
-                          }
-                          if (data?.success && data?.data) {
-                            const enrichedData = data.data;
-
-                            // Extract fields from enrichment response
-                            const county = enrichedData.county || enrichedData.administrative_area_level_2 || '';
-                            const city = enrichedData.city || enrichedData.locality || '';
-                            const state = enrichedData.administrative_area_level_1 || enrichedData.state || 'TX';
-                            const zipCode = enrichedData.postal_code || enrichedData.zipCode || '';
-                            const neighborhood = enrichedData.neighborhood || enrichedData.sublocality || '';
-                            const parcelId = enrichedData.parcel_id || '';
-                            const lotSizeValue = enrichedData.acreage_cad || enrichedData.lot_size_value || '';
-                            const zoning = enrichedData.zoning_code || '';
-                            const parcelOwner = enrichedData.parcel_owner || '';
-
-                            // Update form data with enriched fields
-                            setFormData(prev => ({
-                              ...prev,
-                              county,
-                              city,
-                              state,
-                              zipCode,
-                              neighborhood,
-                              parcelId: parcelId || prev.parcelId,
-                              lotSize: lotSizeValue ? String(lotSizeValue) : prev.lotSize,
-                              zoning: zoning || prev.zoning,
-                              parcelOwner: parcelOwner || prev.parcelOwner,
-                              // Hidden enriched fields
-                              situsAddress: enrichedData.situs_address || prev.situsAddress,
-                              administrativeAreaLevel2: enrichedData.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                              acreageCad: enrichedData.acreage_cad || prev.acreageCad,
-                              zoningCode: enrichedData.zoning_code || prev.zoningCode,
-                              overlayDistrict: enrichedData.overlay_district || prev.overlayDistrict,
-                              floodplainZone: enrichedData.floodplain_zone || prev.floodplainZone,
-                              baseFloodElevation: enrichedData.base_flood_elevation || prev.baseFloodElevation
-                            }));
-
-                            // Mark fields as enriched
-                            setEnrichedFields(prev => ({
-                              ...prev,
-                              county: !!county,
-                              city: !!city,
-                              state: !!state,
-                              zipCode: !!zipCode,
-                              neighborhood: !!neighborhood,
-                              parcelId: !!parcelId,
-                              lotSize: !!lotSizeValue,
-                              zoning: !!zoning
-                            }));
-
-                            // Store HCAD values for conflict detection
-                            setHcadValues({
-                              parcelId: parcelId || undefined,
-                              lotSize: lotSizeValue ? String(lotSizeValue) : undefined,
-                              zoning: zoning || undefined
-                            });
-
-                            // Show success or partial toast
-                            const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
-                            if (hasFlags) {
-                              toast({
-                                title: "Property Data Partially Loaded",
-                                description: "Some fields could not be auto-filled. Please complete them manually."
-                              });
-                            } else {
-                              toast({
-                                title: "Property Details Loaded ✅",
-                                description: "Fields have been auto-filled from public records."
-                              });
-                            }
-                          } else {
-                            toast({
-                              title: "Auto-fill Unavailable",
-                              description: "Unable to load property data. Please enter details manually."
-                            });
-                          }
-                        } catch (err) {
-                          console.error('[Enrichment Exception]', err);
-                          toast({
-                            title: "Error Loading Data",
-                            description: "An unexpected error occurred. Please try again.",
-                            variant: "destructive"
-                          });
-                        } finally {
-                          // Always unlock fields
-                          setIsAddressLoading(false);
-                        }
-                      }} onParcelSelect={(parcel: any) => {
-                        console.log('[Parcel Selected]', parcel);
-                        if (!parcel?.properties || !parcel?.geometry) {
-                          console.error('Invalid parcel data');
-                          return;
-                        }
-                        const props = parcel.properties;
-
-                        // Calculate parcel centroid from geometry
-                        let centroidLat: number | null = null;
-                        let centroidLng: number | null = null;
-                        if (parcel.geometry.type === 'Polygon' && parcel.geometry.coordinates?.[0]?.[0]) {
-                          const [lng, lat] = parcel.geometry.coordinates[0][0];
-                          centroidLat = lat;
-                          centroidLng = lng;
-                        }
-
-                        // Extract parcel data
-                        const parcelId = props.ACCOUNT || props.HCAD_NUM || props.GEO_ID || '';
-                        const situsAddress = props.SITUS_ADDRESS || props.SITE_ADDR_1 || props.PROP_ADDR || '';
-                        const ownerName = props.OWNER_NAME || props.OWNER || '';
-                        const acreage = props.ACREAGE || props.CALC_ACRE || props.LAND_ACRES || null;
-                        const county = props.COUNTY || props.SITE_COUNTY || 'Harris';
-                        const city = props.SITE_CITY || props.SITUS_CITY || '';
-                        const zipCode = props.SITE_ZIP || props.SITUS_ZIP || '';
-                        const zoning = props.ZONING || props.ZONE_CLASS || '';
-
-                        // Display address: prefer situs, fallback to "Parcel #ID"
-                        const displayAddress = situsAddress || `Parcel #${parcelId}`;
-
-                        // Update form with parcel data
-                        setFormData(prev => ({
-                          ...prev,
-                          propertyAddress: displayAddress,
-                          parcelId: parcelId,
-                          geoLat: centroidLat,
-                          geoLng: centroidLng,
-                          lotSize: acreage ? String(acreage) : prev.lotSize,
-                          lotSizeUnit: acreage ? 'acres' : prev.lotSizeUnit,
-                          county: county,
-                          city: city,
-                          zipCode: zipCode,
-                          zoning: zoning || prev.zoning,
-                          parcelOwner: ownerName,
-                          situsAddress: situsAddress
-                        }));
-
-                        // Mark parcel-sourced fields as enriched
-                        setEnrichedFields(prev => ({
-                          ...prev,
-                          parcelId: !!parcelId,
-                          lotSize: !!acreage,
-                          county: !!county,
-                          city: !!city,
-                          zipCode: !!zipCode,
-                          zoning: !!zoning
-                        }));
-
-                        // Store HCAD values for conflict detection
-                        setHcadValues({
-                          parcelId: parcelId,
-                          lotSize: acreage ? String(acreage) : undefined,
-                          zoning: zoning
-                        });
-                        toast({
-                          title: "Parcel Selected ✅",
-                          description: `${displayAddress} (${acreage || '?'} acres)`
-                        });
-
-                        // Auto-unlock parcel fields after brief delay
-                        setTimeout(() => {
-                          setUnlockedFields(prev => ({
-                            ...prev,
-                            parcelId: true,
-                            lotSize: true,
-                            county: true,
-                            city: true,
-                            zipCode: true,
-                            zoning: true
-                          }));
-                        }, 1500);
-                      }} onEnrichmentComplete={data => {
-                        if (data?.success && data?.data) {
-                          setEnrichedData(data.data);
-                          // Resolve lot size from multiple possible sources
-                          const lotSizeFromApiMetaSqft = data?.api_meta?.hcad_parcel?.parcel_data?.land_sqft;
-                          const resolvedLotSize = typeof data.data.lot_size_value === 'number' && data.data.lot_size_value || typeof data.data.acreage_cad === 'number' && data.data.acreage_cad || (typeof lotSizeFromApiMetaSqft === 'number' ? +(lotSizeFromApiMetaSqft / 43560).toFixed(4) : undefined);
-                          console.log('[Enrichment] Lot size candidates:', {
-                            lot_size_value: data.data.lot_size_value,
-                            acreage_cad: data.data.acreage_cad,
-                            land_sqft: lotSizeFromApiMetaSqft,
-                            resolvedLotSize
-                          });
-
-                          // Auto-fill both visible and hidden enriched fields
-                          setFormData(prev => {
-                            return {
-                              ...prev,
-                              // Visible fields
-                              parcelId: data.data.parcel_id || prev.parcelId,
-                              zoning: data.data.zoning_code || prev.zoning,
-                              lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : prev.lotSize,
-                              lotSizeUnit: data.data.lot_size_unit as string || prev.lotSizeUnit,
-                              // Hidden enriched fields
-                              situsAddress: data.data.situs_address || prev.situsAddress,
-                              administrativeAreaLevel2: data.data.administrative_area_level_2 || prev.administrativeAreaLevel2,
-                              parcelOwner: data.data.parcel_owner || prev.parcelOwner,
-                              acreageCad: data.data.acreage_cad || prev.acreageCad,
-                              zoningCode: data.data.zoning_code || prev.zoningCode,
-                              overlayDistrict: data.data.overlay_district || prev.overlayDistrict,
-                              floodplainZone: data.data.floodplain_zone || prev.floodplainZone,
-                              baseFloodElevation: data.data.base_flood_elevation || prev.baseFloodElevation
-                            };
-                          });
-
-                          // Mark which fields were successfully enriched
-                          setEnrichedFields(prev => ({
-                            ...prev,
-                            // Preserve Google-populated field flags
-                            parcelId: !!data.data.parcel_id,
-                            lotSize: !!resolvedLotSize,
-                            zoning: !!data.data.zoning_code
-                          }));
-
-                          // Store HCAD values for conflict detection
-                          setHcadValues({
-                            parcelId: data.data.parcel_id,
-                            lotSize: typeof resolvedLotSize === 'number' ? String(resolvedLotSize) : undefined,
-                            zoning: data.data.zoning_code
-                          });
-                          const hasFlags = Array.isArray(data.data_flags) && data.data_flags.length > 0;
-                          if (hasFlags) {
-                            toast({
-                              title: "GIS Data Partially Loaded",
-                              description: "Some fields could not be auto-filled. You can proceed with manual entry."
-                            });
-                          } else {
-                            toast({
-                              title: "GIS Data Loaded ✅",
-                              description: "Property information has been automatically filled from public records."
-                            });
-                          }
-                        } else if (!data?.success) {
-                          toast({
-                            title: "Auto-fill unavailable",
-                            description: data?.error || "Unable to load GIS data for this location."
-                          });
-                        }
-                      }} placeholder="123 Main Street, City, State, ZIP" label="Property Address" error={errors.propertyAddress} errors={errors} isAddressLoading={isAddressLoading} required={true} />
-                           
-                           {/* Hidden GIS Enriched Fields (auto-populated from enrich-feasibility API)
-                               These fields are stored in formData state and submitted automatically:
-                               - situsAddress: Normalized address from Google Geocoding
-                               - administrativeAreaLevel2: County name
-                               - parcelOwner: Property owner from parcel records
-                               - acreageCad: Lot acreage from CAD parcel data
-                               - zoningCode: Zoning classification code
-                               - overlayDistrict: Zoning overlay district
-                               - floodplainZone: FEMA flood zone designation
-                               - baseFloodElevation: Base flood elevation from FEMA
-                            */}
-
-                          {/* Google-Populated Fields (Auto-locked during loading) */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            <div>
-                              <Label htmlFor="county" className="font-body font-semibold text-charcoal">
-                                County
-                              </Label>
-                              <div className="relative">
-                                <Input id="county" value={formData.county} onChange={e => handleInputChange('county', e.target.value)} placeholder="Enter county" className="mt-2" readOnly={isAddressLoading || enrichedFields.county && !unlockedFields.county} />
-                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>}
-                              </div>
-                {enrichedFields.county && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                    ✓ Auto-filled
-                  </Badge>}
-                            </div>
-
-                            <div>
-                              <Label htmlFor="city" className="font-body font-semibold text-charcoal">
-                                City
-                              </Label>
-                              <div className="relative">
-                                <Input id="city" value={formData.city} onChange={e => handleInputChange('city', e.target.value)} placeholder="Enter city" className="mt-2" readOnly={isAddressLoading || enrichedFields.city && !unlockedFields.city} />
-                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>}
-                              </div>
-                {enrichedFields.city && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                    ✓ Auto-filled
-                  </Badge>}
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="state" className="font-body font-semibold text-charcoal">
-                                State
-                              </Label>
-                              <div className="relative">
-                                <Input id="state" value={formData.state} onChange={e => handleInputChange('state', e.target.value)} placeholder="TX" className="mt-2" readOnly={isAddressLoading || enrichedFields.state && !unlockedFields.state} />
-                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>}
-                              </div>
-                {enrichedFields.state && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                    ✓ Auto-filled
-                  </Badge>}
-                            </div>
-
-                            <div>
-                              <Label htmlFor="zipCode" className="font-body font-semibold text-charcoal">
-                                ZIP Code
-                              </Label>
-                              <div className="relative">
-                                <Input id="zipCode" value={formData.zipCode} onChange={e => handleInputChange('zipCode', e.target.value)} placeholder="77069" className="mt-2" readOnly={isAddressLoading || enrichedFields.zipCode && !unlockedFields.zipCode} />
-                                {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  </div>}
-                              </div>
-                {enrichedFields.zipCode && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                    ✓ Auto-filled
-                  </Badge>}
-                            </div>
-                          </div>
-
-                          <div>
-                            <Label htmlFor="neighborhood" className="font-body font-semibold text-charcoal">
-                              Neighborhood / Area
-                            </Label>
-                            <div className="relative">
-                              <Input id="neighborhood" value={formData.neighborhood} onChange={e => handleInputChange('neighborhood', e.target.value)} placeholder="Enter neighborhood" className="mt-2" readOnly={isAddressLoading || enrichedFields.neighborhood && !unlockedFields.neighborhood} />
-                              {isAddressLoading && <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                </div>}
-                            </div>
-                {enrichedFields.neighborhood && !isAddressLoading && <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs mt-1">
-                    ✓ Auto-filled
-                  </Badge>}
-                            <p className="text-sm text-charcoal/60 mt-1">
-                              Helps determine local market conditions and comparable properties.
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="parcelId" className="font-body font-semibold text-charcoal">
-                                Parcel ID / APN
-                              </Label>
-                              <Input id="parcelId" value={formData.parcelId} onChange={e => handleInputChange('parcelId', e.target.value)} placeholder={enrichedFields.parcelId && !unlockedFields.parcelId ? "Auto-filled" : "123-456-789"} className="mt-2" readOnly={enrichedFields.parcelId && !unlockedFields.parcelId} />
-                {enrichedFields.parcelId && <div className="flex items-center gap-2 mt-1">
-                    {!unlockedFields.parcelId ? <>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                          ✓ Auto-filled
-                        </Badge>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => {
-                                setUnlockedFields(prev => ({
-                                  ...prev,
-                                  parcelId: true
-                                }));
-                                toast({
-                                  title: "Manual Override Enabled",
-                                  description: "You can now edit the Parcel ID."
-                                });
-                              }} className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                                    </> : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                                      ⚠️ Manual Override
-                                    </Badge>}
-                                </div>}
-                              <p className="text-sm text-charcoal/60 mt-1">
-                                Official parcel identifier helps verify property boundaries and records.
-                              </p>
-                            </div>
-
-                            <div>
-                              <Label className="font-body font-semibold text-charcoal">
-                                Lot Size / Acreage
-                              </Label>
-                              <div className="flex gap-2 mt-2">
-                                <Input value={formData.lotSize} onChange={e => handleInputChange('lotSize', e.target.value)} placeholder={enrichedFields.lotSize && !unlockedFields.lotSize ? "Auto-filled" : "5.2"} className={`${errors.lotSize ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`} readOnly={enrichedFields.lotSize && !unlockedFields.lotSize} />
-                <Select value={formData.lotSizeUnit} onValueChange={value => handleInputChange('lotSizeUnit', value)} disabled={enrichedFields.lotSize && !unlockedFields.lotSize}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="acres">Acres</SelectItem>
-                    <SelectItem value="sqft">Sq Ft</SelectItem>
-                    <SelectItem value="hectares">Hectares</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {enrichedFields.lotSize && <div className="flex items-center gap-2 mt-1">
-                  {!unlockedFields.lotSize ? <>
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                        ✓ Auto-filled
-                      </Badge>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => {
-                                setUnlockedFields(prev => ({
-                                  ...prev,
-                                  lotSize: true
-                                }));
-                                toast({
-                                  title: "Manual Override Enabled",
-                                  description: "You can now edit the Lot Size."
-                                });
-                              }} className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                                    </> : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                                      ⚠️ Manual Override
-                                    </Badge>}
-                                </div>}
-                              <p className="text-sm text-charcoal/60 mt-1">
-                                Property size determines development capacity and zoning requirements.
-                              </p>
-                              {errors.lotSize && <p className="text-maxx-red text-sm mt-1">{errors.lotSize}</p>}
-                            </div>
-                          </div>
-
-                           <div>
-                             <Label htmlFor="currentUse" className="font-body font-semibold text-charcoal">
-                               Current Use / Existing Improvements
-                             </Label>
-                            <Select value={formData.currentUse} onValueChange={value => handleInputChange('currentUse', value)}>
-                              <SelectTrigger className={`mt-2 ${errors.currentUse ? 'border-maxx-red focus:border-maxx-red' : 'border-charcoal/20'}`}>
-                                <SelectValue placeholder="Select current use" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="vacant-land">Vacant Land</SelectItem>
-                                <SelectItem value="raw-land">Raw Land</SelectItem>
-                                <SelectItem value="agricultural">Agricultural</SelectItem>
-                                <SelectItem value="parking-lot">Parking Lot</SelectItem>
-                                <SelectItem value="existing-occupied">Existing Structure (Occupied)</SelectItem>
-                                <SelectItem value="existing-vacant">Existing Structure (Vacant)</SelectItem>
-                                <SelectItem value="requires-demolition">Requires Demolition</SelectItem>
-                                <SelectItem value="partially-improved">Partially Improved</SelectItem>
-                                <SelectItem value="redevelopment-candidate">Redevelopment Candidate</SelectItem>
-                                <SelectItem value="brownfield">Brownfield</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                             </Select>
-                             <p className="text-sm text-charcoal/60 mt-1">
-                               Existing conditions impact development costs and permitting timeline.
-                             </p>
-                            {errors.currentUse && <p className="text-maxx-red text-sm mt-1">{errors.currentUse}</p>}
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                              <Label htmlFor="zoning" className="font-body font-semibold text-charcoal">
-                                Current Zoning Classification
-                              </Label>
-                              <Input id="zoning" value={formData.zoning} onChange={e => handleInputChange('zoning', e.target.value)} placeholder={enrichedFields.zoning && !unlockedFields.zoning ? "Auto-filled" : "C-2, R-3, M-1, etc."} className="mt-2" readOnly={enrichedFields.zoning && !unlockedFields.zoning} />
-                {enrichedFields.zoning && <div className="flex items-center gap-2 mt-1">
-                    {!unlockedFields.zoning ? <>
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                          ✓ Auto-filled
-                        </Badge>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => {
-                                setUnlockedFields(prev => ({
-                                  ...prev,
-                                  zoning: true
-                                }));
-                                toast({
-                                  title: "Manual Override Enabled",
-                                  description: "You can now edit the Zoning."
-                                });
-                              }} className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground">
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
-                                    </> : <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                                      ⚠️ Manual Override
-                                    </Badge>}
-                                </div>}
-                              <p className="text-sm text-charcoal/60 mt-1">
-                                Zoning determines allowed uses and development requirements.
-                              </p>
-                            </div>
-                           </div>
-                           
-                           {/* Interactive Map for Parcel Drawing */}
-                          {formData.geoLat && formData.geoLng && <Card className="mt-6">
-                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                  <MapPin className="h-5 w-5 text-primary" />
-                                  Draw Parcel Boundary (Optional)
-                                </CardTitle>
-                                <p className="text-sm text-muted-foreground">
-                                  Draw your parcel boundary on the map for enhanced site visualization in your report.
-                                </p>
-                              </CardHeader>
-                              <CardContent className="space-y-4">
-                                <MapLibreCanvas center={[formData.geoLat, formData.geoLng]} zoom={17} drawingEnabled={drawingMode} onParcelDrawn={handleDrawingComplete} drawnParcels={drawnGeometry ? [{
-                            id: 'temp',
-                            name: formData.drawnParcelName || 'Your Parcel',
-                            geometry: drawnGeometry,
-                            acreage_calc: 0
-                          }] : []} className="h-[500px] w-full rounded-lg" />
-                                
-                                <DrawParcelControl drawingActive={drawingMode} onToggleDrawing={() => setDrawingMode(!drawingMode)} onSaveParcel={handleSaveParcel} onCancelDrawing={handleCancelDrawing} isSaving={isSavingParcel} />
-                                
-                                {drawnGeometry && <Alert className="bg-green-50 border-green-200">
-                                    <CheckCircle className="h-4 w-4 text-green-600" />
-                                    <AlertTitle>Parcel Boundary Saved</AlertTitle>
-                                    <AlertDescription>
-                                      Your parcel boundary will be included in the site visualization.
-                                    </AlertDescription>
-                                  </Alert>}
-                              </CardContent>
-                            </Card>}
-                        </div>}
+                      {/* Step 1: Property Information - handled by PropertyStepFullWidth above */}
 
                       {/* Step 2: Building Details (What Do You Want to Build?) */}
                       {currentStep === 2 && <div className="space-y-6 animate-fade-in">
@@ -2271,12 +1768,10 @@ export default function Application() {
                 </Card>
               </div>
 
-              {/* Trust & Risk Reversal Sidebar */}
-              
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        )}
+
 
       {/* Sticky Mobile CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-charcoal/20 p-4 lg:hidden z-50">
