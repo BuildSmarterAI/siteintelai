@@ -280,23 +280,39 @@ export function PropertyStepFullWidth({
             <p className="text-sm text-destructive">{errors.propertyAddress}</p>
           )}
 
-          {/* Draw Parcel CTA */}
+          {/* Draw Parcel CTA - Elevated button design */}
           {!showDrawParcel && (
-            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-dashed border-border">
-              <PenTool className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">
-                Can't find your site?
-              </span>
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="h-auto p-0 text-sm"
-                onClick={() => setShowDrawParcel(true)}
-              >
-                Draw custom boundaries →
-              </Button>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/20"
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <PenTool className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Can't find your site?
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Draw custom parcel boundaries for properties not in county records
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="border-primary/30 hover:bg-primary/10 hover:border-primary/50 gap-2"
+                  onClick={() => setShowDrawParcel(true)}
+                >
+                  <PenTool className="h-4 w-4" />
+                  Draw Parcel
+                </Button>
+              </div>
+            </motion.div>
           )}
 
           {/* Draw Parcel Section */}
