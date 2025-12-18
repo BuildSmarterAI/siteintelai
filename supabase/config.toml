@@ -270,3 +270,6 @@ verify_jwt = false
 
 [functions.cost-circuit-breaker]
 verify_jwt = false
+
+[functions.lookup-parcel-by-apn]
+verify_jwt = false
