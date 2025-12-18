@@ -175,6 +175,7 @@ interface MapLibreCanvasProps {
   zoningDistricts?: any[];
   showParcels?: boolean;
   onParcelSelect?: (parcel: any) => void;
+  onMapLoad?: () => void;
 }
 
 /**
@@ -217,6 +218,7 @@ export function MapLibreCanvas({
   zoningDistricts = [],
   showParcels = false,
   onParcelSelect,
+  onMapLoad,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -585,6 +587,7 @@ export function MapLibreCanvas({
       map.current.on('load', () => {
         setMapLoaded(true);
         setMapInstance(map.current); // Trigger hook with state
+        onMapLoad?.(); // Notify parent that map is ready
         console.log('🗺️ Map loaded, vector tiles will initialize');
         
         // Add 3D building layer (initially hidden)
