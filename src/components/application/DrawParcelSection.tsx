@@ -298,6 +298,7 @@ export function DrawParcelSection({
                     center={initialCenter}
                     zoom={15}
                     showParcels={true}
+                    onMapLoad={() => setIsMapLoading(false)}
                     onParcelSelect={(parcel) => {
                       // When user clicks a parcel, use its geometry
                       if (parcel?.geometry) {

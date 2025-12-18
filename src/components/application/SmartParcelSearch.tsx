@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -156,14 +157,30 @@ export function SmartParcelSearch({
       clearTimeout(debounceRef.current);
     }
 
+    console.log('[SmartParcelSearch] Query changed:', { query, length: query.trim().length, detectedMode });
+
     if (query.trim().length >= 3 && detectedMode === 'address') {
       debounceRef.current = setTimeout(async () => {
+        console.log('[SmartParcelSearch] Fetching suggestions for:', query.trim());
         try {
           const { data, error } = await supabase.functions.invoke('search-parcels', {
             body: { query: query.trim(), type: 'address' }
           });
 
-          if (!error && data?.results) {
+          console.log('[SmartParcelSearch] Suggestions response:', { data, error });
+
+          if (error) {
+            console.error('[SmartParcelSearch] API error:', error);
+            return;
+          }
+
+          // Check for API configuration errors
+          if (data?.error_message || data?.status === 'REQUEST_DENIED') {
+            console.error('[SmartParcelSearch] API denied:', data.error_message);
+            return;
+          }
+
+          if (data?.results?.length > 0) {
             setSuggestions(data.results.map((r: any) => ({
               type: r.type,
               label: r.formatted_address,
@@ -191,6 +208,7 @@ export function SmartParcelSearch({
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
 
+    console.log('[SmartParcelSearch] Starting search:', { query, detectedMode, detectedCounty });
     setIsLoading(true);
     setShowSuggestions(false);
 
@@ -203,10 +221,23 @@ export function SmartParcelSearch({
         }
       });
 
+      console.log('[SmartParcelSearch] Search response:', { data, error });
+
       if (error) throw error;
+
+      // Check for API configuration errors (Google billing issue)
+      if (data?.status === 'REQUEST_DENIED' || data?.error_message?.includes('Billing')) {
+        toast({
+          title: "API Configuration Issue",
+          description: "Address search is temporarily unavailable. Try searching by APN or drawing a boundary.",
+          variant: "destructive",
+        });
+        return;
+      }
 
       if (data?.results?.length > 0) {
         const result = data.results[0];
+        console.log('[SmartParcelSearch] Found result:', result);
         
         // Save to recent searches
         setRecentSearches(prev => {
@@ -228,16 +259,13 @@ export function SmartParcelSearch({
           });
         }
       } else {
+        console.log('[SmartParcelSearch] No results found');
         // No results - offer fallback options
         toast({
           title: "No Results Found",
-          description: "Try a different search or draw a custom boundary.",
+          description: "Try searching by APN number, cross-streets, or draw a custom boundary.",
           variant: "destructive",
-          action: (
-            <Button variant="outline" size="sm" onClick={onStartDraw}>
-              Draw Parcel
-            </Button>
-          ),
+          action: <ToastAction altText="Draw Parcel" onClick={onStartDraw}>Draw Parcel</ToastAction>,
         });
       }
     } catch (error) {
