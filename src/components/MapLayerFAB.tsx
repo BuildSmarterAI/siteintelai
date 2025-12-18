@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Layers, Eye, EyeOff, X } from 'lucide-react';
+import { Layers, Eye, EyeOff, X, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface LayerVisibility {
   parcel: boolean;
@@ -19,6 +20,7 @@ interface LayerVisibility {
   floodZones: boolean;
   zoningDistricts: boolean;
   topography: boolean;
+  countyParcels: boolean;
 }
 
 interface MapLayerFABProps {
@@ -38,6 +40,8 @@ interface MapLayerFABProps {
   hasFloodZones: boolean;
   hasZoningDistricts: boolean;
   hasTopography?: boolean;
+  hasCountyParcels?: boolean;
+  activeCountyCount?: number;
 }
 
 /**
@@ -65,11 +69,20 @@ export function MapLayerFAB({
   hasFloodZones,
   hasZoningDistricts,
   hasTopography = true,
+  hasCountyParcels = true,
+  activeCountyCount = 0,
 }: MapLayerFABProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   const layers = [
     { key: 'parcel' as const, label: 'Property', show: true },
+    { 
+      key: 'countyParcels' as const, 
+      label: 'County Parcels', 
+      show: hasCountyParcels,
+      badge: activeCountyCount > 0 ? `${activeCountyCount} counties` : undefined,
+      description: 'Live data from County CAD',
+    },
     { key: 'topography' as const, label: 'Topography', show: hasTopography },
     { key: 'hcadParcels' as const, label: 'HCAD Parcels', show: hasHcadParcels },
     { key: 'waterLines' as const, label: 'Water Lines', show: hasWaterLines },
@@ -90,7 +103,7 @@ export function MapLayerFAB({
     <div className="lg:hidden fixed bottom-6 right-6 z-20">
       {/* Radial Menu */}
       {isOpen && (
-        <Card className="absolute bottom-16 right-0 p-2 bg-background/95 backdrop-blur-sm shadow-xl animate-scale-in min-w-[200px]">
+        <Card className="absolute bottom-16 right-0 p-2 bg-background/95 backdrop-blur-sm shadow-xl animate-scale-in min-w-[220px] max-h-[70vh] overflow-y-auto">
           <div className="flex items-center justify-between mb-2 pb-2 border-b px-2">
             <span className="text-sm font-semibold">Map Layers</span>
             <Button
@@ -109,14 +122,28 @@ export function MapLayerFAB({
                 variant={layerVisibility[layer.key] ? "default" : "outline"}
                 size="sm"
                 onClick={() => onToggleLayer(layer.key)}
-                className="w-full justify-start gap-3 h-12 text-left"
+                className="w-full justify-start gap-2 h-auto min-h-[48px] py-2 text-left"
               >
                 {layerVisibility[layer.key] ? (
                   <Eye className="h-5 w-5 flex-shrink-0" />
                 ) : (
                   <EyeOff className="h-5 w-5 flex-shrink-0" />
                 )}
-                <span className="flex-1">{layer.label}</span>
+                <div className="flex-1 flex flex-col items-start">
+                  <span className="flex items-center gap-2">
+                    {layer.label}
+                    {'badge' in layer && layer.badge && (
+                      <Badge variant="secondary" className="text-xs h-5">
+                        {layer.badge}
+                      </Badge>
+                    )}
+                  </span>
+                  {'description' in layer && layer.description && (
+                    <span className="text-xs text-muted-foreground">
+                      {layer.description}
+                    </span>
+                  )}
+                </div>
               </Button>
             ))}
           </div>
