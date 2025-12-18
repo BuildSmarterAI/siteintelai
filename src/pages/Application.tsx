@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
 import { ContactStep } from "@/components/application/ContactStep";
 import { PropertyStep } from "@/components/application/PropertyStep";
+import { PropertyStepFullWidth } from "@/components/application/PropertyStepFullWidth";
+import { ApplicationProgress } from "@/components/application/ApplicationProgress";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
 import { useApplicationDraft } from "@/hooks/useApplicationDraft";
 import { Progress } from "@/components/ui/progress";
@@ -737,194 +739,288 @@ export default function Application() {
     if (formData.projectType.includes("Mixed-Use") || formData.projectType.includes("Healthcare")) score += 20;
     return score;
   };
-  const getProgress = () => currentStep / totalSteps * 100;
-  const renderMultiSelectCheckboxes = (field: string, options: string[], values: string[]) => <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {options.map(option => <div key={option} className="flex items-center space-x-2">
-          <Checkbox id={`${field}-${option}`} checked={values.includes(option)} onCheckedChange={checked => handleMultiSelectChange(field, option, checked as boolean)} />
-          <Label htmlFor={`${field}-${option}`} className="text-sm font-body text-charcoal cursor-pointer">
-            {option}
-          </Label>
-        </div>)}
-    </div>;
-  return <div className="min-h-screen bg-white">
-      {/* Mini Hero */}
-      <section className="bg-gradient-to-br from-charcoal/5 to-navy/5 py-20">
-        <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto text-center">
-            <h1 className="font-headline text-3xl md:text-4xl lg:text-5xl font-black text-charcoal mb-4 uppercase tracking-wide">
-              Start Your Feasibility Review
-            </h1>
-            <h2 className="font-body text-lg md:text-xl text-charcoal/80 max-w-3xl mx-auto mb-6 leading-relaxed">
-              Answer a few quick questions so we can tailor your feasibility package.
-            </h2>
+  // Step titles for progress bar
+  const stepTitles = [
+    "Contact Information",
+    "Property Information",
+    "Building Details",
+    "Additional Context",
+    "Review & Submit"
+  ];
 
-            {/* Progress Bar */}
-            <div className="max-w-md mx-auto">
-              <div className="flex justify-between items-center mb-4">
-                <span className="font-body text-sm font-semibold text-charcoal">
-                  Step {currentStep} of {totalSteps}
-                </span>
-                <div className="flex items-center gap-3">
-                  {/* Draft save indicator */}
-                  {isDraftSaving && (
-                    <span className="font-body text-xs text-charcoal/50 flex items-center gap-1">
-                      <Clock className="h-3 w-3 animate-spin" />
-                      Saving...
-                    </span>
-                  )}
-                  {!isDraftSaving && lastSaved && (
-                    <span className="font-body text-xs text-green-600 flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Draft saved
-                    </span>
-                  )}
-                  <span className="font-body text-sm text-charcoal/60">
-                    {Math.round(getProgress())}% Complete
-                  </span>
+  return <div className="min-h-screen bg-background">
+      {/* Sticky Progress Bar */}
+      <ApplicationProgress
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        stepTitle={stepTitles[currentStep] || "Application"}
+        isDraftSaving={isDraftSaving}
+        lastSaved={lastSaved}
+      />
+
+      {/* Main Content - Full Width for Step 1 */}
+      {currentStep === 1 ? (
+        <section className="py-8">
+          <div className="w-full px-4 lg:px-8">
+            {/* Validation Summary Banner */}
+            {Object.keys(errors).length > 0 && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border-l-4 border-destructive rounded-r max-w-7xl mx-auto">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="font-semibold text-destructive mb-1">Please Complete Required Fields</h3>
+                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
+                      {errors.propertyAddress && <li>Property Address is required</li>}
+                    </ul>
+                  </div>
                 </div>
               </div>
-              <div className="w-full bg-charcoal/20 rounded-full h-3">
-                <div className="bg-navy h-3 rounded-full transition-all duration-500" style={{
-                width: `${getProgress()}%`
-              }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <section className="py-20">
-        <div className="container mx-auto px-6 lg:px-8">
-          <div className="max-w-5xl mx-auto">
+            )}
             
-
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <form onSubmit={handleSubmit} className="max-w-7xl mx-auto">
+              <PropertyStepFullWidth
+                formData={{
+                  propertyAddress: formData.propertyAddress,
+                  geoLat: formData.geoLat,
+                  geoLng: formData.geoLng,
+                  parcelId: formData.parcelId,
+                  lotSize: formData.lotSize,
+                  lotSizeUnit: formData.lotSizeUnit,
+                  parcelOwner: formData.parcelOwner,
+                  zoning: formData.zoning,
+                  county: formData.county,
+                  city: formData.city,
+                  state: formData.state,
+                  zipCode: formData.zipCode,
+                  neighborhood: formData.neighborhood,
+                }}
+                onChange={handleInputChange}
+                onAddressSelect={async (lat: number, lng: number, address: string) => {
+                  console.log('[Address Selected]', { lat, lng, address });
+                  setFormData(prev => ({
+                    ...prev,
+                    propertyAddress: address,
+                    geoLat: lat,
+                    geoLng: lng
+                  }));
+                  setIsAddressLoading(true);
+                  toast({
+                    title: "Location Selected",
+                    description: "Fetching property details..."
+                  });
+                  try {
+                    const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
+                      body: { lat, lng, formatted_address: address, mode: 'geocode_only' }
+                    });
+                    if (error) {
+                      console.error('[Enrichment Error]', error);
+                      toast({
+                        title: "Enrichment Failed",
+                        description: "Could not load property details. Please enter them manually.",
+                        variant: "destructive"
+                      });
+                      return;
+                    }
+                    if (data?.success && data?.data) {
+                      const enrichedData = data.data;
+                      setFormData(prev => ({
+                        ...prev,
+                        county: enrichedData.county || enrichedData.administrative_area_level_2 || '',
+                        city: enrichedData.city || enrichedData.locality || '',
+                        state: enrichedData.administrative_area_level_1 || enrichedData.state || 'TX',
+                        zipCode: enrichedData.postal_code || enrichedData.zipCode || '',
+                        neighborhood: enrichedData.neighborhood || enrichedData.sublocality || '',
+                        parcelId: enrichedData.parcel_id || prev.parcelId,
+                        lotSize: enrichedData.acreage_cad ? String(enrichedData.acreage_cad) : prev.lotSize,
+                        zoning: enrichedData.zoning_code || prev.zoning,
+                        parcelOwner: enrichedData.parcel_owner || prev.parcelOwner,
+                      }));
+                      setEnrichedFields(prev => ({
+                        ...prev,
+                        parcelId: !!enrichedData.parcel_id,
+                        lotSize: !!enrichedData.acreage_cad,
+                        zoning: !!enrichedData.zoning_code,
+                        county: !!(enrichedData.county || enrichedData.administrative_area_level_2),
+                        city: !!(enrichedData.city || enrichedData.locality),
+                        state: true,
+                        zipCode: !!enrichedData.postal_code,
+                        neighborhood: !!(enrichedData.neighborhood || enrichedData.sublocality),
+                      }));
+                      toast({
+                        title: "Property Data Loaded",
+                        description: "Property details have been auto-filled from public records.",
+                      });
+                    }
+                  } catch (err) {
+                    console.error('[Enrichment Error]', err);
+                  } finally {
+                    setIsAddressLoading(false);
+                  }
+                }}
+                onParcelSelect={(parcel: any) => {
+                  const props = parcel.properties || {};
+                  const parcelId = props.ACCOUNT || props.HCAD_NUM || props.parcelId || props.GEO_ID || '';
+                  const owner = props.OWNER_NAME || props.OWNER || props.owner_name_1 || props.ownername || '';
+                  const acreage = props.ACREAGE || props.acreage || props.acreage_1 || 0;
+                  const situsAddr = props.SITUS_ADDR || props.SITE_ADDR_1 || props.situs || props.address || '';
+                  const zoning = props.ZONING || props.zone_class || '';
+                  
+                  setFormData(prev => ({
+                    ...prev,
+                    propertyAddress: situsAddr || prev.propertyAddress,
+                    parcelId: parcelId,
+                    parcelOwner: owner,
+                    lotSize: acreage ? String(acreage) : prev.lotSize,
+                    zoning: zoning || prev.zoning,
+                  }));
+                  
+                  if (parcel.geometry) {
+                    const centroid = turf.centroid(parcel.geometry);
+                    const [lng, lat] = centroid.geometry.coordinates;
+                    setFormData(prev => ({
+                      ...prev,
+                      geoLat: lat,
+                      geoLng: lng,
+                    }));
+                  }
+                  
+                  setEnrichedFields(prev => ({
+                    ...prev,
+                    parcelId: !!parcelId,
+                    lotSize: !!acreage,
+                    zoning: !!zoning,
+                  }));
+                }}
+                onDrawnParcelSave={(parcel) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    drawnParcelGeometry: parcel.geometry,
+                    drawnParcelName: parcel.name,
+                    geoLat: parcel.centroid.lat,
+                    geoLng: parcel.centroid.lng,
+                    lotSize: String(parcel.acreage),
+                    parcelSource: 'user_drawn',
+                  }));
+                }}
+                errors={errors}
+                isAddressLoading={isAddressLoading}
+                applicationId={draftId || undefined}
+              />
               
-              {/* Form Section */}
-              <div className="lg:col-span-3">
-                <Card className="shadow-2xl border-2 border-charcoal/10">
-                  <CardHeader className="bg-gradient-to-r from-charcoal to-navy text-white">
-                    <CardTitle className="font-headline text-xl">
-                      {currentStep === 0 && "Contact Information"}
-                      {currentStep === 1 && "Property Information"}
-                      {currentStep === 2 && "What Do You Want to Build?"}
-                      {currentStep === 3 && "Additional Context"}
-                      {currentStep === 4 && "Final Questions"}
-                    </CardTitle>
-                  </CardHeader>
-                   <CardContent className="p-8">
-                     {/* Required Fields Legend */}
-                     <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                       <p className="text-sm font-semibold text-blue-800 flex items-center gap-2">
-                         <span className="text-maxx-red">*</span>
-                         Required fields must be completed to proceed to the next step
-                       </p>
-                     </div>
-                     <form onSubmit={handleSubmit}>
-                      
-                       {/* Step 0: Contact Information */}
-                       {currentStep === 0 && <div className="space-y-6 animate-fade-in">
-                           {/* Loading State */}
-                           {authLoading ? <Card>
-                               <CardContent className="py-8 text-center">
-                                 <div className="flex flex-col items-center gap-3">
-                                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                                   <p className="text-muted-foreground">Loading your information...</p>
-                                 </div>
-                               </CardContent>
-                            </Card> : userProfile ? <Card className="border-green-200 bg-green-50">
-                              <CardContent className="pt-6">
-                                <div className="flex items-center gap-3">
-                                  <CheckCircle className="h-6 w-6 text-green-600" />
-                                  <div>
-                                    <p className="font-semibold text-green-900">Welcome back, {userProfile.full_name}!</p>
-                                    <p className="text-sm text-green-700">Your contact information has been loaded. You can edit it below if needed.</p>
-                                  </div>
+              {/* Navigation Buttons for Step 1 */}
+              <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
+                <div className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Contact information secured
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  <Button type="button" onClick={handleNext} className="bg-accent hover:bg-accent/90 text-accent-foreground flex items-center gap-2">
+                    Next
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                  {!formData.propertyAddress && (
+                    <p className="text-xs text-muted-foreground">
+                      Complete all required fields to continue
+                    </p>
+                  )}
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+      ) : (
+        /* Standard Card Layout for Other Steps */
+        <section className="py-8 lg:py-12">
+          <div className="container mx-auto px-4 lg:px-8">
+            <div className="max-w-4xl mx-auto">
+              <Card className="shadow-lg border border-border">
+                <CardHeader className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
+                  <CardTitle className="font-heading text-xl">
+                    {currentStep === 0 && "Contact Information"}
+                    {currentStep === 2 && "What Do You Want to Build?"}
+                    {currentStep === 3 && "Additional Context"}
+                    {currentStep === 4 && "Final Questions"}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 lg:p-8">
+                  {/* Required Fields Legend */}
+                  <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm font-semibold text-blue-800 dark:text-blue-200 flex items-center gap-2">
+                      <span className="text-destructive">*</span>
+                      Required fields must be completed to proceed to the next step
+                    </p>
+                  </div>
+                  <form onSubmit={handleSubmit}>
+                    
+                    {/* Step 0: Contact Information */}
+                    {currentStep === 0 && <div className="space-y-6 animate-fade-in">
+                        {/* Loading State */}
+                        {authLoading ? <Card>
+                            <CardContent className="py-8 text-center">
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <p className="text-muted-foreground">Loading your information...</p>
+                              </div>
+                            </CardContent>
+                         </Card> : userProfile ? <Card className="border-green-200 bg-green-50 dark:bg-green-950/30">
+                           <CardContent className="pt-6">
+                             <div className="flex items-center gap-3">
+                               <CheckCircle className="h-6 w-6 text-green-600" />
+                               <div>
+                                 <p className="font-semibold text-green-900 dark:text-green-100">Welcome back, {userProfile.full_name}!</p>
+                                 <p className="text-sm text-green-700 dark:text-green-300">Your contact information has been loaded. You can edit it below if needed.</p>
+                               </div>
+                             </div>
+                           </CardContent>
+                         </Card> : !isAuthenticated ? <AuthPrompt onAuthSuccess={(user, profile) => {
+                     setUserProfile(profile);
+                     const updates: any = {};
+                     if (profile.full_name) updates.fullName = profile.full_name;
+                     if (profile.email) updates.email = profile.email;
+                     if (profile.company) updates.company = profile.company;
+                     if (profile.phone) updates.phone = profile.phone;
+                     if (Object.keys(updates).length > 0) {
+                       updateMultipleFields(updates);
+                       if (profile.full_name && profile.email && profile.phone && profile.company) {
+                         setCompletedSteps(prev => new Set([...prev, 0]));
+                       }
+                     }
+                   }} /> : null}
+
+                          {authLoading ? <div className="space-y-4">
+                              <Skeleton className="h-12 w-full" />
+                              <Skeleton className="h-12 w-full" />
+                              <Skeleton className="h-12 w-full" />
+                              <Skeleton className="h-12 w-full" />
+                            </div> : hasCompleteProfile ? <Card className="p-6 bg-primary/5 border-primary/20">
+                              <div className="flex items-start gap-4">
+                                <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-lg mb-2">Welcome Back!</h3>
+                                  <p className="text-sm text-muted-foreground mb-4">
+                                    Your contact information has been loaded: <strong>{formData.fullName}</strong> ({formData.email})
+                                  </p>
+                                  <Button onClick={() => goToStep(1)} className="gap-2">
+                                    Continue to Property Details <ArrowRight className="h-4 w-4" />
+                                  </Button>
                                 </div>
-                              </CardContent>
-                            </Card> : !isAuthenticated ? <AuthPrompt onAuthSuccess={(user, profile) => {
-                        setUserProfile(profile);
-                        // Auto-fill form with profile data
-                        const updates: any = {};
-                        if (profile.full_name) updates.fullName = profile.full_name;
-                        if (profile.email) updates.email = profile.email;
-                        if (profile.company) updates.company = profile.company;
-                        if (profile.phone) updates.phone = profile.phone;
-                        if (Object.keys(updates).length > 0) {
-                          updateMultipleFields(updates);
+                              </div>
+                            </Card> : <>
+                              {profileStatus === 'partial' && <div className="bg-accent/10 border border-accent rounded-lg p-4 mb-6">
+                                  <p className="text-sm text-foreground">
+                                    <strong>You're signed in!</strong> Just complete your phone and company details below to continue.
+                                  </p>
+                                </div>}
+                              <ContactStep formData={{
+                       fullName: formData.fullName,
+                       company: formData.company,
+                       email: formData.email,
+                       phone: formData.phone
+                     }} onChange={handleInputChange} errors={errors} />
+                          </>}
+                       </div>}
 
-                          // If all required contact fields are present, mark Step 0 as complete
-                          if (profile.full_name && profile.email && profile.phone && profile.company) {
-                            setCompletedSteps(prev => new Set([...prev, 0]));
-                          }
-                        }
-                      }} /> : null}
-
-                             {/* Contact Step - gated behind authLoading to prevent flash */}
-                             {authLoading ? <div className="space-y-4">
-                                 <Skeleton className="h-12 w-full" />
-                                 <Skeleton className="h-12 w-full" />
-                                 <Skeleton className="h-12 w-full" />
-                                 <Skeleton className="h-12 w-full" />
-                               </div> : hasCompleteProfile ? <Card className="p-6 bg-primary/5 border-primary/20">
-                                 <div className="flex items-start gap-4">
-                                   <CheckCircle className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-                                   <div className="flex-1">
-                                     <h3 className="font-semibold text-lg mb-2">Welcome Back!</h3>
-                                     <p className="text-sm text-muted-foreground mb-4">
-                                       Your contact information has been loaded: <strong>{formData.fullName}</strong> ({formData.email})
-                                     </p>
-                                     <Button onClick={() => goToStep(1)} className="gap-2">
-                                       Continue to Property Details <ArrowRight className="h-4 w-4" />
-                                     </Button>
-                                   </div>
-                                 </div>
-                               </Card> : <>
-                                 {profileStatus === 'partial' && <div className="bg-accent/10 border border-accent rounded-lg p-4 mb-6">
-                                     <p className="text-sm text-foreground">
-                                       <strong>You're signed in!</strong> Just complete your phone and company details below to continue.
-                                     </p>
-                                   </div>}
-                                 <ContactStep formData={{
-                          fullName: formData.fullName,
-                          company: formData.company,
-                          email: formData.email,
-                          phone: formData.phone
-                        }} onChange={handleInputChange} errors={errors} />
-                             </>}
-                          </div>}
-
-                       {/* Step 1: Property Information */}
-                       {currentStep === 1 && <div className="space-y-6 animate-fade-in">
-                           {/* Validation Summary Banner */}
-                           {Object.keys(errors).length > 0 && <div className="mb-6 p-4 bg-red-50 border-l-4 border-maxx-red rounded-r">
-                               <div className="flex items-start gap-3">
-                                  <AlertCircle className="w-5 h-5 text-maxx-red flex-shrink-0 mt-0.5" />
-                                  <div>
-                                    <h3 className="font-semibold text-maxx-red mb-1">Please Complete Required Fields</h3>
-                                    <ul className="list-disc list-inside text-sm text-charcoal space-y-1">
-                                      {errors.propertyAddress && <li>Property Address is required</li>}
-                                    </ul>
-                                  </div>
-                                </div>
-                             </div>}
-                            
-                              <PropertyStep formData={{
-                        propertyAddress: formData.propertyAddress,
-                        geoLat: formData.geoLat,
-                        geoLng: formData.geoLng,
-                        parcelId: formData.parcelId,
-                        lotSize: formData.lotSize,
-                        lotSizeUnit: formData.lotSizeUnit,
-                        parcelOwner: formData.parcelOwner,
-                        zoning: formData.zoning
-                      }} onChange={handleInputChange} onAddressSelect={async (lat: number, lng: number, address: string) => {
-                        console.log('[Address Selected]', {
-                          lat,
-                          lng,
-                          address
-                        });
+                    {/* Step 1 is now handled separately above */}
 
                         // Update address and coordinates
                         setFormData(prev => ({
