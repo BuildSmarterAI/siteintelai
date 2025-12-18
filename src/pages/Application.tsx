@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { AuthPrompt } from "@/components/AuthPrompt";
 import { ContactStep } from "@/components/application/ContactStep";
 import { PropertyStep } from "@/components/application/PropertyStep";
-import { PropertyStepFullWidth } from "@/components/application/PropertyStepFullWidth";
+import { PropertyStepMapFirst } from "@/components/application/PropertyStepMapFirst";
 import { ApplicationProgress } from "@/components/application/ApplicationProgress";
 import { useApplicationForm } from "@/hooks/useApplicationForm";
 import { useApplicationDraft } from "@/hooks/useApplicationDraft";
@@ -793,176 +793,142 @@ export default function Application() {
         lastSaved={lastSaved ? new Date(lastSaved) : null}
       />
 
-      {/* Main Content - Full Width for Step 1 */}
+      {/* Main Content - Full Width Map-First for Step 1 */}
       {currentStep === 1 ? (
-        <section className="py-8">
-          <div className="w-full px-4 lg:px-8">
-            {/* Validation Summary Banner */}
-            {Object.keys(errors).length > 0 && (
-              <div className="mb-6 p-4 bg-red-50 dark:bg-red-950/30 border-l-4 border-destructive rounded-r max-w-7xl mx-auto">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="font-semibold text-destructive mb-1">Please Complete Required Fields</h3>
-                    <ul className="list-disc list-inside text-sm text-foreground space-y-1">
-                      {errors.propertyAddress && <li>Property Address is required</li>}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
+        <PropertyStepMapFirst
+          formData={{
+            propertyAddress: formData.propertyAddress,
+            geoLat: formData.geoLat,
+            geoLng: formData.geoLng,
+            parcelId: formData.parcelId,
+            lotSize: formData.lotSize,
+            lotSizeUnit: formData.lotSizeUnit,
+            parcelOwner: formData.parcelOwner,
+            zoning: formData.zoning,
+            county: formData.county,
+            city: formData.city,
+            state: formData.state,
+            zipCode: formData.zipCode,
+            neighborhood: formData.neighborhood,
+          }}
+          onChange={handleInputChange}
+          onAddressSelect={async (lat: number, lng: number, address: string) => {
+            console.log('[Address Selected]', { lat, lng, address });
+            setFormData(prev => ({
+              ...prev,
+              propertyAddress: address,
+              geoLat: lat,
+              geoLng: lng
+            }));
+            setIsAddressLoading(true);
+            toast({
+              title: "Location Selected",
+              description: "Fetching property details..."
+            });
+            try {
+              const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
+                body: { lat, lng, formatted_address: address, mode: 'geocode_only' }
+              });
+              if (error) {
+                console.error('[Enrichment Error]', error);
+                toast({
+                  title: "Enrichment Failed",
+                  description: "Could not load property details. Please enter them manually.",
+                  variant: "destructive"
+                });
+                return;
+              }
+              if (data?.success && data?.data) {
+                const enrichedData = data.data;
+                setFormData(prev => ({
+                  ...prev,
+                  county: enrichedData.county || enrichedData.administrative_area_level_2 || '',
+                  city: enrichedData.city || enrichedData.locality || '',
+                  state: enrichedData.administrative_area_level_1 || enrichedData.state || 'TX',
+                  zipCode: enrichedData.postal_code || enrichedData.zipCode || '',
+                  neighborhood: enrichedData.neighborhood || enrichedData.sublocality || '',
+                  parcelId: enrichedData.parcel_id || prev.parcelId,
+                  lotSize: enrichedData.acreage_cad ? String(enrichedData.acreage_cad) : prev.lotSize,
+                  zoning: enrichedData.zoning_code || prev.zoning,
+                  parcelOwner: enrichedData.parcel_owner || prev.parcelOwner,
+                }));
+                setEnrichedFields(prev => ({
+                  ...prev,
+                  parcelId: !!enrichedData.parcel_id,
+                  lotSize: !!enrichedData.acreage_cad,
+                  zoning: !!enrichedData.zoning_code,
+                  county: !!(enrichedData.county || enrichedData.administrative_area_level_2),
+                  city: !!(enrichedData.city || enrichedData.locality),
+                  state: true,
+                  zipCode: !!enrichedData.postal_code,
+                  neighborhood: !!(enrichedData.neighborhood || enrichedData.sublocality),
+                }));
+                toast({
+                  title: "Property Data Loaded",
+                  description: "Property details have been auto-filled from public records.",
+                });
+              }
+            } catch (err) {
+              console.error('[Enrichment Error]', err);
+            } finally {
+              setIsAddressLoading(false);
+            }
+          }}
+          onParcelSelect={(parcel: any) => {
+            const props = parcel.properties || {};
+            const parcelId = props.ACCOUNT || props.HCAD_NUM || props.parcelId || props.GEO_ID || '';
+            const owner = props.OWNER_NAME || props.OWNER || props.owner_name_1 || props.ownername || '';
+            const acreage = props.ACREAGE || props.acreage || props.acreage_1 || 0;
+            const situsAddr = props.SITUS_ADDR || props.SITE_ADDR_1 || props.situs || props.address || '';
+            const zoning = props.ZONING || props.zone_class || '';
             
-            <form onSubmit={handleSubmit} className="max-w-7xl mx-auto">
-              <PropertyStepFullWidth
-                formData={{
-                  propertyAddress: formData.propertyAddress,
-                  geoLat: formData.geoLat,
-                  geoLng: formData.geoLng,
-                  parcelId: formData.parcelId,
-                  lotSize: formData.lotSize,
-                  lotSizeUnit: formData.lotSizeUnit,
-                  parcelOwner: formData.parcelOwner,
-                  zoning: formData.zoning,
-                  county: formData.county,
-                  city: formData.city,
-                  state: formData.state,
-                  zipCode: formData.zipCode,
-                  neighborhood: formData.neighborhood,
-                }}
-                onChange={handleInputChange}
-                onAddressSelect={async (lat: number, lng: number, address: string) => {
-                  console.log('[Address Selected]', { lat, lng, address });
-                  setFormData(prev => ({
-                    ...prev,
-                    propertyAddress: address,
-                    geoLat: lat,
-                    geoLng: lng
-                  }));
-                  setIsAddressLoading(true);
-                  toast({
-                    title: "Location Selected",
-                    description: "Fetching property details..."
-                  });
-                  try {
-                    const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
-                      body: { lat, lng, formatted_address: address, mode: 'geocode_only' }
-                    });
-                    if (error) {
-                      console.error('[Enrichment Error]', error);
-                      toast({
-                        title: "Enrichment Failed",
-                        description: "Could not load property details. Please enter them manually.",
-                        variant: "destructive"
-                      });
-                      return;
-                    }
-                    if (data?.success && data?.data) {
-                      const enrichedData = data.data;
-                      setFormData(prev => ({
-                        ...prev,
-                        county: enrichedData.county || enrichedData.administrative_area_level_2 || '',
-                        city: enrichedData.city || enrichedData.locality || '',
-                        state: enrichedData.administrative_area_level_1 || enrichedData.state || 'TX',
-                        zipCode: enrichedData.postal_code || enrichedData.zipCode || '',
-                        neighborhood: enrichedData.neighborhood || enrichedData.sublocality || '',
-                        parcelId: enrichedData.parcel_id || prev.parcelId,
-                        lotSize: enrichedData.acreage_cad ? String(enrichedData.acreage_cad) : prev.lotSize,
-                        zoning: enrichedData.zoning_code || prev.zoning,
-                        parcelOwner: enrichedData.parcel_owner || prev.parcelOwner,
-                      }));
-                      setEnrichedFields(prev => ({
-                        ...prev,
-                        parcelId: !!enrichedData.parcel_id,
-                        lotSize: !!enrichedData.acreage_cad,
-                        zoning: !!enrichedData.zoning_code,
-                        county: !!(enrichedData.county || enrichedData.administrative_area_level_2),
-                        city: !!(enrichedData.city || enrichedData.locality),
-                        state: true,
-                        zipCode: !!enrichedData.postal_code,
-                        neighborhood: !!(enrichedData.neighborhood || enrichedData.sublocality),
-                      }));
-                      toast({
-                        title: "Property Data Loaded",
-                        description: "Property details have been auto-filled from public records.",
-                      });
-                    }
-                  } catch (err) {
-                    console.error('[Enrichment Error]', err);
-                  } finally {
-                    setIsAddressLoading(false);
-                  }
-                }}
-                onParcelSelect={(parcel: any) => {
-                  const props = parcel.properties || {};
-                  const parcelId = props.ACCOUNT || props.HCAD_NUM || props.parcelId || props.GEO_ID || '';
-                  const owner = props.OWNER_NAME || props.OWNER || props.owner_name_1 || props.ownername || '';
-                  const acreage = props.ACREAGE || props.acreage || props.acreage_1 || 0;
-                  const situsAddr = props.SITUS_ADDR || props.SITE_ADDR_1 || props.situs || props.address || '';
-                  const zoning = props.ZONING || props.zone_class || '';
-                  
-                  setFormData(prev => ({
-                    ...prev,
-                    propertyAddress: situsAddr || prev.propertyAddress,
-                    parcelId: parcelId,
-                    parcelOwner: owner,
-                    lotSize: acreage ? String(acreage) : prev.lotSize,
-                    zoning: zoning || prev.zoning,
-                  }));
-                  
-                  if (parcel.geometry) {
-                    const centroid = turf.centroid(parcel.geometry);
-                    const [lng, lat] = centroid.geometry.coordinates;
-                    setFormData(prev => ({
-                      ...prev,
-                      geoLat: lat,
-                      geoLng: lng,
-                    }));
-                  }
-                  
-                  setEnrichedFields(prev => ({
-                    ...prev,
-                    parcelId: !!parcelId,
-                    lotSize: !!acreage,
-                    zoning: !!zoning,
-                  }));
-                }}
-                onDrawnParcelSave={(parcel) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    drawnParcelGeometry: parcel.geometry,
-                    drawnParcelName: parcel.name,
-                    geoLat: parcel.centroid.lat,
-                    geoLng: parcel.centroid.lng,
-                    lotSize: String(parcel.acreage),
-                    parcelSource: 'user_drawn',
-                  }));
-                }}
-                errors={errors}
-                isAddressLoading={isAddressLoading}
-                applicationId={draftId || undefined}
-              />
-              
-              {/* Navigation Buttons for Step 1 */}
-              <div className="flex justify-between items-center mt-8 pt-6 border-t border-border">
-                <div className="text-sm text-muted-foreground flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  Contact information secured
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Button type="button" onClick={handleNext} className="bg-accent hover:bg-accent/90 text-accent-foreground flex items-center gap-2">
-                    Next
-                    <ArrowRight className="w-4 h-4" />
-                  </Button>
-                  {!formData.propertyAddress && (
-                    <p className="text-xs text-muted-foreground">
-                      Complete all required fields to continue
-                    </p>
-                  )}
-                </div>
-              </div>
-            </form>
-          </div>
-        </section>
+            setFormData(prev => ({
+              ...prev,
+              propertyAddress: situsAddr || prev.propertyAddress,
+              parcelId: parcelId,
+              parcelOwner: owner,
+              lotSize: acreage ? String(acreage) : prev.lotSize,
+              zoning: zoning || prev.zoning,
+            }));
+            
+            if (parcel.geometry) {
+              const centroid = turf.centroid(parcel.geometry);
+              const [lng, lat] = centroid.geometry.coordinates;
+              setFormData(prev => ({
+                ...prev,
+                geoLat: lat,
+                geoLng: lng,
+              }));
+            }
+            
+            setEnrichedFields(prev => ({
+              ...prev,
+              parcelId: !!parcelId,
+              lotSize: !!acreage,
+              zoning: !!zoning,
+            }));
+          }}
+          onDrawnParcelSave={(parcel) => {
+            setFormData(prev => ({
+              ...prev,
+              drawnParcelGeometry: parcel.geometry,
+              drawnParcelName: parcel.name,
+              geoLat: parcel.centroid.lat,
+              geoLng: parcel.centroid.lng,
+              lotSize: String(parcel.acreage),
+              parcelSource: 'user_drawn',
+            }));
+          }}
+          onContinue={() => {
+            if (validateStep(1)) {
+              setCompletedSteps(prev => new Set([...prev, 1]));
+              goToStep(2);
+            }
+          }}
+          errors={errors}
+          isAddressLoading={isAddressLoading}
+          applicationId={draftId || undefined}
+        />
       ) : (
         /* Standard Card Layout for Other Steps */
         <section className="py-8 lg:py-12">
