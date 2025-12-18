@@ -35,7 +35,7 @@ interface SearchResponse {
   search_type: SearchType;
 }
 
-// County boundary boxes for detection
+// County boundary boxes for detection (expanded coverage)
 const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: number; maxLat: number }> = {
   harris: { minLng: -95.91, maxLng: -94.91, minLat: 29.49, maxLat: 30.17 },
   montgomery: { minLng: -95.86, maxLng: -95.07, minLat: 30.07, maxLat: 30.67 },
@@ -45,12 +45,41 @@ const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: nu
   tarrant: { minLng: -97.55, maxLng: -96.98, minLat: 32.55, maxLat: 33.00 },
   williamson: { minLng: -98.05, maxLng: -97.28, minLat: 30.48, maxLat: 30.91 },
   fortbend: { minLng: -96.01, maxLng: -95.45, minLat: 29.35, maxLat: 29.82 },
+  galveston: { minLng: -95.15, maxLng: -94.50, minLat: 29.15, maxLat: 29.65 },
+  brazoria: { minLng: -95.85, maxLng: -95.05, minLat: 28.95, maxLat: 29.50 },
+  collin: { minLng: -96.85, maxLng: -96.25, minLat: 33.00, maxLat: 33.50 },
+  denton: { minLng: -97.35, maxLng: -96.75, minLat: 33.00, maxLat: 33.55 },
+  hays: { minLng: -98.20, maxLng: -97.60, minLat: 29.80, maxLat: 30.20 },
 };
 
 function detectCounty(lat: number, lng: number): string | null {
   for (const [county, bounds] of Object.entries(COUNTY_BOUNDS)) {
     if (lng >= bounds.minLng && lng <= bounds.maxLng && 
         lat >= bounds.minLat && lat <= bounds.maxLat) {
+      return county;
+    }
+  }
+  return null;
+}
+
+// APN pattern detection for search routing
+const APN_PATTERNS: Record<string, RegExp> = {
+  harris: /^\d{13}$|^\d{3}-\d{3}-\d{3}-\d{4}$/,
+  fort_bend: /^\d{6,12}$/,
+  montgomery: /^[A-Z]\d{6,10}$|^\d{8,12}$/i,
+  galveston: /^\d{5,10}$/,
+  brazoria: /^\d{6,11}$/,
+  travis: /^\d{6,10}$/,
+  williamson: /^R\d{6,9}$/i,
+  bexar: /^\d{8,12}$/,
+  dallas: /^\d{10,13}$/,
+  tarrant: /^\d{11,13}$/,
+};
+
+function detectCountyFromAPN(apn: string): string | null {
+  const cleanAPN = apn.replace(/[\s\-]/g, '');
+  for (const [county, pattern] of Object.entries(APN_PATTERNS)) {
+    if (pattern.test(cleanAPN) || pattern.test(apn)) {
       return county;
     }
   }

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { MapLoadingSkeleton } from "@/components/MapLoadingSkeleton";
-import { ParcelSearchPanel } from "./ParcelSearchPanel";
+import { SmartParcelSearch } from "./SmartParcelSearch";
+import { DrawNavigationBar } from "./DrawNavigationBar";
+import { DrawParcelSection } from "./DrawParcelSection";
 import { SelectedParcelPanel } from "./SelectedParcelPanel";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -38,6 +40,8 @@ interface PropertyStepMapFirstProps {
   applicationId?: string;
 }
 
+type ViewMode = 'search' | 'draw-navigate' | 'draw-active';
+
 export function PropertyStepMapFirst({
   formData,
   onChange,
@@ -54,6 +58,7 @@ export function PropertyStepMapFirst({
   const [mapCenter, setMapCenter] = useState<[number, number]>([29.7604, -95.3698]);
   const [mapZoom, setMapZoom] = useState(11);
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('search');
 
   // Update map center when coordinates change
   useEffect(() => {
@@ -69,6 +74,12 @@ export function PropertyStepMapFirst({
     setMapZoom(17);
     onAddressSelect(lat, lng, address);
   }, [onAddressSelect]);
+
+  // Handle navigation to a location (for draw mode)
+  const handleNavigateToLocation = useCallback((lat: number, lng: number, zoom?: number) => {
+    setMapCenter([lat, lng]);
+    setMapZoom(zoom || 17);
+  }, []);
 
   // Handle parcel selection from map click
   const handleMapParcelSelect = useCallback((parcel: any) => {
@@ -91,17 +102,44 @@ export function PropertyStepMapFirst({
     }
   }, [onParcelSelect]);
 
-  // Handle APN search result
-  const handleAPNSelect = useCallback((parcel: any) => {
-    setSelectedParcel(parcel);
+  // Handle parcel selection from search (smart search or APN)
+  const handleSearchParcelSelect = useCallback((parcel: any) => {
+    setSelectedParcel({
+      id: parcel.parcel_id || parcel.id,
+      address: parcel.situs_address || parcel.address || 'Unknown Address',
+      acreage: parcel.acreage || 0,
+      owner: parcel.owner_name || parcel.owner,
+      zoning: parcel.zoning,
+      county: parcel.county,
+      geometry: parcel.geometry,
+      lat: parcel.lat,
+      lng: parcel.lng,
+    });
+
     if (parcel.lat && parcel.lng) {
       setMapCenter([parcel.lat, parcel.lng]);
       setMapZoom(17);
     }
+
     if (onParcelSelect) {
       onParcelSelect(parcel);
     }
   }, [onParcelSelect]);
+
+  // Handle start draw mode
+  const handleStartDraw = useCallback(() => {
+    setViewMode('draw-navigate');
+  }, []);
+
+  // Handle confirm draw location
+  const handleConfirmDrawLocation = useCallback(() => {
+    setViewMode('draw-active');
+  }, []);
+
+  // Handle cancel draw
+  const handleCancelDraw = useCallback(() => {
+    setViewMode('search');
+  }, []);
 
   // Handle drawn parcel
   const handleDrawnParcel = useCallback((parcel: { 
@@ -123,6 +161,7 @@ export function PropertyStepMapFirst({
     
     setMapCenter([parcel.centroid.lat, parcel.centroid.lng]);
     setMapZoom(16);
+    setViewMode('search'); // Return to search mode after drawing
     
     if (onDrawnParcelSave) {
       onDrawnParcelSave(parcel);
@@ -195,22 +234,64 @@ export function PropertyStepMapFirst({
         />
       </div>
 
-      {/* Floating Search Panel - Top Left */}
+      {/* Floating Search/Navigation Panel - Top Left */}
       <div className="absolute top-4 left-4 z-20 w-full max-w-md">
-        <ParcelSearchPanel
-          onAddressSelect={handleAddressSelect}
-          onParcelSelect={handleMapParcelSelect}
-          onAPNSelect={handleAPNSelect}
-          onDrawnParcel={handleDrawnParcel}
-          mapCenter={mapCenter}
-          applicationId={applicationId}
-          currentAddress={formData.propertyAddress}
-        />
+        <AnimatePresence mode="wait">
+          {viewMode === 'search' && (
+            <motion.div
+              key="search"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <SmartParcelSearch
+                onAddressSelect={handleAddressSelect}
+                onParcelSelect={handleSearchParcelSelect}
+                onNavigateToLocation={handleNavigateToLocation}
+                onStartDraw={handleStartDraw}
+                mapCenter={mapCenter}
+                currentAddress={formData.propertyAddress}
+                isDrawMode={false}
+              />
+            </motion.div>
+          )}
+
+          {viewMode === 'draw-navigate' && (
+            <motion.div
+              key="draw-navigate"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <DrawNavigationBar
+                onNavigate={handleNavigateToLocation}
+                onConfirmLocation={handleConfirmDrawLocation}
+                onCancel={handleCancelDraw}
+                currentCenter={mapCenter}
+              />
+            </motion.div>
+          )}
+
+          {viewMode === 'draw-active' && (
+            <motion.div
+              key="draw-active"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <DrawParcelSection
+                onParcelDrawn={handleDrawnParcel}
+                initialCenter={mapCenter}
+                applicationId={applicationId}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Floating Selected Parcel Panel - Bottom */}
       <AnimatePresence>
-        {(selectedParcel || formData.propertyAddress) && (
+        {(selectedParcel || formData.propertyAddress) && viewMode === 'search' && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

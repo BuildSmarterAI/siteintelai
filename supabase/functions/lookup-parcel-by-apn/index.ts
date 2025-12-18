@@ -29,6 +29,7 @@ const COUNTY_CONFIG: Record<string, {
   endpoint: string;
   idField: string;
   name: string;
+  altIdField?: string;
 }> = {
   harris: {
     pattern: /^\d{13}$|^\d{3}-\d{3}-\d{3}-\d{4}$/,
@@ -47,6 +48,50 @@ const COUNTY_CONFIG: Record<string, {
     endpoint: 'https://gis.mctx.org/arcgis/rest/services/MCAD/MCAD_Parcels/MapServer/0/query',
     idField: 'PROP_ID',
     name: 'Montgomery'
+  },
+  galveston: {
+    pattern: /^\d{5,10}$/,
+    endpoint: 'https://gis.galvestoncad.org/arcgis/rest/services/GCAD/GCAD_Parcels/MapServer/0/query',
+    idField: 'PROP_ID',
+    altIdField: 'ACCOUNT',
+    name: 'Galveston'
+  },
+  brazoria: {
+    pattern: /^\d{6,11}$/,
+    endpoint: 'https://gis.brazoriacad.org/arcgis/rest/services/BCAD/Parcels/MapServer/0/query',
+    idField: 'PROP_ID',
+    name: 'Brazoria'
+  },
+  travis: {
+    pattern: /^\d{6,10}$/,
+    endpoint: 'https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/TCAD_Parcels_Public/FeatureServer/0/query',
+    idField: 'PROP_ID',
+    name: 'Travis'
+  },
+  williamson: {
+    pattern: /^R\d{6,9}$/i,
+    endpoint: 'https://gis.wilco.org/arcgis/rest/services/WCAD/Parcels/MapServer/0/query',
+    idField: 'PROP_ID',
+    altIdField: 'GEO_ID',
+    name: 'Williamson'
+  },
+  bexar: {
+    pattern: /^\d{8,12}$/,
+    endpoint: 'https://gis.bcad.org/arcgis/rest/services/BCAD/Parcels/MapServer/0/query',
+    idField: 'PROP_ID',
+    name: 'Bexar'
+  },
+  dallas: {
+    pattern: /^\d{10,13}$/,
+    endpoint: 'https://gis.dallascad.org/arcgis/rest/services/DCAD/Parcels/MapServer/0/query',
+    idField: 'ACCOUNT_NUM',
+    name: 'Dallas'
+  },
+  tarrant: {
+    pattern: /^\d{11,13}$/,
+    endpoint: 'https://gis.tad.org/arcgis/rest/services/TAD/Parcels/MapServer/0/query',
+    idField: 'ACCT',
+    name: 'Tarrant'
   }
 };
 
