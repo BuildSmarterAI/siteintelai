@@ -222,7 +222,7 @@ jobs:
       
       - name: Upload artifacts
         if: steps.check-layer.outputs.should_run == 'true' && steps.check-export.outputs.has_data == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: tiles-${{ matrix.layer }}
           path: |
