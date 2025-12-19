@@ -611,7 +611,7 @@ export function useVectorTileLayers({
 
   // Update layer visibility when toggle changes
   useEffect(() => {
-    if (!map || !mapLoaded) return;
+    if (!map || !mapLoaded || !map.style) return;
 
     // Map visibility keys to vector tile layer prefixes
     // PRD-compliant: Utilities expanded to include all sublayers (§5.1)
@@ -646,12 +646,12 @@ export function useVectorTileLayers({
       const visibility = isVisible ? 'visible' : 'none';
 
       for (const layerId of layerIds) {
-        if (map.getLayer(layerId)) {
-          try {
+        try {
+          if (map.getLayer(layerId)) {
             map.setLayoutProperty(layerId, 'visibility', visibility);
-          } catch (err) {
-            // Layer might not exist yet
           }
+        } catch (err) {
+          // Layer might not exist yet or map was destroyed
         }
       }
     }
@@ -659,7 +659,12 @@ export function useVectorTileLayers({
 
   // Add terrain/hillshade layer when topography visibility is enabled
   useEffect(() => {
-    if (!map || !mapLoaded || !map.isStyleLoaded()) return;
+    if (!map || !mapLoaded || !map.style) return;
+    try {
+      if (!map.isStyleLoaded()) return;
+    } catch {
+      return; // Map may have been destroyed
+    }
     
     const showTerrain = layerVisibility.topography ?? false;
     
