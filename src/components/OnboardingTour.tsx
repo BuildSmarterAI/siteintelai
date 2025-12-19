@@ -1,8 +1,9 @@
 import Joyride, { Step, CallBackProps, STATUS, ACTIONS } from 'react-joyride';
 import { useState } from 'react';
+import { baseTourStyles, tourLocale, markTourCompleted } from '@/lib/tourStyles';
 
 interface OnboardingTourProps {
-  tourName: 'dashboard' | 'report' | 'application';
+  tourName: 'dashboard' | 'application';
   run: boolean;
   onComplete: () => void;
 }
@@ -31,29 +32,6 @@ const tourSteps: Record<string, Step[]> = {
       placement: 'left',
     },
   ],
-  report: [
-    {
-      target: 'body',
-      content: 'Your feasibility report is ready! Let\'s explore the key sections.',
-      placement: 'center',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-tour="score-circle"]',
-      content: 'Your feasibility score (0-100). Higher scores indicate better development potential.',
-      placement: 'right',
-    },
-    {
-      target: '[data-tour="zoning-section"]',
-      content: 'Detailed zoning analysis with all data cited from official sources.',
-      placement: 'top',
-    },
-    {
-      target: '[data-tour="download-pdf"]',
-      content: 'Download a lender-ready PDF with all citations and appendices included.',
-      placement: 'left',
-    },
-  ],
   application: [
     {
       target: '[data-tour="intent-step"]',
@@ -76,7 +54,7 @@ export const OnboardingTour = ({ tourName, run, onComplete }: OnboardingTourProp
     const { status, action, index } = data;
     
     if (status === STATUS.FINISHED || status === STATUS.SKIPPED) {
-      localStorage.setItem(`tour_completed_${tourName}`, 'true');
+      markTourCompleted(tourName);
       onComplete();
     }
     
@@ -96,41 +74,8 @@ export const OnboardingTour = ({ tourName, run, onComplete }: OnboardingTourProp
       showProgress
       showSkipButton
       callback={handleCallback}
-      locale={{
-        back: 'Back',
-        close: 'Close',
-        last: 'Finish',
-        next: 'Next',
-        skip: 'Skip Tour',
-      }}
-      styles={{
-        options: {
-          primaryColor: '#FF7A00',
-          zIndex: 10000,
-          arrowColor: '#fff',
-        },
-        buttonNext: {
-          backgroundColor: '#FF7A00',
-          borderRadius: '8px',
-          fontSize: '14px',
-          padding: '10px 20px',
-        },
-        buttonBack: {
-          color: '#0A0F2C',
-          marginRight: '10px',
-        },
-        buttonSkip: {
-          color: '#9ca3af',
-        },
-        tooltip: {
-          borderRadius: '12px',
-          padding: '20px',
-          fontSize: '14px',
-        },
-        tooltipContent: {
-          padding: '10px 0',
-        },
-      }}
+      locale={tourLocale}
+      styles={baseTourStyles}
     />
   );
 };

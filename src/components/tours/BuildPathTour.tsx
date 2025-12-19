@@ -1,24 +1,25 @@
-import Joyride, { Step } from 'react-joyride';
+import Joyride, { Step, STATUS } from 'react-joyride';
+import { buildPathTourStyles, tourLocale, markTourCompleted } from '@/lib/tourStyles';
 
 const buildSteps: Step[] = [
   {
-    target: '.quickcheck-widget',
+    target: '[data-tour="quickcheck-widget"]',
     content: 'Start by analyzing any development site instantly — no account required.',
     placement: 'bottom',
     disableBeacon: true,
   },
   {
-    target: '.zoning-insight',
+    target: '[data-tour="zoning-insight"]',
     content: 'See immediate zoning compatibility for your planned use.',
     placement: 'top',
   },
   {
-    target: '.utility-insight',
+    target: '[data-tour="utility-insight"]',
     content: 'Check water, sewer, and force main proximity — critical for construction timelines.',
     placement: 'top',
   },
   {
-    target: '.unlock-cta',
+    target: '[data-tour="unlock-cta"]',
     content: 'Get a full lender-ready report with permit timelines, entitlement risk, and construction cost estimates.',
     placement: 'top',
   },
@@ -38,22 +39,13 @@ export function BuildPathTour({ run, onFinish }: BuildPathTourProps) {
       showSkipButton
       showProgress
       callback={(data) => {
-        if (data.status === 'finished' || data.status === 'skipped') {
+        if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
+          markTourCompleted('build_path');
           onFinish?.();
         }
       }}
-      styles={{
-        options: {
-          primaryColor: 'hsl(226 63% 11%)', // Build path primary (midnight blue)
-          zIndex: 10000,
-        },
-        tooltip: {
-          borderRadius: '12px',
-        },
-        buttonNext: {
-          backgroundColor: 'hsl(24 100% 50%)', // Feasibility orange
-        },
-      }}
+      styles={buildPathTourStyles}
+      locale={tourLocale}
     />
   );
 }

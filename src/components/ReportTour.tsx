@@ -1,4 +1,5 @@
 import Joyride, { CallBackProps, Step, STATUS } from "react-joyride";
+import { baseTourStyles, tourLocale, markTourCompleted } from '@/lib/tourStyles';
 
 interface ReportTourProps {
   run: boolean;
@@ -8,33 +9,33 @@ interface ReportTourProps {
 export function ReportTour({ run, onComplete }: ReportTourProps) {
   const steps: Step[] = [
     {
-      target: '.score-circle',
+      target: '[data-tour="score-circle"]',
       content: 'This is your overall feasibility score (0-100). Higher scores indicate stronger development potential!',
       placement: 'bottom',
       disableBeacon: true,
     },
     {
-      target: '.zoning-section',
+      target: '[data-tour="zoning-section"]',
       content: 'Zoning analysis shows what you can build on this site. Click any data badge to see the official source.',
       placement: 'right',
     },
     {
-      target: '.flood-section',
+      target: '[data-tour="flood-section"]',
       content: 'FEMA flood risk analysis with base flood elevation. Critical information for lenders and insurance.',
       placement: 'top',
     },
     {
-      target: '.utilities-section',
+      target: '[data-tour="utilities-section"]',
       content: 'Infrastructure availability including water, sewer, power, and fiber internet.',
       placement: 'left',
     },
     {
-      target: '.download-button',
+      target: '[data-tour="download-button"]',
       content: 'Download a lender-ready PDF with all citations and data sources included.',
       placement: 'left',
     },
     {
-      target: '.data-sources-sidebar',
+      target: '[data-tour="data-sources-sidebar"]',
       content: 'Every fact in your report is cited. Click any badge throughout the report to verify the source.',
       placement: 'left',
     },
@@ -44,6 +45,7 @@ export function ReportTour({ run, onComplete }: ReportTourProps) {
     const { status } = data;
     
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as typeof STATUS.FINISHED | typeof STATUS.SKIPPED)) {
+      markTourCompleted('report');
       onComplete();
     }
   };
@@ -56,25 +58,8 @@ export function ReportTour({ run, onComplete }: ReportTourProps) {
       showProgress
       showSkipButton
       callback={handleJoyrideCallback}
-      styles={{
-        options: {
-          primaryColor: '#FF7A00',
-          zIndex: 10000,
-        },
-        buttonNext: {
-          backgroundColor: '#FF7A00',
-        },
-        buttonBack: {
-          color: '#FF7A00',
-        },
-      }}
-      locale={{
-        back: 'Back',
-        close: 'Close',
-        last: 'Finish',
-        next: 'Next',
-        skip: 'Skip Tour',
-      }}
+      styles={baseTourStyles}
+      locale={tourLocale}
     />
   );
 }
