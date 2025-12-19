@@ -42,7 +42,7 @@ export const COUNTY_TILE_SOURCES: CountyTileSource[] = [
     featureServerUrl: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0',
     layerId: 0,
     bounds: [-96.0, 29.4, -94.9, 30.2],
-    minZoom: 13,
+    minZoom: 11, // Lowered from 13 to show parcels at earlier zoom
     maxZoom: 20,
     attribution: 'Harris County Appraisal District',
     isActive: true,
@@ -55,7 +55,7 @@ export const COUNTY_TILE_SOURCES: CountyTileSource[] = [
     featureServerUrl: 'https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0',
     layerId: 0,
     bounds: [-96.1, 29.2, -95.4, 29.8],
-    minZoom: 13,
+    minZoom: 11, // Lowered from 13 to show parcels at earlier zoom
     maxZoom: 20,
     attribution: 'Fort Bend Central Appraisal District',
     isActive: true,
@@ -68,7 +68,7 @@ export const COUNTY_TILE_SOURCES: CountyTileSource[] = [
     featureServerUrl: 'https://gis.mctx.org/arcgis/rest/services/Parcels/MapServer/0',
     layerId: 0,
     bounds: [-96.0, 30.0, -95.0, 30.7],
-    minZoom: 13,
+    minZoom: 11, // Lowered from 13 to show parcels at earlier zoom
     maxZoom: 20,
     attribution: 'Montgomery County',
     isActive: true,

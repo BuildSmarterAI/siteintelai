@@ -90,22 +90,30 @@ export function useCountyTileOverlays({
 
       addedSourcesRef.current.add(sourceId);
 
-      // Find the first symbol layer to insert below labels
+      // Find the best layer to insert county tiles above basemap but below labels
       const layers = map.getStyle()?.layers || [];
       let beforeLayerId: string | undefined;
+      
+      // First, try to find first symbol layer (labels)
       for (const layer of layers) {
         if (layer.type === 'symbol') {
           beforeLayerId = layer.id;
           break;
         }
       }
+      
+      // If no symbol layer found, insert at the top (above all raster layers)
+      // This ensures county tiles are visible above the basemap
+      if (!beforeLayerId && layers.length > 0) {
+        console.log(`[CountyTiles] No symbol layer found, inserting at top of layer stack`);
+      }
 
-      // Add raster layer
+      // Add raster layer with lowered minzoom to 11 for earlier visibility
       map.addLayer({
         id: layerId,
         type: 'raster',
         source: sourceId,
-        minzoom: county.minZoom,
+        minzoom: 11, // Force minzoom 11 regardless of county config
         maxzoom: county.maxZoom,
         paint: {
           'raster-opacity': enabled ? opacity : 0,
