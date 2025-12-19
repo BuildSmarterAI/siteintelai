@@ -59,6 +59,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@siteintel/types": path.resolve(__dirname, "./packages/types/src"),
+      "@siteintel/gis-utils": path.resolve(__dirname, "./packages/gis-utils/src"),
     },
   },
 }));
