@@ -208,8 +208,8 @@ export function useCountyTileOverlays({
 
       const zoom = map.getZoom();
       
-      // Only load county tiles at zoom 13+
-      if (zoom < 13) {
+      // Only load county tiles at zoom 11+ (lowered from 13 for better initial visibility)
+      if (zoom < 11) {
         // Remove all county overlays at low zoom
         activeCounties.forEach(county => {
           removeCountyOverlay(county.id);

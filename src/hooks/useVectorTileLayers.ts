@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import { useVectorTileSources } from './useTilesets';
 import { 
@@ -364,6 +364,7 @@ interface VectorTileLayerResult {
   error: Error | null;
   hasVectorTiles: boolean;
   activeSources: string[];
+  tileLoadFailed?: boolean; // True when tiles return 403/404
 }
 
 /**
@@ -384,6 +385,10 @@ export function useVectorTileLayers({
   const addedLayersRef = useRef<Set<string>>(new Set());
   const clickHandlerRef = useRef<((e: any) => void) | null>(null);
   const errorHandlerRef = useRef<((e: any) => void) | null>(null);
+  
+  // Track tile load failures (403, 404, etc.) to trigger fallback
+  const [tileLoadFailed, setTileLoadFailed] = useState(false);
+  const failedSourcesRef = useRef<Set<string>>(new Set());
   
   // Use ref to avoid stale closure in click handler
   const onParcelClickRef = useRef(onParcelClick);
@@ -422,17 +427,31 @@ export function useVectorTileLayers({
     addedSourcesRef.current.clear();
     addedLayersRef.current.clear();
 
-    // Set up tile error handler
+    // Set up tile error handler - detect 403/404 to trigger fallback
     if (errorHandlerRef.current) {
       map.off('error', errorHandlerRef.current);
     }
     errorHandlerRef.current = (e: any) => {
-      if (e.error?.status === 403 || e.error?.message?.includes('403')) {
-        console.error('🔍 TILE DEBUG: Tile load 403 error (Access Denied)', {
+      const status = e.error?.status || e.error?.statusCode;
+      const is403or404 = status === 403 || status === 404 || 
+        e.error?.message?.includes('403') || 
+        e.error?.message?.includes('404') ||
+        e.error?.message?.includes('Access Denied');
+      
+      if (is403or404 && e.sourceId?.startsWith('siteintel-')) {
+        console.error('🔍 TILE DEBUG: Tile load FAILED (triggering fallback)', {
           sourceId: e.sourceId,
+          status,
           tileUrl: e.tile?.url || e.error?.url,
           error: e.error,
         });
+        // Mark this source as failed and trigger fallback
+        failedSourcesRef.current.add(e.sourceId);
+        // If parcel tiles failed, enable fallback mode
+        if (e.sourceId === 'siteintel-parcels') {
+          console.warn('🔍 TILE DEBUG: Parcel tiles failed - enabling fallback mode');
+          setTileLoadFailed(true);
+        }
       } else if (e.sourceId?.startsWith('siteintel-')) {
         console.error('🔍 TILE DEBUG: Tile load error', {
           sourceId: e.sourceId,
@@ -717,8 +736,10 @@ export function useVectorTileLayers({
     layers,
     isLoading,
     error,
-    hasVectorTiles: Object.keys(sources).length > 0,
+    // hasVectorTiles is false if sources exist but tiles failed to load (403/404)
+    hasVectorTiles: Object.keys(sources).length > 0 && !tileLoadFailed,
     activeSources: Array.from(addedSourcesRef.current),
+    tileLoadFailed, // Expose this for debugging
   };
 }
 

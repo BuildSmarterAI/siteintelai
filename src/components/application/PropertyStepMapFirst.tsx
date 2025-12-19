@@ -56,7 +56,7 @@ export function PropertyStepMapFirst({
 }: PropertyStepMapFirstProps) {
   const [isMapLoading, setIsMapLoading] = useState(true);
   const [mapCenter, setMapCenter] = useState<[number, number]>([29.7604, -95.3698]);
-  const [mapZoom, setMapZoom] = useState(11);
+  const [mapZoom, setMapZoom] = useState(14); // Increased from 11 to ensure parcels are visible on load
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('search');
 
