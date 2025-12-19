@@ -1,24 +1,25 @@
-import Joyride, { Step } from 'react-joyride';
+import Joyride, { Step, STATUS } from 'react-joyride';
+import { buyPathTourStyles, tourLocale, markTourCompleted } from '@/lib/tourStyles';
 
 const buySteps: Step[] = [
   {
-    target: '.quickcheck-widget',
+    target: '[data-tour="quickcheck-widget"]',
     content: 'Evaluate any investment property in 10 seconds — free, no login.',
     placement: 'bottom',
     disableBeacon: true,
   },
   {
-    target: '.market-value-insight',
+    target: '[data-tour="market-value-insight"]',
     content: 'See instant market value ranges from county appraisal data.',
     placement: 'top',
   },
   {
-    target: '.flood-insurance-insight',
+    target: '[data-tour="flood-insurance-insight"]',
     content: 'Estimate annual flood insurance costs — critical for ROI calculations.',
     placement: 'top',
   },
   {
-    target: '.unlock-cta',
+    target: '[data-tour="unlock-cta"]',
     content: 'Get a full investor-grade report with ROI analysis, risk factors, and market demographics.',
     placement: 'top',
   },
@@ -38,22 +39,13 @@ export function BuyPathTour({ run, onFinish }: BuyPathTourProps) {
       showSkipButton
       showProgress
       callback={(data) => {
-        if (data.status === 'finished' || data.status === 'skipped') {
+        if (data.status === STATUS.FINISHED || data.status === STATUS.SKIPPED) {
+          markTourCompleted('buy_path');
           onFinish?.();
         }
       }}
-      styles={{
-        options: {
-          primaryColor: 'hsl(191 91% 43%)', // Buy path cyan
-          zIndex: 10000,
-        },
-        tooltip: {
-          borderRadius: '12px',
-        },
-        buttonNext: {
-          backgroundColor: 'hsl(191 91% 43%)', // Data cyan
-        },
-      }}
+      styles={buyPathTourStyles}
+      locale={tourLocale}
     />
   );
 }

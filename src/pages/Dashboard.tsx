@@ -302,14 +302,6 @@ export default function Dashboard() {
     );
   };
 
-  // Show onboarding tour for new users
-  useEffect(() => {
-    const tourCompleted = localStorage.getItem('tour_completed_dashboard');
-    if (!tourCompleted && reports.length === 0) {
-      setTimeout(() => setShowTour(true), 1500);
-    }
-  }, [reports]);
-
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
