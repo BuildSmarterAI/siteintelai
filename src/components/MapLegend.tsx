@@ -3,15 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp, Map, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { cn } from '@/lib/utils';
 
 interface MapLegendProps {
   hasFloodZones?: boolean;
   hasTraffic?: boolean;
   hasEmployment?: boolean;
-  hasHcadParcels?: boolean;
+  hasParcels?: boolean; // Unified parcel indicator
   hasWaterLines?: boolean;
   hasSewerLines?: boolean;
   hasStormLines?: boolean;
@@ -25,14 +23,10 @@ interface MapLegendProps {
 }
 
 /**
- * MapLegend - Interactive legend component for map symbols
+ * MapLegend - Simplified interactive legend component for map symbols
  * 
- * Responsive design:
- * - Desktop (≥1024px): Card in bottom-right corner
- * - Mobile/Tablet (<1024px): Drawer with trigger button in top-left
- * 
- * Provides color-coded keys for flood zones, traffic, parcels, and employment
- * Now supports preset context display
+ * Only shows legend items for VISIBLE layers to reduce clutter.
+ * Merged "Parcel" and "HCAD Parcels" into single "Parcels" section.
  * 
  * @accessibility WCAG 2.1 AA compliant with keyboard nav and 48px touch targets
  */
@@ -40,7 +34,7 @@ export function MapLegend({
   hasFloodZones = false,
   hasTraffic = false,
   hasEmployment = false,
-  hasHcadParcels = false,
+  hasParcels = false,
   hasWaterLines = false,
   hasSewerLines = false,
   hasStormLines = false,
@@ -53,6 +47,11 @@ export function MapLegend({
 }: MapLegendProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Check if any layers are visible to show the legend
+  const hasAnyLayers = hasParcels || hasFloodZones || hasTraffic || hasEmployment || 
+    hasWaterLines || hasSewerLines || hasStormLines || hasStormManholes || 
+    hasForceMain || hasZoningDistricts;
 
   const legendContent = (
     <div className="space-y-3 text-xs">
@@ -76,44 +75,45 @@ export function MapLegend({
         </div>
       )}
 
-      {/* Parcel Boundary */}
-      {/* Parcel Boundary */}
-      <div className="space-y-1.5">
-        <p className="font-medium text-foreground">Parcel</p>
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-8 h-3 border-2 rounded-sm"
-            style={{
-              borderColor: '#FF7A00',
-              backgroundColor: 'rgba(255, 122, 0, 0.1)',
-            }}
-          />
-          <span className="text-muted-foreground">Property boundary</span>
+      {/* Parcels - Unified section (always shown when parcels visible) */}
+      {hasParcels && (
+        <div className="space-y-1.5">
+          <p className="font-medium text-foreground">Parcels</p>
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-8 h-3 border-2 rounded-sm"
+              style={{
+                borderColor: '#FF7A00',
+                backgroundColor: 'rgba(255, 122, 0, 0.25)',
+              }}
+            />
+            <span className="text-muted-foreground">Property boundaries</span>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* FEMA Flood Zones */}
+      {/* FEMA Flood Zones - Only show if flood layer is on */}
       {hasFloodZones && (
         <div className="space-y-1.5 pt-2 border-t">
           <p className="font-medium text-foreground">Flood Risk</p>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: '#EF4444' }} />
-              <span className="text-muted-foreground">High (Zone AE)</span>
+              <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)' }} />
+              <span className="text-muted-foreground">High (Zone AE/VE)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: '#FF7A00' }} />
-              <span className="text-muted-foreground">Moderate (Zone A)</span>
+              <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: 'rgba(249, 115, 22, 0.2)' }} />
+              <span className="text-muted-foreground">Moderate (Zone AO/AH)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: '#10B981' }} />
+              <div className="w-8 h-3 rounded-sm" style={{ backgroundColor: 'rgba(16, 185, 129, 0.2)' }} />
               <span className="text-muted-foreground">Low (Zone X)</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* TxDOT Traffic */}
+      {/* TxDOT Traffic - Only show if traffic layer is on */}
       {hasTraffic && (
         <div className="space-y-1.5 pt-2 border-t">
           <p className="font-medium text-foreground">Traffic Volume (AADT)</p>
@@ -127,14 +127,14 @@ export function MapLegend({
               <span className="text-muted-foreground">50K-100K vehicles/day</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#06B6D4' }} />
+              <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#10B981' }} />
               <span className="text-muted-foreground">&lt;50K vehicles/day</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Employment Centers */}
+      {/* Employment Centers - Only show if employment layer is on */}
       {hasEmployment && (
         <div className="space-y-1.5 pt-2 border-t">
           <p className="font-medium text-foreground">Employment</p>
@@ -145,64 +145,50 @@ export function MapLegend({
         </div>
       )}
 
-      {/* HCAD Parcels */}
-      {hasHcadParcels && (
-        <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">HCAD Parcels</p>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#6366F1' }} />
-            <span className="text-muted-foreground">County parcel boundaries</span>
-          </div>
-        </div>
-      )}
-
-      {/* Water Lines */}
+      {/* Water Lines - Only show if visible */}
       {hasWaterLines && (
         <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">Water Lines</p>
+          <p className="font-medium text-foreground">Water</p>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#3B82F6' }} />
-            <span className="text-muted-foreground">City of Houston Public Works</span>
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#1F6AE1' }} />
+            <span className="text-muted-foreground">Water mains</span>
           </div>
         </div>
       )}
 
-      {/* Sewer Lines */}
+      {/* Sewer Lines - Only show if visible */}
       {hasSewerLines && (
         <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">Sewer Lines</p>
+          <p className="font-medium text-foreground">Sewer</p>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#10B981' }} />
-            <span className="text-muted-foreground">City of Houston Public Works</span>
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#7A4A2E' }} />
+            <span className="text-muted-foreground">Sewer lines</span>
           </div>
         </div>
       )}
 
-      {/* Storm Lines */}
+      {/* Storm Lines - Only show if visible */}
       {hasStormLines && (
         <div className="space-y-1.5 pt-2 border-t">
-          <p className="font-medium text-foreground">Storm Drain Lines</p>
+          <p className="font-medium text-foreground">Stormwater</p>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#14B8A6' }} />
-            <span className="text-muted-foreground">Houston Water HPW IPS</span>
+            <div className="w-8 h-1 rounded-full" style={{ backgroundColor: '#1C7C7C' }} />
+            <span className="text-muted-foreground">Storm drains</span>
           </div>
         </div>
       )}
 
-      {/* Storm Manholes */}
+      {/* Storm Manholes - Only show if visible */}
       {hasStormManholes && (
         <div className="space-y-1.5 pt-2 border-t">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium">Storm Drain Manholes</span>
-          </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-400 border-2 border-blue-800 rounded-full" />
-            <span className="text-xs text-muted-foreground">Houston Water HPW IPS</span>
+            <div className="w-3 h-3 bg-teal-400 border-2 border-teal-700 rounded-full" />
+            <span className="text-muted-foreground">Storm manholes</span>
           </div>
         </div>
       )}
 
-      {/* Force Main */}
+      {/* Force Main - Only show if visible */}
       {hasForceMain && (
         <div className="space-y-1.5 pt-2 border-t">
           <p className="font-medium text-foreground">Force Main</p>
@@ -213,7 +199,7 @@ export function MapLegend({
         </div>
       )}
 
-      {/* Zoning Districts */}
+      {/* Zoning Districts - Only show if visible */}
       {hasZoningDistricts && (
         <div className="space-y-1.5 pt-2 border-t">
           <p className="font-medium text-foreground">Zoning</p>
@@ -225,10 +211,15 @@ export function MapLegend({
       )}
 
       <p className="text-[10px] text-muted-foreground pt-2 border-t">
-        Data: FEMA NFHL, TxDOT, County GIS, City of Houston
+        Data: FEMA, TxDOT, County GIS, Houston Public Works
       </p>
     </div>
   );
+
+  // Don't render anything if no layers are visible
+  if (!hasAnyLayers && !presetLabel) {
+    return null;
+  }
 
   return (
     <>
@@ -245,7 +236,7 @@ export function MapLegend({
               <Map className="h-5 w-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="bottom" className="h-[80vh]">
+          <SheetContent side="bottom" className="h-[60vh]">
             <SheetHeader>
               <SheetTitle>Map Legend</SheetTitle>
             </SheetHeader>
@@ -257,11 +248,11 @@ export function MapLegend({
       </div>
 
       {/* Desktop: Card in bottom-right */}
-      <Card className="hidden lg:block absolute bottom-4 right-4 w-64 shadow-lg bg-background/95 backdrop-blur-sm z-10">
+      <Card className="hidden lg:block absolute bottom-4 right-4 w-56 shadow-lg bg-background/95 backdrop-blur-sm z-10">
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
           <CardHeader className="p-3 pb-2">
             <CollapsibleTrigger className="flex items-center justify-between w-full group">
-              <CardTitle className="text-sm font-semibold">Map Legend</CardTitle>
+              <CardTitle className="text-sm font-semibold">Legend</CardTitle>
               {isOpen ? (
                 <ChevronUp className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
               ) : (

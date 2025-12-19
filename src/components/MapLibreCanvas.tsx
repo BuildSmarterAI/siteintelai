@@ -92,23 +92,24 @@ function getInitialLayerVisibility(
   savedPreferences: any | null
 ): LayerVisibility {
   // If user has saved preferences, respect them (merge with defaults for new layers)
+  // For Step 1 property selection, show only parcels by default to reduce clutter
   const defaults: LayerVisibility = {
     parcel: true,
     drawnParcels: true,
-    traffic: true,
-    employment: true,
-    flood: true,
-    utilities: true,
-    hcadParcels: true,
-    waterLines: true,
-    sewerLines: true,
-    stormLines: true,
-    stormManholes: true,
-    forceMain: true,
-    floodZones: true,
-    zoningDistricts: true,
+    traffic: false, // Off by default - can enable if needed
+    employment: false, // Off by default
+    flood: false, // Off by default - reduces clutter on initial view
+    utilities: false, // Off by default
+    hcadParcels: false, // Off by default - merged with parcel layer
+    waterLines: false,
+    sewerLines: false,
+    stormLines: false,
+    stormManholes: false,
+    forceMain: false,
+    floodZones: false,
+    zoningDistricts: false,
     topography: false, // Off by default - terrain can be heavy
-    countyParcels: true, // County CAD tile overlays - enabled by default
+    countyParcels: true, // County CAD tile overlays - enabled for parcel boundaries
   };
   
   if (savedPreferences && Object.keys(savedPreferences).length > 0) {
@@ -2394,16 +2395,16 @@ export function MapLibreCanvas({
 
       {/* Map Legend */}
       <MapLegend
-        hasFloodZones={floodZones.length > 0 || hasVectorTileSource(vectorTileSources, 'flood')}
-        hasTraffic={traffic.length > 0 || hasVectorTileSource(vectorTileSources, 'transportation')}
-        hasEmployment={employmentCenters.length > 0}
-        hasHcadParcels={hcadParcels.length > 0 || hasVectorTileSource(vectorTileSources, 'parcels')}
-        hasWaterLines={waterLines.length > 0}
-        hasSewerLines={sewerLines.length > 0}
-        hasStormLines={stormLines.length > 0}
-        hasStormManholes={stormManholes.length > 0}
-        hasForceMain={forceMain.length > 0}
-        hasZoningDistricts={zoningDistricts.length > 0 || hasVectorTileSource(vectorTileSources, 'zoning')}
+        hasParcels={layerVisibility.parcel || layerVisibility.countyParcels || hasVectorTileSource(vectorTileSources, 'parcels')}
+        hasFloodZones={layerVisibility.flood && (floodZones.length > 0 || hasVectorTileSource(vectorTileSources, 'flood'))}
+        hasTraffic={layerVisibility.traffic && (traffic.length > 0 || hasVectorTileSource(vectorTileSources, 'transportation'))}
+        hasEmployment={layerVisibility.employment && employmentCenters.length > 0}
+        hasWaterLines={layerVisibility.waterLines && waterLines.length > 0}
+        hasSewerLines={layerVisibility.sewerLines && sewerLines.length > 0}
+        hasStormLines={layerVisibility.stormLines && stormLines.length > 0}
+        hasStormManholes={layerVisibility.stormManholes && stormManholes.length > 0}
+        hasForceMain={layerVisibility.forceMain && forceMain.length > 0}
+        hasZoningDistricts={layerVisibility.zoningDistricts && (zoningDistricts.length > 0 || hasVectorTileSource(vectorTileSources, 'zoning'))}
       />
 
       {/* Top-right controls */}
