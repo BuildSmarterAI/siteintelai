@@ -32,7 +32,7 @@ const VECTOR_TILE_LAYER_CONFIG = {
         'source-layer': 'parcels',
         paint: {
           'fill-color': '#FF7A00', // Feasibility Orange
-          'fill-opacity': 0.15,
+          'fill-opacity': 0.25, // Increased from 0.15 for better visibility
         },
       },
       {
@@ -41,7 +41,7 @@ const VECTOR_TILE_LAYER_CONFIG = {
         'source-layer': 'parcels',
         paint: {
           'line-color': '#FF7A00', // Feasibility Orange
-          'line-width': 1.5,
+          'line-width': 2.5, // Increased from 1.5 for clearer boundaries
         },
       },
     ],
@@ -65,7 +65,7 @@ const VECTOR_TILE_LAYER_CONFIG = {
             'X500', '#6EE7B7', // Light green for X500
             '#6B7280', // Gray default
           ],
-          'fill-opacity': 0.4,
+          'fill-opacity': 0.2, // Reduced from 0.4 for less clutter
         },
       },
       {
@@ -74,7 +74,8 @@ const VECTOR_TILE_LAYER_CONFIG = {
         'source-layer': 'flood',
         paint: {
           'line-color': '#991B1B',
-          'line-width': 1,
+          'line-width': 0.5, // Reduced from 1 for less visual noise
+          'line-opacity': 0.5, // Semi-transparent
         },
       },
     ],
