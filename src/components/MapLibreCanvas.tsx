@@ -309,9 +309,10 @@ export function MapLibreCanvas({
   } = useCountyTileOverlays({
     map: mapInstance,
     mapLoaded,
-    enabled: layerVisibility.countyParcels && showParcels,
+    // Force county tiles as primary source - don't wait for vector tiles
+    enabled: showParcels, // Always load when parcels requested (bypasses hasVectorTiles)
     autoDetect: true,
-    opacity: 0.7,
+    opacity: 0.85, // Increased opacity for better visibility
     onCountyAdded: (county) => {
       console.log(`[MapLibreCanvas] County tile overlay added: ${county.name}`);
       toast.info(`Loading ${county.name} parcels`, { duration: 2000 });
