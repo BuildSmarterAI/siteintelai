@@ -1,0 +1,29 @@
+# SiteIntel™ CODEOWNERS
+# These owners will be requested for review when someone opens a PR that modifies code they own.
+
+# Default owners for everything
+* @siteintel/core-team
+
+# Frontend
+/src/components/ @siteintel/frontend
+/src/pages/ @siteintel/frontend
+/src/hooks/ @siteintel/frontend
+/src/styles/ @siteintel/frontend
+
+# Backend / Edge Functions
+/supabase/functions/ @siteintel/backend
+/supabase/migrations/ @siteintel/backend
+
+# Infrastructure / DevOps
+/.github/ @siteintel/devops
+/supabase/config.toml @siteintel/devops
+
+# Documentation
+/docs/ @siteintel/core-team
+*.md @siteintel/core-team
+
+# Security-sensitive files (require security team review)
+/supabase/migrations/*rls* @siteintel/security @siteintel/backend
+/supabase/migrations/*policy* @siteintel/security @siteintel/backend
+/supabase/functions/*auth* @siteintel/security @siteintel/backend
+/.github/workflows/security.yml @siteintel/security @siteintel/devops
