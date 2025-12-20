@@ -158,9 +158,13 @@ async function searchByAddress(
         },
         body: JSON.stringify({ input: query, limit: 5 }),
       });
-
-      if (nominatimResponse.ok) {
+      console.log(`[search-parcels] Nominatim response status: ${nominatimResponse.status}`);
+      if (!nominatimResponse.ok) {
+        const errorText = await nominatimResponse.text();
+        console.error(`[search-parcels] Nominatim error: ${nominatimResponse.status} - ${errorText}`);
+      } else {
         const nominatimData = await nominatimResponse.json();
+        console.log(`[search-parcels] Nominatim data:`, JSON.stringify(nominatimData).substring(0, 200));
         if (nominatimData.predictions?.length > 0) {
           // Nominatim results already have coordinates - process directly
           const results: SearchResult[] = [];
