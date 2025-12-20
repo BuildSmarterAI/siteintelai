@@ -52,10 +52,14 @@ Deno.serve(async (req) => {
 
     let wetlandsType = null;
     let wetlandsAreaPct = null;
+    let wetlandCowardinCode = null;
 
     if (wetlands.length > 0) {
       // Get most common wetland type
       wetlandsType = wetlands[0].attributes.WETLAND_TYPE || null;
+      
+      // Capture the Cowardin classification code (e.g., PFO1A, PEM1C)
+      wetlandCowardinCode = wetlands[0].attributes.ATTRIBUTE || null;
       
       // Calculate overlap percentage (simplified approach)
       // For precise calculation, would need PostGIS ST_Intersection
@@ -65,7 +69,7 @@ Deno.serve(async (req) => {
         wetlandsAreaPct = Math.min(100, Math.round((wetlandSqft / parcel_area_sqft) * 100));
       }
 
-      console.log(`[NWI Wetlands] Type: ${wetlandsType}, Coverage: ${wetlandsAreaPct}%`);
+      console.log(`[NWI Wetlands] Type: ${wetlandsType}, Cowardin: ${wetlandCowardinCode}, Coverage: ${wetlandsAreaPct}%`);
     }
 
     // Update application record if application_id provided
@@ -79,6 +83,7 @@ Deno.serve(async (req) => {
         .update({
           wetlands_type: wetlandsType,
           wetlands_area_pct: wetlandsAreaPct,
+          wetland_cowardin_code: wetlandCowardinCode,
           updated_at: new Date().toISOString()
         })
         .eq('id', application_id);
@@ -92,6 +97,7 @@ Deno.serve(async (req) => {
       success: true,
       wetlands_type: wetlandsType,
       wetlands_area_pct: wetlandsAreaPct,
+      wetland_cowardin_code: wetlandCowardinCode,
       wetlands_count: wetlands.length,
       wetlands_details: wetlands.slice(0, 5).map(w => ({
         type: w.attributes.WETLAND_TYPE,

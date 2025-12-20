@@ -634,17 +634,47 @@ async function fetchWetlands(lat: number, lng: number): Promise<{
   }
 }
 
-// Helper function to fetch soil data from USDA NRCS
+// Helper function to fetch soil data from USDA NRCS with enhanced SSURGO properties
 async function fetchSoilData(lat: number, lng: number): Promise<any> {
   try {
-    // Try USDA Soil Data Access API first
+    // Try USDA Soil Data Access API with expanded query for enhanced properties
     const sdaUrl = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
-    const query = `SELECT TOP 1 m.muname, c.slope_r, c.drainagecl 
-                   FROM mapunit m 
-                   INNER JOIN component c ON m.mukey = c.mukey
-                   WHERE m.mukey IN (
-                     SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
-                   )`;
+    
+    // Enhanced query to include additional soil properties
+    const query = `
+      SELECT TOP 1 
+        m.muname,
+        c.slope_r,
+        c.drainagecl,
+        c.hydricrating,
+        c.flodfreqdcd,
+        c.wtdepannmin,
+        c.brockdepmin,
+        c.pondfreqdcd,
+        ch.kffact,
+        COALESCE(
+          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Corros%Concrete%'),
+          NULL
+        ) as corcon,
+        COALESCE(
+          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Corros%Steel%'),
+          NULL
+        ) as corsteel,
+        COALESCE(
+          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Septic%'),
+          NULL
+        ) as septic_rating,
+        COALESCE(
+          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Dwellings%Basement%'),
+          NULL
+        ) as building_rating
+      FROM mapunit m 
+      INNER JOIN component c ON m.mukey = c.mukey
+      LEFT JOIN chorizon ch ON c.cokey = ch.cokey
+      WHERE m.mukey IN (
+        SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
+      )
+      ORDER BY c.comppct_r DESC`;
     
     const sdaResponse = await fetch(sdaUrl, {
       method: 'POST',
@@ -662,12 +692,25 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
         const data = JSON.parse(text);
         
         if (data?.Table?.[0]) {
+          const row = data.Table[0];
           const soilData = {
-            soil_series: data.Table[0][0] || null,
-            soil_slope_percent: data.Table[0][1] ? Number(data.Table[0][1]) : null,
-            soil_drainage_class: data.Table[0][2] || null
+            // Basic properties (existing)
+            soil_series: row[0] || null,
+            soil_slope_percent: row[1] ? Number(row[1]) : null,
+            soil_drainage_class: row[2] || null,
+            // Enhanced SSURGO properties (new)
+            hydric_soil_rating: row[3] || null,
+            flood_frequency_usda: row[4] || null,
+            water_table_depth_cm: row[5] ? Number(row[5]) : null,
+            bedrock_depth_cm: row[6] ? Number(row[6]) : null,
+            ponding_frequency: row[7] || null,
+            erosion_k_factor: row[8] ? Number(row[8]) : null,
+            corrosion_concrete: row[9] || null,
+            corrosion_steel: row[10] || null,
+            septic_suitability: row[11] || null,
+            building_site_rating: row[12] || null
           };
-          console.log('Soil data from USDA SDA:', soilData);
+          console.log('✅ Enhanced soil data from USDA SDA:', soilData);
           return soilData;
         }
       } catch (parseError) {
@@ -675,8 +718,49 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
       }
     }
     
-    // Fallback: Try NRCS Soil Survey Geographic (SSURGO) WFS service
-    console.log('Trying NRCS SSURGO WFS service fallback for drainage class');
+    // Fallback: Try simpler query if enhanced query fails
+    console.log('Trying simplified SSURGO query as fallback...');
+    const simpleQuery = `SELECT TOP 1 m.muname, c.slope_r, c.drainagecl, c.hydricrating, c.flodfreqdcd
+                         FROM mapunit m 
+                         INNER JOIN component c ON m.mukey = c.mukey
+                         WHERE m.mukey IN (
+                           SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
+                         )
+                         ORDER BY c.comppct_r DESC`;
+    
+    const simpleSdaResponse = await fetch(sdaUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: `query=${encodeURIComponent(simpleQuery)}&format=JSON`
+    });
+    
+    const simpleText = await simpleSdaResponse.text();
+    
+    if (simpleText && !simpleText.trim().startsWith('<')) {
+      try {
+        const simpleData = JSON.parse(simpleText);
+        if (simpleData?.Table?.[0]) {
+          const row = simpleData.Table[0];
+          const soilData = {
+            soil_series: row[0] || null,
+            soil_slope_percent: row[1] ? Number(row[1]) : null,
+            soil_drainage_class: row[2] || null,
+            hydric_soil_rating: row[3] || null,
+            flood_frequency_usda: row[4] || null
+          };
+          console.log('✅ Simplified soil data from USDA SDA:', soilData);
+          return soilData;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse simplified USDA SDA response:', parseError);
+      }
+    }
+    
+    // Final fallback: Try NRCS SSURGO WFS service
+    console.log('Trying NRCS SSURGO WFS service fallback...');
     const ssurgoUrl = `https://sdmdataaccess.nrcs.usda.gov/Spatial/SDMWGS84Geographic.wfs`;
     const ssurgoParams = new URLSearchParams({
       service: 'WFS',
@@ -701,7 +785,8 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
           const soilData = {
             soil_series: props.muname || props.MapUnitName || null,
             soil_slope_percent: props.slope_r || props.slopegradwta || null,
-            soil_drainage_class: props.drainagecl || props.drclassdcd || props.drainagecl_r || null
+            soil_drainage_class: props.drainagecl || props.drclassdcd || props.drainagecl_r || null,
+            hydric_soil_rating: props.hydricrating || null
           };
           console.log('✅ Soil data from SSURGO WFS fallback:', soilData);
           return soilData;
@@ -3845,8 +3930,21 @@ serve(async (req) => {
       if (enrichedData.soil_series) updateData.soil_series = enrichedData.soil_series;
       if (enrichedData.soil_slope_percent) updateData.soil_slope_percent = enrichedData.soil_slope_percent;
       if (enrichedData.soil_drainage_class) updateData.soil_drainage_class = enrichedData.soil_drainage_class;
+      // Enhanced SSURGO soil properties
+      if (enrichedData.hydric_soil_rating) updateData.hydric_soil_rating = enrichedData.hydric_soil_rating;
+      if (enrichedData.flood_frequency_usda) updateData.flood_frequency_usda = enrichedData.flood_frequency_usda;
+      if (enrichedData.water_table_depth_cm !== null && enrichedData.water_table_depth_cm !== undefined) updateData.water_table_depth_cm = enrichedData.water_table_depth_cm;
+      if (enrichedData.bedrock_depth_cm !== null && enrichedData.bedrock_depth_cm !== undefined) updateData.bedrock_depth_cm = enrichedData.bedrock_depth_cm;
+      if (enrichedData.ponding_frequency) updateData.ponding_frequency = enrichedData.ponding_frequency;
+      if (enrichedData.erosion_k_factor !== null && enrichedData.erosion_k_factor !== undefined) updateData.erosion_k_factor = enrichedData.erosion_k_factor;
+      if (enrichedData.corrosion_concrete) updateData.corrosion_concrete = enrichedData.corrosion_concrete;
+      if (enrichedData.corrosion_steel) updateData.corrosion_steel = enrichedData.corrosion_steel;
+      if (enrichedData.septic_suitability) updateData.septic_suitability = enrichedData.septic_suitability;
+      if (enrichedData.building_site_rating) updateData.building_site_rating = enrichedData.building_site_rating;
       if (enrichedData.environmental_sites) updateData.environmental_sites = enrichedData.environmental_sites;
       if (enrichedData.historical_flood_events !== undefined) updateData.historical_flood_events = enrichedData.historical_flood_events;
+      // NWI Cowardin classification
+      if (enrichedData.wetland_cowardin_code) updateData.wetland_cowardin_code = enrichedData.wetland_cowardin_code;
       
       // Utilities / Infrastructure
       if (enrichedData.water_lines) updateData.water_lines = enrichedData.water_lines;
