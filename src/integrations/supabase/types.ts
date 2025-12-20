@@ -532,6 +532,8 @@ export type Database = {
           households_5mi: number | null
           id: string
           imprv_val: number | null
+          in_city_mud_name: string | null
+          in_city_mud_number: string | null
           intent_type: string | null
           intent_weights: Json | null
           kill_factors_triggered: string[] | null
@@ -659,6 +661,9 @@ export type Database = {
           traffic_segment_id: string | null
           traffic_year: number | null
           truck_percent: number | null
+          twdb_pws_id: string | null
+          twdb_pws_name: string | null
+          twdb_system_type: string | null
           under_18_pct: number | null
           unemployment_rate: number | null
           updated_at: string
@@ -667,6 +672,8 @@ export type Database = {
           utilities_output: string | null
           utilities_summary: Json | null
           utility_access: string[] | null
+          utility_data_sources: Json | null
+          utility_provider_confidence: number | null
           utm_campaign: string | null
           utm_medium: string | null
           utm_source: string | null
@@ -789,6 +796,8 @@ export type Database = {
           households_5mi?: number | null
           id?: string
           imprv_val?: number | null
+          in_city_mud_name?: string | null
+          in_city_mud_number?: string | null
           intent_type?: string | null
           intent_weights?: Json | null
           kill_factors_triggered?: string[] | null
@@ -916,6 +925,9 @@ export type Database = {
           traffic_segment_id?: string | null
           traffic_year?: number | null
           truck_percent?: number | null
+          twdb_pws_id?: string | null
+          twdb_pws_name?: string | null
+          twdb_system_type?: string | null
           under_18_pct?: number | null
           unemployment_rate?: number | null
           updated_at?: string
@@ -924,6 +936,8 @@ export type Database = {
           utilities_output?: string | null
           utilities_summary?: Json | null
           utility_access?: string[] | null
+          utility_data_sources?: Json | null
+          utility_provider_confidence?: number | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -1046,6 +1060,8 @@ export type Database = {
           households_5mi?: number | null
           id?: string
           imprv_val?: number | null
+          in_city_mud_name?: string | null
+          in_city_mud_number?: string | null
           intent_type?: string | null
           intent_weights?: Json | null
           kill_factors_triggered?: string[] | null
@@ -1173,6 +1189,9 @@ export type Database = {
           traffic_segment_id?: string | null
           traffic_year?: number | null
           truck_percent?: number | null
+          twdb_pws_id?: string | null
+          twdb_pws_name?: string | null
+          twdb_system_type?: string | null
           under_18_pct?: number | null
           unemployment_rate?: number | null
           updated_at?: string
@@ -1181,6 +1200,8 @@ export type Database = {
           utilities_output?: string | null
           utilities_summary?: Json | null
           utility_access?: string[] | null
+          utility_data_sources?: Json | null
+          utility_provider_confidence?: number | null
           utm_campaign?: string | null
           utm_medium?: string | null
           utm_source?: string | null
@@ -4175,9 +4196,12 @@ export type Database = {
           expires_at: string
           has_conflicts: boolean | null
           id: string
+          in_city_mud_name: string | null
+          in_city_mud_number: string | null
           is_kill_factor: boolean | null
           kill_factor_reason: string | null
           parcel_id: string | null
+          provider_distinction: string | null
           resolution_confidence: number | null
           resolved_at: string
           sewer_provider_id: string | null
@@ -4185,6 +4209,8 @@ export type Database = {
           sewer_serviceability: string | null
           storm_provider_id: string | null
           storm_resolution_method: string | null
+          twdb_pws_id: string | null
+          twdb_pws_name: string | null
           updated_at: string
           water_provider_id: string | null
           water_resolution_method: string | null
@@ -4204,9 +4230,12 @@ export type Database = {
           expires_at?: string
           has_conflicts?: boolean | null
           id?: string
+          in_city_mud_name?: string | null
+          in_city_mud_number?: string | null
           is_kill_factor?: boolean | null
           kill_factor_reason?: string | null
           parcel_id?: string | null
+          provider_distinction?: string | null
           resolution_confidence?: number | null
           resolved_at?: string
           sewer_provider_id?: string | null
@@ -4214,6 +4243,8 @@ export type Database = {
           sewer_serviceability?: string | null
           storm_provider_id?: string | null
           storm_resolution_method?: string | null
+          twdb_pws_id?: string | null
+          twdb_pws_name?: string | null
           updated_at?: string
           water_provider_id?: string | null
           water_resolution_method?: string | null
@@ -4233,9 +4264,12 @@ export type Database = {
           expires_at?: string
           has_conflicts?: boolean | null
           id?: string
+          in_city_mud_name?: string | null
+          in_city_mud_number?: string | null
           is_kill_factor?: boolean | null
           kill_factor_reason?: string | null
           parcel_id?: string | null
+          provider_distinction?: string | null
           resolution_confidence?: number | null
           resolved_at?: string
           sewer_provider_id?: string | null
@@ -4243,6 +4277,8 @@ export type Database = {
           sewer_serviceability?: string | null
           storm_provider_id?: string | null
           storm_resolution_method?: string | null
+          twdb_pws_id?: string | null
+          twdb_pws_name?: string | null
           updated_at?: string
           water_provider_id?: string | null
           water_resolution_method?: string | null
@@ -7049,9 +7085,12 @@ export type Database = {
           expires_at: string
           has_conflicts: boolean | null
           id: string
+          in_city_mud_name: string | null
+          in_city_mud_number: string | null
           is_kill_factor: boolean | null
           kill_factor_reason: string | null
           parcel_id: string | null
+          provider_distinction: string | null
           resolution_confidence: number | null
           resolved_at: string
           sewer_provider_id: string | null
@@ -7059,6 +7098,8 @@ export type Database = {
           sewer_serviceability: string | null
           storm_provider_id: string | null
           storm_resolution_method: string | null
+          twdb_pws_id: string | null
+          twdb_pws_name: string | null
           updated_at: string
           water_provider_id: string | null
           water_resolution_method: string | null
