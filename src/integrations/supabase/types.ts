@@ -631,6 +631,7 @@ export type Database = {
           soil_series: string | null
           soil_slope_percent: number | null
           some_college_pct: number | null
+          speed_limit: number | null
           state_class: string | null
           status: string
           status_percent: number | null
@@ -641,6 +642,7 @@ export type Database = {
           sublocality: string | null
           submarket_enriched: string | null
           submission_timestamp: string
+          surface_type: string | null
           tax_rate_total: number | null
           taxable_value: number | null
           taxing_jurisdictions: Json | null
@@ -895,6 +897,7 @@ export type Database = {
           soil_series?: string | null
           soil_slope_percent?: number | null
           some_college_pct?: number | null
+          speed_limit?: number | null
           state_class?: string | null
           status?: string
           status_percent?: number | null
@@ -905,6 +908,7 @@ export type Database = {
           sublocality?: string | null
           submarket_enriched?: string | null
           submission_timestamp?: string
+          surface_type?: string | null
           tax_rate_total?: number | null
           taxable_value?: number | null
           taxing_jurisdictions?: Json | null
@@ -1159,6 +1163,7 @@ export type Database = {
           soil_series?: string | null
           soil_slope_percent?: number | null
           some_college_pct?: number | null
+          speed_limit?: number | null
           state_class?: string | null
           status?: string
           status_percent?: number | null
@@ -1169,6 +1174,7 @@ export type Database = {
           sublocality?: string | null
           submarket_enriched?: string | null
           submission_timestamp?: string
+          surface_type?: string | null
           tax_rate_total?: number | null
           taxable_value?: number | null
           taxing_jurisdictions?: Json | null

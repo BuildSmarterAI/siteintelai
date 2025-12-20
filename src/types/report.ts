@@ -16,6 +16,8 @@ export interface ReportApplications {
   traffic_direction: string | null;
   traffic_map_url: string | null;
   traffic_distance_ft?: number | null;
+  speed_limit?: number | null;
+  surface_type?: string | null;
   employment_clusters: any | null;
   updated_at?: string;
   user_id?: string;
