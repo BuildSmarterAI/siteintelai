@@ -52,25 +52,25 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.enrich-feasibility]
-verify_jwt = true
+verify_jwt = false
 
 [functions.enrich-utilities]
-verify_jwt = true
+verify_jwt = false
 
 [functions.enrich-application]
-verify_jwt = true
+verify_jwt = false
 
 [functions.cron-enrichment]
 verify_jwt = false
 
 [functions.utility-proxy]
-verify_jwt = true
+verify_jwt = false
 
 [functions.fetch-geospatial-layers]
-verify_jwt = true
+verify_jwt = false
 
 [functions.query-fema-by-point]
-verify_jwt = true
+verify_jwt = false
 
 [functions.compute-geospatial-score]
 verify_jwt = true
@@ -82,7 +82,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.re-enrich-application]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-checkout-session]
 verify_jwt = true
@@ -139,10 +139,10 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.enrich-epa-echo]
-verify_jwt = true
+verify_jwt = false
 
 [functions.enrich-wetlands]
-verify_jwt = true
+verify_jwt = false
 
 [functions.gis-migrate-legacy-data]
 verify_jwt = false
@@ -226,7 +226,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.enrich-traffic]
-verify_jwt = true
+verify_jwt = false
 
 [functions.upload-tiles]
 verify_jwt = true
@@ -245,7 +245,7 @@ verify_jwt = false
 max_execution_time = 300
 
 [functions.enrich-census-canonical]
-verify_jwt = true
+verify_jwt = false
 
 [functions.admin-trigger-enrich]
 verify_jwt = false
