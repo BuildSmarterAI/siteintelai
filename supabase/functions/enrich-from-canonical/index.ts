@@ -145,6 +145,18 @@ Deno.serve(async (req) => {
       if (hasWetlands && canonicalData.wetlands) {
         updatePayload.wetlands_type = canonicalData.wetlands.wetland_types?.join(", ") || null;
         updatePayload.wetlands_area_pct = canonicalData.wetlands.total_wetland_pct;
+        updatePayload.wetland_cowardin_code = canonicalData.wetlands.cowardin_code || null;
+        // Enhanced SSURGO soil/environmental fields
+        updatePayload.hydric_soil_rating = canonicalData.wetlands.hydric_rating || null;
+        updatePayload.flood_frequency_usda = canonicalData.wetlands.flood_frequency || null;
+        updatePayload.water_table_depth_cm = canonicalData.wetlands.water_table_depth_cm || null;
+        updatePayload.bedrock_depth_cm = canonicalData.wetlands.bedrock_depth_cm || null;
+        updatePayload.ponding_frequency = canonicalData.wetlands.ponding_frequency || null;
+        updatePayload.erosion_k_factor = canonicalData.wetlands.erosion_k_factor || null;
+        updatePayload.corrosion_concrete = canonicalData.wetlands.corrosion_concrete || null;
+        updatePayload.corrosion_steel = canonicalData.wetlands.corrosion_steel || null;
+        updatePayload.septic_suitability = canonicalData.wetlands.septic_suitability || null;
+        updatePayload.building_site_rating = canonicalData.wetlands.building_site_rating || null;
       }
 
       if (hasTransportation && canonicalData.transportation) {

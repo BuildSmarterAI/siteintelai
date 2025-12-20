@@ -247,7 +247,18 @@ export function useReportData(reportId: string | undefined): UseReportDataReturn
             population_5yr_projection,
             median_income_5yr_projection,
             median_home_value_5yr_projection,
-            population_density_sqmi
+            population_density_sqmi,
+            hydric_soil_rating,
+            flood_frequency_usda,
+            water_table_depth_cm,
+            bedrock_depth_cm,
+            ponding_frequency,
+            erosion_k_factor,
+            corrosion_concrete,
+            corrosion_steel,
+            septic_suitability,
+            building_site_rating,
+            wetland_cowardin_code
           )
         `)
         .eq('id', reportId)

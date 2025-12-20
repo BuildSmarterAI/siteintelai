@@ -90,11 +90,23 @@ export interface ReportApplications {
   // Environmental fields
   wetlands_type?: string | null;
   wetlands_area_pct?: number | null;
+  wetland_cowardin_code?: string | null;
   soil_series?: string | null;
   soil_drainage_class?: string | null;
   soil_slope_percent?: number | null;
   environmental_sites?: any;
   historical_flood_events?: any;
+  // Enhanced SSURGO fields
+  hydric_soil_rating?: string | null;
+  flood_frequency_usda?: string | null;
+  water_table_depth_cm?: number | null;
+  bedrock_depth_cm?: number | null;
+  ponding_frequency?: string | null;
+  erosion_k_factor?: number | null;
+  corrosion_concrete?: string | null;
+  corrosion_steel?: string | null;
+  septic_suitability?: string | null;
+  building_site_rating?: string | null;
   // Lot size fields
   lot_size_value?: number | null;
   lot_size_unit?: string | null;
