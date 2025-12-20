@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mountain, Maximize2, Minimize2, RotateCcw, Layers } from "lucide-react";
+import { Mountain, Maximize2, Minimize2, RotateCcw, Layers, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ElevationMapCardProps {
@@ -13,6 +13,22 @@ interface ElevationMapCardProps {
   parcelGeometry?: GeoJSON.Polygon | GeoJSON.MultiPolygon | null;
   className?: string;
 }
+
+// Terrain tile sources with fallbacks
+const TERRAIN_SOURCES = [
+  {
+    name: "AWS Terrarium",
+    tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"],
+    encoding: "terrarium" as const,
+    maxzoom: 15
+  },
+  {
+    name: "MapLibre Demo",
+    tiles: ["https://demotiles.maplibre.org/terrain-tiles/{z}/{x}/{y}.png"],
+    encoding: "mapbox" as const,
+    maxzoom: 12
+  }
+];
 
 export function ElevationMapCard({
   latitude,
@@ -26,9 +42,69 @@ export function ElevationMapCard({
   const [is3D, setIs3D] = useState(true);
   const [isExpanded, setIsExpanded] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [terrainError, setTerrainError] = useState<string | null>(null);
+  const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
+  const terrainLoadAttempted = useRef(false);
+
+  const tryNextTerrainSource = useCallback(() => {
+    if (!map.current) return false;
+    
+    const nextIndex = currentSourceIndex + 1;
+    if (nextIndex >= TERRAIN_SOURCES.length) {
+      setTerrainError("Terrain tiles unavailable. Showing 2D map.");
+      return false;
+    }
+
+    console.log(`Trying fallback terrain source: ${TERRAIN_SOURCES[nextIndex].name}`);
+    setCurrentSourceIndex(nextIndex);
+    
+    // Remove old terrain source and add new one
+    try {
+      map.current.setTerrain(null);
+      if (map.current.getLayer("hillshade")) {
+        map.current.removeLayer("hillshade");
+      }
+      if (map.current.getSource("terrain")) {
+        map.current.removeSource("terrain");
+      }
+
+      const source = TERRAIN_SOURCES[nextIndex];
+      map.current.addSource("terrain", {
+        type: "raster-dem",
+        tiles: source.tiles,
+        encoding: source.encoding,
+        tileSize: 256,
+        maxzoom: source.maxzoom
+      });
+
+      map.current.addLayer({
+        id: "hillshade",
+        type: "hillshade",
+        source: "terrain",
+        paint: {
+          "hillshade-exaggeration": 0.5,
+          "hillshade-shadow-color": "hsl(229, 67%, 11%)",
+          "hillshade-highlight-color": "hsl(0, 0%, 100%)",
+          "hillshade-accent-color": "hsl(189, 94%, 43%)"
+        }
+      });
+
+      map.current.setTerrain({
+        source: "terrain",
+        exaggeration: 1.5
+      });
+
+      return true;
+    } catch (e) {
+      console.error("Failed to switch terrain source:", e);
+      return false;
+    }
+  }, [currentSourceIndex]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
+
+    const initialSource = TERRAIN_SOURCES[0];
 
     // Initialize MapLibre map with terrain
     map.current = new maplibregl.Map({
@@ -48,12 +124,10 @@ export function ElevationMapCard({
           },
           terrain: {
             type: "raster-dem",
-            tiles: [
-              "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
-            ],
-            encoding: "terrarium",
+            tiles: initialSource.tiles,
+            encoding: initialSource.encoding,
             tileSize: 256,
-            maxzoom: 15
+            maxzoom: initialSource.maxzoom
           }
         },
         layers: [
@@ -80,6 +154,25 @@ export function ElevationMapCard({
       "top-right"
     );
 
+    // Error handling for tile loading failures
+    map.current.on("error", (e) => {
+      console.error("Map error:", e);
+      
+      // Check if it's a terrain tile error (check error message or status)
+      const errorMsg = e.error?.message || "";
+      const status = (e as any).error?.status;
+      
+      if (errorMsg.includes("terrain") || 
+          status === 403 || 
+          status === 404) {
+        if (!terrainLoadAttempted.current) {
+          terrainLoadAttempted.current = true;
+          console.warn("Terrain tile load failed, trying fallback...");
+          tryNextTerrainSource();
+        }
+      }
+    });
+
     map.current.on("load", () => {
       if (!map.current) return;
       setMapLoaded(true);
@@ -97,11 +190,16 @@ export function ElevationMapCard({
         }
       });
 
-      // Enable 3D terrain
-      map.current.setTerrain({
-        source: "terrain",
-        exaggeration: 1.5
-      });
+      // Enable 3D terrain with error handling
+      try {
+        map.current.setTerrain({
+          source: "terrain",
+          exaggeration: 1.5
+        });
+      } catch (e) {
+        console.error("Failed to enable terrain:", e);
+        setTerrainError("3D terrain unavailable");
+      }
 
       // Add parcel boundary if available
       if (parcelGeometry) {
@@ -156,7 +254,7 @@ export function ElevationMapCard({
       map.current?.remove();
       map.current = null;
     };
-  }, [latitude, longitude, elevation, parcelGeometry]);
+  }, [latitude, longitude, elevation, parcelGeometry, tryNextTerrainSource]);
 
   const toggle3D = () => {
     if (!map.current) return;
@@ -269,6 +367,16 @@ export function ElevationMapCard({
             {is3D ? "3D Terrain" : "2D View"}
           </span>
         </div>
+
+        {/* Terrain error indicator */}
+        {terrainError && (
+          <div className="absolute top-3 right-14 bg-amber-50 backdrop-blur-sm rounded-md px-2 py-1 shadow-lg border border-amber-200 flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3 text-amber-600" />
+            <span className="text-[10px] font-medium text-amber-700">
+              {terrainError}
+            </span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
