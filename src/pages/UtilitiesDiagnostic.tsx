@@ -43,12 +43,15 @@ export default function UtilitiesDiagnostic() {
     setResult(null);
 
     try {
-      // First geocode the address
-      const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke('geocode-intersection', {
-        body: { intersection: address }
+      // First geocode the address using the correct geocoding function
+      const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke('geocode-with-cache', {
+        body: { query: address, query_type: 'address' }
       });
 
       if (geocodeError) throw geocodeError;
+      if (!geocodeData?.lat || !geocodeData?.lng) {
+        throw new Error('Failed to geocode address');
+      }
 
       const { lat, lng } = geocodeData;
 
