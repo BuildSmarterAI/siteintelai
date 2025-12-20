@@ -21,6 +21,17 @@ interface AddressSuggestion {
     main_text: string;
     secondary_text: string;
   };
+  // Nominatim provides these directly
+  lat?: number;
+  lng?: number;
+  addressDetails?: {
+    county?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    neighborhood?: string;
+  };
+  source?: 'google' | 'nominatim';
 }
 
 interface AddressDetails {
@@ -77,19 +88,49 @@ export function AddressAutocomplete({
 
     setIsLoading(true);
     try {
+      // Try Google first
       const { data, error } = await supabase.functions.invoke('google-places', {
         body: { input, sessionToken }
       });
 
-      if (error) throw error;
-
-      if (data?.predictions) {
-        setSuggestions(data.predictions);
+      // Check if Google worked
+      if (!error && data?.predictions && data.predictions.length > 0 && data.status !== 'REQUEST_DENIED') {
+        setSuggestions(data.predictions.map((p: any) => ({ ...p, source: 'google' })));
         setShowSuggestions(true);
         setSelectedIndex(-1);
+        return;
+      }
+
+      // Fallback to Nominatim
+      console.log('Google Places unavailable, trying Nominatim fallback');
+      const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
+        body: { input }
+      });
+
+      if (!nominatimError && nominatimData?.predictions) {
+        setSuggestions(nominatimData.predictions);
+        setShowSuggestions(true);
+        setSelectedIndex(-1);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
       }
     } catch (error) {
       console.error('Error fetching address suggestions:', error);
+      // Last resort: try Nominatim on any error
+      try {
+        const { data: fallbackData } = await supabase.functions.invoke('nominatim-autocomplete', {
+          body: { input }
+        });
+        if (fallbackData?.predictions) {
+          setSuggestions(fallbackData.predictions);
+          setShowSuggestions(true);
+          setSelectedIndex(-1);
+          return;
+        }
+      } catch {
+        // Both failed
+      }
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {
@@ -105,110 +146,125 @@ export function AddressAutocomplete({
 
   const handleSuggestionClick = async (suggestion: AddressSuggestion) => {
     try {
-      const { data, error } = await supabase.functions.invoke('google-place-details', {
-        body: { placeId: suggestion.place_id, sessionToken }
-      });
-
-      if (error) throw error;
-
       let coordinates: { lat: number; lng: number } | undefined;
       const addressDetails: AddressDetails = {
-        // Store suggestion's place_id as fallback
         placeId: suggestion.place_id
       };
-      
-      // Extract coordinates from geometry
-      if (data?.result?.geometry?.location) {
-        coordinates = {
-          lat: data.result.geometry.location.lat,
-          lng: data.result.geometry.location.lng
-        };
-      }
 
-      // Extract address components (county, city, state, ZIP, neighborhood)
-      if (data?.result?.address_components) {
-        const components = data.result.address_components;
+      // If Nominatim suggestion, use embedded data directly (no second API call needed!)
+      if (suggestion.source === 'nominatim' && suggestion.lat && suggestion.lng) {
+        coordinates = { lat: suggestion.lat, lng: suggestion.lng };
         
-        console.log('Google API address_components:', components);
-        
-        // County (administrative_area_level_2)
-        const countyComponent = components.find((c: any) =>
-          c.types.includes('administrative_area_level_2')
-        );
-        if (countyComponent) {
-          addressDetails.county = countyComponent.long_name;
+        // Use pre-extracted address details
+        if (suggestion.addressDetails) {
+          addressDetails.county = suggestion.addressDetails.county;
+          addressDetails.city = suggestion.addressDetails.city;
+          addressDetails.state = suggestion.addressDetails.state;
+          addressDetails.zipCode = suggestion.addressDetails.zipCode;
+          addressDetails.neighborhood = suggestion.addressDetails.neighborhood;
         }
 
-        // City (locality)
-        const cityComponent = components.find((c: any) =>
-          c.types.includes('locality')
-        );
-        if (cityComponent) {
-          addressDetails.city = cityComponent.long_name;
+        console.log('Using Nominatim data directly:', { coordinates, addressDetails });
+      } else {
+        // Google path: fetch place details
+        const { data, error } = await supabase.functions.invoke('google-place-details', {
+          body: { placeId: suggestion.place_id, sessionToken }
+        });
+
+        if (error) throw error;
+
+        // Extract coordinates from geometry
+        if (data?.result?.geometry?.location) {
+          coordinates = {
+            lat: data.result.geometry.location.lat,
+            lng: data.result.geometry.location.lng
+          };
         }
 
-        // State (administrative_area_level_1)
-        const stateComponent = components.find((c: any) =>
-          c.types.includes('administrative_area_level_1')
-        );
-        if (stateComponent) {
-          addressDetails.state = stateComponent.short_name; // Use short_name for state abbreviation
+        // Extract address components (county, city, state, ZIP, neighborhood)
+        if (data?.result?.address_components) {
+          const components = data.result.address_components;
+          
+          console.log('Google API address_components:', components);
+          
+          // County (administrative_area_level_2)
+          const countyComponent = components.find((c: any) =>
+            c.types.includes('administrative_area_level_2')
+          );
+          if (countyComponent) {
+            addressDetails.county = countyComponent.long_name;
+          }
+
+          // City (locality)
+          const cityComponent = components.find((c: any) =>
+            c.types.includes('locality')
+          );
+          if (cityComponent) {
+            addressDetails.city = cityComponent.long_name;
+          }
+
+          // State (administrative_area_level_1)
+          const stateComponent = components.find((c: any) =>
+            c.types.includes('administrative_area_level_1')
+          );
+          if (stateComponent) {
+            addressDetails.state = stateComponent.short_name;
+          }
+
+          // ZIP Code (postal_code)
+          const zipComponent = components.find((c: any) =>
+            c.types.includes('postal_code')
+          );
+          if (zipComponent) {
+            addressDetails.zipCode = zipComponent.long_name;
+          }
+
+          // Neighborhood (try neighborhood first, then sublocality as fallback)
+          const neighborhoodComponent = components.find((c: any) =>
+            c.types.includes('neighborhood')
+          );
+          if (neighborhoodComponent) {
+            addressDetails.neighborhood = neighborhoodComponent.long_name;
+          }
+
+          // Sublocality (use as both sublocality AND neighborhood fallback)
+          const sublocalityComponent = components.find((c: any) =>
+            c.types.includes('sublocality') || c.types.includes('sublocality_level_1')
+          );
+          if (sublocalityComponent) {
+            addressDetails.sublocality = sublocalityComponent.long_name;
+            if (!addressDetails.neighborhood) {
+              addressDetails.neighborhood = sublocalityComponent.long_name;
+            }
+          }
+          
+          // Final fallback: use city if neighborhood still missing
+          if (!addressDetails.neighborhood && addressDetails.city) {
+            addressDetails.neighborhood = addressDetails.city;
+          }
+          
+          console.log('Extracted address details:', addressDetails);
         }
 
-        // ZIP Code (postal_code)
-        const zipComponent = components.find((c: any) =>
-          c.types.includes('postal_code')
-        );
-        if (zipComponent) {
-          addressDetails.zipCode = zipComponent.long_name;
+        // Override with Place ID from details if available (more reliable)
+        if (data?.result?.place_id) {
+          addressDetails.placeId = data.result.place_id;
         }
 
-        // Neighborhood (try neighborhood first, then sublocality as fallback)
-        const neighborhoodComponent = components.find((c: any) =>
-          c.types.includes('neighborhood')
-        );
-        if (neighborhoodComponent) {
-          addressDetails.neighborhood = neighborhoodComponent.long_name;
-        }
-
-        // Sublocality (use as both sublocality AND neighborhood fallback)
-        const sublocalityComponent = components.find((c: any) =>
-          c.types.includes('sublocality') || c.types.includes('sublocality_level_1')
-        );
-        if (sublocalityComponent) {
-          addressDetails.sublocality = sublocalityComponent.long_name;
-          // Use sublocality as neighborhood fallback if neighborhood not found
-          if (!addressDetails.neighborhood) {
-            addressDetails.neighborhood = sublocalityComponent.long_name;
+        // Auto-detect current use from place types
+        if (data?.result?.types) {
+          const types = data.result.types;
+          if (types.includes('parking')) {
+            addressDetails.currentUse = 'parking-lot';
+          } else if (types.includes('point_of_interest') || types.includes('establishment') || types.includes('store')) {
+            addressDetails.currentUse = 'existing-occupied';
+          } else if (types.length === 1 && types[0] === 'street_address') {
+            addressDetails.currentUse = 'vacant-land';
           }
         }
-        
-        // Final fallback: use city if neighborhood still missing
-        if (!addressDetails.neighborhood && addressDetails.city) {
-          addressDetails.neighborhood = addressDetails.city;
-        }
-        
-        console.log('Extracted address details:', addressDetails);
       }
 
-      // Override with Place ID from details if available (more reliable)
-      if (data?.result?.place_id) {
-        addressDetails.placeId = data.result.place_id;
-      }
-
-      // Auto-detect current use from place types
-      if (data?.result?.types) {
-        const types = data.result.types;
-        if (types.includes('parking')) {
-          addressDetails.currentUse = 'parking-lot';
-        } else if (types.includes('point_of_interest') || types.includes('establishment') || types.includes('store')) {
-          addressDetails.currentUse = 'existing-occupied';
-        } else if (types.length === 1 && types[0] === 'street_address') {
-          addressDetails.currentUse = 'vacant-land';
-        }
-      }
-
-      // Auto-detect submarket from neighborhood
+      // Auto-detect submarket from neighborhood (works for both Google and Nominatim)
       if (addressDetails.city && addressDetails.neighborhood) {
         const cityData = submarketMapping[addressDetails.city as keyof typeof submarketMapping];
         if (cityData) {
@@ -219,13 +275,8 @@ export function AddressAutocomplete({
         }
       }
 
-      const finalAddress = data?.result?.formatted_address || suggestion.description;
-      
-      if (data?.result?.formatted_address) {
-        onChange(data.result.formatted_address, coordinates, addressDetails);
-      } else {
-        onChange(suggestion.description, coordinates, addressDetails);
-      }
+      const finalAddress = suggestion.description;
+      onChange(finalAddress, coordinates, addressDetails);
 
       // Trigger GIS enrichment (without application_id during form fill)
       setEnrichmentStatus('loading');
@@ -262,7 +313,6 @@ export function AddressAutocomplete({
                 if (utilityData.utilities?.water > 0) utilityAccess.push('water');
                 if (utilityData.utilities?.sewer > 0) utilityAccess.push('sewer');
                 if (utilityData.utilities?.storm > 0) utilityAccess.push('storm');
-                // Gas and electric are typically available in developed areas
                 if (addressDetails.city) {
                   utilityAccess.push('electric');
                 }
@@ -284,7 +334,6 @@ export function AddressAutocomplete({
       }
     } catch (error) {
       console.error('Error fetching place details:', error);
-      // Still pass the suggestion's place_id even on error
       onChange(suggestion.description, undefined, { placeId: suggestion.place_id });
     }
 
