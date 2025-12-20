@@ -126,16 +126,54 @@ async function queryBigQuery(accessToken: string, projectId: string, query: stri
 }
 
 // ============= Safe Number Parsers =============
+// Census ACS uses -666666666 as "data not available" sentinel
+const CENSUS_SENTINEL_VALUES = [-666666666, -999999999, -888888888, -777777777];
+
 function safeFloat(val: any, fallback: number = 0): number {
   if (val === null || val === undefined) return fallback;
   const parsed = parseFloat(val);
-  return isNaN(parsed) ? fallback : parsed;
+  if (isNaN(parsed)) return fallback;
+  // Filter out Census sentinel values indicating missing/unavailable data
+  if (CENSUS_SENTINEL_VALUES.includes(parsed) || parsed <= -666666666) return fallback;
+  return parsed;
 }
 
 function safeInt(val: any, fallback: number = 0): number {
   if (val === null || val === undefined) return fallback;
   const parsed = parseInt(val);
-  return isNaN(parsed) ? fallback : parsed;
+  if (isNaN(parsed)) return fallback;
+  // Filter out Census sentinel values
+  if (CENSUS_SENTINEL_VALUES.includes(parsed) || parsed <= -666666666) return fallback;
+  return parsed;
+}
+
+// Field-specific validators for currency values with realistic range checks
+function safeHomeValue(val: any): number | null {
+  const parsed = safeFloat(val, 0);
+  // Invalid if negative, zero, or unrealistically high (>$50M)
+  if (parsed <= 0 || parsed > 50000000) return null;
+  return parsed;
+}
+
+function safeRent(val: any): number | null {
+  const parsed = safeFloat(val, 0);
+  // Invalid if negative, zero, or unrealistically high (>$25K/month)
+  if (parsed <= 0 || parsed > 25000) return null;
+  return parsed;
+}
+
+function safeIncome(val: any): number | null {
+  const parsed = safeFloat(val, 0);
+  // Invalid if negative, zero, or unrealistically high (>$10M)
+  if (parsed <= 0 || parsed > 10000000) return null;
+  return parsed;
+}
+
+function safePercentage(val: any): number | null {
+  const parsed = safeFloat(val, 0);
+  // Percentages must be 0-100
+  if (parsed < 0 || parsed > 100) return null;
+  return parsed;
 }
 
 // ============= Proprietary CRE Index Calculations =============
