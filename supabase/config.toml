@@ -19,7 +19,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.orchestrate-application]
-verify_jwt = true
+verify_jwt = false
 
 [functions.hii-ingest]
 verify_jwt = false

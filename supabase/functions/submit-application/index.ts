@@ -323,23 +323,23 @@ serve(async (req) => {
         .eq("id", drawnParcelId);
     }
 
-    // Trigger orchestrate-application for enrichment pipeline
+    // Trigger orchestrate-application for enrichment pipeline (fire-and-forget)
+    // NOTE: orchestrate-application has verify_jwt=false so it can be called from service role
     console.log(`🚀 [TRACE:${traceId}] Triggering orchestrate-application for ${applicationId}`);
     
-    try {
-      const orchestrateResponse = await supabase.functions.invoke('orchestrate-application', {
-        body: { application_id: applicationId }
-      });
-      
-      if (orchestrateResponse.error) {
-        console.error(`⚠️ [TRACE:${traceId}] Orchestration trigger failed:`, orchestrateResponse.error);
+    // Fire and forget - don't wait for orchestration, just trigger it
+    supabase.functions.invoke('orchestrate-application', {
+      body: { application_id: applicationId }
+    }).then(res => {
+      if (res.error) {
+        console.error(`⚠️ [TRACE:${traceId}] Orchestration trigger failed:`, res.error);
       } else {
         console.log(`✅ [TRACE:${traceId}] Orchestration triggered successfully`);
       }
-    } catch (orchErr) {
-      console.error(`⚠️ [TRACE:${traceId}] Orchestration invoke error:`, orchErr);
-      // Don't fail - application is created, enrichment can be retried
-    }
+    }).catch(err => {
+      console.error(`⚠️ [TRACE:${traceId}] Orchestration invoke error:`, err);
+    });
+    // Don't await - application is created, return immediately
 
     console.log(`✅ [TRACE:${traceId}] [SUBMIT] ================== SUBMISSION COMPLETE ==================`);
 
@@ -528,22 +528,23 @@ async function handleDraftSubmission(
       .eq("application_draft_id", draftId);
   }
 
-  // Trigger orchestrate-application for enrichment pipeline
+  // Trigger orchestrate-application for enrichment pipeline (fire-and-forget)
+  // NOTE: orchestrate-application has verify_jwt=false so it can be called from service role
   console.log(`🚀 [TRACE:${traceId}] Triggering orchestrate-application for ${applicationId}`);
   
-  try {
-    const orchestrateResponse = await supabase.functions.invoke('orchestrate-application', {
-      body: { application_id: applicationId }
-    });
-    
-    if (orchestrateResponse.error) {
-      console.error(`⚠️ [TRACE:${traceId}] Orchestration trigger failed:`, orchestrateResponse.error);
+  // Fire and forget - don't wait for orchestration, just trigger it
+  supabase.functions.invoke('orchestrate-application', {
+    body: { application_id: applicationId }
+  }).then(res => {
+    if (res.error) {
+      console.error(`⚠️ [TRACE:${traceId}] Orchestration trigger failed:`, res.error);
     } else {
       console.log(`✅ [TRACE:${traceId}] Orchestration triggered successfully`);
     }
-  } catch (orchErr) {
-    console.error(`⚠️ [TRACE:${traceId}] Orchestration invoke error:`, orchErr);
-  }
+  }).catch(err => {
+    console.error(`⚠️ [TRACE:${traceId}] Orchestration invoke error:`, err);
+  });
+  // Don't await - application is created, return immediately
 
   console.log(`✅ [TRACE:${traceId}] [SUBMIT] ================== SUBMISSION COMPLETE ==================`);
 
