@@ -35,9 +35,11 @@ const COUNTY_ENDPOINTS: Record<string, { mud: string; wcid: string; mud_fields: 
   }
 };
 
-// Default endpoints (Harris County) for backward compatibility
-const MUD_ENDPOINT = COUNTY_ENDPOINTS.harris.mud;
-const WCID_ENDPOINT = COUNTY_ENDPOINTS.harris.wcid;
+// Houston In-City MUDs endpoint
+const IN_CITY_MUDS_ENDPOINT = 'https://cogis.houstontx.gov/arcgis/rest/services/PlanDev/InCityMUDs/MapServer/0/query';
+
+// TWDB Water Service Boundary endpoint (statewide regulatory truth anchor)
+const TWDB_ENDPOINT = 'https://services.arcgis.com/4vCeRHZY3Jv9MQ6n/arcgis/rest/services/Texas_Water_Service_Boundary_Viewer/FeatureServer/0/query';
 
 // Get county-specific endpoints
 function getCountyEndpoints(county: string | null): { mud: string; wcid: string; mud_fields: string[]; wcid_fields: string[] } {
@@ -50,13 +52,34 @@ function getCountyEndpoints(county: string | null): { mud: string; wcid: string;
 interface UtilityProvider {
   provider_id: string | null;
   provider_name: string;
-  provider_type: 'ccn' | 'mud' | 'wcid' | 'municipal' | 'private' | 'unknown';
+  provider_type: 'ccn' | 'mud' | 'wcid' | 'municipal' | 'private' | 'twdb' | 'unknown';
   ccn_number: string | null;
   resolution_method: string;
   confidence: number;
   capacity_status: string | null;
   contact_phone: string | null;
   district_no: string | null;
+  twdb_pws_id?: string | null;
+  in_city_mud_name?: string | null;
+}
+
+interface InCityMudResult {
+  mud_name: string | null;
+  mud_number: string | null;
+  water_service: 'MUD' | 'CITY' | 'SHARED' | null;
+  sewer_service: 'MUD' | 'CITY' | 'SHARED' | null;
+  drainage_service: 'MUD' | 'CITY' | 'SHARED' | null;
+  agreement_type: string | null;
+}
+
+interface TWDBResult {
+  pws_id: string;
+  pws_name: string;
+  system_type: string | null;
+  owner_type: string | null;
+  population_served: number | null;
+  status: string | null;
+  contact_phone: string | null;
 }
 
 interface ResolutionResult {
@@ -79,6 +102,10 @@ interface ResolutionResult {
   special_districts: any[];
   kill_factors: string[];
   cached: boolean;
+  twdb_pws_id?: string | null;
+  twdb_pws_name?: string | null;
+  in_city_mud_name?: string | null;
+  data_sources: string[];
 }
 
 // Generate trace ID
@@ -102,7 +129,6 @@ async function checkCache(lat: number, lng: number, toleranceMeters: number = 10
     
     if (data && data.length > 0) {
       const cached = data[0];
-      // Check if cache is still valid (not expired)
       if (cached.expires_at && new Date(cached.expires_at) > new Date()) {
         console.log('[cache] Cache hit for location');
         return cached;
@@ -134,6 +160,127 @@ async function queryCCNBoundaries(lat: number, lng: number): Promise<any[]> {
   } catch (err) {
     console.error('[ccn] Exception:', err);
     return [];
+  }
+}
+
+// Query Houston In-City MUDs boundary
+async function queryInCityMUD(lat: number, lng: number): Promise<InCityMudResult | null> {
+  try {
+    const params = new URLSearchParams({
+      geometry: JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } }),
+      geometryType: 'esriGeometryPoint',
+      inSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'MUD_NAME,MUD_NUMBER,AGREEMENT_TYPE,WATER_SERVICE,SEWER_SERVICE,DRAINAGE_SERVICE,STATUS',
+      returnGeometry: 'false',
+      f: 'json'
+    });
+    
+    const url = `${IN_CITY_MUDS_ENDPOINT}?${params.toString()}`;
+    console.log('[in_city_mud] Querying:', url);
+    
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'SiteIntel-Feasibility/1.0' },
+      signal: AbortSignal.timeout(12000)
+    });
+    
+    if (!resp.ok) {
+      console.error(`[in_city_mud] HTTP ${resp.status}`);
+      return null;
+    }
+    
+    const json = await resp.json();
+    
+    if (json.error) {
+      console.error('[in_city_mud] API error:', json.error);
+      return null;
+    }
+    
+    if (json.features && json.features.length > 0) {
+      const attrs = json.features[0].attributes;
+      console.log('[in_city_mud] Found:', attrs);
+      
+      // Parse service fields to determine who provides what
+      const parseService = (val: string | null): 'MUD' | 'CITY' | 'SHARED' | null => {
+        if (!val) return null;
+        const v = val.toUpperCase();
+        if (v.includes('MUD') || v === 'M') return 'MUD';
+        if (v.includes('CITY') || v.includes('COH') || v === 'C') return 'CITY';
+        if (v.includes('SHARED') || v === 'S') return 'SHARED';
+        return null;
+      };
+      
+      return {
+        mud_name: attrs.MUD_NAME || null,
+        mud_number: attrs.MUD_NUMBER?.toString() || null,
+        water_service: parseService(attrs.WATER_SERVICE),
+        sewer_service: parseService(attrs.SEWER_SERVICE),
+        drainage_service: parseService(attrs.DRAINAGE_SERVICE),
+        agreement_type: attrs.AGREEMENT_TYPE || null
+      };
+    }
+    
+    console.log('[in_city_mud] No In-City MUD found at location');
+    return null;
+  } catch (err) {
+    console.error('[in_city_mud] Exception:', err);
+    return null;
+  }
+}
+
+// Query TWDB Water Service Boundary (statewide regulatory fallback)
+async function queryTWDBServiceBoundary(lat: number, lng: number): Promise<TWDBResult | null> {
+  try {
+    const params = new URLSearchParams({
+      geometry: JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } }),
+      geometryType: 'esriGeometryPoint',
+      inSR: '4326',
+      spatialRel: 'esriSpatialRelIntersects',
+      outFields: 'PWSID,PWS_NAME,SYSTEM_TYPE,OWNER_TYPE,POPULATION_SERVED,STATUS,PWS_CONTACT_PHONE',
+      returnGeometry: 'false',
+      f: 'json'
+    });
+    
+    const url = `${TWDB_ENDPOINT}?${params.toString()}`;
+    console.log('[twdb] Querying:', url);
+    
+    const resp = await fetch(url, {
+      headers: { 'User-Agent': 'SiteIntel-Feasibility/1.0' },
+      signal: AbortSignal.timeout(15000)
+    });
+    
+    if (!resp.ok) {
+      console.error(`[twdb] HTTP ${resp.status}`);
+      return null;
+    }
+    
+    const json = await resp.json();
+    
+    if (json.error) {
+      console.error('[twdb] API error:', json.error);
+      return null;
+    }
+    
+    if (json.features && json.features.length > 0) {
+      const attrs = json.features[0].attributes;
+      console.log('[twdb] Found:', attrs);
+      
+      return {
+        pws_id: attrs.PWSID,
+        pws_name: attrs.PWS_NAME,
+        system_type: attrs.SYSTEM_TYPE,
+        owner_type: attrs.OWNER_TYPE,
+        population_served: attrs.POPULATION_SERVED,
+        status: attrs.STATUS,
+        contact_phone: attrs.PWS_CONTACT_PHONE
+      };
+    }
+    
+    console.log('[twdb] No TWDB service boundary found at location');
+    return null;
+  } catch (err) {
+    console.error('[twdb] Exception:', err);
+    return null;
   }
 }
 
@@ -205,11 +352,24 @@ async function queryArcGISBoundary(endpoint: string, lat: number, lng: number, t
   }
 }
 
-// Resolve water provider using priority rules
+// Map TWDB owner type to provider type
+function mapTWDBOwnerType(ownerType: string | null): 'municipal' | 'private' | 'mud' | 'wcid' | 'unknown' {
+  if (!ownerType) return 'unknown';
+  const type = ownerType.toLowerCase();
+  if (type.includes('municipal') || type.includes('city')) return 'municipal';
+  if (type.includes('private')) return 'private';
+  if (type.includes('mud')) return 'mud';
+  if (type.includes('wcid') || type.includes('water control')) return 'wcid';
+  return 'unknown';
+}
+
+// Resolve water provider using enhanced priority rules
 function resolveWaterProvider(
   ccnResults: any[],
+  inCityMudResult: InCityMudResult | null,
   mudResult: any | null,
   wcidResult: any | null,
+  twdbResult: TWDBResult | null,
   city: string | null
 ): UtilityProvider | null {
   // Priority 1: CCN water boundary (highest legal authority)
@@ -224,7 +384,42 @@ function resolveWaterProvider(
       confidence: 0.95,
       capacity_status: ccnWater.status || 'unknown',
       contact_phone: ccnWater.contact_phone || null,
-      district_no: null
+      district_no: null,
+      twdb_pws_id: twdbResult?.pws_id || null
+    };
+  }
+  
+  // Priority 1.5: Houston In-City MUD with MUD water service
+  if (inCityMudResult && inCityMudResult.water_service === 'MUD') {
+    return {
+      provider_id: null,
+      provider_name: inCityMudResult.mud_name || `Houston MUD #${inCityMudResult.mud_number}`,
+      provider_type: 'mud',
+      ccn_number: null,
+      resolution_method: 'houston_in_city_mud',
+      confidence: 0.92,
+      capacity_status: 'available',
+      contact_phone: null,
+      district_no: inCityMudResult.mud_number,
+      in_city_mud_name: inCityMudResult.mud_name,
+      twdb_pws_id: twdbResult?.pws_id || null
+    };
+  }
+  
+  // Priority 1.6: In-City MUD indicates CITY provides water
+  if (inCityMudResult && inCityMudResult.water_service === 'CITY') {
+    return {
+      provider_id: null,
+      provider_name: 'City of Houston Water',
+      provider_type: 'municipal',
+      ccn_number: null,
+      resolution_method: 'houston_in_city_mud_city_served',
+      confidence: 0.93,
+      capacity_status: 'available',
+      contact_phone: null,
+      district_no: null,
+      in_city_mud_name: inCityMudResult.mud_name,
+      twdb_pws_id: twdbResult?.pws_id || null
     };
   }
   
@@ -232,14 +427,31 @@ function resolveWaterProvider(
   if (mudResult && mudResult.has_water) {
     return {
       provider_id: null,
-      provider_name: mudResult.name || `Harris County MUD #${mudResult.district_no}`,
+      provider_name: mudResult.name || `${mudResult.county || 'Harris'} County MUD #${mudResult.district_no}`,
       provider_type: 'mud',
       ccn_number: null,
       resolution_method: 'mud_overlay',
       confidence: 0.90,
       capacity_status: 'available',
       contact_phone: null,
-      district_no: mudResult.district_no
+      district_no: mudResult.district_no,
+      twdb_pws_id: twdbResult?.pws_id || null
+    };
+  }
+  
+  // Priority 2.5: TWDB regulatory fallback
+  if (twdbResult) {
+    return {
+      provider_id: null,
+      provider_name: twdbResult.pws_name,
+      provider_type: mapTWDBOwnerType(twdbResult.owner_type) as any,
+      ccn_number: null,
+      resolution_method: 'twdb_service_boundary',
+      confidence: 0.88,
+      capacity_status: twdbResult.status || 'unknown',
+      contact_phone: twdbResult.contact_phone,
+      district_no: null,
+      twdb_pws_id: twdbResult.pws_id
     };
   }
   
@@ -273,13 +485,13 @@ function resolveWaterProvider(
     };
   }
   
-  // Unresolved
   return null;
 }
 
-// Resolve sewer provider using priority rules
+// Resolve sewer provider using enhanced priority rules
 function resolveSewerProvider(
   ccnResults: any[],
+  inCityMudResult: InCityMudResult | null,
   mudResult: any | null,
   wcidResult: any | null,
   city: string | null
@@ -300,11 +512,43 @@ function resolveSewerProvider(
     };
   }
   
+  // Priority 1.5: Houston In-City MUD with MUD sewer service
+  if (inCityMudResult && inCityMudResult.sewer_service === 'MUD') {
+    return {
+      provider_id: null,
+      provider_name: inCityMudResult.mud_name || `Houston MUD #${inCityMudResult.mud_number}`,
+      provider_type: 'mud',
+      ccn_number: null,
+      resolution_method: 'houston_in_city_mud',
+      confidence: 0.92,
+      capacity_status: 'available',
+      contact_phone: null,
+      district_no: inCityMudResult.mud_number,
+      in_city_mud_name: inCityMudResult.mud_name
+    };
+  }
+  
+  // Priority 1.6: In-City MUD indicates CITY provides sewer
+  if (inCityMudResult && inCityMudResult.sewer_service === 'CITY') {
+    return {
+      provider_id: null,
+      provider_name: 'City of Houston Wastewater',
+      provider_type: 'municipal',
+      ccn_number: null,
+      resolution_method: 'houston_in_city_mud_city_served',
+      confidence: 0.93,
+      capacity_status: 'available',
+      contact_phone: null,
+      district_no: null,
+      in_city_mud_name: inCityMudResult.mud_name
+    };
+  }
+  
   // Priority 2: MUD with sewer service
   if (mudResult && mudResult.has_sewer) {
     return {
       provider_id: null,
-      provider_name: mudResult.name || `Harris County MUD #${mudResult.district_no}`,
+      provider_name: mudResult.name || `${mudResult.county || 'Harris'} County MUD #${mudResult.district_no}`,
       provider_type: 'mud',
       ccn_number: null,
       resolution_method: 'mud_overlay',
@@ -348,14 +592,47 @@ function resolveSewerProvider(
   return null;
 }
 
-// Resolve storm provider (typically city or county)
+// Resolve storm provider (typically city, MUD/WCID, or county)
 function resolveStormProvider(
   city: string | null,
+  inCityMudResult: InCityMudResult | null,
   mudResult: any | null,
   wcidResult: any | null,
   county: string | null
 ): UtilityProvider | null {
-  // Storm drainage is typically handled by city, MUD/WCID, or county
+  // Priority 1: Houston In-City MUD with MUD drainage service
+  if (inCityMudResult && inCityMudResult.drainage_service === 'MUD') {
+    return {
+      provider_id: null,
+      provider_name: inCityMudResult.mud_name || `Houston MUD #${inCityMudResult.mud_number}`,
+      provider_type: 'mud',
+      ccn_number: null,
+      resolution_method: 'houston_in_city_mud',
+      confidence: 0.90,
+      capacity_status: 'available',
+      contact_phone: null,
+      district_no: inCityMudResult.mud_number,
+      in_city_mud_name: inCityMudResult.mud_name
+    };
+  }
+  
+  // Priority 1.5: In-City MUD indicates CITY provides drainage
+  if (inCityMudResult && inCityMudResult.drainage_service === 'CITY') {
+    return {
+      provider_id: null,
+      provider_name: 'City of Houston Stormwater',
+      provider_type: 'municipal',
+      ccn_number: null,
+      resolution_method: 'houston_in_city_mud_city_served',
+      confidence: 0.90,
+      capacity_status: 'available',
+      contact_phone: null,
+      district_no: null,
+      in_city_mud_name: inCityMudResult.mud_name
+    };
+  }
+  
+  // Priority 2: MUD
   if (mudResult) {
     return {
       provider_id: null,
@@ -370,13 +647,14 @@ function resolveStormProvider(
     };
   }
   
+  // Priority 3: WCID
   if (wcidResult) {
     return {
       provider_id: null,
       provider_name: wcidResult.name || `WCID #${wcidResult.district_no}`,
       provider_type: 'wcid',
       ccn_number: null,
-      resolution_method: 'county_default',
+      resolution_method: 'wcid_overlay',
       confidence: 0.80,
       capacity_status: 'available',
       contact_phone: null,
@@ -384,6 +662,7 @@ function resolveStormProvider(
     };
   }
   
+  // Priority 4: City
   if (city) {
     return {
       provider_id: null,
@@ -398,6 +677,7 @@ function resolveStormProvider(
     };
   }
   
+  // Priority 5: County
   if (county) {
     return {
       provider_id: null,
@@ -418,10 +698,7 @@ function resolveStormProvider(
 // Detect conflicts between providers
 function detectConflicts(providers: (UtilityProvider | null)[]): any[] {
   const conflicts: any[] = [];
-  
-  // Check for overlapping claims (not implemented in simple version)
   // Could add logic to detect when multiple CCNs claim same service type
-  
   return conflicts;
 }
 
@@ -430,7 +707,6 @@ async function calculateEstimatedCosts(
   waterProvider: UtilityProvider | null,
   sewerProvider: UtilityProvider | null
 ): Promise<{ water_tap: number | null; sewer_tap: number | null; impact_fees: number | null; total: number | null }> {
-  // Default cost estimates for Houston area (2024 rates)
   const defaultCosts = {
     municipal_water_tap: 2500,
     municipal_sewer_tap: 3500,
@@ -507,7 +783,6 @@ function detectKillFactors(
     killFactors.push('NO_SEWER_PROVIDER');
   }
   
-  // Check for capacity moratoriums
   if (waterProvider?.capacity_status === 'moratorium') {
     killFactors.push('WATER_CAPACITY_MORATORIUM');
   }
@@ -529,7 +804,7 @@ async function cacheResolution(
 ): Promise<void> {
   try {
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 30); // 30-day TTL
+    expiresAt.setDate(expiresAt.getDate() + 30);
     
     const { error } = await supabase.from('parcel_utility_assignments').insert({
       parcel_id: parcelId,
@@ -551,6 +826,9 @@ async function cacheResolution(
       sewer_serviceability: result.serviceability.sewer,
       is_kill_factor: result.kill_factors.length > 0,
       kill_factor_reason: result.kill_factors.length > 0 ? result.kill_factors.join(', ') : null,
+      twdb_pws_id: result.twdb_pws_id,
+      twdb_pws_name: result.twdb_pws_name,
+      in_city_mud_name: result.in_city_mud_name,
       resolved_at: new Date().toISOString(),
       expires_at: expiresAt.toISOString()
     });
@@ -566,8 +844,23 @@ async function cacheResolution(
 }
 
 // Build special districts list
-function buildSpecialDistricts(mudResult: any | null, wcidResult: any | null): any[] {
+function buildSpecialDistricts(
+  inCityMudResult: InCityMudResult | null,
+  mudResult: any | null, 
+  wcidResult: any | null
+): any[] {
   const districts: any[] = [];
+  
+  if (inCityMudResult) {
+    districts.push({
+      type: 'IN_CITY_MUD',
+      name: inCityMudResult.mud_name,
+      district_no: inCityMudResult.mud_number,
+      water_service: inCityMudResult.water_service,
+      sewer_service: inCityMudResult.sewer_service,
+      drainage_service: inCityMudResult.drainage_service
+    });
+  }
   
   if (mudResult) {
     districts.push({
@@ -619,7 +912,6 @@ serve(async (req) => {
       if (cached) {
         console.log(`[${traceId}] Returning cached result`);
         
-        // Transform cached data to response format
         const cachedResult: ResolutionResult = {
           water_provider: cached.water_provider_id ? {
             provider_id: cached.water_provider_id,
@@ -669,7 +961,11 @@ serve(async (req) => {
           },
           special_districts: [],
           kill_factors: cached.kill_factor_reason ? cached.kill_factor_reason.split(', ') : [],
-          cached: true
+          cached: true,
+          twdb_pws_id: cached.twdb_pws_id,
+          twdb_pws_name: cached.twdb_pws_name,
+          in_city_mud_name: cached.in_city_mud_name,
+          data_sources: ['cache']
         };
         
         return new Response(JSON.stringify({
@@ -688,21 +984,31 @@ serve(async (req) => {
     
     // Step 2: Get county-specific endpoints and query all sources in parallel
     const countyEndpoints = getCountyEndpoints(county);
-    console.log(`[${traceId}] Using endpoints for county: ${county || 'harris (default)'}`);
-    console.log(`[${traceId}] Querying CCN, MUD, and WCID sources...`);
+    const isHouston = city?.toLowerCase() === 'houston';
     
-    const [ccnResults, mudResult, wcidResult] = await Promise.all([
+    console.log(`[${traceId}] Using endpoints for county: ${county || 'harris (default)'}, isHouston: ${isHouston}`);
+    console.log(`[${traceId}] Querying CCN, In-City MUD, MUD, WCID, and TWDB sources...`);
+    
+    // Query all sources in parallel (including new TWDB and In-City MUD)
+    const [ccnResults, inCityMudResult, mudResult, wcidResult, twdbResult] = await Promise.all([
       queryCCNBoundaries(lat, lng),
+      isHouston ? queryInCityMUD(lat, lng) : Promise.resolve(null),
       queryArcGISBoundary(countyEndpoints.mud, lat, lng, 'MUD', county || 'Harris'),
-      queryArcGISBoundary(countyEndpoints.wcid, lat, lng, 'WCID', county || 'Harris')
+      queryArcGISBoundary(countyEndpoints.wcid, lat, lng, 'WCID', county || 'Harris'),
+      queryTWDBServiceBoundary(lat, lng)
     ]);
     
-    console.log(`[${traceId}] CCN: ${ccnResults.length}, MUD: ${mudResult ? 'found' : 'none'}, WCID: ${wcidResult ? 'found' : 'none'}`);
+    // Build data sources list
+    const dataSources: string[] = ['ccn_canonical'];
+    if (isHouston) dataSources.push('houston_in_city_mud');
+    dataSources.push('mud_arcgis', 'wcid_arcgis', 'twdb_service_boundary');
     
-    // Step 3: Apply priority-based resolution
-    const waterProvider = resolveWaterProvider(ccnResults, mudResult, wcidResult, city);
-    const sewerProvider = resolveSewerProvider(ccnResults, mudResult, wcidResult, city);
-    const stormProvider = resolveStormProvider(city, mudResult, wcidResult, county);
+    console.log(`[${traceId}] CCN: ${ccnResults.length}, InCityMUD: ${inCityMudResult ? 'found' : 'none'}, MUD: ${mudResult ? 'found' : 'none'}, WCID: ${wcidResult ? 'found' : 'none'}, TWDB: ${twdbResult ? 'found' : 'none'}`);
+    
+    // Step 3: Apply enhanced priority-based resolution
+    const waterProvider = resolveWaterProvider(ccnResults, inCityMudResult, mudResult, wcidResult, twdbResult, city);
+    const sewerProvider = resolveSewerProvider(ccnResults, inCityMudResult, mudResult, wcidResult, city);
+    const stormProvider = resolveStormProvider(city, inCityMudResult, mudResult, wcidResult, county);
     
     // Step 4: Detect conflicts
     const conflicts = detectConflicts([waterProvider, sewerProvider, stormProvider]);
@@ -725,7 +1031,7 @@ serve(async (req) => {
       : 0.5;
     
     // Step 8: Build special districts list
-    const specialDistricts = buildSpecialDistricts(mudResult, wcidResult);
+    const specialDistricts = buildSpecialDistricts(inCityMudResult, mudResult, wcidResult);
     
     // Step 9: Determine serviceability
     const waterServiceability = waterProvider ? 'available' : 'unavailable';
@@ -746,7 +1052,11 @@ serve(async (req) => {
       },
       special_districts: specialDistricts,
       kill_factors: killFactors,
-      cached: false
+      cached: false,
+      twdb_pws_id: twdbResult?.pws_id || waterProvider?.twdb_pws_id || null,
+      twdb_pws_name: twdbResult?.pws_name || null,
+      in_city_mud_name: inCityMudResult?.mud_name || waterProvider?.in_city_mud_name || null,
+      data_sources: dataSources
     };
     
     // Step 10: Cache result (async, don't await)
@@ -761,7 +1071,7 @@ serve(async (req) => {
       meta: {
         trace_id: traceId,
         duration_ms: durationMs,
-        sources_queried: ['ccn_canonical', 'mud_arcgis', 'wcid_arcgis']
+        sources_queried: dataSources
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

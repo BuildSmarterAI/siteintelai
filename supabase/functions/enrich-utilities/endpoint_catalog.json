@@ -198,6 +198,20 @@
       "notes": "Point-in-polygon query for official HCAD parcel boundaries. Returns exact parcel geometry, ownership, and tax data. Critical for property boundary verification.",
       "test_url": "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=LOWPARCELI,HCAD_NUM,CurrOwner,LocAddr,city,zip,parcel_typ,StatedArea,mill_cd,Tax_Year,Mail_State&returnGeometry=true&f=json",
       "last_validated": "2025-10-15"
+    },
+    "in_city_muds": {
+      "name": "Houston In-City MUD Boundaries (Utility Agreements)",
+      "url": "https://cogis.houstontx.gov/arcgis/rest/services/PlanDev/InCityMUDs/MapServer/0/query",
+      "outFields": ["MUD_NAME", "MUD_NUMBER", "AGREEMENT_TYPE", "WATER_SERVICE", "SEWER_SERVICE", "DRAINAGE_SERVICE", "EFFECTIVE_DATE", "STATUS"],
+      "geometryType": "esriGeometryPolygon",
+      "crs": 4326,
+      "timeout_ms": 12000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [500, 1000],
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "MUDs with Houston utility service agreements operating INSIDE Houston city limits. Critical for distinguishing MUD vs City utility jurisdiction within city boundaries. WATER_SERVICE, SEWER_SERVICE, DRAINAGE_SERVICE fields indicate which utilities the MUD handles vs city.",
+      "test_url": "https://cogis.houstontx.gov/arcgis/rest/services/PlanDev/InCityMUDs/MapServer/0/query?geometry=-95.452118,29.741815&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=MUD_NAME,MUD_NUMBER,AGREEMENT_TYPE,WATER_SERVICE,SEWER_SERVICE,DRAINAGE_SERVICE&returnGeometry=false&f=json",
+      "last_validated": "2025-12-20"
     }
   },
   "austin": {
@@ -705,6 +719,20 @@
     }
   },
   "texas_statewide": {
+    "twdb_water_service_boundaries": {
+      "name": "TWDB Texas Water Service Boundary Viewer (Statewide)",
+      "url": "https://services.arcgis.com/4vCeRHZY3Jv9MQ6n/arcgis/rest/services/Texas_Water_Service_Boundary_Viewer/FeatureServer/0/query",
+      "outFields": ["PWSID", "PWS_NAME", "SYSTEM_TYPE", "OWNER_TYPE", "POPULATION_SERVED", "PRIMARY_SOURCE_TYPE", "STATUS", "COUNTY_SERVED", "PWS_CONTACT_PHONE"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
+      "timeout_ms": 15000,
+      "retry_attempts": 3,
+      "retry_delays_ms": [500, 1000, 2000],
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "Authoritative statewide water service boundaries from Texas Water Development Board. Regulatory truth anchor for all Texas water provider lookups. Contains PWS ID (Public Water System ID), provider name, population served, and system type. Use as fallback when local CCN/MUD/WCID data is unavailable or for validation.",
+      "test_url": "https://services.arcgis.com/4vCeRHZY3Jv9MQ6n/arcgis/rest/services/Texas_Water_Service_Boundary_Viewer/FeatureServer/0/query?geometry=-95.3632,29.7555&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=PWSID,PWS_NAME,SYSTEM_TYPE,OWNER_TYPE,POPULATION_SERVED,STATUS&returnGeometry=false&f=json",
+      "last_validated": "2025-12-20"
+    },
     "puc_ccn_water_areas": {
       "name": "PUC CCN Water Service Areas (Texas Statewide)",
       "url": "https://www.gis.hctx.net/arcgishcpid/rest/services/State/PUC_CCN_Sewer_Water/MapServer/1/query",
@@ -743,6 +771,22 @@
       "retry_attempts": 0,
       "retry_delays_ms": [],
       "notes": "Fallback: covers all Texas MUDs, WCIDs, SUDs. Not a REST API, but can be downloaded as shapefiles. Manual lookup only."
+    }
+  },
+  "san_antonio": {
+    "saws_service_area": {
+      "name": "SAWS Water Service Area",
+      "url": "https://services1.arcgis.com/3xr4u4yoHG7TFfbY/arcgis/rest/services/SAWS_Service_Area/FeatureServer/0/query",
+      "outFields": ["WATER_SVC", "SEWER_SVC", "RECLAIMED_SVC", "SERVICE_AREA_NAME"],
+      "geometryType": "esriGeometryPoint",
+      "crs": 4326,
+      "timeout_ms": 12000,
+      "retry_attempts": 2,
+      "retry_delays_ms": [500, 1000],
+      "spatialRel": "esriSpatialRelIntersects",
+      "notes": "San Antonio Water System service boundaries. Covers water, sewer, and reclaimed water service areas for San Antonio metro.",
+      "test_url": "https://services1.arcgis.com/3xr4u4yoHG7TFfbY/arcgis/rest/services/SAWS_Service_Area/FeatureServer/0/query?geometry=-98.4936,29.4241&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=WATER_SVC,SEWER_SVC,RECLAIMED_SVC,SERVICE_AREA_NAME&returnGeometry=false&f=json",
+      "last_validated": "2025-12-20"
     }
   }
 }

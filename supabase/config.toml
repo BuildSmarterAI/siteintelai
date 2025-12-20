@@ -256,6 +256,9 @@ verify_jwt = false
 [functions.resolve-utility-ownership]
 verify_jwt = false
 
+[functions.fetch-utility-service-areas]
+verify_jwt = false
+
 [functions.trigger-tile-generation]
 verify_jwt = true
 
