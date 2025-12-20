@@ -113,24 +113,119 @@ async function searchByAddress(
   supabaseUrl: string,
   supabaseKey: string
 ): Promise<SearchResult[]> {
-  // Use Google Places for geocoding
-  const placesResponse = await fetch(`${supabaseUrl}/functions/v1/google-places`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify({ input: query }),
-  });
+  let predictions: Array<{ place_id: string; description: string; lat?: number; lng?: number; addressDetails?: Record<string, string> }> = [];
+  let useNominatim = false;
 
-  if (!placesResponse.ok) {
-    console.error('[search-parcels] Google Places failed:', placesResponse.status);
-    return [];
+  // Try Google Places first
+  try {
+    const placesResponse = await fetch(`${supabaseUrl}/functions/v1/google-places`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ input: query }),
+    });
+
+    if (placesResponse.ok) {
+      const placesData = await placesResponse.json();
+      if (placesData.status === 'REQUEST_DENIED' || placesData.error) {
+        console.log('[search-parcels] Google Places denied or error, trying Nominatim');
+        useNominatim = true;
+      } else if (placesData.predictions?.length > 0) {
+        predictions = placesData.predictions;
+      } else {
+        useNominatim = true;
+      }
+    } else {
+      console.error('[search-parcels] Google Places failed:', placesResponse.status);
+      useNominatim = true;
+    }
+  } catch (err) {
+    console.error('[search-parcels] Google Places error:', err);
+    useNominatim = true;
   }
 
-  const placesData = await placesResponse.json();
-  const predictions = placesData.predictions || [];
-  
+  // Fallback to Nominatim if Google failed
+  if (useNominatim || predictions.length === 0) {
+    console.log('[search-parcels] Using Nominatim fallback for address search');
+    try {
+      const nominatimResponse = await fetch(`${supabaseUrl}/functions/v1/nominatim-autocomplete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ input: query, limit: 5 }),
+      });
+
+      if (nominatimResponse.ok) {
+        const nominatimData = await nominatimResponse.json();
+        if (nominatimData.predictions?.length > 0) {
+          // Nominatim results already have coordinates - process directly
+          const results: SearchResult[] = [];
+          for (const pred of nominatimData.predictions.slice(0, 3)) {
+            const lat = parseFloat(pred.lat);
+            const lng = parseFloat(pred.lng);
+            const county = detectCounty(lat, lng) || pred.addressDetails?.county?.toLowerCase().replace(' county', '') || undefined;
+            
+            // Try to fetch parcel at this location
+            let parcel = null;
+            if (county) {
+              try {
+                const parcelResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-parcels`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${supabaseKey}`,
+                  },
+                  body: JSON.stringify({ lat, lng, county }),
+                });
+                
+                if (parcelResponse.ok) {
+                  const parcelData = await parcelResponse.json();
+                  if (parcelData.features?.length > 0) {
+                    const feature = parcelData.features[0];
+                    parcel = {
+                      parcel_id: feature.properties.parcel_id,
+                      owner_name: feature.properties.owner_name,
+                      acreage: feature.properties.acreage,
+                      situs_address: feature.properties.situs_address,
+                      market_value: feature.properties.market_value,
+                      geometry: feature.geometry,
+                    };
+                  }
+                }
+              } catch (err) {
+                console.error('[search-parcels] Parcel fetch error:', err);
+              }
+            }
+
+            results.push({
+              type: 'address',
+              confidence: 0.85 - (results.length * 0.1),
+              lat,
+              lng,
+              formatted_address: pred.description,
+              county,
+              parcel: parcel || undefined,
+            });
+          }
+          console.log(`[search-parcels] Nominatim returned ${results.length} results`);
+          return results;
+        }
+      }
+    } catch (err) {
+      console.error('[search-parcels] Nominatim fallback error:', err);
+    }
+    
+    // If both failed, return empty
+    if (predictions.length === 0) {
+      return [];
+    }
+  }
+
+  // Process Google Places results (original logic)
   const results: SearchResult[] = [];
   
   // Get details for top 3 predictions
