@@ -279,3 +279,6 @@ verify_jwt = false
 
 [functions.seed-elevation-data]
 verify_jwt = false
+
+[functions.nominatim-autocomplete]
+verify_jwt = false
