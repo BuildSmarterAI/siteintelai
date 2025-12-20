@@ -8,7 +8,13 @@
     "extend-zooms-if-still-dropping": true,
     "coalesce-densest-as-needed": true,
     "detect-shared-borders": true,
-    "description": "County parcel boundaries from CAD sources"
+    "description": "County parcel boundaries with elevation data",
+    "attribute-type": {
+      "elevation_ft": "float",
+      "acreage": "float",
+      "accuracy_tier": "int",
+      "confidence": "int"
+    }
   },
   "zoning": {
     "layer": "zoning",

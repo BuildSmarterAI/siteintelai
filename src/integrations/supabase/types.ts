@@ -1931,6 +1931,9 @@ export type Database = {
           county_fips: string | null
           created_at: string
           dataset_version: string
+          elevation_ft: number | null
+          elevation_sampled_at: string | null
+          elevation_source: string | null
           geom: unknown
           id: number
           ingestion_run_id: string | null
@@ -1961,6 +1964,9 @@ export type Database = {
           county_fips?: string | null
           created_at?: string
           dataset_version: string
+          elevation_ft?: number | null
+          elevation_sampled_at?: string | null
+          elevation_source?: string | null
           geom?: unknown
           id?: number
           ingestion_run_id?: string | null
@@ -1991,6 +1997,9 @@ export type Database = {
           county_fips?: string | null
           created_at?: string
           dataset_version?: string
+          elevation_ft?: number | null
+          elevation_sampled_at?: string | null
+          elevation_source?: string | null
           geom?: unknown
           id?: number
           ingestion_run_id?: string | null
