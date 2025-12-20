@@ -50,6 +50,7 @@ LAYER_CONFIG = {
             "zip",
             "accuracy_tier",
             "confidence",
+            "elevation_ft",  # Elevation in feet from AWS Terrain Tiles
         ],
         "jurisdiction_column": "jurisdiction",
     },

@@ -71,6 +71,48 @@ jobs:
         run: |
           pip install -r etl/requirements.txt
       
+      - name: Seed elevation data for parcels
+        if: matrix.layer == 'parcels' && steps.check-layer.outputs.should_run == 'true'
+        env:
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          echo "🏔️ Seeding elevation data for parcels..."
+          JURISDICTION="${{ github.event.inputs.jurisdiction }}"
+          
+          # Call seed-elevation-data edge function in batches until complete
+          REMAINING=1
+          TOTAL_PROCESSED=0
+          MAX_ITERATIONS=500  # Safety limit
+          ITERATIONS=0
+          
+          while [ "$REMAINING" -gt 0 ] && [ "$ITERATIONS" -lt "$MAX_ITERATIONS" ]; do
+            RESPONSE=$(curl -s -X POST \
+              "${SUPABASE_URL}/functions/v1/seed-elevation-data" \
+              -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{\"jurisdiction\": \"${JURISDICTION:-}\", \"batch_size\": 200}")
+            
+            PROCESSED=$(echo "$RESPONSE" | jq -r '.processed // 0')
+            REMAINING=$(echo "$RESPONSE" | jq -r '.remaining // 0')
+            ERRORS=$(echo "$RESPONSE" | jq -r '.errors // 0')
+            TOTAL_PROCESSED=$((TOTAL_PROCESSED + PROCESSED))
+            ITERATIONS=$((ITERATIONS + 1))
+            
+            echo "  Batch $ITERATIONS: Processed=$PROCESSED, Errors=$ERRORS, Remaining=$REMAINING, Total=$TOTAL_PROCESSED"
+            
+            # If no progress made and remaining is still high, break
+            if [ "$PROCESSED" -eq 0 ] && [ "$REMAINING" -gt 0 ]; then
+              echo "⚠️ No progress made, stopping elevation seeding"
+              break
+            fi
+            
+            # Small delay between batches
+            sleep 1
+          done
+          
+          echo "✅ Elevation seeding complete: $TOTAL_PROCESSED parcels updated in $ITERATIONS batches"
+
       - name: Export GeoJSON from Supabase
         id: export-geojson
         if: steps.check-layer.outputs.should_run == 'true'
