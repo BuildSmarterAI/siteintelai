@@ -534,6 +534,21 @@ export function EnvironmentalCard({
             />
           </div>
         )}
+
+        {/* Data Sources Note */}
+        <div className="pt-4 mt-4 border-t border-border/30">
+          <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg">
+            <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Data Sources</p>
+              <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
+                Environmental data sourced from USFWS National Wetlands Inventory (NWI), EPA ECHO facility database, 
+                USGS elevation data, and USDA Web Soil Survey. Enhanced SSURGO soil engineering properties 
+                (hydric rating, bedrock depth, corrosion indices) are available for select regions.
+              </p>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
