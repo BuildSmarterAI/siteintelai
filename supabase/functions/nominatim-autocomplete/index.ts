@@ -29,6 +29,14 @@ interface NominatimResult {
   };
 }
 
+// Texas state bounds
+const TEXAS_BOUNDS = {
+  minLat: 25.84,
+  maxLat: 36.50,
+  minLng: -106.65,
+  maxLng: -93.51,
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -45,15 +53,17 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[nominatim-autocomplete] Searching for: "${input}"`)
+    console.log(`[nominatim-autocomplete] Searching Texas for: "${input}"`)
 
-    // Build Nominatim search URL - limit to US addresses
+    // Build Nominatim search URL - limit to Texas addresses only
     const params = new URLSearchParams({
       q: input,
       format: 'jsonv2',
       addressdetails: '1',
       countrycodes: 'us',
-      limit: String(limit),
+      viewbox: `${TEXAS_BOUNDS.minLng},${TEXAS_BOUNDS.maxLat},${TEXAS_BOUNDS.maxLng},${TEXAS_BOUNDS.minLat}`,
+      bounded: '1',
+      limit: String(Math.min(limit * 2, 10)), // Request more to filter
       dedupe: '1'
     })
 
@@ -75,10 +85,17 @@ serve(async (req) => {
     }
 
     const results: NominatimResult[] = await response.json()
-    console.log(`[nominatim-autocomplete] Got ${results.length} results`)
+    console.log(`[nominatim-autocomplete] Got ${results.length} raw results`)
+
+    // Filter to Texas only as a safety net
+    const texasResults = results.filter(result => 
+      result.address?.state === 'Texas' || 
+      result.address?.state === 'TX'
+    );
+    console.log(`[nominatim-autocomplete] ${texasResults.length} Texas results after filter`)
 
     // Transform to Google-like format for compatibility
-    const predictions = results.map(result => {
+    const predictions = texasResults.slice(0, limit).map(result => {
       const addr = result.address || {}
       const city = addr.city || addr.town || addr.village || ''
       const state = addr.state || ''
