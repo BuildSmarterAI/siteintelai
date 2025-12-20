@@ -75,34 +75,44 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
     setIsLoading(true);
     
     try {
+      // Try Google first
       const { data, error } = await supabase.functions.invoke('google-places', {
         body: { input: value }
       });
 
-      if (error || data?.status === 'REQUEST_DENIED') {
-        console.warn('Google Places unavailable, using fallback');
-        setIsOfflineMode(true);
-        // Filter defaults by query
-        const filtered = DEFAULT_SUGGESTIONS.filter(s => 
-          s.description.toLowerCase().includes(value.toLowerCase())
-        );
-        setSuggestions(filtered.length > 0 ? filtered : DEFAULT_SUGGESTIONS.slice(0, 5));
-        return;
-      }
-
-      if (data?.predictions && data.predictions.length > 0) {
+      if (!error && data?.predictions && data.predictions.length > 0 && data?.status !== 'REQUEST_DENIED') {
         setIsOfflineMode(false);
         setSuggestions(data.predictions.map((p: any) => ({
           place_id: p.place_id,
           description: p.description,
         })));
-      } else {
-        // No results from API, filter defaults
-        const filtered = DEFAULT_SUGGESTIONS.filter(s => 
-          s.description.toLowerCase().includes(value.toLowerCase())
-        );
-        setSuggestions(filtered.length > 0 ? filtered : []);
+        return;
       }
+
+      // Fallback to Nominatim
+      console.log('Google Places unavailable, trying Nominatim fallback');
+      const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
+        body: { input: value }
+      });
+
+      if (!nominatimError && nominatimData?.predictions && nominatimData.predictions.length > 0) {
+        setIsOfflineMode(false);
+        setSuggestions(nominatimData.predictions.map((p: any) => ({
+          place_id: p.place_id,
+          description: p.description,
+          lat: p.lat,
+          lng: p.lng,
+        })));
+        return;
+      }
+
+      // Both APIs failed - use defaults
+      console.warn('Both Google and Nominatim unavailable, using defaults');
+      setIsOfflineMode(true);
+      const filtered = DEFAULT_SUGGESTIONS.filter(s => 
+        s.description.toLowerCase().includes(value.toLowerCase())
+      );
+      setSuggestions(filtered.length > 0 ? filtered : DEFAULT_SUGGESTIONS.slice(0, 5));
     } catch (err) {
       console.error('Search error:', err);
       setIsOfflineMode(true);
