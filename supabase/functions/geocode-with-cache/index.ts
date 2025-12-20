@@ -1,6 +1,7 @@
 /**
  * Geocode with Cache Edge Function
  * Wraps Google Geocoding API with 30-day caching in geocoder_cache table
+ * Falls back to OpenStreetMap Nominatim when Google fails
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -22,8 +23,17 @@ interface GeocodeResponse {
   lng: number;
   formatted_address: string;
   confidence: number;
-  source: 'cache' | 'google';
+  source: 'cache' | 'google' | 'nominatim';
   cache_hit: boolean;
+}
+
+interface NominatimResult {
+  lat: string;
+  lon: string;
+  display_name: string;
+  importance: number;
+  type: string;
+  class: string;
 }
 
 // Generate SHA-256 hash for cache key
@@ -39,6 +49,71 @@ async function generateHash(input: string): Promise<string> {
 function normalizeQuery(query: string, queryType: QueryType): string {
   const normalized = query.toLowerCase().trim();
   return `${queryType}:${normalized}`;
+}
+
+// Calculate confidence from Nominatim result
+function calculateNominatimConfidence(result: NominatimResult): number {
+  // Nominatim importance ranges from 0-1, we map it to 0.5-0.9
+  const baseConfidence = 0.5 + (result.importance * 0.4);
+  
+  // Boost for specific result types
+  if (result.type === 'house' || result.class === 'building') {
+    return Math.min(baseConfidence + 0.1, 0.9);
+  }
+  if (result.type === 'street' || result.class === 'highway') {
+    return Math.min(baseConfidence + 0.05, 0.85);
+  }
+  
+  return Math.max(0.5, Math.min(baseConfidence, 0.85));
+}
+
+// Geocode using OpenStreetMap Nominatim (free fallback)
+async function geocodeWithNominatim(query: string): Promise<{
+  lat: number;
+  lng: number;
+  formatted_address: string;
+  confidence: number;
+} | null> {
+  console.log(`[geocode-with-cache] Trying Nominatim fallback for: "${query}"`);
+  
+  const nominatimUrl = `https://nominatim.openstreetmap.org/search?` +
+    `format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`;
+  
+  try {
+    const response = await fetch(nominatimUrl, {
+      headers: {
+        'User-Agent': 'SiteIntel-Feasibility/1.0 (buildsmarter.io)',
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`[geocode-with-cache] Nominatim HTTP error: ${response.status}`);
+      return null;
+    }
+    
+    const data: NominatimResult[] = await response.json();
+    
+    if (!data || data.length === 0) {
+      console.log(`[geocode-with-cache] Nominatim returned no results`);
+      return null;
+    }
+    
+    const result = data[0];
+    const confidence = calculateNominatimConfidence(result);
+    
+    console.log(`[geocode-with-cache] Nominatim success: ${result.display_name} (confidence: ${confidence.toFixed(2)})`);
+    
+    return {
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+      formatted_address: result.display_name,
+      confidence,
+    };
+  } catch (error) {
+    console.error(`[geocode-with-cache] Nominatim error:`, error);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -59,13 +134,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
-
-    if (!googleApiKey) {
-      return new Response(
-        JSON.stringify({ error: 'Google Maps API key not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -101,9 +169,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[geocode-with-cache] Cache MISS, calling Google API`);
+    console.log(`[geocode-with-cache] Cache MISS`);
 
-    // Call Google Geocoding API
+    // Prepare query for geocoding
     let geocodeQuery = query.trim();
     
     // For intersections, append Houston, TX for better accuracy
@@ -111,38 +179,81 @@ Deno.serve(async (req) => {
       geocodeQuery = `${query.trim()}, Houston, TX`;
     }
 
-    const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeQuery)}&key=${googleApiKey}`;
-    
-    const googleResponse = await fetch(googleUrl);
-    const googleData = await googleResponse.json();
+    let geocodeResult: {
+      lat: number;
+      lng: number;
+      formatted_address: string;
+      confidence: number;
+      source: 'google' | 'nominatim';
+    } | null = null;
 
-     if (googleData.status !== 'OK' || !googleData.results?.length) {
-       // IMPORTANT: return 200 so clients don't crash on non-2xx responses.
-       // Clients can treat this as "no result" and fall back to presets.
-       console.error(`[geocode-with-cache] Google API error: ${googleData.status}`);
-       return new Response(
-         JSON.stringify({
-           success: false,
-           error: `Geocoding failed: ${googleData.status}`,
-           google_status: googleData.status,
-         }),
-         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-       );
-     }
+    // Try Google first if API key is available
+    if (googleApiKey) {
+      console.log(`[geocode-with-cache] Trying Google API`);
+      
+      const googleUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeQuery)}&key=${googleApiKey}`;
+      
+      try {
+        const googleResponse = await fetch(googleUrl);
+        const googleData = await googleResponse.json();
 
-    const result = googleData.results[0];
-    const location = result.geometry.location;
+        if (googleData.status === 'OK' && googleData.results?.length) {
+          const result = googleData.results[0];
+          const location = result.geometry.location;
 
-    // Calculate confidence based on result type
-    let confidence = 0.9;
-    if (result.geometry.location_type === 'ROOFTOP') {
-      confidence = 1.0;
-    } else if (result.geometry.location_type === 'RANGE_INTERPOLATED') {
-      confidence = 0.85;
-    } else if (result.geometry.location_type === 'GEOMETRIC_CENTER') {
-      confidence = 0.75;
-    } else if (result.geometry.location_type === 'APPROXIMATE') {
-      confidence = 0.6;
+          // Calculate confidence based on result type
+          let confidence = 0.9;
+          if (result.geometry.location_type === 'ROOFTOP') {
+            confidence = 1.0;
+          } else if (result.geometry.location_type === 'RANGE_INTERPOLATED') {
+            confidence = 0.85;
+          } else if (result.geometry.location_type === 'GEOMETRIC_CENTER') {
+            confidence = 0.75;
+          } else if (result.geometry.location_type === 'APPROXIMATE') {
+            confidence = 0.6;
+          }
+
+          geocodeResult = {
+            lat: location.lat,
+            lng: location.lng,
+            formatted_address: result.formatted_address,
+            confidence,
+            source: 'google',
+          };
+          
+          console.log(`[geocode-with-cache] Google success: ${result.formatted_address}`);
+        } else {
+          console.warn(`[geocode-with-cache] Google API failed: ${googleData.status} - ${googleData.error_message || 'No results'}`);
+        }
+      } catch (googleError) {
+        console.error(`[geocode-with-cache] Google API error:`, googleError);
+      }
+    } else {
+      console.log(`[geocode-with-cache] No Google API key, skipping to Nominatim`);
+    }
+
+    // Fall back to Nominatim if Google failed or wasn't available
+    if (!geocodeResult) {
+      const nominatimResult = await geocodeWithNominatim(geocodeQuery);
+      
+      if (nominatimResult) {
+        geocodeResult = {
+          ...nominatimResult,
+          source: 'nominatim',
+        };
+      }
+    }
+
+    // If both failed, return error
+    if (!geocodeResult) {
+      console.error(`[geocode-with-cache] All geocoding methods failed`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Geocoding failed: No results from any provider',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Cache the result (30-day TTL)
@@ -150,11 +261,9 @@ Deno.serve(async (req) => {
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     const resultData = {
-      lat: location.lat,
-      lng: location.lng,
-      formatted_address: result.formatted_address,
-      location_type: result.geometry.location_type,
-      place_id: result.place_id,
+      lat: geocodeResult.lat,
+      lng: geocodeResult.lng,
+      formatted_address: geocodeResult.formatted_address,
     };
 
     const { error: cacheError } = await supabase
@@ -163,9 +272,9 @@ Deno.serve(async (req) => {
         input_hash: inputHash,
         input_query: query.trim(),
         query_type: query_type,
-        source: 'google',
+        source: geocodeResult.source,
         result_data: resultData,
-        confidence: confidence,
+        confidence: geocodeResult.confidence,
         expires_at: expiresAt.toISOString(),
         created_at: new Date().toISOString(),
       }, {
@@ -174,18 +283,17 @@ Deno.serve(async (req) => {
 
     if (cacheError) {
       console.error(`[geocode-with-cache] Cache write error:`, cacheError);
-      // Continue anyway, caching is non-critical
     } else {
-      console.log(`[geocode-with-cache] Cached result, expires: ${expiresAt.toISOString()}`);
+      console.log(`[geocode-with-cache] Cached result from ${geocodeResult.source}, expires: ${expiresAt.toISOString()}`);
     }
 
     return new Response(
       JSON.stringify({
-        lat: location.lat,
-        lng: location.lng,
-        formatted_address: result.formatted_address,
-        confidence,
-        source: 'google',
+        lat: geocodeResult.lat,
+        lng: geocodeResult.lng,
+        formatted_address: geocodeResult.formatted_address,
+        confidence: geocodeResult.confidence,
+        source: geocodeResult.source,
         cache_hit: false,
       } as GeocodeResponse),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
