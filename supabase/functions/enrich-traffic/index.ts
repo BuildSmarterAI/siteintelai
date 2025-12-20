@@ -8,11 +8,26 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// TxDOT AADT FeatureServer endpoint
+// TxDOT FeatureServer endpoints
 const TXDOT_AADT_URL = 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0';
+const TXDOT_ROADWAY_INVENTORY_URL = 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadway_Inventory/FeatureServer/0';
 
 // K-factor for peak hour estimation (standard 10% for Texas urban areas)
 const PEAK_HOUR_K_FACTOR = 0.10;
+
+// Surface type code mapping
+const SURFACE_TYPE_MAPPING: Record<string, string> = {
+  'A': 'Asphalt',
+  'B': 'Brick',
+  'C': 'Concrete', 
+  'D': 'Composite',
+  'E': 'Earth',
+  'G': 'Gravel',
+  'M': 'Mixed',
+  'P': 'Paved',
+  'S': 'Surface Treated',
+  'U': 'Unpaved',
+};
 
 // Route prefix to roadway classification mapping
 const ROUTE_PREFIX_CLASSIFICATION: Record<string, string> = {
@@ -63,6 +78,8 @@ interface TrafficResult {
   truck_percent: number | null;
   congestion_level: string | null;
   nearest_signal_distance_ft: number | null;
+  speed_limit: number | null;
+  surface_type: string | null;
   traffic_data_source: string;
   data_flags: string[];
 }
@@ -125,8 +142,70 @@ async function queryTxDOTAADT(lat: number, lng: number, bufferFt: number = 2000)
 }
 
 /**
- * Calculate distance between two points in feet
+ * Query TxDOT Roadway Inventory for speed limit and surface type
  */
+async function queryTxDOTRoadwayInventory(lat: number, lng: number, bufferFt: number = 1000): Promise<any[]> {
+  const bufferDeg = bufferFt / 364000;
+  
+  const envelope = {
+    xmin: lng - bufferDeg,
+    ymin: lat - bufferDeg,
+    xmax: lng + bufferDeg,
+    ymax: lat + bufferDeg,
+  };
+  
+  const queryParams = new URLSearchParams({
+    where: '1=1',
+    geometry: `${envelope.xmin},${envelope.ymin},${envelope.xmax},${envelope.ymax}`,
+    geometryType: 'esriGeometryEnvelope',
+    inSR: '4326',
+    outSR: '4326',
+    spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'OBJECTID,RTE_NM,RTE_ID,RTE_PRFX,SPD_MAX,SPD_LMT,SURF_TYP,SURF_WD,RDBD_TYP,F_SYSTEM',
+    returnGeometry: 'true',
+    f: 'geojson',
+  });
+  
+  const url = `${TXDOT_ROADWAY_INVENTORY_URL}/query?${queryParams.toString()}`;
+  console.log(`[enrich-traffic] Querying TxDOT Roadway Inventory: ${url.slice(0, 150)}...`);
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'SiteIntel/1.0 (BuildSmarter Feasibility)',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`[enrich-traffic] TxDOT Roadway Inventory API error: ${response.status}`);
+      return [];
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      console.error(`[enrich-traffic] TxDOT Roadway Inventory returned error:`, data.error);
+      return [];
+    }
+    
+    console.log(`[enrich-traffic] Found ${data.features?.length || 0} roadway inventory segments`);
+    return data.features || [];
+  } catch (err) {
+    console.error(`[enrich-traffic] Failed to query TxDOT Roadway Inventory:`, err);
+    return [];
+  }
+}
+
+/**
+ * Get surface type description from code
+ */
+function getSurfaceTypeDescription(code: string | null): string | null {
+  if (!code) return null;
+  const normalizedCode = String(code).toUpperCase().trim();
+  return SURFACE_TYPE_MAPPING[normalizedCode] || normalizedCode;
+}
+
 function calculateDistanceFt(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 20902231; // Earth radius in feet
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -297,7 +376,9 @@ Deno.serve(async (req) => {
       peak_hour_volume: null,
       truck_percent: null,
       congestion_level: null,
-      nearest_signal_distance_ft: null, // TODO: Implement when signal layer available
+      nearest_signal_distance_ft: null,
+      speed_limit: null,
+      surface_type: null,
       traffic_data_source: 'TxDOT_AADT',
       data_flags: [],
     };
@@ -372,6 +453,42 @@ Deno.serve(async (req) => {
       });
     }
     
+    // Query TxDOT Roadway Inventory for speed limit and surface type
+    console.log(`${tracePrefix} [enrich-traffic] Querying roadway inventory for speed/surface data`);
+    const roadwayFeatures = await queryTxDOTRoadwayInventory(app.geo_lat, app.geo_lng, 1500);
+    
+    if (roadwayFeatures.length > 0) {
+      const nearestRoadway = findNearestSegment(roadwayFeatures, app.geo_lat, app.geo_lng);
+      
+      if (nearestRoadway) {
+        const roadwayProps = nearestRoadway.feature.properties || {};
+        
+        // Extract speed limit (prefer SPD_MAX, fall back to SPD_LMT)
+        const speedLimit = roadwayProps.SPD_MAX || roadwayProps.SPD_LMT || null;
+        if (speedLimit && speedLimit > 0 && speedLimit <= 85) {
+          result.speed_limit = Math.round(speedLimit);
+        }
+        
+        // Extract surface type
+        const surfaceCode = roadwayProps.SURF_TYP || null;
+        result.surface_type = getSurfaceTypeDescription(surfaceCode);
+        
+        console.log(`${tracePrefix} [enrich-traffic] Found roadway inventory:`, {
+          speed_limit: result.speed_limit,
+          surface_type: result.surface_type,
+          distance_ft: Math.round(nearestRoadway.distance),
+        });
+        
+        // Use road name from roadway inventory if not already set
+        if (!result.traffic_road_name && (roadwayProps.RTE_NM || roadwayProps.RTE_ID)) {
+          result.traffic_road_name = roadwayProps.RTE_NM || roadwayProps.RTE_ID;
+        }
+      }
+    } else {
+      console.log(`${tracePrefix} [enrich-traffic] No roadway inventory data found nearby`);
+      result.data_flags.push('no_roadway_inventory');
+    }
+    
     // Update application with traffic data
     const updateFields: Record<string, any> = {
       traffic_aadt: result.traffic_aadt,
@@ -385,6 +502,8 @@ Deno.serve(async (req) => {
       truck_percent: result.truck_percent,
       congestion_level: result.congestion_level,
       nearest_signal_distance_ft: result.nearest_signal_distance_ft,
+      speed_limit: result.speed_limit,
+      surface_type: result.surface_type,
       traffic_data_source: result.traffic_data_source,
       // Also update legacy fields for backward compatibility
       aadt_near: result.traffic_aadt,

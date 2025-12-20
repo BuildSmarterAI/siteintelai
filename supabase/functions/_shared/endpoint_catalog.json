@@ -1,0 +1,49 @@
+{
+  "TxDOT_AADT": {
+    "name": "TxDOT AADT Traffic Counts",
+    "url": "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_AADT/FeatureServer/0",
+    "provider": "TxDOT",
+    "type": "ArcGIS FeatureServer",
+    "description": "Annual Average Daily Traffic counts for Texas roadways",
+    "key_fields": ["AADT_CUR", "RTE_NM", "T_PCT", "YR", "F_SYSTEM"],
+    "spatial_ref": 4326
+  },
+  "TxDOT_Speed_Limits": {
+    "name": "TxDOT Speed Limits",
+    "url": "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadway_Inventory/FeatureServer/0",
+    "provider": "TxDOT",
+    "type": "ArcGIS FeatureServer",
+    "description": "Posted speed limits on Texas state-maintained roadways",
+    "key_fields": ["SPD_MAX", "SPD_LMT", "RTE_NM", "RTE_PRFX"],
+    "spatial_ref": 4326,
+    "notes": "SPD_MAX is the maximum posted speed limit in MPH"
+  },
+  "TxDOT_Roadbed_Surface": {
+    "name": "TxDOT Roadbed Surface Type",
+    "url": "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadway_Inventory/FeatureServer/0",
+    "provider": "TxDOT",
+    "type": "ArcGIS FeatureServer",
+    "description": "Pavement surface type and condition for Texas roadways",
+    "key_fields": ["SURF_TYP", "SURF_WD", "RDBD_TYP"],
+    "spatial_ref": 4326,
+    "notes": "SURF_TYP indicates surface type (A=Asphalt, C=Concrete, G=Gravel, etc.)"
+  },
+  "TxDOT_Functional_Class": {
+    "name": "TxDOT Functional Classification",
+    "url": "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Roadway_Inventory/FeatureServer/0",
+    "provider": "TxDOT",
+    "type": "ArcGIS FeatureServer",
+    "description": "Federal functional classification of Texas roadways",
+    "key_fields": ["F_SYSTEM", "RU_F_SYSTEM", "URBAN_CD"],
+    "spatial_ref": 4326
+  },
+  "TxDOT_Top_100_Congested": {
+    "name": "TxDOT Top 100 Most Congested Roadways",
+    "url": "https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/Top_100_Most_Congested_Texas_Roadway_Sections/FeatureServer/0",
+    "provider": "TxDOT",
+    "type": "ArcGIS FeatureServer",
+    "description": "Top 100 most congested roadway sections in Texas",
+    "key_fields": ["RANK", "ROADWAY", "CITY", "HOURS_DELAY"],
+    "spatial_ref": 4326
+  }
+}
