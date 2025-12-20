@@ -13,11 +13,17 @@ const SERVICE_AREA_ENDPOINTS = {
     outFields: ['PWSID', 'PWS_NAME', 'SYSTEM_TYPE', 'OWNER_TYPE', 'POPULATION_SERVED', 'STATUS', 'PWS_CONTACT_PHONE', 'COUNTY_SERVED'],
     coverage: 'statewide'
   },
-  austin_water: {
-    name: 'Austin Water Utility Service Area',
-    url: 'https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/AWU_Waterlines/FeatureServer/0/query',
-    outFields: ['DIAMETER', 'MATERIAL', 'STATUS', 'INSTALL_YEAR'],
-    coverage: { lat: [30.0, 30.6], lng: [-98.1, -97.4] }
+  puc_water_ccn: {
+    name: 'Texas PUC Water CCN Service Areas',
+    url: 'https://services1.arcgis.com/L0MLvN0Ay0iEjnCT/ArcGIS/rest/services/Water_PUC_CCN/FeatureServer/10001/query',
+    outFields: ['CCN_NO', 'UTILITY', 'COUNTY', 'STATUS', 'CCN_TYPE'],
+    coverage: 'statewide'
+  },
+  puc_wastewater_ccn: {
+    name: 'Texas PUC Wastewater CCN Service Areas',
+    url: 'https://services1.arcgis.com/L0MLvN0Ay0iEjnCT/ArcGIS/rest/services/Wastewater___PUC_CCN/FeatureServer/11001/query',
+    outFields: ['CCN_NO', 'UTILITY', 'COUNTY', 'STATUS', 'CCN_TYPE'],
+    coverage: 'statewide'
   },
   saws: {
     name: 'San Antonio Water System Service Area',
@@ -33,6 +39,7 @@ interface ServiceAreaResult {
   provider_name: string | null;
   service_types: string[];
   pws_id?: string;
+  ccn_no?: string;
   confidence: number;
   raw_attributes: Record<string, any>;
   query_time_ms: number;
@@ -40,7 +47,7 @@ interface ServiceAreaResult {
 }
 
 // Determine service types from attributes
-function determineServiceTypes(attrs: Record<string, any>): string[] {
+function determineServiceTypes(attrs: Record<string, any>, sourceKey: string): string[] {
   const types: string[] = [];
   
   // TWDB/PWS - if we found a record, it's a water provider
@@ -48,13 +55,19 @@ function determineServiceTypes(attrs: Record<string, any>): string[] {
     types.push('water');
   }
   
+  // PUC CCN - determine based on source layer
+  if (attrs.CCN_NO || attrs.UTILITY) {
+    if (sourceKey === 'puc_water_ccn') {
+      types.push('water');
+    } else if (sourceKey === 'puc_wastewater_ccn') {
+      types.push('sewer');
+    }
+  }
+  
   // SAWS specific
   if (attrs.WATER_SVC === 'Y' || attrs.WATER_SVC === 'Yes') types.push('water');
   if (attrs.SEWER_SVC === 'Y' || attrs.SEWER_SVC === 'Yes') types.push('sewer');
   if (attrs.RECLAIMED_SVC === 'Y' || attrs.RECLAIMED_SVC === 'Yes') types.push('reclaimed');
-  
-  // Austin Water - if lines found, water service available
-  if (attrs.DIAMETER || attrs.MATERIAL) types.push('water');
   
   return [...new Set(types)];
 }
@@ -68,6 +81,13 @@ function mapTWDBOwnerType(ownerType: string | null): string {
   if (type.includes('district') || type.includes('mud') || type.includes('wcid')) return 'district';
   if (type.includes('county')) return 'county';
   return 'unknown';
+}
+
+// Get confidence score based on source (PUC CCN is regulatory truth)
+function getConfidenceScore(sourceKey: string): number {
+  if (sourceKey.startsWith('puc_')) return 0.95; // PUC CCN is regulatory truth
+  if (sourceKey === 'twdb') return 0.92;
+  return 0.88;
 }
 
 async function queryServiceArea(
@@ -105,15 +125,9 @@ async function queryServiceArea(
       f: 'json'
     });
 
-    // For line layers (Austin Water), add distance buffer
-    if (key === 'austin_water') {
-      params.set('distance', '500');
-      params.set('units', 'esriSRUnit_Foot');
-    }
-
     const response = await fetch(`${endpoint.url}?${params}`, {
       headers: { 'User-Agent': 'SiteIntel-Feasibility/1.0' },
-      signal: AbortSignal.timeout(12000)
+      signal: AbortSignal.timeout(15000)
     });
 
     if (!response.ok) {
@@ -129,15 +143,16 @@ async function queryServiceArea(
 
     if (json.features && json.features.length > 0) {
       const attrs = json.features[0].attributes;
-      const serviceTypes = determineServiceTypes(attrs);
+      const serviceTypes = determineServiceTypes(attrs, key);
       
       return {
         source: endpoint.name,
         found: true,
-        provider_name: attrs.PWS_NAME || attrs.SERVICE_AREA_NAME || attrs.UTILITY_NAME || 'Unknown Provider',
+        provider_name: attrs.PWS_NAME || attrs.UTILITY || attrs.SERVICE_AREA_NAME || 'Unknown Provider',
         service_types: serviceTypes,
         pws_id: attrs.PWSID,
-        confidence: key === 'twdb' ? 0.92 : 0.88,
+        ccn_no: attrs.CCN_NO,
+        confidence: getConfidenceScore(key),
         raw_attributes: attrs,
         query_time_ms: queryTime
       };
@@ -206,10 +221,16 @@ serve(async (req) => {
       )
     );
 
-    // Find primary provider (prefer TWDB as regulatory truth anchor)
+    // Find primary provider - prioritize PUC CCN (highest regulatory authority), then TWDB
+    const pucWaterResult = results.find(r => r.key === 'puc_water_ccn' && r.found);
     const twdbResult = results.find(r => r.key === 'twdb' && r.found);
     const anyFound = results.find(r => r.found);
-    const primaryProvider = twdbResult || anyFound;
+    const primaryProvider = pucWaterResult || twdbResult || anyFound;
+
+    // Find sewer provider - prioritize PUC wastewater CCN
+    const pucWastewaterResult = results.find(r => r.key === 'puc_wastewater_ccn' && r.found);
+    const sawsSewerResult = results.find(r => r.key === 'saws' && r.found && r.service_types.includes('sewer'));
+    const sewerProvider = pucWastewaterResult || sawsSewerResult;
 
     // Build consolidated response
     const response = {
@@ -221,15 +242,20 @@ serve(async (req) => {
         provider_name: r.provider_name,
         service_types: r.service_types,
         pws_id: r.pws_id,
+        ccn_no: r.ccn_no,
         confidence: r.confidence,
         query_time_ms: r.query_time_ms,
         error: r.error
       }])),
       primary_provider: primaryProvider?.provider_name || null,
       primary_pws_id: primaryProvider?.pws_id || null,
+      primary_ccn_no: primaryProvider?.ccn_no || null,
+      sewer_provider: sewerProvider?.provider_name || null,
+      sewer_ccn_no: sewerProvider?.ccn_no || null,
       has_water: results.some(r => r.found && r.service_types.includes('water')),
       has_sewer: results.some(r => r.found && r.service_types.includes('sewer')),
       has_reclaimed: results.some(r => r.found && r.service_types.includes('reclaimed')),
+      max_confidence: Math.max(...results.filter(r => r.found).map(r => r.confidence), 0),
       sources_queried: results.length,
       sources_matched: results.filter(r => r.found).length,
       total_query_time_ms: Date.now() - startTime

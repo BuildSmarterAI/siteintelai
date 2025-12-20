@@ -45,5 +45,35 @@
     "description": "Top 100 most congested roadway sections in Texas",
     "key_fields": ["RANK", "ROADWAY", "CITY", "HOURS_DELAY"],
     "spatial_ref": 4326
+  },
+  "PUC_Water_CCN": {
+    "name": "Texas PUC Water CCN Service Areas",
+    "url": "https://services1.arcgis.com/L0MLvN0Ay0iEjnCT/ArcGIS/rest/services/Water_PUC_CCN/FeatureServer/10001",
+    "provider": "Texas PUC",
+    "type": "ArcGIS FeatureServer",
+    "description": "Official Certificate of Convenience and Necessity (CCN) water service area polygons statewide",
+    "key_fields": ["CCN_NO", "UTILITY", "COUNTY", "STATUS", "CCN_TYPE"],
+    "spatial_ref": 2277,
+    "notes": "Authoritative regulatory boundaries issued by Public Utility Commission of Texas. 95% confidence - regulatory truth anchor."
+  },
+  "PUC_Wastewater_CCN": {
+    "name": "Texas PUC Wastewater CCN Service Areas",
+    "url": "https://services1.arcgis.com/L0MLvN0Ay0iEjnCT/ArcGIS/rest/services/Wastewater___PUC_CCN/FeatureServer/11001",
+    "provider": "Texas PUC",
+    "type": "ArcGIS FeatureServer",
+    "description": "Official Certificate of Convenience and Necessity (CCN) sewer service area polygons statewide",
+    "key_fields": ["CCN_NO", "UTILITY", "COUNTY", "STATUS", "CCN_TYPE"],
+    "spatial_ref": 2277,
+    "notes": "Authoritative regulatory sewer boundaries issued by Public Utility Commission of Texas."
+  },
+  "TWDB_Water_Service_Boundaries": {
+    "name": "TWDB Texas Water Service Boundary Viewer",
+    "url": "https://services.arcgis.com/4vCeRHZY3Jv9MQ6n/arcgis/rest/services/Texas_Water_Service_Boundary_Viewer/FeatureServer/0",
+    "provider": "TWDB",
+    "type": "ArcGIS FeatureServer",
+    "description": "Statewide water service boundaries from Texas Water Development Board",
+    "key_fields": ["PWSID", "PWS_NAME", "SYSTEM_TYPE", "OWNER_TYPE", "POPULATION_SERVED", "STATUS", "COUNTY_SERVED"],
+    "spatial_ref": 4326,
+    "notes": "92% confidence - regulatory truth anchor for all Texas water provider lookups."
   }
 }
