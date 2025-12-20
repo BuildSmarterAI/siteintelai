@@ -451,6 +451,7 @@ export type Database = {
           bachelors_pct: number | null
           base_flood_elevation: number | null
           base_flood_elevation_source: string | null
+          bedrock_depth_cm: number | null
           best_time: string | null
           black_pct: number | null
           bldg_sqft: number | null
@@ -460,6 +461,7 @@ export type Database = {
           broadband_providers: Json | null
           buildability_output_id: string | null
           buildability_status: string | null
+          building_site_rating: string | null
           building_size_unit: string | null
           building_size_value: number | null
           cache_expires_at: string | null
@@ -472,6 +474,8 @@ export type Database = {
           congestion_level: string | null
           consent_contact: boolean
           consent_terms_privacy: boolean
+          corrosion_concrete: string | null
+          corrosion_steel: string | null
           costs_output: string | null
           county: string | null
           coverage_flags: string[] | null
@@ -501,6 +505,7 @@ export type Database = {
           environmental_constraints: string[] | null
           environmental_sites: Json | null
           epa_facilities_count: number | null
+          erosion_k_factor: number | null
           error_code: string | null
           etj_provider: string | null
           executive_summary_output: string | null
@@ -510,6 +515,7 @@ export type Database = {
           fema_panel_id: string | null
           fiber_available: boolean | null
           financial_indicators: Json | null
+          flood_frequency_usda: string | null
           floodplain_zone: string | null
           foreign_trade_zone: boolean | null
           formatted_address: string | null
@@ -530,6 +536,7 @@ export type Database = {
           historical_flood_events: Json | null
           homestead: boolean | null
           households_5mi: number | null
+          hydric_soil_rating: string | null
           id: string
           imprv_val: number | null
           in_city_mud_name: string | null
@@ -597,6 +604,7 @@ export type Database = {
           per_capita_income: number | null
           phone: string
           place_id: string | null
+          ponding_frequency: string | null
           population_1mi: number | null
           population_3mi: number | null
           population_5mi: number | null
@@ -622,6 +630,7 @@ export type Database = {
           road_classification: string | null
           schedule_output: string | null
           scoring_weights: Json | null
+          septic_suitability: string | null
           service_sector_pct: number | null
           sewer_capacity_mgd: number | null
           sewer_lines: Json | null
@@ -684,7 +693,9 @@ export type Database = {
           walk_bike_pct: number | null
           water_capacity_mgd: number | null
           water_lines: Json | null
+          water_table_depth_cm: number | null
           wcid_district: string | null
+          wetland_cowardin_code: string | null
           wetlands_area_pct: number | null
           wetlands_type: string | null
           white_collar_pct: number | null
@@ -717,6 +728,7 @@ export type Database = {
           bachelors_pct?: number | null
           base_flood_elevation?: number | null
           base_flood_elevation_source?: string | null
+          bedrock_depth_cm?: number | null
           best_time?: string | null
           black_pct?: number | null
           bldg_sqft?: number | null
@@ -726,6 +738,7 @@ export type Database = {
           broadband_providers?: Json | null
           buildability_output_id?: string | null
           buildability_status?: string | null
+          building_site_rating?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           cache_expires_at?: string | null
@@ -738,6 +751,8 @@ export type Database = {
           congestion_level?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
+          corrosion_concrete?: string | null
+          corrosion_steel?: string | null
           costs_output?: string | null
           county?: string | null
           coverage_flags?: string[] | null
@@ -767,6 +782,7 @@ export type Database = {
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
           epa_facilities_count?: number | null
+          erosion_k_factor?: number | null
           error_code?: string | null
           etj_provider?: string | null
           executive_summary_output?: string | null
@@ -776,6 +792,7 @@ export type Database = {
           fema_panel_id?: string | null
           fiber_available?: boolean | null
           financial_indicators?: Json | null
+          flood_frequency_usda?: string | null
           floodplain_zone?: string | null
           foreign_trade_zone?: boolean | null
           formatted_address?: string | null
@@ -796,6 +813,7 @@ export type Database = {
           historical_flood_events?: Json | null
           homestead?: boolean | null
           households_5mi?: number | null
+          hydric_soil_rating?: string | null
           id?: string
           imprv_val?: number | null
           in_city_mud_name?: string | null
@@ -863,6 +881,7 @@ export type Database = {
           per_capita_income?: number | null
           phone: string
           place_id?: string | null
+          ponding_frequency?: string | null
           population_1mi?: number | null
           population_3mi?: number | null
           population_5mi?: number | null
@@ -888,6 +907,7 @@ export type Database = {
           road_classification?: string | null
           schedule_output?: string | null
           scoring_weights?: Json | null
+          septic_suitability?: string | null
           service_sector_pct?: number | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
@@ -950,7 +970,9 @@ export type Database = {
           walk_bike_pct?: number | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
+          water_table_depth_cm?: number | null
           wcid_district?: string | null
+          wetland_cowardin_code?: string | null
           wetlands_area_pct?: number | null
           wetlands_type?: string | null
           white_collar_pct?: number | null
@@ -983,6 +1005,7 @@ export type Database = {
           bachelors_pct?: number | null
           base_flood_elevation?: number | null
           base_flood_elevation_source?: string | null
+          bedrock_depth_cm?: number | null
           best_time?: string | null
           black_pct?: number | null
           bldg_sqft?: number | null
@@ -992,6 +1015,7 @@ export type Database = {
           broadband_providers?: Json | null
           buildability_output_id?: string | null
           buildability_status?: string | null
+          building_site_rating?: string | null
           building_size_unit?: string | null
           building_size_value?: number | null
           cache_expires_at?: string | null
@@ -1004,6 +1028,8 @@ export type Database = {
           congestion_level?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
+          corrosion_concrete?: string | null
+          corrosion_steel?: string | null
           costs_output?: string | null
           county?: string | null
           coverage_flags?: string[] | null
@@ -1033,6 +1059,7 @@ export type Database = {
           environmental_constraints?: string[] | null
           environmental_sites?: Json | null
           epa_facilities_count?: number | null
+          erosion_k_factor?: number | null
           error_code?: string | null
           etj_provider?: string | null
           executive_summary_output?: string | null
@@ -1042,6 +1069,7 @@ export type Database = {
           fema_panel_id?: string | null
           fiber_available?: boolean | null
           financial_indicators?: Json | null
+          flood_frequency_usda?: string | null
           floodplain_zone?: string | null
           foreign_trade_zone?: boolean | null
           formatted_address?: string | null
@@ -1062,6 +1090,7 @@ export type Database = {
           historical_flood_events?: Json | null
           homestead?: boolean | null
           households_5mi?: number | null
+          hydric_soil_rating?: string | null
           id?: string
           imprv_val?: number | null
           in_city_mud_name?: string | null
@@ -1129,6 +1158,7 @@ export type Database = {
           per_capita_income?: number | null
           phone?: string
           place_id?: string | null
+          ponding_frequency?: string | null
           population_1mi?: number | null
           population_3mi?: number | null
           population_5mi?: number | null
@@ -1154,6 +1184,7 @@ export type Database = {
           road_classification?: string | null
           schedule_output?: string | null
           scoring_weights?: Json | null
+          septic_suitability?: string | null
           service_sector_pct?: number | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
@@ -1216,7 +1247,9 @@ export type Database = {
           walk_bike_pct?: number | null
           water_capacity_mgd?: number | null
           water_lines?: Json | null
+          water_table_depth_cm?: number | null
           wcid_district?: string | null
+          wetland_cowardin_code?: string | null
           wetlands_area_pct?: number | null
           wetlands_type?: string | null
           white_collar_pct?: number | null

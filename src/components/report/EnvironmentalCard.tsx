@@ -1,16 +1,68 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, AlertTriangle, MapPin, Mountain, FileText, CheckCircle2, XCircle } from "lucide-react";
+import { Leaf, AlertTriangle, MapPin, Mountain, FileText, CheckCircle2, XCircle, Droplets, Building2, Info } from "lucide-react";
 import { DataGauge } from "./DataGauge";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// Cowardin code decoder
+const COWARDIN_CODES: Record<string, string> = {
+  'P': 'Palustrine (freshwater wetlands)',
+  'E': 'Estuarine (tidal wetlands)',
+  'M': 'Marine (ocean-connected)',
+  'R': 'Riverine (rivers/streams)',
+  'L': 'Lacustrine (lake-associated)',
+  'EM': 'Emergent (marsh grasses)',
+  'SS': 'Scrub-Shrub',
+  'FO': 'Forested',
+  'AB': 'Aquatic Bed',
+  'US': 'Unconsolidated Shore',
+  'UB': 'Unconsolidated Bottom',
+  'OW': 'Open Water',
+};
+
+function decodeCowardinCode(code: string | null | undefined): string | null {
+  if (!code) return null;
+  
+  // Parse code like "PFO1A" -> Palustrine Forested
+  const system = code.charAt(0);
+  const systemName = COWARDIN_CODES[system] || 'Unknown System';
+  
+  // Get class (2-character after system)
+  const classCode = code.substring(1, 3);
+  const className = COWARDIN_CODES[classCode] || '';
+  
+  if (className) {
+    return `${systemName.split('(')[0].trim()} - ${className}`;
+  }
+  return systemName;
+}
 
 interface EnvironmentalCardProps {
   score: number;
   wetlandsType?: string | null;
   wetlandsPercent?: number | null;
+  wetlandCowardinCode?: string | null;
   soilSeries?: string | null;
   soilDrainage?: string | null;
   soilSlope?: number | null;
+  // Enhanced SSURGO properties
+  hydricSoilRating?: string | null;
+  floodFrequencyUsda?: string | null;
+  waterTableDepthCm?: number | null;
+  bedrockDepthCm?: number | null;
+  pondingFrequency?: string | null;
+  erosionKFactor?: number | null;
+  corrosionConcrete?: string | null;
+  corrosionSteel?: string | null;
+  septicSuitability?: string | null;
+  buildingSiteRating?: string | null;
+  // Other props
   environmentalSites?: any[] | null;
   epaFacilitiesCount?: number | null;
   elevation?: number | null;
@@ -24,9 +76,20 @@ export function EnvironmentalCard({
   score,
   wetlandsType,
   wetlandsPercent,
+  wetlandCowardinCode,
   soilSeries,
   soilDrainage,
   soilSlope,
+  hydricSoilRating,
+  floodFrequencyUsda,
+  waterTableDepthCm,
+  bedrockDepthCm,
+  pondingFrequency,
+  erosionKFactor,
+  corrosionConcrete,
+  corrosionSteel,
+  septicSuitability,
+  buildingSiteRating,
   environmentalSites = [],
   epaFacilitiesCount,
   elevation,
@@ -36,7 +99,10 @@ export function EnvironmentalCard({
   className
 }: EnvironmentalCardProps) {
   const hasWetlands = wetlandsType && wetlandsType !== 'None detected' && !wetlandsType.includes('Error');
-  const hasEnvConcerns = hasWetlands || (epaFacilitiesCount && epaFacilitiesCount > 0) || (soilSlope && soilSlope > 15);
+  const hasHydricSoil = hydricSoilRating && hydricSoilRating.toLowerCase().includes('yes');
+  const hasEnvConcerns = hasWetlands || hasHydricSoil || (epaFacilitiesCount && epaFacilitiesCount > 0) || (soilSlope && soilSlope > 15);
+  
+  const decodedWetland = decodeCowardinCode(wetlandCowardinCode);
 
   return (
     <Card className={cn(
@@ -136,20 +202,30 @@ export function EnvironmentalCard({
           </div>
         </div>
 
-        {/* Wetlands Alert */}
+        {/* Wetlands Alert with Cowardin Code */}
         {hasWetlands && (
           <div className="p-4 bg-gradient-to-r from-red-500/10 to-orange-500/10 rounded-xl border-2 border-red-500/30">
             <div className="flex items-start gap-3">
               <div className="p-2 bg-red-500/20 rounded-lg shrink-0">
                 <AlertTriangle className="h-5 w-5 text-red-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-semibold text-red-700 dark:text-red-400 mb-1">
                   Section 404 CWA Permit Required
                 </p>
                 <p className="text-sm text-muted-foreground mb-2">
                   {wetlandsType}
                 </p>
+                {wetlandCowardinCode && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="font-mono text-xs bg-red-500/10 border-red-500/30">
+                      {wetlandCowardinCode}
+                    </Badge>
+                    {decodedWetland && (
+                      <span className="text-xs text-muted-foreground">{decodedWetland}</span>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Wetland delineation and Army Corps of Engineers permit required. 
                   Expect 6-12 month permitting timeline.
@@ -159,14 +235,37 @@ export function EnvironmentalCard({
           </div>
         )}
 
-        {/* Soil Characteristics */}
-        {(soilSeries || soilDrainage || soilSlope) && (
+        {/* Hydric Soil Warning */}
+        {hasHydricSoil && !hasWetlands && (
+          <div className="p-4 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 rounded-xl border-2 border-amber-500/30">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg shrink-0">
+                <Droplets className="h-5 w-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                  Hydric Soil Detected
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Soil indicates potential wetlands or flood-prone conditions. 
+                  A wetland delineation study may be required during due diligence.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Soil Characteristics - Enhanced */}
+        {(soilSeries || soilDrainage || soilSlope || hydricSoilRating || floodFrequencyUsda) && (
           <div className="p-4 bg-gradient-to-br from-amber-500/10 to-yellow-500/5 rounded-xl border border-amber-500/20">
             <div className="flex items-center gap-2 mb-4">
               <Mountain className="h-5 w-5 text-amber-600" />
               <h4 className="font-semibold">Soil Characteristics</h4>
+              <Badge variant="outline" className="text-[10px] ml-auto">USDA SSURGO</Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            {/* Primary soil info */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               {soilSeries && (
                 <div>
                   <p className="text-xs text-muted-foreground uppercase mb-1">Series</p>
@@ -194,6 +293,159 @@ export function EnvironmentalCard({
                 </div>
               )}
             </div>
+
+            {/* Enhanced SSURGO Properties */}
+            {(hydricSoilRating || floodFrequencyUsda || waterTableDepthCm || pondingFrequency) && (
+              <div className="pt-4 border-t border-amber-500/20">
+                <p className="text-xs text-muted-foreground uppercase mb-3">Flood & Drainage Indicators</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {hydricSoilRating && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Hydric Soil</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground/50" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px]">
+                              <p className="text-xs">Indicates soil formed under saturated conditions - may indicate wetlands</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm",
+                        hydricSoilRating.toLowerCase().includes('yes') ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {hydricSoilRating}
+                      </p>
+                    </div>
+                  )}
+                  {floodFrequencyUsda && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Flood Freq.</span>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm",
+                        floodFrequencyUsda.toLowerCase() !== 'none' ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {floodFrequencyUsda}
+                      </p>
+                    </div>
+                  )}
+                  {waterTableDepthCm !== null && waterTableDepthCm !== undefined && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Water Table</span>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm font-mono",
+                        waterTableDepthCm < 50 ? "text-amber-600" : "text-foreground"
+                      )}>
+                        {Math.round(waterTableDepthCm / 2.54)}" ({waterTableDepthCm} cm)
+                      </p>
+                    </div>
+                  )}
+                  {pondingFrequency && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Ponding</span>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm",
+                        pondingFrequency.toLowerCase() !== 'none' ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {pondingFrequency}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Construction-related soil properties */}
+            {(erosionKFactor || bedrockDepthCm || corrosionConcrete || corrosionSteel || buildingSiteRating) && (
+              <div className="pt-4 mt-4 border-t border-amber-500/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Building2 className="h-4 w-4 text-amber-600" />
+                  <p className="text-xs text-muted-foreground uppercase">Construction Considerations</p>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {bedrockDepthCm !== null && bedrockDepthCm !== undefined && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <span className="text-[10px] text-muted-foreground block mb-1">Bedrock Depth</span>
+                      <p className={cn(
+                        "font-medium text-sm font-mono",
+                        bedrockDepthCm < 100 ? "text-amber-600" : "text-foreground"
+                      )}>
+                        {Math.round(bedrockDepthCm / 2.54)}" ({bedrockDepthCm} cm)
+                      </p>
+                    </div>
+                  )}
+                  {erosionKFactor !== null && erosionKFactor !== undefined && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Erosion (K)</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground/50" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px]">
+                              <p className="text-xs">Soil erodibility factor (0-0.69). Higher values = more erosion-prone</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm font-mono",
+                        erosionKFactor > 0.4 ? "text-amber-600" : "text-foreground"
+                      )}>
+                        {erosionKFactor.toFixed(2)}
+                      </p>
+                    </div>
+                  )}
+                  {corrosionConcrete && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <span className="text-[10px] text-muted-foreground block mb-1">Concrete Corrosion</span>
+                      <p className={cn(
+                        "font-medium text-sm",
+                        corrosionConcrete.toLowerCase().includes('high') ? "text-red-600" : 
+                        corrosionConcrete.toLowerCase().includes('moderate') ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {corrosionConcrete}
+                      </p>
+                    </div>
+                  )}
+                  {corrosionSteel && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <span className="text-[10px] text-muted-foreground block mb-1">Steel Corrosion</span>
+                      <p className={cn(
+                        "font-medium text-sm",
+                        corrosionSteel.toLowerCase().includes('high') ? "text-red-600" : 
+                        corrosionSteel.toLowerCase().includes('moderate') ? "text-amber-600" : "text-green-600"
+                      )}>
+                        {corrosionSteel}
+                      </p>
+                    </div>
+                  )}
+                  {buildingSiteRating && (
+                    <div className="p-2 bg-background/50 rounded-lg col-span-2">
+                      <span className="text-[10px] text-muted-foreground block mb-1">Building Suitability</span>
+                      <p className="font-medium text-sm">{buildingSiteRating}</p>
+                    </div>
+                  )}
+                  {septicSuitability && (
+                    <div className="p-2 bg-background/50 rounded-lg col-span-2">
+                      <span className="text-[10px] text-muted-foreground block mb-1">Septic Suitability</span>
+                      <p className="font-medium text-sm">{septicSuitability}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Elevation */}
             {elevation && (

@@ -9,57 +9,67 @@ export default function EnvironmentalPage() {
   if (!report) return null;
 
   const hasCoordinates = report.applications?.geo_lat && report.applications?.geo_lng;
+  
+  // Type assertion for enhanced SSURGO fields (added via migration, types will update on next sync)
+  const app = report.applications as Record<string, any> | undefined;
 
   return (
     <div className="space-y-6" id="section-environmental">
       <EnvironmentalCard
         score={report.feasibility_score ?? 0}
-        wetlandsType={report.applications?.wetlands_type}
-        wetlandsPercent={report.applications?.wetlands_area_pct}
-        soilSeries={report.applications?.soil_series}
-        soilDrainage={report.applications?.soil_drainage_class}
-        soilSlope={report.applications?.soil_slope_percent}
-        epaFacilitiesCount={report.applications?.epa_facilities_count}
-        environmentalSites={report.applications?.environmental_sites}
-        elevation={report.applications?.elevation}
-        disasterDeclarations={report.applications?.disaster_declarations}
-        environmentalConstraints={report.applications?.environmental_constraints}
+        wetlandsType={app?.wetlands_type}
+        wetlandsPercent={app?.wetlands_area_pct}
+        wetlandCowardinCode={app?.wetland_cowardin_code}
+        soilSeries={app?.soil_series}
+        soilDrainage={app?.soil_drainage_class}
+        soilSlope={app?.soil_slope_percent}
+        hydricSoilRating={app?.hydric_soil_rating}
+        floodFrequencyUsda={app?.flood_frequency_usda}
+        waterTableDepthCm={app?.water_table_depth_cm}
+        bedrockDepthCm={app?.bedrock_depth_cm}
+        pondingFrequency={app?.ponding_frequency}
+        erosionKFactor={app?.erosion_k_factor}
+        corrosionConcrete={app?.corrosion_concrete}
+        corrosionSteel={app?.corrosion_steel}
+        septicSuitability={app?.septic_suitability}
+        buildingSiteRating={app?.building_site_rating}
+        epaFacilitiesCount={app?.epa_facilities_count}
+        environmentalSites={app?.environmental_sites}
+        elevation={app?.elevation}
+        disasterDeclarations={app?.disaster_declarations}
+        environmentalConstraints={app?.environmental_constraints}
         verdict={environmental?.verdict}
       />
 
       {/* Terrain & Topography Section */}
       {hasCoordinates && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Elevation Map - Takes 2/3 width on large screens */}
           <div className="lg:col-span-2">
             <ElevationMapCard
               latitude={report.applications!.geo_lat!}
               longitude={report.applications!.geo_lng!}
-              elevation={report.applications?.elevation}
+              elevation={app?.elevation}
             />
           </div>
-
-          {/* Topography Data Card - Takes 1/3 width */}
           <div className="lg:col-span-1">
             <TopographyCard
-              elevation={report.applications?.elevation}
-              topographyMapUrl={report.applications?.topography_map_url}
-              slopePercent={report.applications?.soil_slope_percent}
-              latitude={report.applications?.geo_lat}
-              longitude={report.applications?.geo_lng}
+              elevation={app?.elevation}
+              topographyMapUrl={app?.topography_map_url}
+              slopePercent={app?.soil_slope_percent}
+              latitude={app?.geo_lat}
+              longitude={app?.geo_lng}
             />
           </div>
         </div>
       )}
 
-      {/* Fallback for no coordinates */}
       {!hasCoordinates && (
         <TopographyCard
-          elevation={report.applications?.elevation}
-          topographyMapUrl={report.applications?.topography_map_url}
-          slopePercent={report.applications?.soil_slope_percent}
-          latitude={report.applications?.geo_lat}
-          longitude={report.applications?.geo_lng}
+          elevation={app?.elevation}
+          topographyMapUrl={app?.topography_map_url}
+          slopePercent={app?.soil_slope_percent}
+          latitude={app?.geo_lat}
+          longitude={app?.geo_lng}
         />
       )}
     </div>
