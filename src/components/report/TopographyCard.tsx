@@ -1,8 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Mountain, ExternalLink, TrendingUp, Ruler } from "lucide-react";
+import { Mountain, ExternalLink, TrendingUp, Ruler, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TopographyCardProps {
   elevation?: number | null;
@@ -29,8 +34,6 @@ export function TopographyCard({
   longitude,
   className
 }: TopographyCardProps) {
-  const [showEmbed, setShowEmbed] = useState(false);
-  
   const slopeInfo = getSlopeClassification(slopePercent);
   
   // Generate USGS viewer URL if not provided but coordinates exist
@@ -39,90 +42,85 @@ export function TopographyCard({
       ? `https://apps.nationalmap.gov/viewer/?basemap=b1&category=ustopo&title=US%20Topo&zoom=15&lat=${latitude}&lng=${longitude}`
       : null);
 
-  const hasAnyData = elevation !== null || slopePercent !== null || usgsUrl;
+  const hasAnyData = elevation !== null || slopePercent !== null;
 
   if (!hasAnyData) return null;
 
   return (
     <Card className={cn("overflow-hidden border-border/50 bg-card/80 backdrop-blur-sm", className)}>
-      <CardHeader className="bg-gradient-to-r from-[hsl(var(--midnight-blue))] to-[hsl(var(--midnight-blue)/0.9)] text-white py-4">
+      <CardHeader className="bg-gradient-to-r from-[hsl(var(--midnight-blue))] to-[hsl(var(--midnight-blue)/0.9)] text-white py-3 px-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg font-semibold">
-            <Mountain className="h-5 w-5 text-[hsl(var(--data-cyan))]" />
-            Site Topography
+          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+            <Ruler className="h-4 w-4 text-[hsl(var(--data-cyan))]" />
+            Elevation Data
           </CardTitle>
-          {usgsUrl && (
-            <span className="text-xs text-muted-foreground font-mono">USGS National Map</span>
-          )}
+          <span className="text-[10px] text-white/60 font-mono">USGS / USDA</span>
         </div>
       </CardHeader>
       
-      <CardContent className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+      <CardContent className="p-4">
+        <div className="grid grid-cols-2 gap-4 mb-4">
           {/* Elevation */}
-          <div className="bg-white rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
-            <div className="flex items-center gap-2 text-[hsl(var(--data-cyan))] text-sm mb-2 font-medium">
-              <Ruler className="h-4 w-4" />
-              <span>Site Elevation</span>
+          <div className="bg-[hsl(var(--cloud-white))] rounded-lg p-3 border border-[hsl(var(--data-cyan)/0.15)]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[hsl(var(--data-cyan))] text-xs font-medium">Site Elevation</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-muted-foreground/50" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px]">
+                    <p className="text-xs">Elevation from USGS Digital Elevation Model (10m resolution)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            <div className="font-mono text-2xl font-bold text-foreground">
+            <div className="font-mono text-xl font-bold text-foreground">
               {elevation !== null && elevation !== undefined 
-                ? `${elevation.toFixed(2)} ft`
+                ? `${elevation.toFixed(1)} ft`
                 : "—"
               }
             </div>
-            <div className="text-xs text-muted-foreground/70 mt-1">NAVD88 Datum</div>
+            <div className="text-[10px] text-muted-foreground/60 mt-0.5">NAVD88 Datum</div>
           </div>
 
           {/* Slope */}
-          <div className="bg-white rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)]">
-            <div className="flex items-center gap-2 text-[hsl(var(--data-cyan))] text-sm mb-2 font-medium">
-              <TrendingUp className="h-4 w-4" />
-              <span>Ground Slope</span>
+          <div className="bg-[hsl(var(--cloud-white))] rounded-lg p-3 border border-[hsl(var(--data-cyan)/0.15)]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[hsl(var(--data-cyan))] text-xs font-medium">Ground Slope</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-3 w-3 text-muted-foreground/50" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[200px]">
+                    <p className="text-xs">Representative slope from USDA SSURGO soil survey data</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            <div className="font-mono text-2xl font-bold text-foreground">
+            <div className="font-mono text-xl font-bold text-foreground">
               {slopePercent !== null && slopePercent !== undefined 
                 ? `${slopePercent}%`
                 : "—"
               }
             </div>
             {slopeInfo && (
-              <div className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs mt-2", slopeInfo.bgColor, slopeInfo.color)}>
+              <div className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] mt-1", slopeInfo.bgColor, slopeInfo.color)}>
                 {slopeInfo.label}
               </div>
-            )}
-          </div>
-
-          {/* USGS Map Link */}
-          <div className="bg-white rounded-xl p-4 border border-[hsl(var(--data-cyan)/0.2)] flex flex-col justify-between">
-            <div className="flex items-center gap-2 text-[hsl(var(--data-cyan))] text-sm mb-2 font-medium">
-              <Mountain className="h-4 w-4" />
-              <span>USGS National Map</span>
-            </div>
-            {usgsUrl ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full border-[hsl(var(--data-cyan)/0.5)] text-[hsl(var(--data-cyan))] hover:bg-[hsl(var(--data-cyan)/0.1)]"
-                onClick={() => window.open(usgsUrl, '_blank')}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Topo Viewer
-              </Button>
-            ) : (
-              <div className="text-muted-foreground text-sm">No map available</div>
             )}
           </div>
         </div>
 
         {/* Grading Assessment */}
         {slopeInfo && (
-          <div className="bg-white rounded-lg p-4 border border-[hsl(var(--data-cyan)/0.2)]">
-            <div className="flex items-start gap-3">
-              <div className="text-[hsl(var(--data-cyan))] text-lg">💡</div>
+          <div className="bg-[hsl(var(--data-cyan)/0.05)] rounded-lg p-3 border border-[hsl(var(--data-cyan)/0.15)]">
+            <div className="flex items-start gap-2">
+              <Mountain className="h-4 w-4 text-[hsl(var(--data-cyan))] mt-0.5 shrink-0" />
               <div>
-                <div className="text-sm font-medium text-[hsl(var(--data-cyan))] mb-1">Grading Assessment</div>
-                <p className="text-sm text-muted-foreground">
+                <div className="text-xs font-medium text-[hsl(var(--data-cyan))] mb-0.5">Grading Assessment</div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
                   {slopePercent !== null && slopePercent !== undefined && slopePercent <= 2 && 
                     "Level terrain suitable for standard foundation construction with minimal site preparation costs."
                   }
@@ -141,30 +139,18 @@ export function TopographyCard({
           </div>
         )}
 
-        {/* Embedded Map Toggle */}
+        {/* USGS Link */}
         {usgsUrl && (
-          <div className="mt-4">
+          <div className="mt-3 pt-3 border-t border-border/50">
             <Button
               variant="ghost"
               size="sm"
-              className="text-muted-foreground hover:text-foreground"
-              onClick={() => setShowEmbed(!showEmbed)}
+              className="w-full text-xs text-muted-foreground hover:text-[hsl(var(--data-cyan))] hover:bg-[hsl(var(--data-cyan)/0.05)]"
+              onClick={() => window.open(usgsUrl, '_blank')}
             >
-              {showEmbed ? "Hide" : "Show"} Interactive Map
+              <ExternalLink className="h-3 w-3 mr-1.5" />
+              Open USGS National Map
             </Button>
-            
-            {showEmbed && (
-              <div className="mt-3 rounded-lg overflow-hidden border border-[hsl(var(--data-cyan)/0.2)]">
-                <iframe
-                  src={usgsUrl}
-                  width="100%"
-                  height="400"
-                  className="border-0"
-                  title="USGS National Map Viewer"
-                  loading="lazy"
-                />
-              </div>
-            )}
           </div>
         )}
       </CardContent>
