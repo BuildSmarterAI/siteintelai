@@ -88,6 +88,8 @@ interface Report {
     congestion_level: string | null;
     traffic_direction: string | null;
     traffic_map_url: string | null;
+    speed_limit?: number | null;
+    surface_type?: string | null;
     employment_clusters: any | null;
     updated_at?: string;
     // Project Intent fields
@@ -2086,6 +2088,8 @@ export default function ReportViewer() {
               trafficDirection={report.applications?.traffic_direction}
               peakHourVolume={report.applications?.peak_hour_volume}
               trafficMapUrl={report.applications?.traffic_map_url}
+              speedLimit={report.applications?.speed_limit}
+              surfaceType={report.applications?.surface_type}
               verdict={traffic.verdict}
             />
           </section>

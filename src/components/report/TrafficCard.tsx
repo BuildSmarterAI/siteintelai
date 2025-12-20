@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Car, TrendingUp, Clock, MapPin, Activity, Truck, ExternalLink } from "lucide-react";
+import { Car, TrendingUp, Clock, MapPin, Activity, Truck, ExternalLink, Gauge, CircleDot } from "lucide-react";
 import { DataGauge } from "./DataGauge";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +15,8 @@ interface TrafficCardProps {
   trafficDirection?: string | null;
   peakHourVolume?: number | null;
   trafficMapUrl?: string | null;
+  speedLimit?: number | null;
+  surfaceType?: string | null;
   verdict?: string | null;
   className?: string;
 }
@@ -29,6 +31,8 @@ export function TrafficCard({
   trafficDirection,
   peakHourVolume,
   trafficMapUrl,
+  speedLimit,
+  surfaceType,
   verdict,
   className
 }: TrafficCardProps) {
@@ -95,7 +99,7 @@ export function TrafficCard({
 
       <CardContent className="pt-6 space-y-6">
         {/* Score and Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {/* Score Gauge */}
           <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
             <DataGauge value={score} label="Traffic Score" size="sm" />
@@ -114,6 +118,18 @@ export function TrafficCard({
             </div>
           )}
 
+          {/* Speed Limit */}
+          {speedLimit && (
+            <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-xl border border-blue-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <Gauge className="h-4 w-4 text-blue-500" />
+                <span className="text-xs text-muted-foreground">Speed Limit</span>
+              </div>
+              <p className="text-2xl font-bold font-mono text-blue-600">{speedLimit}</p>
+              <p className="text-xs text-muted-foreground">MPH</p>
+            </div>
+          )}
+
           {/* Truck Traffic */}
           {truckPercent !== null && truckPercent !== undefined && (
             <div className="p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-xl border border-amber-500/20">
@@ -126,11 +142,23 @@ export function TrafficCard({
             </div>
           )}
 
+          {/* Surface Type */}
+          {surfaceType && (
+            <div className="p-4 bg-gradient-to-br from-slate-500/10 to-slate-500/5 rounded-xl border border-slate-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <CircleDot className="h-4 w-4 text-slate-500" />
+                <span className="text-xs text-muted-foreground">Surface Type</span>
+              </div>
+              <p className="text-lg font-bold">{surfaceType}</p>
+              <p className="text-xs text-muted-foreground">pavement</p>
+            </div>
+          )}
+
           {/* Congestion */}
           {congestionLevel && (
             <div className={cn(
               "p-4 rounded-xl border",
-              congestionLevel.toLowerCase() === 'high' 
+              congestionLevel.toLowerCase() === 'high' || congestionLevel.toLowerCase() === 'severe'
                 ? "bg-gradient-to-br from-red-500/10 to-red-500/5 border-red-500/20"
                 : congestionLevel.toLowerCase() === 'moderate'
                 ? "bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/20"
@@ -139,15 +167,15 @@ export function TrafficCard({
               <div className="flex items-center gap-2 mb-2">
                 <Clock className={cn(
                   "h-4 w-4",
-                  congestionLevel.toLowerCase() === 'high' ? "text-red-500" :
+                  congestionLevel.toLowerCase() === 'high' || congestionLevel.toLowerCase() === 'severe' ? "text-red-500" :
                   congestionLevel.toLowerCase() === 'moderate' ? "text-amber-500" : "text-green-500"
                 )} />
                 <span className="text-xs text-muted-foreground">Congestion</span>
               </div>
               <Badge variant={
-                congestionLevel.toLowerCase() === 'high' ? 'destructive' :
+                congestionLevel.toLowerCase() === 'high' || congestionLevel.toLowerCase() === 'severe' ? 'destructive' :
                 congestionLevel.toLowerCase() === 'moderate' ? 'secondary' : 'default'
-              } className="text-lg px-3 py-1">
+              } className="text-lg px-3 py-1 capitalize">
                 {congestionLevel}
               </Badge>
             </div>

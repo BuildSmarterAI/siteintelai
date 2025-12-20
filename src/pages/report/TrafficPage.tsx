@@ -19,6 +19,8 @@ export default function TrafficPage() {
         trafficDirection={report.applications?.traffic_direction}
         peakHourVolume={report.applications?.peak_hour_volume}
         trafficMapUrl={report.applications?.traffic_map_url}
+        speedLimit={report.applications?.speed_limit}
+        surfaceType={report.applications?.surface_type}
         verdict={traffic?.verdict}
       />
 
