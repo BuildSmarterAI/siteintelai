@@ -282,3 +282,6 @@ verify_jwt = false
 
 [functions.nominatim-autocomplete]
 verify_jwt = false
+
+[functions.skip-enrichment-step]
+verify_jwt = false

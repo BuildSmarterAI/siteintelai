@@ -38,7 +38,7 @@ import { ScraperApiTab } from "@/components/admin/ScraperApiTab";
 import { GisHealthTab } from "@/components/admin/GisHealthTab";
 import { ApiCostTab } from "@/components/admin/ApiCostTab";
 import { CostProtectionDashboard } from "@/components/admin/CostProtectionDashboard";
-
+import { StuckApplicationsTab } from "@/components/admin/StuckApplicationsTab";
 interface CronJob {
   id: string;
   job_name: string;
@@ -318,6 +318,10 @@ export default function SystemHealth() {
               <GitBranch className="w-4 h-4" />
               Pipeline
             </TabsTrigger>
+            <TabsTrigger value="stuck" className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              Stuck Apps
+            </TabsTrigger>
             <TabsTrigger value="live" className="flex items-center gap-2">
               <Radio className="w-4 h-4" />
               Live
@@ -369,6 +373,11 @@ export default function SystemHealth() {
           {/* Pipeline Health Tab */}
           <TabsContent value="pipeline">
             <PipelineHealthTab />
+          </TabsContent>
+
+          {/* Stuck Applications Tab */}
+          <TabsContent value="stuck">
+            <StuckApplicationsTab />
           </TabsContent>
 
           {/* Real-time Monitor Tab */}
