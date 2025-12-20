@@ -64,9 +64,41 @@ export function ExtendedDemographicsCard({
   countyComparison,
   className
 }: ExtendedDemographicsCardProps) {
-  // Check if we have any data to display
-  const hasData = medianHomeValue || medianRent || vacancyRate !== null || 
-                  unemploymentRate !== null || medianAge || collegeAttainmentPct !== null;
+  // Data validation - filter out clearly invalid/sentinel values
+  const isValidCurrency = (val: number | null | undefined): val is number => 
+    val != null && val > 0 && val < 100000000; // Must be positive and less than $100M
+  
+  const isValidPercentage = (val: number | null | undefined): val is number =>
+    val != null && val >= 0 && val <= 100;
+  
+  const isValidAge = (val: number | null | undefined): val is number =>
+    val != null && val > 0 && val < 120;
+  
+  const isValidCount = (val: number | null | undefined): val is number =>
+    val != null && val > 0 && val < 10000000; // Reasonable count
+  
+  const isValidLaborForce = (val: number | null | undefined): val is number =>
+    val != null && val >= 100; // Census tracts typically have at least 100 labor force
+  
+  const isValidIndex = (val: number | null | undefined): val is number =>
+    val != null && val >= 0 && val <= 200; // Indices typically 0-200 range
+
+  // Sanitize incoming values
+  const validMedianHomeValue = isValidCurrency(medianHomeValue) ? medianHomeValue : null;
+  const validMedianRent = isValidCurrency(medianRent) ? medianRent : null;
+  const validVacancyRate = isValidPercentage(vacancyRate) ? vacancyRate : null;
+  const validUnemploymentRate = isValidPercentage(unemploymentRate) && unemploymentRate < 50 ? unemploymentRate : null; // 50%+ is implausible
+  const validMedianAge = isValidAge(medianAge) ? medianAge : null;
+  const validCollegeAttainmentPct = isValidPercentage(collegeAttainmentPct) ? collegeAttainmentPct : null;
+  const validTotalHousingUnits = isValidCount(totalHousingUnits) ? totalHousingUnits : null;
+  const validLaborForce = isValidLaborForce(laborForce) ? laborForce : null;
+  const validRetailSpendingIndex = isValidIndex(retailSpendingIndex) ? retailSpendingIndex : null;
+  const validWorkforceScore = isValidIndex(workforceAvailabilityScore) ? workforceAvailabilityScore : null;
+  const validGrowthPotentialIndex = isValidIndex(growthPotentialIndex) ? growthPotentialIndex : null;
+
+  // Check if we have any valid data to display
+  const hasData = validMedianHomeValue || validMedianRent || validVacancyRate !== null || 
+                  validUnemploymentRate !== null || validMedianAge || validCollegeAttainmentPct !== null;
   
   if (!hasData) return null;
 
@@ -186,17 +218,17 @@ export function ExtendedDemographicsCard({
           
           {/* Key Metrics Strip */}
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            {medianHomeValue && (
+            {validMedianHomeValue && (
               <div className="px-4 py-2 rounded-lg bg-indigo-500/20">
                 <span className="text-2xl font-bold font-mono text-white">
-                  {formatCurrency(medianHomeValue)}
+                  {formatCurrency(validMedianHomeValue)}
                 </span>
                 <span className="text-sm text-white/60 ml-2">median home</span>
               </div>
             )}
-            {unemploymentRate !== null && unemploymentRate !== undefined && (
-              <Badge variant="outline" className={cn("border-white/20", getUnemploymentBadge(unemploymentRate).color)}>
-                {unemploymentRate.toFixed(1)}% unemployment
+            {validUnemploymentRate !== null && (
+              <Badge variant="outline" className={cn("border-white/20", getUnemploymentBadge(validUnemploymentRate).color)}>
+                {validUnemploymentRate.toFixed(1)}% unemployment
               </Badge>
             )}
           </div>
@@ -218,12 +250,12 @@ export function ExtendedDemographicsCard({
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {/* Median Home Value Comparison */}
-              {medianHomeValue && countyComparison?.avgMedianHomeValue && (
+              {validMedianHomeValue && countyComparison?.avgMedianHomeValue && (
                 <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Median Home</p>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-bold text-sm">{formatCurrency(medianHomeValue)}</span>
-                    <DeltaIndicator delta={calcDelta(medianHomeValue, countyComparison.avgMedianHomeValue)} />
+                    <span className="font-bold text-sm">{formatCurrency(validMedianHomeValue)}</span>
+                    <DeltaIndicator delta={calcDelta(validMedianHomeValue, countyComparison.avgMedianHomeValue)} />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     vs {formatCurrency(countyComparison.avgMedianHomeValue)} avg
@@ -232,12 +264,12 @@ export function ExtendedDemographicsCard({
               )}
               
               {/* Vacancy Rate Comparison */}
-              {vacancyRate !== null && vacancyRate !== undefined && countyComparison?.avgVacancyRate && (
+              {validVacancyRate !== null && countyComparison?.avgVacancyRate && (
                 <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Vacancy Rate</p>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-bold text-sm">{vacancyRate.toFixed(1)}%</span>
-                    <DeltaIndicator delta={calcDelta(vacancyRate, countyComparison.avgVacancyRate) ? -calcDelta(vacancyRate, countyComparison.avgVacancyRate)! : null} />
+                    <span className="font-bold text-sm">{validVacancyRate.toFixed(1)}%</span>
+                    <DeltaIndicator delta={calcDelta(validVacancyRate, countyComparison.avgVacancyRate) ? -calcDelta(validVacancyRate, countyComparison.avgVacancyRate)! : null} />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     vs {countyComparison.avgVacancyRate.toFixed(1)}% avg
@@ -246,12 +278,12 @@ export function ExtendedDemographicsCard({
               )}
               
               {/* Unemployment Comparison */}
-              {unemploymentRate !== null && unemploymentRate !== undefined && countyComparison?.avgUnemploymentRate && (
+              {validUnemploymentRate !== null && countyComparison?.avgUnemploymentRate && (
                 <div className="p-3 bg-white/50 dark:bg-white/5 rounded-lg">
                   <p className="text-xs text-muted-foreground mb-1">Unemployment</p>
                   <div className="flex items-baseline justify-between">
-                    <span className="font-bold text-sm">{unemploymentRate.toFixed(1)}%</span>
-                    <DeltaIndicator delta={calcDelta(unemploymentRate, countyComparison.avgUnemploymentRate) ? -calcDelta(unemploymentRate, countyComparison.avgUnemploymentRate)! : null} />
+                    <span className="font-bold text-sm">{validUnemploymentRate.toFixed(1)}%</span>
+                    <DeltaIndicator delta={calcDelta(validUnemploymentRate, countyComparison.avgUnemploymentRate) ? -calcDelta(validUnemploymentRate, countyComparison.avgUnemploymentRate)! : null} />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
                     vs {countyComparison.avgUnemploymentRate.toFixed(1)}% avg
@@ -264,43 +296,43 @@ export function ExtendedDemographicsCard({
 
         {/* Housing Market */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {medianHomeValue && (
+          {validMedianHomeValue && (
             <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 rounded-xl border border-indigo-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <Home className="h-4 w-4 text-indigo-500" />
                 <span className="text-sm font-medium">Median Home Value</span>
               </div>
               <p className="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400">
-                {formatCurrency(medianHomeValue)}
+                {formatCurrency(validMedianHomeValue)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">Owner-occupied housing</p>
             </div>
           )}
 
-          {medianRent && (
+          {validMedianRent && (
             <div className="p-4 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 rounded-xl border border-cyan-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <DollarSign className="h-4 w-4 text-cyan-500" />
                 <span className="text-sm font-medium">Median Rent</span>
               </div>
               <p className="text-2xl font-bold font-mono text-cyan-600 dark:text-cyan-400">
-                ${medianRent.toLocaleString()}/mo
+                ${validMedianRent.toLocaleString()}/mo
               </p>
               <p className="text-xs text-muted-foreground mt-1">Gross monthly rent</p>
             </div>
           )}
 
-          {vacancyRate !== null && vacancyRate !== undefined && (
+          {validVacancyRate !== null && (
             <div className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 rounded-xl border border-amber-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingDown className="h-4 w-4 text-amber-500" />
                 <span className="text-sm font-medium">Vacancy Rate</span>
               </div>
               <p className="text-2xl font-bold font-mono">
-                {vacancyRate.toFixed(1)}%
+                {validVacancyRate.toFixed(1)}%
               </p>
-              <Badge className={cn("mt-2 text-xs", getVacancyBadge(vacancyRate).color)}>
-                {getVacancyBadge(vacancyRate).label}
+              <Badge className={cn("mt-2 text-xs", getVacancyBadge(validVacancyRate).color)}>
+                {getVacancyBadge(validVacancyRate).label}
               </Badge>
             </div>
           )}
@@ -308,57 +340,57 @@ export function ExtendedDemographicsCard({
 
         {/* Demographics & Employment */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {medianAge && (
+          {validMedianAge && (
             <div className="p-4 bg-muted/30 rounded-xl border border-border/50 text-center">
               <Users className="h-5 w-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-2xl font-bold font-mono">{medianAge.toFixed(1)}</p>
+              <p className="text-2xl font-bold font-mono">{validMedianAge.toFixed(1)}</p>
               <p className="text-xs text-muted-foreground">Median Age</p>
             </div>
           )}
 
-          {collegeAttainmentPct !== null && collegeAttainmentPct !== undefined && (
+          {validCollegeAttainmentPct !== null && (
             <div className="p-4 bg-muted/30 rounded-xl border border-border/50 text-center">
               <GraduationCap className="h-5 w-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-2xl font-bold font-mono">{collegeAttainmentPct.toFixed(1)}%</p>
+              <p className="text-2xl font-bold font-mono">{validCollegeAttainmentPct.toFixed(1)}%</p>
               <p className="text-xs text-muted-foreground">College Degree</p>
             </div>
           )}
 
-          {unemploymentRate !== null && unemploymentRate !== undefined && (
+          {validUnemploymentRate !== null && (
             <div className="p-4 bg-muted/30 rounded-xl border border-border/50 text-center">
               <Briefcase className="h-5 w-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-2xl font-bold font-mono">{unemploymentRate.toFixed(1)}%</p>
+              <p className="text-2xl font-bold font-mono">{validUnemploymentRate.toFixed(1)}%</p>
               <p className="text-xs text-muted-foreground">Unemployment</p>
             </div>
           )}
 
-          {laborForce && (
+          {validLaborForce && (
             <div className="p-4 bg-muted/30 rounded-xl border border-border/50 text-center">
               <Briefcase className="h-5 w-5 text-muted-foreground mx-auto mb-2" />
-              <p className="text-2xl font-bold font-mono">{laborForce.toLocaleString()}</p>
+              <p className="text-2xl font-bold font-mono">{validLaborForce.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">Labor Force</p>
             </div>
           )}
         </div>
 
         {/* Housing Inventory */}
-        {totalHousingUnits && (
+        {validTotalHousingUnits && (
           <div className="p-4 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl border border-indigo-500/20">
             <div className="flex items-center gap-2 mb-2">
               <Building className="h-4 w-4 text-indigo-500" />
               <h4 className="font-semibold text-sm">Housing Inventory</h4>
             </div>
             <p className="text-sm text-muted-foreground">
-              <span className="font-semibold text-foreground">{totalHousingUnits.toLocaleString()}</span> total housing units in census tract
-              {vacancyRate !== null && vacancyRate !== undefined && (
-                <> with <span className="font-semibold text-foreground">{vacancyRate.toFixed(1)}%</span> vacancy rate</>
+              <span className="font-semibold text-foreground">{validTotalHousingUnits.toLocaleString()}</span> total housing units in census tract
+              {validVacancyRate !== null && (
+                <> with <span className="font-semibold text-foreground">{validVacancyRate.toFixed(1)}%</span> vacancy rate</>
               )}
             </p>
           </div>
         )}
 
         {/* Proprietary CRE Indices */}
-        {(retailSpendingIndex || workforceAvailabilityScore || growthPotentialIndex) && (
+        {(validRetailSpendingIndex || validWorkforceScore || validGrowthPotentialIndex) && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-[hsl(var(--feasibility-orange))]" />
@@ -368,39 +400,39 @@ export function ExtendedDemographicsCard({
               </Badge>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {retailSpendingIndex !== null && retailSpendingIndex !== undefined && (
+              {validRetailSpendingIndex !== null && (
                 <div className="p-3 bg-gradient-to-br from-[hsl(var(--feasibility-orange)/0.1)] to-transparent rounded-lg border border-[hsl(var(--feasibility-orange)/0.2)]">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground">Retail Spending</span>
                     <Target className="h-3 w-3 text-[hsl(var(--feasibility-orange))]" />
                   </div>
-                  <p className="text-xl font-bold font-mono text-[hsl(var(--feasibility-orange))]">{retailSpendingIndex.toFixed(0)}</p>
+                  <p className="text-xl font-bold font-mono text-[hsl(var(--feasibility-orange))]">{validRetailSpendingIndex.toFixed(0)}</p>
                   <div className="w-full h-1 bg-muted rounded-full mt-1">
-                    <div className="h-full bg-[hsl(var(--feasibility-orange))] rounded-full" style={{ width: `${retailSpendingIndex}%` }} />
+                    <div className="h-full bg-[hsl(var(--feasibility-orange))] rounded-full" style={{ width: `${Math.min(validRetailSpendingIndex, 100)}%` }} />
                   </div>
                 </div>
               )}
-              {workforceAvailabilityScore !== null && workforceAvailabilityScore !== undefined && (
+              {validWorkforceScore !== null && (
                 <div className="p-3 bg-gradient-to-br from-[hsl(var(--data-cyan)/0.1)] to-transparent rounded-lg border border-[hsl(var(--data-cyan)/0.2)]">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground">Workforce</span>
                     <Briefcase className="h-3 w-3 text-[hsl(var(--data-cyan))]" />
                   </div>
-                  <p className="text-xl font-bold font-mono text-[hsl(var(--data-cyan))]">{workforceAvailabilityScore.toFixed(0)}</p>
+                  <p className="text-xl font-bold font-mono text-[hsl(var(--data-cyan))]">{validWorkforceScore.toFixed(0)}</p>
                   <div className="w-full h-1 bg-muted rounded-full mt-1">
-                    <div className="h-full bg-[hsl(var(--data-cyan))] rounded-full" style={{ width: `${workforceAvailabilityScore}%` }} />
+                    <div className="h-full bg-[hsl(var(--data-cyan))] rounded-full" style={{ width: `${Math.min(validWorkforceScore, 100)}%` }} />
                   </div>
                 </div>
               )}
-              {growthPotentialIndex !== null && growthPotentialIndex !== undefined && (
+              {validGrowthPotentialIndex !== null && (
                 <div className="p-3 bg-gradient-to-br from-green-500/10 to-transparent rounded-lg border border-green-500/20">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs text-muted-foreground">Growth Potential</span>
                     <TrendingUp className="h-3 w-3 text-green-500" />
                   </div>
-                  <p className="text-xl font-bold font-mono text-green-600 dark:text-green-400">{growthPotentialIndex.toFixed(0)}</p>
+                  <p className="text-xl font-bold font-mono text-green-600 dark:text-green-400">{validGrowthPotentialIndex.toFixed(0)}</p>
                   <div className="w-full h-1 bg-muted rounded-full mt-1">
-                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${growthPotentialIndex}%` }} />
+                    <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(validGrowthPotentialIndex, 100)}%` }} />
                   </div>
                 </div>
               )}
