@@ -122,7 +122,7 @@ export function useStuckApplications(): UseStuckApplicationsResult {
   const retryApplication = useCallback(async (id: string): Promise<boolean> => {
     try {
       const { error } = await supabase.functions.invoke('re-enrich-application', {
-        body: { applicationId: id },
+        body: { application_id: id },
       });
 
       if (error) throw error;
@@ -141,7 +141,7 @@ export function useStuckApplications(): UseStuckApplicationsResult {
   const skipEnrichmentStep = useCallback(async (id: string, step: string): Promise<boolean> => {
     try {
       const { error } = await supabase.functions.invoke('skip-enrichment-step', {
-        body: { applicationId: id, step },
+        body: { application_id: id, step },
       });
 
       if (error) throw error;
