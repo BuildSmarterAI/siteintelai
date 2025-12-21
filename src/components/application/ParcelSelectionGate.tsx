@@ -187,6 +187,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         onMapLoad={() => setIsMapLoading(false)}
         selectedParcelId={state.selectedCandidate?.parcel_id}
         showLegend={false}
+        showAttribution={false}
         className="w-full h-full"
       />
     </>
