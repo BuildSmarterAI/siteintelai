@@ -59,17 +59,34 @@ export function useCountyTileOverlays({
   const [error, setError] = useState<string | null>(null);
   const addedSourcesRef = useRef<Set<string>>(new Set());
   const addedLayersRef = useRef<Set<string>>(new Set());
+  const isMountedRef = useRef(true);
+
+  const isMapReady = useCallback(() => {
+    if (!isMountedRef.current || !map || !mapLoaded) return false;
+    try {
+      return !!map.getStyle();
+    } catch {
+      return false;
+    }
+  }, [map, mapLoaded]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Add a county tile overlay to the map
   const addCountyOverlay = useCallback((county: CountyTileSource) => {
-    if (!map || !mapLoaded) return;
-    
+    if (!isMapReady()) return;
+
     const sourceId = `${SOURCE_PREFIX}${county.id}`;
     const layerId = `${LAYER_PREFIX}${county.id}`;
 
     try {
       // Check if source already exists
-      if (map.getSource(sourceId)) {
+      if (map!.getSource(sourceId)) {
         console.log(`[CountyTiles] Source ${sourceId} already exists`);
         return;
       }
@@ -78,7 +95,7 @@ export function useCountyTileOverlays({
       console.log(`[CountyTiles] Adding county overlay: ${county.name}`, { tileUrl });
 
       // Add raster tile source
-      map.addSource(sourceId, {
+      map!.addSource(sourceId, {
         type: 'raster',
         tiles: [tileUrl],
         tileSize: 256,
@@ -91,9 +108,9 @@ export function useCountyTileOverlays({
       addedSourcesRef.current.add(sourceId);
 
       // Find the best layer to insert county tiles above basemap but below labels
-      const layers = map.getStyle()?.layers || [];
+      const layers = map!.getStyle()?.layers || [];
       let beforeLayerId: string | undefined;
-      
+
       // First, try to find first symbol layer (labels)
       for (const layer of layers) {
         if (layer.type === 'symbol') {
@@ -101,7 +118,7 @@ export function useCountyTileOverlays({
           break;
         }
       }
-      
+
       // If no symbol layer found, insert at the top (above all raster layers)
       // This ensures county tiles are visible above the basemap
       if (!beforeLayerId && layers.length > 0) {
@@ -109,17 +126,20 @@ export function useCountyTileOverlays({
       }
 
       // Add raster layer with lowered minzoom to 11 for earlier visibility
-      map.addLayer({
-        id: layerId,
-        type: 'raster',
-        source: sourceId,
-        minzoom: 11, // Force minzoom 11 regardless of county config
-        maxzoom: county.maxZoom,
-        paint: {
-          'raster-opacity': enabled ? opacity : 0,
-          'raster-fade-duration': 300,
+      map!.addLayer(
+        {
+          id: layerId,
+          type: 'raster',
+          source: sourceId,
+          minzoom: 11, // Force minzoom 11 regardless of county config
+          maxzoom: county.maxZoom,
+          paint: {
+            'raster-opacity': enabled ? opacity : 0,
+            'raster-fade-duration': 300,
+          },
         },
-      }, beforeLayerId);
+        beforeLayerId
+      );
 
       addedLayersRef.current.add(layerId);
 
@@ -134,30 +154,23 @@ export function useCountyTileOverlays({
       console.error(`[CountyTiles] Failed to add ${county.name}:`, err);
       setError(`Failed to add ${county.name} overlay`);
     }
-  }, [map, mapLoaded, enabled, opacity, onCountyAdded]);
+  }, [isMapReady, map, enabled, opacity, onCountyAdded]);
 
   // Remove a county tile overlay from the map
   const removeCountyOverlay = useCallback((countyId: string) => {
-    if (!map) return;
-
-    // Safety check: ensure map style is loaded
-    try {
-      if (!map.getStyle()) return;
-    } catch (e) {
-      return;
-    }
+    if (!isMapReady()) return;
 
     const sourceId = `${SOURCE_PREFIX}${countyId}`;
     const layerId = `${LAYER_PREFIX}${countyId}`;
 
     try {
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId);
+      if (map!.getLayer(layerId)) {
+        map!.removeLayer(layerId);
         addedLayersRef.current.delete(layerId);
       }
 
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId);
+      if (map!.getSource(sourceId)) {
+        map!.removeSource(sourceId);
         addedSourcesRef.current.delete(sourceId);
       }
 
@@ -165,9 +178,10 @@ export function useCountyTileOverlays({
       onCountyRemoved?.(countyId);
       console.log(`[CountyTiles] Removed ${countyId}`);
     } catch (err) {
-      console.error(`[CountyTiles] Failed to remove ${countyId}:`, err);
+      // Can happen during navigation/unmount; safe to ignore
+      console.debug(`[CountyTiles] Remove skipped for ${countyId} (map not ready)`);
     }
-  }, [map, onCountyRemoved]);
+  }, [isMapReady, map, onCountyRemoved]);
 
   // Toggle a county overlay
   const toggleCounty = useCallback((countyId: string) => {
@@ -184,56 +198,49 @@ export function useCountyTileOverlays({
 
   // Set visibility of all county overlays
   const setVisibility = useCallback((visible: boolean) => {
-    if (!map) return;
-    
-    // Safety check: ensure map style is loaded
-    try {
-      if (!map.getStyle()) return;
-    } catch (e) {
-      return;
-    }
+    if (!isMapReady()) return;
 
     activeCounties.forEach(county => {
       const layerId = `${LAYER_PREFIX}${county.id}`;
       try {
-        if (map.getLayer(layerId)) {
-          map.setPaintProperty(layerId, 'raster-opacity', visible ? opacity : 0);
+        if (map!.getLayer(layerId)) {
+          map!.setPaintProperty(layerId, 'raster-opacity', visible ? opacity : 0);
         }
-      } catch (e) {
+      } catch {
         // Ignore errors during map transitions
       }
     });
-  }, [map, activeCounties, opacity]);
+  }, [isMapReady, map, activeCounties, opacity]);
 
   // Update opacity when it changes
   useEffect(() => {
-    if (!map || !mapLoaded) return;
-    
-    // Safety check: ensure map style is loaded
-    try {
-      if (!map.getStyle()) return;
-    } catch (e) {
-      return;
-    }
+    if (!isMapReady()) return;
 
     activeCounties.forEach(county => {
       const layerId = `${LAYER_PREFIX}${county.id}`;
       try {
-        if (map.getLayer(layerId)) {
-          map.setPaintProperty(layerId, 'raster-opacity', enabled ? opacity : 0);
+        if (map!.getLayer(layerId)) {
+          map!.setPaintProperty(layerId, 'raster-opacity', enabled ? opacity : 0);
         }
-      } catch (e) {
+      } catch {
         // Ignore errors during map transitions
       }
     });
-  }, [map, mapLoaded, activeCounties, enabled, opacity]);
+  }, [isMapReady, map, activeCounties, enabled, opacity]);
 
   // Auto-detect counties based on viewport
   useEffect(() => {
     if (!map || !mapLoaded || !autoDetect || countyIds) return;
 
     const updateCountiesInView = () => {
-      const bounds = map.getBounds();
+      if (!isMapReady()) return;
+
+      let bounds: any;
+      try {
+        bounds = map.getBounds();
+      } catch {
+        return;
+      }
       if (!bounds) return;
 
       const viewBounds: [number, number, number, number] = [
@@ -243,8 +250,13 @@ export function useCountyTileOverlays({
         bounds.getNorth(),
       ];
 
-      const zoom = map.getZoom();
-      
+      let zoom = 0;
+      try {
+        zoom = map.getZoom();
+      } catch {
+        return;
+      }
+
       // Only load county tiles at zoom 11+ (lowered from 13 for better initial visibility)
       if (zoom < 11) {
         // Remove all county overlays at low zoom
@@ -255,7 +267,7 @@ export function useCountyTileOverlays({
       }
 
       const countiesInView = findCountiesInBounds(viewBounds);
-      
+
       // Add new counties
       countiesInView.forEach(county => {
         if (!activeCounties.find(c => c.id === county.id)) {
@@ -275,14 +287,18 @@ export function useCountyTileOverlays({
     map.on('zoomend', updateCountiesInView);
 
     return () => {
-      map.off('moveend', updateCountiesInView);
-      map.off('zoomend', updateCountiesInView);
+      try {
+        map.off('moveend', updateCountiesInView);
+        map.off('zoomend', updateCountiesInView);
+      } catch {
+        // ignore
+      }
     };
-  }, [map, mapLoaded, autoDetect, countyIds, activeCounties, addCountyOverlay, removeCountyOverlay]);
+  }, [map, mapLoaded, autoDetect, countyIds, activeCounties, addCountyOverlay, removeCountyOverlay, isMapReady]);
 
   // Load specific counties if countyIds provided
   useEffect(() => {
-    if (!map || !mapLoaded || !countyIds) return;
+    if (!isMapReady() || !countyIds) return;
 
     countyIds.forEach(countyId => {
       const county = COUNTY_TILE_SOURCES.find(c => c.id === countyId);
@@ -290,41 +306,40 @@ export function useCountyTileOverlays({
         addCountyOverlay(county);
       }
     });
-  }, [map, mapLoaded, countyIds, activeCounties, addCountyOverlay]);
+  }, [isMapReady, countyIds, activeCounties, addCountyOverlay]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Safety check: map might be partially unmounted
-      if (!map) return;
-      
-      try {
-        // Check if map style is still available before cleanup
-        if (!map.getStyle()) return;
-        
-        addedLayersRef.current.forEach(layerId => {
-          try {
-            if (map.getLayer(layerId)) {
-              map.removeLayer(layerId);
-            }
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        });
+      // Prevent any late async/event callbacks from touching the map
+      isMountedRef.current = false;
 
-        addedSourcesRef.current.forEach(sourceId => {
-          try {
-            if (map.getSource(sourceId)) {
-              map.removeSource(sourceId);
-            }
-          } catch (e) {
-            // Ignore cleanup errors
-          }
-        });
-      } catch (e) {
-        // Map is already unmounted, ignore
-        console.debug('[CountyTiles] Cleanup skipped - map not ready');
+      if (!map) return;
+
+      // Only attempt cleanup if the style is still available
+      let styleOk = false;
+      try {
+        styleOk = !!map.getStyle();
+      } catch {
+        styleOk = false;
       }
+      if (!styleOk) return;
+
+      addedLayersRef.current.forEach(layerId => {
+        try {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+        } catch {
+          // ignore
+        }
+      });
+
+      addedSourcesRef.current.forEach(sourceId => {
+        try {
+          if (map.getSource(sourceId)) map.removeSource(sourceId);
+        } catch {
+          // ignore
+        }
+      });
     };
   }, [map]);
 
