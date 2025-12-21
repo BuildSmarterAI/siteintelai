@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, CloudOff, Cloud, MapPin, Plus } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, MapPin, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -301,32 +301,8 @@ export function MapLibreCanvas({
     };
   });
 
-  // DISABLED: SiteIntel Vector Tiles (Tier 1) - still building CDN infrastructure
-  // Using County CAD Tiles (Tier 2) + GeoJSON Fallback (Tier 3) instead
-  // TODO: Re-enable when vector tiles are ready on CloudFront
-  /*
-  const { 
-    sources: vectorTileSources, 
-    hasVectorTiles, 
-    isLoading: vectorTilesLoading,
-    activeSources: activeVectorSources,
-    error: vectorTileError,
-  } = useVectorTileLayers({
-    map: mapInstance,
-    mapLoaded,
-    jurisdiction: 'tx',
-    layerVisibility: { ...layerVisibility },
-    styleVersion,
-    onParcelClick: onParcelSelect,
-  });
-  */
-  
-  // Mock vector tile state - forces fallback mode
-  const vectorTileSources = {};
-  const hasVectorTiles = false;
-  const vectorTilesLoading = false;
-  const activeVectorSources: string[] = [];
-  const vectorTileError = null;
+  // Vector tiles (Tier 1) DISABLED - using County CAD (Tier 2) + GeoJSON (Tier 3)
+  // County CAD provides raster display, GeoJSON provides click/hover interactivity
 
   // Fallback parcels via GeoJSON when vector tiles unavailable
   // Force GeoJSON fallback for now - SiteIntel vector tiles still building
@@ -408,28 +384,26 @@ export function MapLibreCanvas({
     },
   });
 
-  // Debug log vector tile and fallback state
+  // Debug log parcel display state (Tier 2 + Tier 3 only)
   useEffect(() => {
-    console.log('🔍 TILE DEBUG: MapLibreCanvas parcel display state', {
-      hasVectorTiles,
-      vectorTilesLoading,
-      vectorTileError: vectorTileError?.message,
-      activeVectorSources,
-      sourceCount: Object.keys(vectorTileSources).length,
+    console.log('🗺️ Parcel Display State:', {
+      // County CAD Tiles (Tier 2 - Display)
+      countyTiles: {
+        enabled: layerVisibility.countyParcels,
+        active: activeCounties.map(c => c.name),
+        loading: countyTilesLoading,
+      },
+      // GeoJSON Fallback (Tier 3 - Interactivity)
+      geojsonFallback: {
+        enabled: shouldUseFallback,
+        featureCount: fallbackFeatureCount,
+        isActive: isFallbackMode,
+        loading: fallbackLoading,
+        source: fallbackMetadata?.source,
+      },
       mapLoaded,
-      hasMapInstance: !!mapInstance,
-      // Fallback state
-      shouldUseFallback,
-      fallbackLoading,
-      fallbackFeatureCount,
-      isFallbackMode,
-      fallbackSource: fallbackMetadata?.source,
-      // County tiles state
-      countyTilesEnabled: layerVisibility.countyParcels,
-      activeCounties: activeCounties.map(c => c.name),
-      countyTilesLoading,
     });
-  }, [hasVectorTiles, vectorTilesLoading, vectorTileError, activeVectorSources, vectorTileSources, mapLoaded, mapInstance, shouldUseFallback, fallbackLoading, fallbackFeatureCount, isFallbackMode, fallbackMetadata, layerVisibility.countyParcels, activeCounties, countyTilesLoading]);
+  }, [mapLoaded, shouldUseFallback, fallbackLoading, fallbackFeatureCount, isFallbackMode, fallbackMetadata, layerVisibility.countyParcels, activeCounties, countyTilesLoading]);
 
   // Keep ref updated with latest callback to avoid stale closures
   useEffect(() => {
@@ -2230,21 +2204,19 @@ export function MapLibreCanvas({
         </div>
       )}
 
-      {/* Data Source Status Badge */}
-      {showDataSourceBadge && ((hasVectorTiles && activeVectorSources.length > 0) || isFallbackMode || fallbackFeatureCount > 0 || activeCounties.length > 0) ? (
+      {/* Data Source Status Badge - Shows Tier 2 (County CAD) + Tier 3 (GeoJSON) status */}
+      {showDataSourceBadge && (activeCounties.length > 0 || fallbackFeatureCount > 0) && (
         <div className={`absolute bottom-4 right-4 z-10 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex flex-col gap-1 ${
-          isFallbackMode 
-            ? 'bg-amber-500/10 border-amber-500/30' 
-            : activeCounties.length > 0 && !hasVectorTiles
+          activeCounties.length > 0
             ? 'bg-emerald-500/10 border-emerald-500/30'
             : 'bg-background/95 border-border'
         }`}>
-          {/* County Tiles Status */}
+          {/* Tier 2: County CAD Tiles (Display) */}
           {activeCounties.length > 0 && layerVisibility.countyParcels && (
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-emerald-500" />
               <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                County CAD Tiles
+                County CAD
               </span>
               <span className="text-xs text-muted-foreground">
                 ({activeCounties.map(c => c.name.replace(' County', '')).join(', ')})
@@ -2252,36 +2224,17 @@ export function MapLibreCanvas({
             </div>
           )}
           
-          {/* Vector Tiles / Fallback Status */}
-          {isFallbackMode ? (
-            <div className="flex items-center gap-2">
-              <CloudOff className="h-4 w-4 text-amber-500" />
-              <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                External Parcels
-              </span>
-              {fallbackMetadata?.source === 'mixed' && (
-                <span className="text-xs text-muted-foreground">
-                  ({fallbackMetadata.canonical_count} SiteIntel + {fallbackMetadata.external_count} External)
-                </span>
-              )}
-            </div>
-          ) : fallbackFeatureCount > 0 && !hasVectorTiles && activeCounties.length === 0 ? (
-            <div className="flex items-center gap-2">
-              <Cloud className="h-4 w-4 text-primary" />
-              <span className="text-xs text-muted-foreground">
-                SiteIntel Parcels ({fallbackFeatureCount})
-              </span>
-            </div>
-          ) : hasVectorTiles && activeVectorSources.length > 0 ? (
+          {/* Tier 3: GeoJSON Fallback (Interactivity) */}
+          {fallbackFeatureCount > 0 && (
             <div className="flex items-center gap-2">
               <Database className="h-4 w-4 text-primary" />
               <span className="text-xs text-muted-foreground">
-                SiteIntel Tiles ({activeVectorSources.length} layers)
+                {fallbackFeatureCount} clickable parcels
               </span>
             </div>
-          ) : null}
+          )}
         </div>
-      ) : null}
+      )}
 
       {/* Map Legend */}
       {showLegend && (
