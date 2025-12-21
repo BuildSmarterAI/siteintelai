@@ -73,7 +73,7 @@ export const Hero = () => {
     setRipples([...ripples, { x, y, id: Date.now() }]);
     setIsCtaLoading(true);
     setTimeout(() => {
-      navigate(isAuthenticated ? '/application' : '/auth');
+      navigate('/get-started');
     }, 300);
   };
 
