@@ -34,19 +34,46 @@ serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        logStep("Checkout completed", { sessionId: session.id, customerId: session.customer });
+        logStep("Checkout completed", { 
+          sessionId: session.id, 
+          customerId: session.customer,
+          customerEmail: session.customer_email,
+          metadata: session.metadata 
+        });
 
+        // Extract application_id from metadata (for payment-first flow)
+        const applicationId = session.metadata?.application_id;
+        
         if (!session.customer_email) {
           logStep("No customer email in session");
           break;
         }
 
-        // Find user by email
+        // Update application payment status if we have an application_id
+        if (applicationId) {
+          const { error: appUpdateError } = await supabaseAdmin
+            .from("applications")
+            .update({ 
+              payment_status: "paid",
+              stripe_customer_email: session.customer_email,
+            })
+            .eq("id", applicationId);
+
+          if (appUpdateError) {
+            logStep("Failed to update application payment status", { error: appUpdateError.message });
+          } else {
+            logStep("Updated application payment status to paid", { applicationId });
+          }
+        }
+
+        // Find user by email (may not exist yet in payment-first flow)
         const { data: userData } = await supabaseAdmin.auth.admin.listUsers();
         const user = userData?.users?.find(u => u.email === session.customer_email);
 
         if (!user) {
-          logStep("User not found for email", { email: session.customer_email });
+          logStep("User not found for email - payment-first flow, will link later", { email: session.customer_email });
+          // For payment-first flow, user doesn't exist yet. Payment is recorded on application.
+          // User will be linked via link-application-to-user after account creation.
           break;
         }
 
@@ -58,9 +85,22 @@ serve(async (req) => {
             .eq("id", user.id);
         }
 
+        // If application exists and user exists, link them now
+        if (applicationId) {
+          const { error: linkError } = await supabaseAdmin
+            .from("applications")
+            .update({ user_id: user.id })
+            .eq("id", applicationId)
+            .is("user_id", null);
+
+          if (!linkError) {
+            logStep("Linked application to existing user", { applicationId, userId: user.id });
+          }
+        }
+
         // Record payment
         const paymentType = session.mode === "subscription" ? "subscription" : "one_time";
-        const productName = session.mode === "subscription" ? "SiteIntel Pro Subscription" : "SiteIntel Professional Report";
+        const productName = session.mode === "subscription" ? "SiteIntel Pro Subscription" : "Site Feasibility Intelligence™";
         
         await supabaseAdmin.from("payment_history").insert({
           user_id: user.id,
@@ -93,7 +133,6 @@ serve(async (req) => {
 
             if (existingSub) {
               // User has active subscription - add 1 report credit by decreasing reports_used
-              // Negative reports_used means purchased credits available
               const newReportsUsed = (existingSub.reports_used || 0) - 1;
               await supabaseAdmin
                 .from("user_subscriptions")
@@ -102,13 +141,12 @@ serve(async (req) => {
               logStep("Added 1 report credit to existing subscription", { newReportsUsed });
             } else {
               // Create a pay-per-use subscription entry with 1 available report credit
-              // reports_used = -1 means 1 credit available
               await supabaseAdmin.from("user_subscriptions").insert({
                 user_id: user.id,
                 tier_id: payPerUseTier.id,
                 status: "active",
                 period_start: new Date().toISOString(),
-                period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year expiry
+                period_end: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
                 reports_used: -1,
                 quickchecks_used: 0,
               });
@@ -121,7 +159,6 @@ serve(async (req) => {
         if (session.mode === "subscription" && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           
-          // Get or create tier
           const { data: tiers } = await supabaseAdmin
             .from("subscription_tiers")
             .select("id")

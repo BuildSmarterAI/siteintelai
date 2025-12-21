@@ -3,10 +3,14 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 // ⚠️ SECURITY WARNING: NEVER log STRIPE_SECRET_KEY or include it in error messages
-// This would expose sensitive credentials that allow unauthorized payment processing
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const logStep = (step: string, details?: any) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[CREATE-CHECKOUT-SESSION] ${step}${detailsStr}`);
 };
 
 serve(async (req) => {
@@ -15,35 +19,83 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
+  const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
   );
 
   try {
-    // Retrieve authenticated user
-    const authHeader = req.headers.get("Authorization")!;
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
+    logStep("Function started");
+
+    // Parse request body
+    const body = await req.json().catch(() => ({}));
+    const { application_id, email: guestEmail } = body;
+    logStep("Request received", { application_id, hasGuestEmail: !!guestEmail });
+
+    // Try to get authenticated user (optional for payment-first flow)
+    let userEmail: string | undefined;
+    let userId: string | undefined;
+    
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      const { data } = await supabaseAdmin.auth.getUser(token);
+      if (data.user?.email) {
+        userEmail = data.user.email;
+        userId = data.user.id;
+        logStep("Authenticated user", { email: userEmail, userId });
+      }
+    }
+
+    // Use guest email if no authenticated user
+    if (!userEmail && guestEmail) {
+      userEmail = guestEmail;
+      logStep("Using guest email", { email: guestEmail });
+    }
+
+    if (!userEmail) {
+      throw new Error("Email is required - either authenticate or provide email in request");
+    }
 
     // Initialize Stripe
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
 
-    // Check if a Stripe customer record exists for this user
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
+    // Check if a Stripe customer record exists for this email
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
+    let customerId: string | undefined;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      logStep("Found existing Stripe customer", { customerId });
     }
+
+    // Build metadata for the session
+    const metadata: Record<string, string> = {};
+    if (application_id) {
+      metadata.application_id = application_id;
+    }
+    if (userId) {
+      metadata.user_id = userId;
+    }
+
+    // Determine success URL based on whether user is authenticated
+    const origin = req.headers.get("origin") || "https://siteintel.io";
+    const successUrl = userId
+      ? `${origin}/thank-you?applicationId=${application_id || ''}&payment=success`
+      : `${origin}/create-account?session_id={CHECKOUT_SESSION_ID}`;
+    
+    const cancelUrl = application_id
+      ? `${origin}/application?payment=canceled&application_id=${application_id}`
+      : `${origin}/application?payment=canceled`;
+
+    logStep("Creating checkout session", { successUrl, cancelUrl, hasMetadata: Object.keys(metadata).length > 0 });
 
     // Create a one-time payment session for Site Feasibility Intelligence™
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price: "price_1SeqwnAsWVx52wY38U6jif0R", // Site Feasibility Intelligence™ - $1,495
@@ -51,18 +103,38 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard?payment=success&product=sfi`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?payment=canceled`,
+      metadata,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
     });
 
-    return new Response(JSON.stringify({ url: session.url }), {
+    logStep("Checkout session created", { sessionId: session.id });
+
+    // Update application with stripe_session_id if we have an application_id
+    if (application_id) {
+      const { error: updateError } = await supabaseAdmin
+        .from("applications")
+        .update({ 
+          stripe_session_id: session.id,
+          payment_status: "pending"
+        })
+        .eq("id", application_id);
+
+      if (updateError) {
+        logStep("Warning: Failed to update application with session ID", { error: updateError.message });
+      } else {
+        logStep("Updated application with session ID", { application_id });
+      }
+    }
+
+    return new Response(JSON.stringify({ url: session.url, session_id: session.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    // Sanitize error logging - never log stack traces that might contain secrets
-    console.error("Error in create-checkout-session:", error instanceof Error ? error.message : String(error));
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Payment processing failed" }), {
+    const errorMessage = error instanceof Error ? error.message : "Payment processing failed";
+    logStep("ERROR", { message: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

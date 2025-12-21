@@ -71,6 +71,7 @@ import CanonicalSchema from "./pages/docs/CanonicalSchema";
 import TileManagement from "./pages/admin/TileManagement";
 import AdminReports from "./pages/admin/AdminReports";
 import MarketIntelligence from "./pages/MarketIntelligence";
+import CreateAccount from "./pages/CreateAccount";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="/thank-you" element={<ThankYou />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/create-account" element={<CreateAccount />} />
               <Route path="/payment-history" element={<PaymentHistory />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/report/:reportId" element={<ReportLayout />}>

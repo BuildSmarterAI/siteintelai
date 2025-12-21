@@ -85,12 +85,18 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.create-checkout-session]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-subscription]
 verify_jwt = true
 
 [functions.check-subscription]
+verify_jwt = true
+
+[functions.get-checkout-session]
+verify_jwt = false
+
+[functions.link-application-to-user]
 verify_jwt = true
 
 [functions.save-draft]
