@@ -182,6 +182,8 @@ interface MapLibreCanvasProps {
   onMapLoad?: () => void;
   showLegend?: boolean;
   showAttribution?: boolean;
+  showZoomHint?: boolean;
+  showDataSourceBadge?: boolean;
 }
 
 /**
@@ -227,6 +229,8 @@ export function MapLibreCanvas({
   onMapLoad,
   showLegend = true,
   showAttribution = true,
+  showZoomHint = true,
+  showDataSourceBadge = true,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -2335,7 +2339,7 @@ export function MapLibreCanvas({
               </Button>
             </div>
           )}
-          {!parcelLoading && !parcelLoadError && mapLoaded && map.current && map.current.getZoom() < 14 && (
+          {showZoomHint && !parcelLoading && !parcelLoadError && mapLoaded && map.current && map.current.getZoom() < 14 && (
             <div className="bg-background/95 backdrop-blur-sm border border-border rounded-lg p-3 shadow-lg">
               <p className="text-sm text-muted-foreground">
                 Zoom in to see parcel boundaries (current: {Math.round(map.current.getZoom())}, need: 14+)
@@ -2346,7 +2350,7 @@ export function MapLibreCanvas({
       )}
 
       {/* Data Source Status Badge */}
-      {(hasVectorTiles && activeVectorSources.length > 0) || isFallbackMode || fallbackFeatureCount > 0 || activeCounties.length > 0 ? (
+      {showDataSourceBadge && ((hasVectorTiles && activeVectorSources.length > 0) || isFallbackMode || fallbackFeatureCount > 0 || activeCounties.length > 0) ? (
         <div className={`absolute bottom-4 right-4 z-10 backdrop-blur-sm border rounded-lg px-3 py-2 shadow-lg flex flex-col gap-1 ${
           isFallbackMode 
             ? 'bg-amber-500/10 border-amber-500/30' 

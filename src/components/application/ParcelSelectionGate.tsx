@@ -188,6 +188,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         selectedParcelId={state.selectedCandidate?.parcel_id}
         showLegend={false}
         showAttribution={false}
+        showZoomHint={false}
+        showDataSourceBadge={false}
         className="w-full h-full"
       />
     </>
