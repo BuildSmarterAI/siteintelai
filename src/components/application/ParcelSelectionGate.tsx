@@ -202,7 +202,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
             showParcels={true}
             onParcelSelect={handleMapParcelClick}
             onMapLoad={() => setIsMapLoading(false)}
-            highlightParcelId={state.selectedCandidate?.parcel_id}
+            selectedParcelId={state.selectedCandidate?.parcel_id}
             className="w-full h-full"
           />
         </div>
