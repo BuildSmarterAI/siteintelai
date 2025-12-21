@@ -181,6 +181,7 @@ interface MapLibreCanvasProps {
   onParcelSelect?: (parcel: any) => void;
   onMapLoad?: () => void;
   showLegend?: boolean;
+  showAttribution?: boolean;
 }
 
 /**
@@ -225,6 +226,7 @@ export function MapLibreCanvas({
   onParcelSelect,
   onMapLoad,
   showLegend = true,
+  showAttribution = true,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -608,6 +610,7 @@ export function MapLibreCanvas({
         center: toMapLibre(center),
         zoom: zoom,
         antialias: true,
+        attributionControl: showAttribution ? undefined : false,
       });
 
       // Add navigation controls
