@@ -14,7 +14,7 @@ import { ParcelSelectionTabs } from "./ParcelSelectionTabs";
 import { CandidateParcelList } from "./CandidateParcelList";
 import { ParcelVerificationPanel } from "./ParcelVerificationPanel";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
-import { Shield, AlertTriangle, Lock, ArrowRight } from "lucide-react";
+import { Shield, AlertTriangle, Lock, ArrowRight, Search, Map, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
@@ -24,6 +24,8 @@ interface ParcelSelectionGateProps {
   initialAddress?: string;
   initialCoords?: { lat: number; lng: number };
 }
+
+type MobileStep = 'search' | 'map' | 'verify';
 
 function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelectionGateProps) {
   const { 
@@ -40,6 +42,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   );
   const [mapZoom, setMapZoom] = useState(14);
   const [isLocking, setIsLocking] = useState(false);
+  const [mobileStep, setMobileStep] = useState<MobileStep>('search');
 
   // Try to recover locked parcel from storage on mount
   useEffect(() => {
@@ -48,6 +51,13 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       toast.info("Recovered previously locked parcel");
     }
   }, [recoverFromStorage]);
+
+  // Auto-advance mobile step when candidate is selected
+  useEffect(() => {
+    if (state.selectedCandidate) {
+      setMobileStep('verify');
+    }
+  }, [state.selectedCandidate]);
 
   const handleNavigateToLocation = useCallback((lat: number, lng: number, zoom?: number) => {
     setMapCenter([lat, lng]);
@@ -98,18 +108,16 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const handleConfirmParcel = useCallback(async () => {
     setIsLocking(true);
     try {
-      await lockParcel();
+      const lockedParcel = await lockParcel();
       toast.success("Parcel locked for feasibility analysis");
-      if (state.lockedParcel) {
-        onParcelLocked(state.lockedParcel);
-      }
+      onParcelLocked(lockedParcel);
     } catch (err) {
       console.error('[ParcelSelectionGate] Lock failed:', err);
       toast.error("Failed to lock parcel. Please try again.");
     } finally {
       setIsLocking(false);
     }
-  }, [lockParcel, state.lockedParcel, onParcelLocked]);
+  }, [lockParcel, onParcelLocked]);
 
   // If already locked, show locked state
   if (state.lockedParcel) {
@@ -139,6 +147,68 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     );
   }
 
+  // Shared components for both layouts
+  const searchPanel = (
+    <>
+      <ParcelSelectionTabs
+        onCandidatesFound={handleCandidatesFound}
+        onNavigateToLocation={handleNavigateToLocation}
+        mapCenter={mapCenter}
+      />
+      <div className="mt-6">
+        <CandidateParcelList
+          candidates={state.candidates}
+          selectedId={state.selectedCandidate?.parcel_id || null}
+          onSelect={handleCandidateSelect}
+        />
+      </div>
+    </>
+  );
+
+  const mapPanel = (
+    <>
+      <AnimatePresence>
+        {isMapLoading && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-10"
+          >
+            <MapLoadingSkeleton message="Loading map..." />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      
+      <MapLibreCanvas
+        center={mapCenter}
+        zoom={mapZoom}
+        showParcels={true}
+        onParcelSelect={handleMapParcelClick}
+        onMapLoad={() => setIsMapLoading(false)}
+        selectedParcelId={state.selectedCandidate?.parcel_id}
+        className="w-full h-full"
+      />
+    </>
+  );
+
+  const verifyPanel = state.selectedCandidate ? (
+    <ParcelVerificationPanel
+      candidate={state.selectedCandidate}
+      onConfirm={handleConfirmParcel}
+      isLocking={isLocking}
+      warnings={state.warnings}
+    />
+  ) : (
+    <div className="h-full flex items-center justify-center text-center p-4">
+      <div className="space-y-2">
+        <Shield className="h-8 w-8 mx-auto text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">
+          Select a parcel from the list or click on the map to verify
+        </p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative w-full h-[calc(100vh-120px)] min-h-[600px]">
       {/* Header */}
@@ -149,7 +219,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
               <Shield className="h-5 w-5 text-primary" />
               Select Your Property Parcel
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground hidden sm:block">
               Verification required before feasibility analysis
             </p>
           </div>
@@ -162,70 +232,72 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         </div>
       </div>
 
-      {/* Main Content - 3 Column Layout */}
-      <div className="absolute top-[73px] bottom-0 left-0 right-0 flex">
+      {/* Desktop Layout - 3 Column */}
+      <div className="absolute top-[73px] bottom-0 left-0 right-0 hidden lg:flex">
         {/* Left Panel - Input */}
         <div className="w-[360px] border-r bg-background p-4 overflow-y-auto">
-          <ParcelSelectionTabs
-            onCandidatesFound={handleCandidatesFound}
-            onNavigateToLocation={handleNavigateToLocation}
-            mapCenter={mapCenter}
-          />
-          
-          {/* Candidate List */}
-          <div className="mt-6">
-            <CandidateParcelList
-              candidates={state.candidates}
-              selectedId={state.selectedCandidate?.parcel_id || null}
-              onSelect={handleCandidateSelect}
-            />
-          </div>
+          {searchPanel}
         </div>
 
         {/* Center - Map */}
         <div className="flex-1 relative">
-          <AnimatePresence>
-            {isMapLoading && (
-              <motion.div
-                initial={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-10"
-              >
-                <MapLoadingSkeleton message="Loading map..." />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          <MapLibreCanvas
-            center={mapCenter}
-            zoom={mapZoom}
-            showParcels={true}
-            onParcelSelect={handleMapParcelClick}
-            onMapLoad={() => setIsMapLoading(false)}
-            selectedParcelId={state.selectedCandidate?.parcel_id}
-            className="w-full h-full"
-          />
+          {mapPanel}
         </div>
 
         {/* Right Panel - Verification */}
         <div className="w-[320px] border-l bg-background p-4 overflow-y-auto">
-          {state.selectedCandidate ? (
-            <ParcelVerificationPanel
-              candidate={state.selectedCandidate}
-              onConfirm={handleConfirmParcel}
-              isLocking={isLocking}
-              warnings={state.warnings}
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center text-center p-4">
-              <div className="space-y-2">
-                <Shield className="h-8 w-8 mx-auto text-muted-foreground/50" />
-                <p className="text-sm text-muted-foreground">
-                  Select a parcel from the list or click on the map to verify
-                </p>
-              </div>
+          {verifyPanel}
+        </div>
+      </div>
+
+      {/* Mobile/Tablet Layout - Step-based */}
+      <div className="absolute top-[73px] bottom-0 left-0 right-0 lg:hidden flex flex-col">
+        {/* Step content */}
+        <div className="flex-1 overflow-hidden">
+          {mobileStep === 'search' && (
+            <div className="h-full overflow-y-auto p-4">
+              {searchPanel}
             </div>
           )}
+          {mobileStep === 'map' && (
+            <div className="h-full relative">
+              {mapPanel}
+            </div>
+          )}
+          {mobileStep === 'verify' && (
+            <div className="h-full overflow-y-auto p-4">
+              {verifyPanel}
+            </div>
+          )}
+        </div>
+        
+        {/* Bottom tab navigation */}
+        <div className="border-t bg-background p-2 flex gap-2 shrink-0">
+          <Button
+            variant={mobileStep === 'search' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setMobileStep('search')}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            Search
+          </Button>
+          <Button
+            variant={mobileStep === 'map' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setMobileStep('map')}
+          >
+            <Map className="h-4 w-4 mr-2" />
+            Map
+          </Button>
+          <Button
+            variant={mobileStep === 'verify' ? 'default' : 'outline'}
+            className="flex-1"
+            onClick={() => setMobileStep('verify')}
+            disabled={!state.selectedCandidate}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Verify
+          </Button>
         </div>
       </div>
     </div>
