@@ -71,6 +71,14 @@ export function useCountyTileOverlays({
     }
   }, [map, mapLoaded]);
 
+  // Track mounted state to prevent late async/event callbacks during unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   // Add a county tile overlay to the map
   const addCountyOverlay = useCallback((county: CountyTileSource) => {
     if (!isMapReady()) return;
@@ -305,9 +313,6 @@ export function useCountyTileOverlays({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Prevent any late async/event callbacks from touching the map
-      isMountedRef.current = false;
-
       if (!map) return;
 
       // Only attempt cleanup if the style is still available
