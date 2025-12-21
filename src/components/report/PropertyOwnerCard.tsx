@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 
 interface PropertyOwnerCardProps {
@@ -294,12 +295,23 @@ export function PropertyOwnerCard({
         )}
 
         {/* Source Attribution Footer */}
-        {updatedAt && (
-          <div className="pt-4 border-t flex items-center justify-between text-xs text-muted-foreground">
-            <span>Source: Harris County Appraisal District (HCAD)</span>
-            <span>Updated: {new Date(updatedAt).toLocaleDateString()}</span>
-          </div>
-        )}
+        <div className="pt-4 border-t flex items-center justify-between text-xs text-muted-foreground">
+          <span>Source: Harris County Appraisal District (HCAD)</span>
+          <ShowSourceButton
+            domain="property"
+            title="Property Owner & Account"
+            timestamp={updatedAt || undefined}
+            rawData={{
+              parcelOwner,
+              parcelId,
+              acctNum,
+              lotSize,
+              subdivision,
+              yearBuilt,
+              bldgSqft,
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

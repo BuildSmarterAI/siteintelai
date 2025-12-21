@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Leaf, AlertTriangle, MapPin, Mountain, FileText, CheckCircle2, XCircle, Droplets, Building2, Info } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,

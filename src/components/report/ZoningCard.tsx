@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Landmark, CheckCircle2, XCircle, AlertCircle, Scale, Ruler, Building2 } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 
 interface ZoningCardProps {
@@ -21,6 +22,7 @@ interface ZoningCardProps {
   overlayDistricts?: string[] | null;
   verdict?: string | null;
   className?: string;
+  updatedAt?: string | null;
 }
 
 export function ZoningCard({
@@ -35,7 +37,8 @@ export function ZoningCard({
   conditionalUses,
   overlayDistricts,
   verdict,
-  className
+  className,
+  updatedAt
 }: ZoningCardProps) {
   const hasZoning = zoningCode && zoningCode !== 'None' && zoningCode !== 'N/A';
   const isHouston = !hasZoning; // Houston has no formal zoning
@@ -262,6 +265,29 @@ export function ZoningCard({
             />
           </div>
         )}
+
+        {/* Show Source Footer */}
+        <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Source: {isHouston ? 'HCAD / Deed Records' : 'Municipal GIS'}
+          </span>
+          <ShowSourceButton
+            domain="zoning"
+            title="Zoning & Land Use"
+            timestamp={updatedAt || undefined}
+            rawData={{
+              zoningCode,
+              zoningDescription,
+              lotCoverage,
+              farLimit,
+              heightLimit,
+              setbacks,
+              permittedUses,
+              conditionalUses,
+              overlayDistricts,
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );
