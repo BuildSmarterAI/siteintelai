@@ -180,6 +180,7 @@ interface MapLibreCanvasProps {
   showParcels?: boolean;
   onParcelSelect?: (parcel: any) => void;
   onMapLoad?: () => void;
+  showLegend?: boolean;
 }
 
 /**
@@ -223,6 +224,7 @@ export function MapLibreCanvas({
   showParcels = false,
   onParcelSelect,
   onMapLoad,
+  showLegend = true,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -2394,18 +2396,20 @@ export function MapLibreCanvas({
       ) : null}
 
       {/* Map Legend */}
-      <MapLegend
-        hasParcels={layerVisibility.parcel || layerVisibility.countyParcels || hasVectorTileSource(vectorTileSources, 'parcels')}
-        hasFloodZones={layerVisibility.flood && (floodZones.length > 0 || hasVectorTileSource(vectorTileSources, 'flood'))}
-        hasTraffic={layerVisibility.traffic && (traffic.length > 0 || hasVectorTileSource(vectorTileSources, 'transportation'))}
-        hasEmployment={layerVisibility.employment && employmentCenters.length > 0}
-        hasWaterLines={layerVisibility.waterLines && waterLines.length > 0}
-        hasSewerLines={layerVisibility.sewerLines && sewerLines.length > 0}
-        hasStormLines={layerVisibility.stormLines && stormLines.length > 0}
-        hasStormManholes={layerVisibility.stormManholes && stormManholes.length > 0}
-        hasForceMain={layerVisibility.forceMain && forceMain.length > 0}
-        hasZoningDistricts={layerVisibility.zoningDistricts && (zoningDistricts.length > 0 || hasVectorTileSource(vectorTileSources, 'zoning'))}
-      />
+      {showLegend && (
+        <MapLegend
+          hasParcels={layerVisibility.parcel || layerVisibility.countyParcels || hasVectorTileSource(vectorTileSources, 'parcels')}
+          hasFloodZones={layerVisibility.flood && (floodZones.length > 0 || hasVectorTileSource(vectorTileSources, 'flood'))}
+          hasTraffic={layerVisibility.traffic && (traffic.length > 0 || hasVectorTileSource(vectorTileSources, 'transportation'))}
+          hasEmployment={layerVisibility.employment && employmentCenters.length > 0}
+          hasWaterLines={layerVisibility.waterLines && waterLines.length > 0}
+          hasSewerLines={layerVisibility.sewerLines && sewerLines.length > 0}
+          hasStormLines={layerVisibility.stormLines && stormLines.length > 0}
+          hasStormManholes={layerVisibility.stormManholes && stormManholes.length > 0}
+          hasForceMain={layerVisibility.forceMain && forceMain.length > 0}
+          hasZoningDistricts={layerVisibility.zoningDistricts && (zoningDistricts.length > 0 || hasVectorTileSource(vectorTileSources, 'zoning'))}
+        />
+      )}
 
       {/* Top-right controls */}
       <div className="absolute top-2 right-2 z-10 flex gap-2">

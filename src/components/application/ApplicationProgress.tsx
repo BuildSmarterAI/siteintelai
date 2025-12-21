@@ -11,9 +11,10 @@ interface ApplicationProgressProps {
   lastSaved?: Date | null;
   className?: string;
   completedSteps?: number[];
+  stepLabels?: string[];
 }
 
-const STEP_LABELS = [
+const DEFAULT_STEP_LABELS = [
   "Contact",
   "Property",
   "Building",
@@ -28,9 +29,11 @@ export function ApplicationProgress({
   isDraftSaving,
   lastSaved,
   className,
-  completedSteps = []
+  completedSteps = [],
+  stepLabels,
 }: ApplicationProgressProps) {
   const progress = (currentStep / totalSteps) * 100;
+  const labels = stepLabels ?? DEFAULT_STEP_LABELS;
 
   return (
     <div className={cn(
@@ -47,7 +50,7 @@ export function ApplicationProgress({
             
             {/* Step indicators - hidden on mobile */}
             <div className="hidden md:flex items-center gap-1">
-              {STEP_LABELS.map((label, idx) => {
+              {labels.map((label, idx) => {
                 const isCompleted = completedSteps.includes(idx) || idx < currentStep;
                 const isCurrent = idx === currentStep;
                 const isPending = idx > currentStep && !completedSteps.includes(idx);
