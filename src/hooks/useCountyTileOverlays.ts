@@ -57,14 +57,196 @@ export function useCountyTileOverlays({
   const [activeCounties, setActiveCounties] = useState<CountyTileSource[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ----------------------------
+  // Refs (keep all refs together)
+  // ----------------------------
   const addedSourcesRef = useRef<Set<string>>(new Set());
   const addedLayersRef = useRef<Set<string>>(new Set());
 
-  // Refs to avoid stale closures in long-lived map event handlers
+  // Avoid stale closures in long-lived map event handlers
   const isMountedRef = useRef(false);
   const mapRef = useRef<MapLibreMap | null>(null);
   const mapLoadedRef = useRef(false);
 
+  // Keep latest values in refs for long-lived event handlers
+  const activeCountiesRef = useRef<CountyTileSource[]>([]);
+  const addCountyOverlayRef = useRef<(county: CountyTileSource) => void>(() => {});
+  const removeCountyOverlayRef = useRef<(countyId: string) => void>(() => {});
+
+  // ---------------------------------
+  // Helpers (non-hook, safe to call)
+  // ---------------------------------
+  const isMapReady = (): boolean => {
+    const m = mapRef.current;
+    if (!isMountedRef.current || !m || !mapLoadedRef.current) return false;
+    try {
+      return !!m.getStyle();
+    } catch {
+      return false;
+    }
+  };
+
+  // ----------------------------
+  // Callbacks (keep together)
+  // ----------------------------
+  const addCountyOverlay = useCallback(
+    (county: CountyTileSource) => {
+      if (!isMapReady()) return;
+
+      const m = mapRef.current;
+      if (!m) return;
+
+      const sourceId = `${SOURCE_PREFIX}${county.id}`;
+      const layerId = `${LAYER_PREFIX}${county.id}`;
+
+      try {
+        // Check if source already exists
+        if (m.getSource(sourceId)) {
+          console.log(`[CountyTiles] Source ${sourceId} already exists`);
+          return;
+        }
+
+        const tileUrl = buildArcGISExportTileUrl(county);
+        console.log(`[CountyTiles] Adding county overlay: ${county.name}`, { tileUrl });
+
+        // Add raster tile source
+        m.addSource(sourceId, {
+          type: 'raster',
+          tiles: [tileUrl],
+          tileSize: 256,
+          bounds: county.bounds,
+          minzoom: county.minZoom,
+          maxzoom: county.maxZoom,
+          attribution: county.attribution,
+        });
+
+        addedSourcesRef.current.add(sourceId);
+
+        // Find the best layer to insert county tiles above basemap but below labels
+        const layers = m.getStyle()?.layers || [];
+        let beforeLayerId: string | undefined;
+
+        // First, try to find first symbol layer (labels)
+        for (const layer of layers) {
+          if (layer.type === 'symbol') {
+            beforeLayerId = layer.id;
+            break;
+          }
+        }
+
+        // If no symbol layer found, insert at the top (above all raster layers)
+        // This ensures county tiles are visible above the basemap
+        if (!beforeLayerId && layers.length > 0) {
+          console.log(`[CountyTiles] No symbol layer found, inserting at top of layer stack`);
+        }
+
+        // Add raster layer with lowered minzoom to 11 for earlier visibility
+        m.addLayer(
+          {
+            id: layerId,
+            type: 'raster',
+            source: sourceId,
+            minzoom: 11, // Force minzoom 11 regardless of county config
+            maxzoom: county.maxZoom,
+            paint: {
+              'raster-opacity': enabled ? opacity : 0,
+              'raster-fade-duration': 300,
+            },
+          },
+          beforeLayerId
+        );
+
+        addedLayersRef.current.add(layerId);
+
+        setActiveCounties((prev) => {
+          if (prev.find((c) => c.id === county.id)) return prev;
+          return [...prev, county];
+        });
+
+        onCountyAdded?.(county);
+        console.log(`[CountyTiles] Successfully added ${county.name}`);
+      } catch (err) {
+        console.error(`[CountyTiles] Failed to add ${county.name}:`, err);
+        setError(`Failed to add ${county.name} overlay`);
+      }
+    },
+    [enabled, opacity, onCountyAdded]
+  );
+
+  const removeCountyOverlay = useCallback(
+    (countyId: string) => {
+      if (!isMapReady()) return;
+
+      const m = mapRef.current;
+      if (!m) return;
+
+      const sourceId = `${SOURCE_PREFIX}${countyId}`;
+      const layerId = `${LAYER_PREFIX}${countyId}`;
+
+      try {
+        if (m.getLayer(layerId)) {
+          m.removeLayer(layerId);
+          addedLayersRef.current.delete(layerId);
+        }
+
+        if (m.getSource(sourceId)) {
+          m.removeSource(sourceId);
+          addedSourcesRef.current.delete(sourceId);
+        }
+
+        setActiveCounties((prev) => prev.filter((c) => c.id !== countyId));
+        onCountyRemoved?.(countyId);
+        console.log(`[CountyTiles] Removed ${countyId}`);
+      } catch (err) {
+        // Can happen during navigation/unmount; safe to ignore
+        console.debug(`[CountyTiles] Remove skipped for ${countyId} (map not ready)`);
+      }
+    },
+    [onCountyRemoved]
+  );
+
+  const toggleCounty = useCallback(
+    (countyId: string) => {
+      const isActive = activeCounties.some((c) => c.id === countyId);
+      if (isActive) {
+        removeCountyOverlay(countyId);
+      } else {
+        const county = COUNTY_TILE_SOURCES.find((c) => c.id === countyId);
+        if (county) {
+          addCountyOverlay(county);
+        }
+      }
+    },
+    [activeCounties, addCountyOverlay, removeCountyOverlay]
+  );
+
+  const setVisibility = useCallback(
+    (visible: boolean) => {
+      if (!isMapReady()) return;
+
+      const m = mapRef.current;
+      if (!m) return;
+
+      activeCounties.forEach((county) => {
+        const layerId = `${LAYER_PREFIX}${county.id}`;
+        try {
+          if (m.getLayer(layerId)) {
+            m.setPaintProperty(layerId, 'raster-opacity', visible ? opacity : 0);
+          }
+        } catch {
+          // Ignore errors during map transitions
+        }
+      });
+    },
+    [activeCounties, opacity]
+  );
+
+  // ----------------------------
+  // Effects (keep together)
+  // ----------------------------
+
+  // Sync latest map + loaded state into refs
   useEffect(() => {
     mapRef.current = map;
   }, [map]);
@@ -82,160 +264,18 @@ export function useCountyTileOverlays({
     };
   }, []);
 
-  // Helper to check if map is ready for operations (NOT memoized to avoid stale closures)
-  const isMapReady = (): boolean => {
-    const m = mapRef.current;
-    if (!isMountedRef.current || !m || !mapLoadedRef.current) return false;
-    try {
-      return !!m.getStyle();
-    } catch {
-      return false;
-    }
-  };
+  // Keep latest callbacks + active counties for long-lived event handlers
+  useEffect(() => {
+    activeCountiesRef.current = activeCounties;
+  }, [activeCounties]);
 
-  // Add a county tile overlay to the map
-  const addCountyOverlay = useCallback((county: CountyTileSource) => {
-    if (!isMapReady()) return;
+  useEffect(() => {
+    addCountyOverlayRef.current = addCountyOverlay;
+  }, [addCountyOverlay]);
 
-    const m = mapRef.current;
-    if (!m) return;
-
-    const sourceId = `${SOURCE_PREFIX}${county.id}`;
-    const layerId = `${LAYER_PREFIX}${county.id}`;
-
-    try {
-      // Check if source already exists
-      if (m.getSource(sourceId)) {
-        console.log(`[CountyTiles] Source ${sourceId} already exists`);
-        return;
-      }
-
-      const tileUrl = buildArcGISExportTileUrl(county);
-      console.log(`[CountyTiles] Adding county overlay: ${county.name}`, { tileUrl });
-
-      // Add raster tile source
-      m.addSource(sourceId, {
-        type: 'raster',
-        tiles: [tileUrl],
-        tileSize: 256,
-        bounds: county.bounds,
-        minzoom: county.minZoom,
-        maxzoom: county.maxZoom,
-        attribution: county.attribution,
-      });
-
-      addedSourcesRef.current.add(sourceId);
-
-      // Find the best layer to insert county tiles above basemap but below labels
-      const layers = m.getStyle()?.layers || [];
-      let beforeLayerId: string | undefined;
-
-      // First, try to find first symbol layer (labels)
-      for (const layer of layers) {
-        if (layer.type === 'symbol') {
-          beforeLayerId = layer.id;
-          break;
-        }
-      }
-
-      // If no symbol layer found, insert at the top (above all raster layers)
-      // This ensures county tiles are visible above the basemap
-      if (!beforeLayerId && layers.length > 0) {
-        console.log(`[CountyTiles] No symbol layer found, inserting at top of layer stack`);
-      }
-
-      // Add raster layer with lowered minzoom to 11 for earlier visibility
-      m.addLayer(
-        {
-          id: layerId,
-          type: 'raster',
-          source: sourceId,
-          minzoom: 11, // Force minzoom 11 regardless of county config
-          maxzoom: county.maxZoom,
-          paint: {
-            'raster-opacity': enabled ? opacity : 0,
-            'raster-fade-duration': 300,
-          },
-        },
-        beforeLayerId
-      );
-
-      addedLayersRef.current.add(layerId);
-
-      setActiveCounties((prev) => {
-        if (prev.find((c) => c.id === county.id)) return prev;
-        return [...prev, county];
-      });
-
-      onCountyAdded?.(county);
-      console.log(`[CountyTiles] Successfully added ${county.name}`);
-    } catch (err) {
-      console.error(`[CountyTiles] Failed to add ${county.name}:`, err);
-      setError(`Failed to add ${county.name} overlay`);
-    }
-  }, [enabled, opacity, onCountyAdded]);
-
-  // Remove a county tile overlay from the map
-  const removeCountyOverlay = useCallback((countyId: string) => {
-    if (!isMapReady()) return;
-
-    const m = mapRef.current;
-    if (!m) return;
-
-    const sourceId = `${SOURCE_PREFIX}${countyId}`;
-    const layerId = `${LAYER_PREFIX}${countyId}`;
-
-    try {
-      if (m.getLayer(layerId)) {
-        m.removeLayer(layerId);
-        addedLayersRef.current.delete(layerId);
-      }
-
-      if (m.getSource(sourceId)) {
-        m.removeSource(sourceId);
-        addedSourcesRef.current.delete(sourceId);
-      }
-
-      setActiveCounties((prev) => prev.filter((c) => c.id !== countyId));
-      onCountyRemoved?.(countyId);
-      console.log(`[CountyTiles] Removed ${countyId}`);
-    } catch (err) {
-      // Can happen during navigation/unmount; safe to ignore
-      console.debug(`[CountyTiles] Remove skipped for ${countyId} (map not ready)`);
-    }
-  }, [onCountyRemoved]);
-
-  // Toggle a county overlay
-  const toggleCounty = useCallback((countyId: string) => {
-    const isActive = activeCounties.some(c => c.id === countyId);
-    if (isActive) {
-      removeCountyOverlay(countyId);
-    } else {
-      const county = COUNTY_TILE_SOURCES.find(c => c.id === countyId);
-      if (county) {
-        addCountyOverlay(county);
-      }
-    }
-  }, [activeCounties, addCountyOverlay, removeCountyOverlay]);
-
-  // Set visibility of all county overlays
-  const setVisibility = useCallback((visible: boolean) => {
-    if (!isMapReady()) return;
-
-    const m = mapRef.current;
-    if (!m) return;
-
-    activeCounties.forEach((county) => {
-      const layerId = `${LAYER_PREFIX}${county.id}`;
-      try {
-        if (m.getLayer(layerId)) {
-          m.setPaintProperty(layerId, 'raster-opacity', visible ? opacity : 0);
-        }
-      } catch {
-        // Ignore errors during map transitions
-      }
-    });
-  }, [activeCounties, opacity]);
+  useEffect(() => {
+    removeCountyOverlayRef.current = removeCountyOverlay;
+  }, [removeCountyOverlay]);
 
   // Update opacity when it changes
   useEffect(() => {
@@ -256,27 +296,13 @@ export function useCountyTileOverlays({
     });
   }, [activeCounties, enabled, opacity]);
 
-  // Keep latest values in refs for long-lived event handlers
-  const activeCountiesRef = useRef<CountyTileSource[]>([]);
-  const addCountyOverlayRef = useRef(addCountyOverlay);
-  const removeCountyOverlayRef = useRef(removeCountyOverlay);
-
-  useEffect(() => {
-    activeCountiesRef.current = activeCounties;
-  }, [activeCounties]);
-
-  useEffect(() => {
-    addCountyOverlayRef.current = addCountyOverlay;
-  }, [addCountyOverlay]);
-
-  useEffect(() => {
-    removeCountyOverlayRef.current = removeCountyOverlay;
-  }, [removeCountyOverlay]);
-
   // Auto-detect counties based on viewport
   useEffect(() => {
+    // Guard FIRST (before touching map refs) to avoid any accidental access order issues
+    if (!autoDetect || countyIds) return;
+
     const attachedMap = mapRef.current;
-    if (!attachedMap || !mapLoadedRef.current || !autoDetect || countyIds) return;
+    if (!attachedMap || !mapLoadedRef.current) return;
 
     const updateCountiesInView = () => {
       const m = mapRef.current;
@@ -337,7 +363,7 @@ export function useCountyTileOverlays({
         // ignore
       }
     };
-  }, [autoDetect, countyIds]);
+  }, [autoDetect, countyIds, map, mapLoaded]);
 
   // Load specific counties if countyIds provided
   useEffect(() => {
@@ -352,7 +378,7 @@ export function useCountyTileOverlays({
         addCountyOverlayRef.current(county);
       }
     });
-  }, [countyIds]);
+  }, [countyIds, map, mapLoaded]);
 
   // Cleanup on unmount
   useEffect(() => {
