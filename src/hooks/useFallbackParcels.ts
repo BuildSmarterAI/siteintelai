@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import maplibregl from "maplibre-gl";
 
-interface ParcelFeature {
+export interface ParcelFeature {
   type: "Feature";
   geometry: unknown;
   properties: {
@@ -17,6 +17,16 @@ interface ParcelFeature {
   };
 }
 
+export interface HoveredParcel {
+  parcel_id: string;
+  owner_name: string | null;
+  situs_address: string | null;
+  acreage: number | null;
+  land_use_desc: string | null;
+  jurisdiction: string | null;
+  source: "canonical" | "external";
+}
+
 interface FallbackMetadata {
   source: "canonical" | "external" | "mixed";
   canonical_count: number;
@@ -29,8 +39,11 @@ interface UseFallbackParcelsOptions {
   mapLoaded: boolean;
   enabled: boolean;
   onParcelClick?: (parcel: any) => void;
+  onParcelHover?: (parcel: HoveredParcel | null, position: { x: number; y: number } | null) => void;
+  onParcelRightClick?: (parcel: any, position: { x: number; y: number }) => void;
   minZoom?: number;
   debounceMs?: number;
+  hoverDebounceMs?: number;
 }
 
 interface UseFallbackParcelsResult {
@@ -54,8 +67,11 @@ export function useFallbackParcels({
   mapLoaded,
   enabled,
   onParcelClick,
+  onParcelHover,
+  onParcelRightClick,
   minZoom = 14,
   debounceMs = 500,
+  hoverDebounceMs = 50,
 }: UseFallbackParcelsOptions): UseFallbackParcelsResult {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,16 +79,27 @@ export function useFallbackParcels({
   const [featureCount, setFeatureCount] = useState(0);
 
   const debounceTimeout = useRef<number | null>(null);
+  const hoverDebounceTimeout = useRef<number | null>(null);
   const lastBbox = useRef<string | null>(null);
   const layersAdded = useRef(false);
   
-  // Use ref to avoid stale closure in click handler
+  // Use refs to avoid stale closure in event handlers
   const onParcelClickRef = useRef(onParcelClick);
+  const onParcelHoverRef = useRef(onParcelHover);
+  const onParcelRightClickRef = useRef(onParcelRightClick);
   
-  // Keep ref updated with latest callback
+  // Keep refs updated with latest callbacks
   useEffect(() => {
     onParcelClickRef.current = onParcelClick;
   }, [onParcelClick]);
+  
+  useEffect(() => {
+    onParcelHoverRef.current = onParcelHover;
+  }, [onParcelHover]);
+  
+  useEffect(() => {
+    onParcelRightClickRef.current = onParcelRightClick;
+  }, [onParcelRightClick]);
 
   // Fetch parcels for current viewport
   const fetchParcelsForViewport = useCallback(async () => {
@@ -230,18 +257,67 @@ export function useFallbackParcels({
           }
         });
 
-        // Hover effects
+        // Hover handler with debouncing
+        map.on("mousemove", FALLBACK_FILL_LAYER_ID, (e) => {
+          if (hoverDebounceTimeout.current) {
+            clearTimeout(hoverDebounceTimeout.current);
+          }
+          
+          hoverDebounceTimeout.current = window.setTimeout(() => {
+            if (e.features && e.features.length > 0 && onParcelHoverRef.current) {
+              const feature = e.features[0];
+              const parcel: HoveredParcel = {
+                parcel_id: feature.properties?.parcel_id || '',
+                owner_name: feature.properties?.owner_name || null,
+                situs_address: feature.properties?.situs_address || null,
+                acreage: feature.properties?.acreage || null,
+                land_use_desc: feature.properties?.land_use_desc || null,
+                jurisdiction: feature.properties?.jurisdiction || null,
+                source: feature.properties?.source || 'external',
+              };
+              onParcelHoverRef.current(parcel, { x: e.point.x, y: e.point.y });
+            }
+          }, hoverDebounceMs);
+        });
+
+        // Mouse leave - clear hover
+        map.on("mouseleave", FALLBACK_FILL_LAYER_ID, () => {
+          if (hoverDebounceTimeout.current) {
+            clearTimeout(hoverDebounceTimeout.current);
+          }
+          map.getCanvas().style.cursor = "";
+          if (onParcelHoverRef.current) {
+            onParcelHoverRef.current(null, null);
+          }
+        });
+
+        // Hover effects - cursor change
         map.on("mouseenter", FALLBACK_FILL_LAYER_ID, () => {
           map.getCanvas().style.cursor = "pointer";
         });
-        map.on("mouseleave", FALLBACK_FILL_LAYER_ID, () => {
-          map.getCanvas().style.cursor = "";
+
+        // Right-click handler for context menu
+        map.on("contextmenu", FALLBACK_FILL_LAYER_ID, (e) => {
+          e.preventDefault();
+          if (e.features && e.features.length > 0 && onParcelRightClickRef.current) {
+            const feature = e.features[0];
+            onParcelRightClickRef.current({
+              parcel_id: feature.properties?.parcel_id,
+              owner_name: feature.properties?.owner_name,
+              situs_address: feature.properties?.situs_address,
+              acreage: feature.properties?.acreage,
+              land_use_desc: feature.properties?.land_use_desc,
+              jurisdiction: feature.properties?.jurisdiction,
+              source: feature.properties?.source,
+              geometry: feature.geometry,
+            }, { x: e.point.x, y: e.point.y });
+          }
         });
 
         layersAdded.current = true;
       }
     },
-    [map] // onParcelClick removed - using ref instead
+    [map, hoverDebounceMs]
   );
 
   // Debounced handler for map movement

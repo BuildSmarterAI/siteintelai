@@ -1,20 +1,31 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, CloudOff, Cloud, MapPin } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, CloudOff, Cloud, MapPin, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
 import { MeasurementTools, MeasurementMode } from './MeasurementTools';
 import { MapSearchBar } from './MapSearchBar';
+import { ParcelHoverPreview } from './ParcelHoverPreview';
+import { ParcelComparisonFAB } from './ParcelComparisonFAB';
+import { ParcelComparisonPanel } from './ParcelComparisonPanel';
+import { useParcelComparisonStore } from '@/stores/useParcelComparisonStore';
+import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
 import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
-import { useFallbackParcels } from '@/hooks/useFallbackParcels';
+import { useFallbackParcels, HoveredParcel } from '@/hooks/useFallbackParcels';
 import { useCountyTileOverlays } from '@/hooks/useCountyTileOverlays';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
@@ -248,6 +259,21 @@ export function MapLibreCanvas({
   const retryParcelLoad = useRef<(() => void) | null>(null);
   const measurementSourceId = 'measurement-source';
   
+  // Hover state for parcel preview
+  const [hoveredParcel, setHoveredParcel] = useState<HoveredParcel | null>(null);
+  const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+  
+  // Context menu state for right-click
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
+  const [contextMenuParcel, setContextMenuParcel] = useState<any>(null);
+  
+  // Comparison panel state
+  const [comparisonPanelOpen, setComparisonPanelOpen] = useState(false);
+  
+  // Access comparison store
+  const { addToComparison, isInComparison } = useParcelComparisonStore();
+  
   // Use ref to avoid stale closure in click handlers
   const onParcelSelectRef = useRef(onParcelSelect);
   
@@ -291,7 +317,46 @@ export function MapLibreCanvas({
   });
 
   // Fallback parcels via GeoJSON when vector tiles unavailable
-  const shouldUseFallback = showParcels && !hasVectorTiles && !vectorTilesLoading;
+  // Force GeoJSON fallback for now - SiteIntel vector tiles still building
+  const shouldUseFallback = showParcels; // Always use GeoJSON for interactivity
+  
+  // Hover callback for parcel preview
+  const handleParcelHover = useCallback((parcel: HoveredParcel | null, position: { x: number; y: number } | null) => {
+    setHoveredParcel(parcel);
+    setHoverPosition(position);
+  }, []);
+  
+  // Right-click callback for context menu
+  const handleParcelRightClick = useCallback((parcel: any, position: { x: number; y: number }) => {
+    setContextMenuParcel(parcel);
+    setContextMenuPosition(position);
+    setContextMenuOpen(true);
+  }, []);
+  
+  // Handle adding parcel to comparison
+  const handleAddToComparison = useCallback(() => {
+    if (!contextMenuParcel) return;
+    
+    const added = addToComparison({
+      parcel_id: contextMenuParcel.parcel_id,
+      owner_name: contextMenuParcel.owner_name,
+      situs_address: contextMenuParcel.situs_address,
+      acreage: contextMenuParcel.acreage,
+      land_use_desc: contextMenuParcel.land_use_desc,
+      jurisdiction: contextMenuParcel.jurisdiction,
+      market_value: contextMenuParcel.market_value,
+      geometry: contextMenuParcel.geometry,
+      source: contextMenuParcel.source,
+    });
+    
+    if (added) {
+      toast.success(`Added parcel to comparison`, { duration: 2000 });
+    } else {
+      toast.info('Parcel already in comparison or limit reached (max 4)', { duration: 2000 });
+    }
+    
+    setContextMenuOpen(false);
+  }, [contextMenuParcel, addToComparison]);
   
   const {
     isLoading: fallbackLoading,
@@ -304,8 +369,11 @@ export function MapLibreCanvas({
     mapLoaded,
     enabled: shouldUseFallback,
     onParcelClick: onParcelSelect,
+    onParcelHover: handleParcelHover,
+    onParcelRightClick: handleParcelRightClick,
     minZoom: 14,
     debounceMs: 500,
+    hoverDebounceMs: 50,
   });
 
   // County CAD tile overlays - direct from county ArcGIS servers
@@ -2693,6 +2761,57 @@ export function MapLibreCanvas({
         Use arrow keys to pan the map. Use plus and minus keys to zoom in and out. 
         Press Tab to focus on map markers, then Enter to view details.
       </div>
+
+      {/* Parcel Hover Preview */}
+      <AnimatePresence>
+        {hoveredParcel && hoverPosition && (
+          <ParcelHoverPreview
+            parcel={hoveredParcel}
+            position={hoverPosition}
+            isInComparison={isInComparison(hoveredParcel.parcel_id)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Parcel Comparison FAB */}
+      {showParcels && (
+        <ParcelComparisonFAB onOpenPanel={() => setComparisonPanelOpen(true)} />
+      )}
+
+      {/* Parcel Comparison Panel */}
+      <ParcelComparisonPanel 
+        open={comparisonPanelOpen} 
+        onClose={() => setComparisonPanelOpen(false)} 
+      />
+
+      {/* Context Menu for Right-Click */}
+      {contextMenuOpen && contextMenuParcel && (
+        <div 
+          className="fixed z-50 bg-background border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+          style={{ left: contextMenuPosition.x, top: contextMenuPosition.y }}
+          onMouseLeave={() => setContextMenuOpen(false)}
+        >
+          <button
+            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+            onClick={handleAddToComparison}
+          >
+            <Plus className="h-4 w-4" />
+            Add to Compare
+          </button>
+          <button
+            className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+            onClick={() => {
+              if (onParcelSelect && contextMenuParcel) {
+                onParcelSelect(contextMenuParcel);
+              }
+              setContextMenuOpen(false);
+            }}
+          >
+            <MapPin className="h-4 w-4" />
+            Select Parcel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
