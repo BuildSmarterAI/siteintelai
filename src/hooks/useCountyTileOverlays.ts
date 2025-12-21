@@ -140,6 +140,13 @@ export function useCountyTileOverlays({
   const removeCountyOverlay = useCallback((countyId: string) => {
     if (!map) return;
 
+    // Safety check: ensure map style is loaded
+    try {
+      if (!map.getStyle()) return;
+    } catch (e) {
+      return;
+    }
+
     const sourceId = `${SOURCE_PREFIX}${countyId}`;
     const layerId = `${LAYER_PREFIX}${countyId}`;
 
@@ -178,11 +185,22 @@ export function useCountyTileOverlays({
   // Set visibility of all county overlays
   const setVisibility = useCallback((visible: boolean) => {
     if (!map) return;
+    
+    // Safety check: ensure map style is loaded
+    try {
+      if (!map.getStyle()) return;
+    } catch (e) {
+      return;
+    }
 
     activeCounties.forEach(county => {
       const layerId = `${LAYER_PREFIX}${county.id}`;
-      if (map.getLayer(layerId)) {
-        map.setPaintProperty(layerId, 'raster-opacity', visible ? opacity : 0);
+      try {
+        if (map.getLayer(layerId)) {
+          map.setPaintProperty(layerId, 'raster-opacity', visible ? opacity : 0);
+        }
+      } catch (e) {
+        // Ignore errors during map transitions
       }
     });
   }, [map, activeCounties, opacity]);
@@ -190,11 +208,22 @@ export function useCountyTileOverlays({
   // Update opacity when it changes
   useEffect(() => {
     if (!map || !mapLoaded) return;
+    
+    // Safety check: ensure map style is loaded
+    try {
+      if (!map.getStyle()) return;
+    } catch (e) {
+      return;
+    }
 
     activeCounties.forEach(county => {
       const layerId = `${LAYER_PREFIX}${county.id}`;
-      if (map.getLayer(layerId)) {
-        map.setPaintProperty(layerId, 'raster-opacity', enabled ? opacity : 0);
+      try {
+        if (map.getLayer(layerId)) {
+          map.setPaintProperty(layerId, 'raster-opacity', enabled ? opacity : 0);
+        }
+      } catch (e) {
+        // Ignore errors during map transitions
       }
     });
   }, [map, mapLoaded, activeCounties, enabled, opacity]);
@@ -266,27 +295,36 @@ export function useCountyTileOverlays({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Safety check: map might be partially unmounted
       if (!map) return;
       
-      addedLayersRef.current.forEach(layerId => {
-        try {
-          if (map.getLayer(layerId)) {
-            map.removeLayer(layerId);
+      try {
+        // Check if map style is still available before cleanup
+        if (!map.getStyle()) return;
+        
+        addedLayersRef.current.forEach(layerId => {
+          try {
+            if (map.getLayer(layerId)) {
+              map.removeLayer(layerId);
+            }
+          } catch (e) {
+            // Ignore cleanup errors
           }
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      });
+        });
 
-      addedSourcesRef.current.forEach(sourceId => {
-        try {
-          if (map.getSource(sourceId)) {
-            map.removeSource(sourceId);
+        addedSourcesRef.current.forEach(sourceId => {
+          try {
+            if (map.getSource(sourceId)) {
+              map.removeSource(sourceId);
+            }
+          } catch (e) {
+            // Ignore cleanup errors
           }
-        } catch (e) {
-          // Ignore cleanup errors
-        }
-      });
+        });
+      } catch (e) {
+        // Map is already unmounted, ignore
+        console.debug('[CountyTiles] Cleanup skipped - map not ready');
+      }
     };
   }, [map]);
 
