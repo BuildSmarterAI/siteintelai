@@ -17,7 +17,8 @@ import { useParcelComparisonStore } from '@/stores/useParcelComparisonStore';
 import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
-import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
+// DISABLED: Vector tiles not ready - using County CAD + GeoJSON fallback
+// import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
 import { useFallbackParcels, HoveredParcel } from '@/hooks/useFallbackParcels';
 import { useCountyTileOverlays } from '@/hooks/useCountyTileOverlays';
 import {
@@ -300,7 +301,10 @@ export function MapLibreCanvas({
     };
   });
 
-  // Vector tile layers from CloudFront CDN
+  // DISABLED: SiteIntel Vector Tiles (Tier 1) - still building CDN infrastructure
+  // Using County CAD Tiles (Tier 2) + GeoJSON Fallback (Tier 3) instead
+  // TODO: Re-enable when vector tiles are ready on CloudFront
+  /*
   const { 
     sources: vectorTileSources, 
     hasVectorTiles, 
@@ -308,13 +312,21 @@ export function MapLibreCanvas({
     activeSources: activeVectorSources,
     error: vectorTileError,
   } = useVectorTileLayers({
-    map: mapInstance, // Use state, not ref - triggers re-render
+    map: mapInstance,
     mapLoaded,
     jurisdiction: 'tx',
     layerVisibility: { ...layerVisibility },
-    styleVersion, // Re-add layers after style changes
-    onParcelClick: onParcelSelect, // Forward parcel clicks
+    styleVersion,
+    onParcelClick: onParcelSelect,
   });
+  */
+  
+  // Mock vector tile state - forces fallback mode
+  const vectorTileSources = {};
+  const hasVectorTiles = false;
+  const vectorTilesLoading = false;
+  const activeVectorSources: string[] = [];
+  const vectorTileError = null;
 
   // Fallback parcels via GeoJSON when vector tiles unavailable
   // Force GeoJSON fallback for now - SiteIntel vector tiles still building
@@ -2473,16 +2485,16 @@ export function MapLibreCanvas({
       {/* Map Legend */}
       {showLegend && (
         <MapLegend
-          hasParcels={layerVisibility.parcel || layerVisibility.countyParcels || hasVectorTileSource(vectorTileSources, 'parcels')}
-          hasFloodZones={layerVisibility.flood && (floodZones.length > 0 || hasVectorTileSource(vectorTileSources, 'flood'))}
-          hasTraffic={layerVisibility.traffic && (traffic.length > 0 || hasVectorTileSource(vectorTileSources, 'transportation'))}
+          hasParcels={layerVisibility.parcel || layerVisibility.countyParcels || isFallbackMode}
+          hasFloodZones={layerVisibility.flood && floodZones.length > 0}
+          hasTraffic={layerVisibility.traffic && traffic.length > 0}
           hasEmployment={layerVisibility.employment && employmentCenters.length > 0}
           hasWaterLines={layerVisibility.waterLines && waterLines.length > 0}
           hasSewerLines={layerVisibility.sewerLines && sewerLines.length > 0}
           hasStormLines={layerVisibility.stormLines && stormLines.length > 0}
           hasStormManholes={layerVisibility.stormManholes && stormManholes.length > 0}
           hasForceMain={layerVisibility.forceMain && forceMain.length > 0}
-          hasZoningDistricts={layerVisibility.zoningDistricts && (zoningDistricts.length > 0 || hasVectorTileSource(vectorTileSources, 'zoning'))}
+          hasZoningDistricts={layerVisibility.zoningDistricts && zoningDistricts.length > 0}
         />
       )}
 
