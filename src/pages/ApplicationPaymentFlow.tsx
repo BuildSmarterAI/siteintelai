@@ -170,6 +170,7 @@ export default function ApplicationPaymentFlow() {
         currentStep={stepNumber - 1}
         totalSteps={2}
         stepTitle={stepTitles[currentStep]}
+        stepLabels={["Property", "Checkout"]}
         isDraftSaving={false}
         lastSaved={null}
       />
