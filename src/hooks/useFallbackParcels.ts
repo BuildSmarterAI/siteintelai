@@ -185,9 +185,11 @@ export function useFallbackParcels({
         });
       }
 
-      // Add layers if not exists
+      // Add layers if not exists - ensure they render on TOP of other layers
       if (!layersAdded.current) {
-        // Fill layer
+        console.log('[useFallbackParcels] Adding fallback parcel layers to map');
+        
+        // Fill layer - render on top of all existing layers
         if (!map.getLayer(FALLBACK_FILL_LAYER_ID)) {
           map.addLayer({
             id: FALLBACK_FILL_LAYER_ID,
@@ -203,12 +205,13 @@ export function useFallbackParcels({
                 "#FBBF24", // Amber for external data
                 "#FF7A00",
               ],
-              "fill-opacity": 0.15,
+              "fill-opacity": 0.25, // Increased opacity for better visibility
             },
           });
+          console.log('[useFallbackParcels] Added fill layer:', FALLBACK_FILL_LAYER_ID);
         }
 
-        // Line layer
+        // Line layer - thicker for better visibility
         if (!map.getLayer(FALLBACK_LINE_LAYER_ID)) {
           map.addLayer({
             id: FALLBACK_LINE_LAYER_ID,
@@ -224,9 +227,10 @@ export function useFallbackParcels({
                 "#F59E0B", // Amber
                 "#FF7A00",
               ],
-              "line-width": 1.5,
+              "line-width": 2, // Increased width for visibility
             },
           });
+          console.log('[useFallbackParcels] Added line layer:', FALLBACK_LINE_LAYER_ID);
         }
 
         // Click handler - uses ref to avoid stale closure
