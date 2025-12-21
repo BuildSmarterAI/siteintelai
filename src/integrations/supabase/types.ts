@@ -600,6 +600,7 @@ export type Database = {
           parcel_owner: string | null
           parcel_source: string | null
           parcel_source_id: string | null
+          payment_status: string | null
           peak_hour_volume: number | null
           per_capita_income: number | null
           phone: string
@@ -647,6 +648,8 @@ export type Database = {
           status_rev: number
           stories_height: string
           storm_lines: Json | null
+          stripe_customer_email: string | null
+          stripe_session_id: string | null
           subdivision: string | null
           sublocality: string | null
           submarket_enriched: string | null
@@ -678,7 +681,7 @@ export type Database = {
           under_18_pct: number | null
           unemployment_rate: number | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           utilities_map_url: string | null
           utilities_output: string | null
           utilities_summary: Json | null
@@ -877,6 +880,7 @@ export type Database = {
           parcel_owner?: string | null
           parcel_source?: string | null
           parcel_source_id?: string | null
+          payment_status?: string | null
           peak_hour_volume?: number | null
           per_capita_income?: number | null
           phone: string
@@ -924,6 +928,8 @@ export type Database = {
           status_rev?: number
           stories_height: string
           storm_lines?: Json | null
+          stripe_customer_email?: string | null
+          stripe_session_id?: string | null
           subdivision?: string | null
           sublocality?: string | null
           submarket_enriched?: string | null
@@ -955,7 +961,7 @@ export type Database = {
           under_18_pct?: number | null
           unemployment_rate?: number | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           utilities_map_url?: string | null
           utilities_output?: string | null
           utilities_summary?: Json | null
@@ -1154,6 +1160,7 @@ export type Database = {
           parcel_owner?: string | null
           parcel_source?: string | null
           parcel_source_id?: string | null
+          payment_status?: string | null
           peak_hour_volume?: number | null
           per_capita_income?: number | null
           phone?: string
@@ -1201,6 +1208,8 @@ export type Database = {
           status_rev?: number
           stories_height?: string
           storm_lines?: Json | null
+          stripe_customer_email?: string | null
+          stripe_session_id?: string | null
           subdivision?: string | null
           sublocality?: string | null
           submarket_enriched?: string | null
@@ -1232,7 +1241,7 @@ export type Database = {
           under_18_pct?: number | null
           unemployment_rate?: number | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           utilities_map_url?: string | null
           utilities_output?: string | null
           utilities_summary?: Json | null
