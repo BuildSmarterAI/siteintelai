@@ -264,34 +264,26 @@ async function fetchFromCounty(
     console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (params.lat !== undefined && params.lng !== undefined) {
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    // Use tiny bounding box (~10m) as JSON envelope with explicit spatialReference
+    // Use simple comma-separated envelope format (more compatible with ArcGIS servers)
     const buffer = 0.0001; // ~11 meters at Texas latitudes
-    const envelopeGeom = JSON.stringify({
-      xmin: params.lng - buffer,
-      ymin: params.lat - buffer,
-      xmax: params.lng + buffer,
-      ymax: params.lat + buffer,
-      spatialReference: { wkid: 4326 }
-    });
-    queryParams.set('geometry', envelopeGeom);
+    const minLng = params.lng - buffer;
+    const minLat = params.lat - buffer;
+    const maxLng = params.lng + buffer;
+    const maxLat = params.lat + buffer;
+    queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
     queryParams.set('geometryType', 'esriGeometryEnvelope');
+    queryParams.set('inSR', '4326');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: point-in-parcel via JSON envelope (${params.lat}, ${params.lng})`);
+    console.log(`[fetch-parcels] Query type: point-in-parcel via envelope (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    // Use JSON envelope format with explicit spatialReference for bbox queries
-    const bboxGeom = JSON.stringify({
-      xmin: minLng,
-      ymin: minLat,
-      xmax: maxLng,
-      ymax: maxLat,
-      spatialReference: { wkid: 4326 }
-    });
-    queryParams.set('geometry', bboxGeom);
+    // Use simple comma-separated envelope format (more compatible with ArcGIS servers)
+    queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
     queryParams.set('geometryType', 'esriGeometryEnvelope');
+    queryParams.set('inSR', '4326');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: bbox query via JSON envelope`);
+    console.log(`[fetch-parcels] Query type: bbox query via envelope`);
   }
   
   queryParams.set('outFields', config.fields.join(','));
