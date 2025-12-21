@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { PropertyStepMapFirst } from "@/components/application/PropertyStepMapFirst";
+import { ParcelSelectionGate } from "@/components/application/ParcelSelectionGate";
 import { PaymentGate } from "@/components/payment/PaymentGate";
 import { ApplicationProgress } from "@/components/application/ApplicationProgress";
+import type { SelectedParcel } from "@/types/parcelSelection";
 import * as turf from '@turf/turf';
 
 type FlowStep = "property" | "payment";
 
 export default function ApplicationPaymentFlow() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   // Check for canceled payment
@@ -23,7 +23,7 @@ export default function ApplicationPaymentFlow() {
   // Flow state
   const [currentStep, setCurrentStep] = useState<FlowStep>("property");
   const [applicationId, setApplicationId] = useState<string | null>(null);
-  const [isCreatingApplication, setIsCreatingApplication] = useState(false);
+  const [, setIsCreatingApplication] = useState(false);
   
   // Form data for property step
   const [formData, setFormData] = useState({
@@ -43,111 +43,38 @@ export default function ApplicationPaymentFlow() {
     email: "",
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isAddressLoading, setIsAddressLoading] = useState(false);
+  
 
-  // Handle field changes
-  const handleChange = useCallback((field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when field is updated
-    if (errors[field]) {
-      setErrors(prev => {
-        const updated = { ...prev };
-        delete updated[field];
-        return updated;
-      });
+  // Handle locked parcel from ParcelSelectionGate
+  const handleParcelLocked = useCallback(async (parcel: SelectedParcel) => {
+    // Calculate centroid from geometry
+    let lat: number | undefined;
+    let lng: number | undefined;
+
+    if (parcel.geom) {
+      const centroid = turf.centroid(parcel.geom);
+      [lng, lat] = centroid.geometry.coordinates;
     }
-  }, [errors]);
 
-  // Handle address selection
-  const handleAddressSelect = useCallback(async (lat: number, lng: number, address: string) => {
+    // Update form data with locked parcel info
     setFormData(prev => ({
       ...prev,
-      propertyAddress: address,
+      propertyAddress: parcel.situs_address || prev.propertyAddress,
       geoLat: lat,
-      geoLng: lng
+      geoLng: lng,
+      parcelId: parcel.parcel_id || '',
+      lotSize: parcel.acreage ? String(parcel.acreage) : prev.lotSize,
+      parcelOwner: parcel.owner_name || prev.parcelOwner,
+      zoning: parcel.zoning || prev.zoning,
+      county: parcel.county || prev.county,
     }));
-    setIsAddressLoading(true);
 
-    try {
-      const { data, error } = await supabase.functions.invoke('enrich-feasibility', {
-        body: { lat, lng, formatted_address: address, mode: 'geocode_only' }
-      });
-
-      if (error) {
-        console.error('[Enrichment Error]', error);
-        toast.error("Could not load property details automatically");
-        return;
-      }
-
-      if (data?.success && data?.data) {
-        const enrichedData = data.data;
-        setFormData(prev => ({
-          ...prev,
-          county: enrichedData.county || enrichedData.administrative_area_level_2 || '',
-          city: enrichedData.city || enrichedData.locality || '',
-          state: enrichedData.administrative_area_level_1 || enrichedData.state || 'TX',
-          zipCode: enrichedData.postal_code || enrichedData.zipCode || '',
-          neighborhood: enrichedData.neighborhood || enrichedData.sublocality || '',
-          parcelId: enrichedData.parcel_id || prev.parcelId,
-          lotSize: enrichedData.acreage_cad ? String(enrichedData.acreage_cad) : prev.lotSize,
-          zoning: enrichedData.zoning_code || prev.zoning,
-          parcelOwner: enrichedData.parcel_owner || prev.parcelOwner,
-        }));
-        toast.success("Property data loaded");
-      }
-    } catch (err) {
-      console.error('[Enrichment Error]', err);
-    } finally {
-      setIsAddressLoading(false);
-    }
-  }, []);
-
-  // Handle parcel selection from map
-  const handleParcelSelect = useCallback((parcel: any) => {
-    const props = parcel.properties || {};
-    const parcelId = props.ACCOUNT || props.HCAD_NUM || props.parcelId || props.GEO_ID || '';
-    const owner = props.OWNER_NAME || props.OWNER || props.owner_name_1 || props.ownername || '';
-    const acreage = props.ACREAGE || props.acreage || props.acreage_1 || 0;
-    const situsAddr = props.SITUS_ADDR || props.SITE_ADDR_1 || props.situs || props.address || '';
-    const zoning = props.ZONING || props.zone_class || '';
-    
-    setFormData(prev => ({
-      ...prev,
-      propertyAddress: situsAddr || prev.propertyAddress,
-      parcelId: parcelId,
-      parcelOwner: owner,
-      lotSize: acreage ? String(acreage) : prev.lotSize,
-      zoning: zoning || prev.zoning,
-    }));
-    
-    if (parcel.geometry) {
-      const centroid = turf.centroid(parcel.geometry);
-      const [lng, lat] = centroid.geometry.coordinates;
-      setFormData(prev => ({
-        ...prev,
-        geoLat: lat,
-        geoLng: lng,
-      }));
-    }
-  }, []);
-
-  // Continue to payment step - creates application first
-  const handleContinueToPayment = useCallback(async () => {
-    // Validate required field
-    if (!formData.propertyAddress) {
-      setErrors({ propertyAddress: "Please select a property address" });
-      toast.error("Please select a property address");
-      return;
-    }
-
-    // Check if email is needed (not authenticated)
+    // Create application and proceed to payment
     const { data: { session } } = await supabase.auth.getSession();
     const email = session?.user?.email || formData.email;
 
     if (!email) {
-      // For guests, we'll collect email in the PaymentGate
-      // Just proceed with a placeholder that will be updated
+      // For guests, proceed to payment where email will be collected
       setCurrentStep("payment");
       return;
     }
@@ -155,19 +82,18 @@ export default function ApplicationPaymentFlow() {
     setIsCreatingApplication(true);
 
     try {
-      // Create the application
       const { data, error } = await supabase.functions.invoke('create-guest-application', {
         body: {
-          propertyAddress: formData.propertyAddress,
-          geoLat: formData.geoLat,
-          geoLng: formData.geoLng,
+          propertyAddress: parcel.situs_address || formData.propertyAddress,
+          geoLat: lat,
+          geoLng: lng,
           email: email,
-          parcelId: formData.parcelId,
-          lotSize: formData.lotSize,
+          parcelId: parcel.parcel_id,
+          lotSize: parcel.acreage ? String(parcel.acreage) : formData.lotSize,
           lotSizeUnit: formData.lotSizeUnit,
-          parcelOwner: formData.parcelOwner,
-          zoning: formData.zoning,
-          county: formData.county,
+          parcelOwner: parcel.owner_name,
+          zoning: parcel.zoning,
+          county: parcel.county,
           city: formData.city,
           state: formData.state,
           zipCode: formData.zipCode,
@@ -184,7 +110,7 @@ export default function ApplicationPaymentFlow() {
       if (data?.success && data?.application?.id) {
         setApplicationId(data.application.id);
         setCurrentStep("payment");
-        toast.success("Property saved. Continue to checkout.");
+        toast.success("Property verified. Continue to checkout.");
       }
     } catch (err) {
       console.error('[Create Application Error]', err);
@@ -193,6 +119,7 @@ export default function ApplicationPaymentFlow() {
       setIsCreatingApplication(false);
     }
   }, [formData]);
+
 
   // Handle creating application when email is provided in PaymentGate
   const handleEmailProvided = useCallback(async (email: string) => {
@@ -247,16 +174,15 @@ export default function ApplicationPaymentFlow() {
         lastSaved={null}
       />
 
-      {/* Property Step - Full Width Map */}
+      {/* Property Step - ParcelSelectionGate */}
       {currentStep === "property" && (
-        <PropertyStepMapFirst
-          formData={formData}
-          onChange={handleChange}
-          onAddressSelect={handleAddressSelect}
-          onParcelSelect={handleParcelSelect}
-          onContinue={handleContinueToPayment}
-          errors={errors}
-          isAddressLoading={isAddressLoading || isCreatingApplication}
+        <ParcelSelectionGate
+          onParcelLocked={handleParcelLocked}
+          initialAddress={formData.propertyAddress}
+          initialCoords={formData.geoLat && formData.geoLng ? {
+            lat: formData.geoLat,
+            lng: formData.geoLng
+          } : undefined}
         />
       )}
 
