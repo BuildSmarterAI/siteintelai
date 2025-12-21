@@ -377,8 +377,9 @@ export function useFallbackParcels({
     layersAdded.current = false;
   }, [map, enabled]);
 
-  // Determine if we're in fallback mode based on metadata
-  const isFallbackMode = metadata?.source === "external" || metadata?.source === "mixed";
+  // isFallbackMode is true when fallback parcels are enabled and we have features
+  // This correctly reflects when the fallback GeoJSON system is active
+  const isFallbackMode = enabled && featureCount > 0;
 
   return {
     isLoading,
