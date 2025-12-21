@@ -6971,6 +6971,26 @@ export type Database = {
         Args: { p_record: Json; p_table_name: string }
         Returns: Json
       }
+      find_parcels_in_bbox: {
+        Args: {
+          max_lat: number
+          max_lng: number
+          max_results?: number
+          min_lat: number
+          min_lng: number
+        }
+        Returns: {
+          acreage: number
+          geom_json: Json
+          id: number
+          jurisdiction: string
+          land_use_desc: string
+          owner_name: string
+          situs_address: string
+          source_agency: string
+          source_parcel_id: string
+        }[]
+      }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
