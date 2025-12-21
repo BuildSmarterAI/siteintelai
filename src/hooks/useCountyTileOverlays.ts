@@ -61,6 +61,7 @@ export function useCountyTileOverlays({
   const addedLayersRef = useRef<Set<string>>(new Set());
   const isMountedRef = useRef(true);
 
+  // Helper to check if map is ready for operations
   const isMapReady = useCallback(() => {
     if (!isMountedRef.current || !map || !mapLoaded) return false;
     try {
@@ -69,13 +70,6 @@ export function useCountyTileOverlays({
       return false;
     }
   }, [map, mapLoaded]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
 
   // Add a county tile overlay to the map
   const addCountyOverlay = useCallback((county: CountyTileSource) => {
