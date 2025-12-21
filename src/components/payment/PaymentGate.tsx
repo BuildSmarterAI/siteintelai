@@ -21,6 +21,7 @@ interface PaymentGateProps {
   applicationId: string;
   propertyAddress: string;
   coordinates?: { lat: number; lng: number };
+  onEmailProvided?: (email: string) => void;
   onPaymentInitiated?: () => void;
 }
 
@@ -28,6 +29,7 @@ export const PaymentGate = ({
   applicationId, 
   propertyAddress, 
   coordinates,
+  onEmailProvided,
   onPaymentInitiated 
 }: PaymentGateProps) => {
   const [loading, setLoading] = useState(false);
@@ -49,6 +51,9 @@ export const PaymentGate = ({
       return;
     }
     setEmailError("");
+
+    // Notify parent that email was provided (for late application creation)
+    onEmailProvided?.(email);
 
     try {
       setLoading(true);

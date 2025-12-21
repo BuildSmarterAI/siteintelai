@@ -72,6 +72,7 @@ import TileManagement from "./pages/admin/TileManagement";
 import AdminReports from "./pages/admin/AdminReports";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import CreateAccount from "./pages/CreateAccount";
+import ApplicationPaymentFlow from "./pages/ApplicationPaymentFlow";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -81,9 +82,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isDocsPage = location.pathname.startsWith('/docs');
   const isReportPage = location.pathname.startsWith('/report/');
   const isMarketIntelPage = location.pathname === '/market-intelligence';
+  const isPaymentFlowPage = location.pathname === '/get-started';
 
-  // Fullscreen pages, docs, reports, and market intelligence render without any layout wrapper
-  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage) {
+  // Fullscreen pages, docs, reports, market intelligence, and payment flow render without any layout wrapper
+  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage || isPaymentFlowPage) {
     return <>{children}</>;
   }
 
@@ -110,6 +112,7 @@ const App = () => (
           <Layout>
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/get-started" element={<ApplicationPaymentFlow />} />
               <Route path="/application" element={<Application />} />
               <Route path="/thank-you" element={<ThankYou />} />
               <Route path="/auth" element={<Auth />} />
