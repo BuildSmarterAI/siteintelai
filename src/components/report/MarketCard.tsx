@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, TrendingUp, Clock, MapPin, DollarSign, Building2, BarChart3 } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 
 interface MarketCardProps {
@@ -16,6 +17,7 @@ interface MarketCardProps {
   growthRate5yr?: number | null;
   verdict?: string | null;
   className?: string;
+  updatedAt?: string | null;
 }
 
 export function MarketCard({
@@ -29,7 +31,8 @@ export function MarketCard({
   households5mi,
   growthRate5yr,
   verdict,
-  className
+  className,
+  updatedAt
 }: MarketCardProps) {
   const formatPopulation = (pop: number) => {
     if (pop >= 1000000) return `${(pop / 1000000).toFixed(1)}M`;
@@ -243,6 +246,28 @@ export function MarketCard({
             />
           </div>
         )}
+
+        {/* Show Source Footer */}
+        <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Source: US Census ACS
+          </span>
+          <ShowSourceButton
+            domain="market"
+            title="Market Demographics"
+            timestamp={updatedAt || undefined}
+            rawData={{
+              population1mi,
+              population3mi,
+              population5mi,
+              driveTime15min,
+              driveTime30min,
+              medianIncome,
+              households5mi,
+              growthRate5yr,
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

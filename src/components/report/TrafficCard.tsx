@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Car, TrendingUp, Clock, MapPin, Activity, Truck, ExternalLink, Gauge, CircleDot } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 
 interface TrafficCardProps {
@@ -19,6 +20,7 @@ interface TrafficCardProps {
   surfaceType?: string | null;
   verdict?: string | null;
   className?: string;
+  updatedAt?: string | null;
 }
 
 export function TrafficCard({
@@ -34,7 +36,8 @@ export function TrafficCard({
   speedLimit,
   surfaceType,
   verdict,
-  className
+  className,
+  updatedAt
 }: TrafficCardProps) {
   const getTrafficLevel = (aadt?: number | null) => {
     if (!aadt) return { level: 'Unknown', color: 'text-muted-foreground' };
@@ -267,6 +270,29 @@ export function TrafficCard({
             />
           </div>
         )}
+
+        {/* Show Source Footer */}
+        <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Source: TxDOT AADT {trafficYear && `(${trafficYear})`}
+          </span>
+          <ShowSourceButton
+            domain="traffic"
+            title="Traffic & Access Analysis"
+            timestamp={updatedAt || undefined}
+            rawData={{
+              aadt,
+              roadName,
+              trafficYear,
+              truckPercent,
+              congestionLevel,
+              trafficDirection,
+              peakHourVolume,
+              speedLimit,
+              surfaceType,
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

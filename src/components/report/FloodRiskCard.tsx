@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Droplets, TrendingUp, Shield, FileText, Activity } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 
 interface FloodRiskCardProps {
@@ -14,6 +15,7 @@ interface FloodRiskCardProps {
   nfipClaims?: number | null;
   verdict?: string | null;
   className?: string;
+  updatedAt?: string | null;
 }
 
 export function FloodRiskCard({
@@ -25,7 +27,8 @@ export function FloodRiskCard({
   historicalEvents = [],
   nfipClaims,
   verdict,
-  className
+  className,
+  updatedAt
 }: FloodRiskCardProps) {
   const getRiskLevel = (zone?: string | null) => {
     if (!zone) return { level: 'Unknown', color: 'text-muted-foreground', bg: 'bg-muted' };
@@ -196,6 +199,26 @@ export function FloodRiskCard({
             />
           </div>
         )}
+
+        {/* Show Source Footer */}
+        <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Source: FEMA NFHL
+          </span>
+          <ShowSourceButton
+            domain="flood"
+            title="Flood Risk Analysis"
+            timestamp={updatedAt || undefined}
+            rawData={{
+              floodZone,
+              baseFloodElevation,
+              bfeSource,
+              firmPanel,
+              nfipClaims,
+              historicalEventsCount: historicalEvents?.length || 0,
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );

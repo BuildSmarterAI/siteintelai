@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Droplets, Zap, Wifi, Trash2, CheckCircle2, XCircle, AlertCircle, Cable } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 
 interface UtilityLine {
@@ -26,6 +27,7 @@ interface UtilitiesCardProps {
   wcidDistrict?: string | null;
   verdict?: string | null;
   className?: string;
+  updatedAt?: string | null;
 }
 
 export function UtilitiesCard({
@@ -42,7 +44,8 @@ export function UtilitiesCard({
   etjProvider,
   wcidDistrict,
   verdict,
-  className
+  className,
+  updatedAt
 }: UtilitiesCardProps) {
   const getUtilityStatus = (lines?: UtilityLine[] | null) => {
     if (!lines || lines.length === 0) return { available: false, nearest: null };
@@ -265,6 +268,32 @@ export function UtilitiesCard({
             />
           </div>
         )}
+
+        {/* Show Source Footer */}
+        <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            Source: City of Houston GIS
+          </span>
+          <ShowSourceButton
+            domain="utilities"
+            title="Utilities Infrastructure"
+            timestamp={updatedAt || undefined}
+            rawData={{
+              waterAvailable: water.available,
+              sewerAvailable: sewer.available,
+              stormAvailable: storm.available,
+              waterNearestFt: water.nearest,
+              sewerNearestFt: sewer.nearest,
+              powerKv,
+              fiberAvailable,
+              waterCapacity,
+              sewerCapacity,
+              mudDistrict,
+              etjProvider,
+              wcidDistrict,
+            }}
+          />
+        </div>
       </CardContent>
     </Card>
   );
