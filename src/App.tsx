@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { Header } from "./components/navigation/Header";
 import { Footer } from "./components/navigation/Footer";
 import { SkipLinks } from "./components/SkipLinks";
@@ -113,7 +113,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/get-started" element={<ApplicationPaymentFlow />} />
-              <Route path="/application" element={<Application />} />
+              <Route path="/application" element={<Navigate to="/get-started" replace />} />
               <Route path="/thank-you" element={<ThankYou />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/dashboard" element={<Dashboard />} />

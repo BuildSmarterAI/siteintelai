@@ -156,7 +156,7 @@ interface ParcelSelectionContextValue {
   updateVerificationCheck: (check: keyof VerificationChecks, value: boolean) => void;
   canLock: boolean;
   // Locking
-  lockParcel: () => Promise<void>;
+  lockParcel: () => Promise<SelectedParcel>;
   unlockParcel: () => void;
   // Warnings
   addWarning: (warning: string) => void;
@@ -202,7 +202,7 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
   // Can lock when all verification checks are complete and a candidate is selected
   const canLock = state.isVerified && state.selectedCandidate !== null && state.selectedCandidate.geom !== null;
 
-  const lockParcel = useCallback(async () => {
+  const lockParcel = useCallback(async (): Promise<SelectedParcel> => {
     if (!state.selectedCandidate || !state.selectedCandidate.geom) {
       throw new Error('No candidate selected or candidate has no geometry');
     }
@@ -213,6 +213,7 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
     const locked = await createLockedParcel(state.selectedCandidate, state.inputMode);
     persistLockedParcel(locked);
     dispatch({ type: 'LOCK_PARCEL', parcel: locked });
+    return locked;
   }, [state.selectedCandidate, state.inputMode, state.isVerified]);
 
   const unlockParcel = useCallback(() => {
