@@ -276,15 +276,23 @@ export function useFallbackParcels({
   useEffect(() => {
     if (!map || enabled) return;
 
-    // Remove layers and source when disabled
-    if (map.getLayer(FALLBACK_FILL_LAYER_ID)) {
-      map.removeLayer(FALLBACK_FILL_LAYER_ID);
-    }
-    if (map.getLayer(FALLBACK_LINE_LAYER_ID)) {
-      map.removeLayer(FALLBACK_LINE_LAYER_ID);
-    }
-    if (map.getSource(FALLBACK_SOURCE_ID)) {
-      map.removeSource(FALLBACK_SOURCE_ID);
+    // Safety check: ensure map style is loaded before cleanup
+    try {
+      if (map.getStyle()) {
+        // Remove layers and source when disabled
+        if (map.getLayer(FALLBACK_FILL_LAYER_ID)) {
+          map.removeLayer(FALLBACK_FILL_LAYER_ID);
+        }
+        if (map.getLayer(FALLBACK_LINE_LAYER_ID)) {
+          map.removeLayer(FALLBACK_LINE_LAYER_ID);
+        }
+        if (map.getSource(FALLBACK_SOURCE_ID)) {
+          map.removeSource(FALLBACK_SOURCE_ID);
+        }
+      }
+    } catch (e) {
+      // Map may be unmounting, ignore cleanup errors
+      console.debug('[useFallbackParcels] Cleanup skipped - map not ready');
     }
     layersAdded.current = false;
   }, [map, enabled]);
