@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import maplibregl from "maplibre-gl";
-
+import { logger } from "@/lib/logger";
 export interface ParcelFeature {
   type: "Feature";
   geometry: unknown;
@@ -181,7 +181,7 @@ export function useFallbackParcels({
     const currentMap = mapRef.current;
     const zoom = currentMap.getZoom();
     if (zoom < minZoom) {
-      console.log(`[useFallbackParcels] Zoom ${zoom.toFixed(1)} < ${minZoom}, skipping fetch`);
+      logger.debug('useFallbackParcels', `Zoom ${zoom.toFixed(1)} < ${minZoom}, skipping fetch`);
       return;
     }
 
@@ -200,7 +200,7 @@ export function useFallbackParcels({
     }
     lastBbox.current = bboxKey;
 
-    console.log(`[useFallbackParcels] Fetching parcels for bbox: ${bboxKey}`);
+    logger.debug('useFallbackParcels', `Fetching parcels for bbox: ${bboxKey}`);
     setIsLoading(true);
     setError(null);
 
@@ -217,13 +217,13 @@ export function useFallbackParcels({
       }
 
       if (!data || !data.features) {
-        console.log("[useFallbackParcels] No features returned");
+        logger.debug('useFallbackParcels', 'No features returned');
         setFeatureCount(0);
         setMetadata(null);
         return;
       }
 
-      console.log(`[useFallbackParcels] Received ${data.features.length} features (source: ${data.metadata?.source})`);
+      logger.debug('useFallbackParcels', `Received ${data.features.length} features (source: ${data.metadata?.source})`);
 
       // Update map source
       updateMapSource(data.features);
@@ -231,7 +231,7 @@ export function useFallbackParcels({
       setFeatureCount(data.features.length);
       setMetadata(data.metadata || null);
     } catch (err: any) {
-      console.error("[useFallbackParcels] Fetch error:", err);
+      logger.error("[useFallbackParcels] Fetch error:", err);
       setError(err.message || "Failed to fetch parcels");
     } finally {
       setIsLoading(false);
@@ -263,7 +263,7 @@ export function useFallbackParcels({
 
       // Add layers if not exists
       if (!layersAdded.current) {
-        console.log('[useFallbackParcels] Adding fallback parcel layers to map');
+        logger.debug('useFallbackParcels', 'Adding fallback parcel layers to map');
 
         // Fill layer
         if (!currentMap.getLayer(FALLBACK_FILL_LAYER_ID)) {
@@ -284,7 +284,7 @@ export function useFallbackParcels({
               "fill-opacity": 0.25,
             },
           });
-          console.log('[useFallbackParcels] Added fill layer:', FALLBACK_FILL_LAYER_ID);
+          logger.debug('useFallbackParcels', 'Added fill layer:', FALLBACK_FILL_LAYER_ID);
         }
 
         // Line layer
@@ -306,7 +306,7 @@ export function useFallbackParcels({
               "line-width": 2,
             },
           });
-          console.log('[useFallbackParcels] Added line layer:', FALLBACK_LINE_LAYER_ID);
+          logger.debug('useFallbackParcels', 'Added line layer:', FALLBACK_LINE_LAYER_ID);
         }
 
         // Create and store event handlers
