@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface MapLayersData {
   parcel: any | null;
@@ -57,7 +58,7 @@ export function useMapLayers(applicationId: string) {
         const acreage = app.acreage_cad || app.lot_size_value || 1;
         const radiusMeters = Math.sqrt(acreage * 4046.86) / 2; // Convert acres to approx radius
         
-        console.log('🗺️ Parcel generation starting:', {
+        logger.map('Parcel generation starting:', {
           applicationId,
           center: { lat: app.geo_lat, lng: app.geo_lng },
           acreage_cad: app.acreage_cad,
@@ -96,7 +97,7 @@ export function useMapLayers(applicationId: string) {
           },
         };
         
-        console.log('✅ Parcel geometry created:', {
+        logger.map('Parcel geometry created:', {
           type: parcel.geometry.type,
           pointCount: coordinates[0].length,
           firstPoint: coordinates[0][0],
@@ -321,7 +322,7 @@ export function useMapLayers(applicationId: string) {
       toast.success('Parcel updated successfully');
     },
     onError: (error) => {
-      console.error('Failed to update parcel:', error);
+      logger.error('Failed to update parcel:', error);
       toast.error('Failed to update parcel');
     },
   });
@@ -346,7 +347,7 @@ export function useMapLayers(applicationId: string) {
       toast.success('Parcel deleted successfully');
     },
     onError: (error) => {
-      console.error('Failed to delete parcel:', error);
+      logger.error('Failed to delete parcel:', error);
       toast.error('Failed to delete parcel');
     },
   });
