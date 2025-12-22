@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { logger } from "@/lib/logger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ export function ProgressModal({ applicationId, isOpen, onComplete }: ProgressMod
     const channel = supabase
       .channel(`app:${applicationId}`)
       .on('broadcast', { event: 'status_update' }, (payload: any) => {
-        console.log('[ProgressModal] Realtime update:', payload);
+        logger.debug('ProgressModal', 'Realtime update:', payload);
         setJobStatus({
           status: payload.payload.status,
           stage: getStageLabel(payload.payload.status),

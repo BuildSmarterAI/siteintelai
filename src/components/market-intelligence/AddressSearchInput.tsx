@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { logger } from "@/lib/logger";
 import { Search, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -90,7 +91,7 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
       }
 
       // Fallback to Nominatim
-      console.log('Google Places unavailable, trying Nominatim fallback');
+      logger.log('Google Places unavailable, trying Nominatim fallback');
       const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
         body: { input: value }
       });
@@ -107,14 +108,14 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
       }
 
       // Both APIs failed - use defaults
-      console.warn('Both Google and Nominatim unavailable, using defaults');
+      logger.warn('Both Google and Nominatim unavailable, using defaults');
       setIsOfflineMode(true);
       const filtered = DEFAULT_SUGGESTIONS.filter(s => 
         s.description.toLowerCase().includes(value.toLowerCase())
       );
       setSuggestions(filtered.length > 0 ? filtered : DEFAULT_SUGGESTIONS.slice(0, 5));
     } catch (err) {
-      console.error('Search error:', err);
+      logger.error('Search error:', err);
       setIsOfflineMode(true);
       const filtered = DEFAULT_SUGGESTIONS.filter(s => 
         s.description.toLowerCase().includes(value.toLowerCase())
@@ -157,7 +158,7 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
           }
         }
       } catch (err) {
-        console.error('Direct geocode error:', err);
+        logger.error('Direct geocode error:', err);
       } finally {
         setIsLoading(false);
       }
@@ -184,7 +185,7 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
       });
 
       if (error) {
-        console.error('Geocode error:', error);
+        logger.error('Geocode error:', error);
         return;
       }
 
@@ -194,7 +195,7 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
         onSelect(data.latitude, data.longitude, suggestion.description);
       }
     } catch (err) {
-      console.error('Geocode error:', err);
+      logger.error('Geocode error:', err);
     } finally {
       setIsLoading(false);
     }

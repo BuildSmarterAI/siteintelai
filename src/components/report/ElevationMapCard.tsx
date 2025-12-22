@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { logger } from "@/lib/logger";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,7 +56,7 @@ export function ElevationMapCard({
       return false;
     }
 
-    console.log(`Trying fallback terrain source: ${TERRAIN_SOURCES[nextIndex].name}`);
+    logger.debug('ElevationMap', `Trying fallback terrain source: ${TERRAIN_SOURCES[nextIndex].name}`);
     setCurrentSourceIndex(nextIndex);
     
     // Remove old terrain source and add new one
@@ -96,7 +97,7 @@ export function ElevationMapCard({
 
       return true;
     } catch (e) {
-      console.error("Failed to switch terrain source:", e);
+      logger.error("Failed to switch terrain source:", e);
       return false;
     }
   }, [currentSourceIndex]);
@@ -156,7 +157,7 @@ export function ElevationMapCard({
 
     // Error handling for tile loading failures
     map.current.on("error", (e) => {
-      console.error("Map error:", e);
+      logger.error("Map error:", e);
       
       // Check if it's a terrain tile error (check error message or status)
       const errorMsg = e.error?.message || "";
@@ -167,7 +168,7 @@ export function ElevationMapCard({
           status === 404) {
         if (!terrainLoadAttempted.current) {
           terrainLoadAttempted.current = true;
-          console.warn("Terrain tile load failed, trying fallback...");
+          logger.warn("Terrain tile load failed, trying fallback...");
           tryNextTerrainSource();
         }
       }
@@ -197,7 +198,7 @@ export function ElevationMapCard({
           exaggeration: 1.5
         });
       } catch (e) {
-        console.error("Failed to enable terrain:", e);
+        logger.error("Failed to enable terrain:", e);
         setTerrainError("3D terrain unavailable");
       }
 

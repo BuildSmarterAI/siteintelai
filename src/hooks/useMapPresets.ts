@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { logger } from "@/lib/logger";
 import { 
   MAP_PRESETS, 
   DEFAULT_PRESET, 
@@ -78,7 +79,7 @@ export function useMapPresets(options: UseMapPresetsOptions = {}): UseMapPresets
    */
   const setPreset = useCallback((presetId: string) => {
     if (!MAP_PRESETS[presetId]) {
-      console.warn(`[useMapPresets] Unknown preset: ${presetId}`);
+      logger.warn(`[useMapPresets] Unknown preset: ${presetId}`);
       return;
     }
 
@@ -92,7 +93,7 @@ export function useMapPresets(options: UseMapPresetsOptions = {}): UseMapPresets
     const newPreset = MAP_PRESETS[presetId];
     onPresetChange?.(newPreset);
 
-    console.log(`[useMapPresets] Switched to preset: ${presetId}`, {
+    logger.debug('useMapPresets', `Switched to preset: ${presetId}`, {
       layersOn: newPreset.layers.on,
       layersOff: newPreset.layers.off,
     });

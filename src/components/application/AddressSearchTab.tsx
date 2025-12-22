@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -65,7 +66,7 @@ export function AddressSearchTab({
             setShowSuggestions(true);
           }
         } catch (err) {
-          console.error('[AddressSearchTab] Autocomplete error:', err);
+          logger.error('[AddressSearchTab] Autocomplete error:', err);
         }
       }, 300);
     } else {
@@ -124,7 +125,7 @@ export function AddressSearchTab({
 
       // If no candidates found, try expanded radius (150m)
       if (candidates.length === 0) {
-        console.log('[AddressSearchTab] Expanding search radius to 150m');
+        logger.debug('AddressSearchTab', 'Expanding search radius to 150m');
         
         const { data: expandedData } = await supabase.functions.invoke('search-parcels', {
           body: { query: q.trim(), type: 'address', radius: 150 }
@@ -155,7 +156,7 @@ export function AddressSearchTab({
         toast.success(`Found ${candidates.length} parcel${candidates.length > 1 ? 's' : ''}`);
       }
     } catch (err) {
-      console.error('[AddressSearchTab] Search error:', err);
+      logger.error('[AddressSearchTab] Search error:', err);
       toast.error("Search failed. Please try again.");
     } finally {
       setIsSearching(false);

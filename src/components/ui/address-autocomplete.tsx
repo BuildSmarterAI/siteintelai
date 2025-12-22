@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { logger } from "@/lib/logger";
 import { Input } from './input';
 import { Label } from './label';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,7 +103,7 @@ export function AddressAutocomplete({
       }
 
       // Fallback to Nominatim
-      console.log('Google Places unavailable, trying Nominatim fallback');
+      logger.log('Google Places unavailable, trying Nominatim fallback');
       const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
         body: { input }
       });
@@ -116,7 +117,7 @@ export function AddressAutocomplete({
         setShowSuggestions(false);
       }
     } catch (error) {
-      console.error('Error fetching address suggestions:', error);
+      logger.error('Error fetching address suggestions:', error);
       // Last resort: try Nominatim on any error
       try {
         const { data: fallbackData } = await supabase.functions.invoke('nominatim-autocomplete', {
@@ -164,7 +165,7 @@ export function AddressAutocomplete({
           addressDetails.neighborhood = suggestion.addressDetails.neighborhood;
         }
 
-        console.log('Using Nominatim data directly:', { coordinates, addressDetails });
+        logger.log('Using Nominatim data directly:', { coordinates, addressDetails });
       } else {
         // Google path: fetch place details
         const { data, error } = await supabase.functions.invoke('google-place-details', {
@@ -185,7 +186,7 @@ export function AddressAutocomplete({
         if (data?.result?.address_components) {
           const components = data.result.address_components;
           
-          console.log('Google API address_components:', components);
+          logger.log('Google API address_components:', components);
           
           // County (administrative_area_level_2)
           const countyComponent = components.find((c: any) =>
@@ -243,7 +244,7 @@ export function AddressAutocomplete({
             addressDetails.neighborhood = addressDetails.city;
           }
           
-          console.log('Extracted address details:', addressDetails);
+          logger.log('Extracted address details:', addressDetails);
         }
 
         // Override with Place ID from details if available (more reliable)
@@ -319,21 +320,21 @@ export function AddressAutocomplete({
                 addressDetails.utilityAccess = utilityAccess;
               }
             } catch (utilityError) {
-              console.error('Utility enrichment error:', utilityError);
+              logger.error('Utility enrichment error:', utilityError);
             }
           }
           
           onEnrichmentComplete?.(enrichData);
         } else {
           setEnrichmentStatus('error');
-          console.error('Enrichment failed:', enrichData?.error);
+          logger.error('Enrichment failed:', enrichData?.error);
         }
       } catch (enrichError) {
-        console.error('GIS enrichment error:', enrichError);
+        logger.error('GIS enrichment error:', enrichError);
         setEnrichmentStatus('error');
       }
     } catch (error) {
-      console.error('Error fetching place details:', error);
+      logger.error('Error fetching place details:', error);
       onChange(suggestion.description, undefined, { placeId: suggestion.place_id });
     }
 

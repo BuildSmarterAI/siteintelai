@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { logger } from "@/lib/logger";
 import { supabase } from '@/integrations/supabase/client';
 import { TradeAreaMetrics } from './useTradeAreaMetrics';
 import { H3CellData } from './useH3Cells';
@@ -44,7 +45,7 @@ export function useComputeTradeAreaMetrics(options: UseComputeTradeAreaOptions) 
   return useQuery({
     queryKey: ['trade-area-computed', roundedLat, roundedLng, radiusMiles, metric, h3Resolution],
     queryFn: async (): Promise<ComputeTradeAreaResponse> => {
-      console.log('[useComputeTradeAreaMetrics] Fetching trade area data...');
+      logger.debug('useComputeTradeAreaMetrics', 'Fetching trade area data...');
       
       const { data, error } = await supabase.functions.invoke('compute-trade-area-metrics', {
         body: { 
@@ -57,7 +58,7 @@ export function useComputeTradeAreaMetrics(options: UseComputeTradeAreaOptions) 
       });
 
       if (error) {
-        console.error('[useComputeTradeAreaMetrics] Error:', error);
+        logger.error('[useComputeTradeAreaMetrics] Error:', error);
         throw error;
       }
 
@@ -65,7 +66,7 @@ export function useComputeTradeAreaMetrics(options: UseComputeTradeAreaOptions) 
         throw new Error(data?.error || 'Failed to compute trade area metrics');
       }
 
-      console.log(`[useComputeTradeAreaMetrics] Received ${data.cellCount} cells with ${data.coverage?.coveragePercent}% coverage`);
+      logger.debug('useComputeTradeAreaMetrics', `Received ${data.cellCount} cells with ${data.coverage?.coveragePercent}% coverage`);
       return data;
     },
     enabled: enabled && !!centerLat && !!centerLng && radiusMiles > 0,
