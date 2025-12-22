@@ -17,6 +17,7 @@ import { useParcelComparisonStore } from '@/stores/useParcelComparisonStore';
 import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
+import { logger } from '@/lib/logger';
 // NOTE: Vector tile layers archived to src/deprecated/useVectorTileLayers.ts.bak
 // Using County CAD + GeoJSON fallback via useFallbackParcels and useCountyTileOverlays
 import { useFallbackParcels, HoveredParcel } from '@/hooks/useFallbackParcels';
@@ -379,14 +380,14 @@ export function MapLibreCanvas({
     autoDetect: true,
     opacity: 0.85, // Increased opacity for better visibility
     onCountyAdded: (county) => {
-      console.log(`[MapLibreCanvas] County tile overlay added: ${county.name}`);
+      logger.map(`County tile overlay added: ${county.name}`);
       toast.info(`Loading ${county.name} parcels`, { duration: 2000 });
     },
   });
 
   // Debug log parcel display state (Tier 2 + Tier 3 only)
   useEffect(() => {
-    console.log('🗺️ Parcel Display State:', {
+    logger.map('Parcel Display State:', {
       // County CAD Tiles (Tier 2 - Display)
       countyTiles: {
         enabled: layerVisibility.countyParcels,
@@ -408,7 +409,7 @@ export function MapLibreCanvas({
   // Keep ref updated with latest callback to avoid stale closures
   useEffect(() => {
     onParcelSelectRef.current = onParcelSelect;
-    console.log('[MapLibreCanvas] onParcelSelect ref updated:', !!onParcelSelect);
+    logger.debug('MapLibreCanvas', 'onParcelSelect ref updated:', !!onParcelSelect);
   }, [onParcelSelect]);
 
   // Convert Leaflet [lat, lng] to MapLibre [lng, lat]
@@ -580,7 +581,7 @@ export function MapLibreCanvas({
       link.click();
       toast.success('Map exported as PNG');
     } catch (error) {
-      console.error('Failed to export map:', error);
+      logger.error('Failed to export map:', error);
       toast.error('Export failed');
     }
   };
@@ -632,7 +633,7 @@ export function MapLibreCanvas({
       
       map.current.fitBounds(bounds, { padding: 32, duration: 800 });
     } catch (error) {
-      console.error('Failed to fit bounds:', error);
+      logger.error('Failed to fit bounds:', error);
     }
   };
 
@@ -679,7 +680,7 @@ export function MapLibreCanvas({
         setMapLoaded(true);
         setMapInstance(map.current); // Trigger hook with state
         onMapLoad?.(); // Notify parent that map is ready
-        console.log('🗺️ Map loaded, vector tiles will initialize');
+        logger.map('Map loaded, vector tiles will initialize');
         
         // Add 3D building layer (initially hidden)
         if (map.current) {
@@ -720,10 +721,10 @@ export function MapLibreCanvas({
 
       // Handle errors gracefully
       map.current.on('error', (e) => {
-        console.warn('Map error:', e);
+        logger.warn('Map error:', e);
       });
     } catch (error) {
-      console.error('Failed to initialize map:', error);
+      logger.error('Failed to initialize map:', error);
     }
 
     return () => {
@@ -834,11 +835,11 @@ export function MapLibreCanvas({
       // Fit to parcel on initial load
       fitToParcel();
     } catch (error) {
-      console.error('Failed to add parcel layer:', error);
+      logger.error('Failed to add parcel layer:', error);
     }
 
     if (map.current?.getLayer(lineLayerId)) {
-      console.log('🧩 Parcel layer added', {
+      logger.gis('Parcel layer added', {
         featureType: parcel.geometry?.type,
         points: Array.isArray(parcel.geometry?.coordinates?.[0]) ? parcel.geometry.coordinates[0].length : undefined,
       });
@@ -946,9 +947,9 @@ export function MapLibreCanvas({
           .addTo(map.current!);
       });
 
-      console.log('🌊 Flood zone overlay added:', femaFloodZone);
+      logger.gis('Flood zone overlay added:', femaFloodZone);
     } catch (error) {
-      console.error('Failed to add flood zone overlay:', error);
+      logger.error('Failed to add flood zone overlay:', error);
     }
   }, [femaFloodZone, center, mapLoaded]);
 
@@ -1025,7 +1026,7 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
     } catch (error) {
-      console.error('Failed to add flood zones layer:', error);
+      logger.error('Failed to add flood zones layer:', error);
     }
   }, [floodZones, mapLoaded, layerVisibility.flood]);
 
@@ -1086,7 +1087,7 @@ export function MapLibreCanvas({
         },
       });
     } catch (error) {
-      console.error('Failed to add utilities layer:', error);
+      logger.error('Failed to add utilities layer:', error);
     }
   }, [utilities, mapLoaded, layerVisibility.utilities]);
 
@@ -1225,9 +1226,9 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
 
-      console.log(`🌊 Storm drain lines rendered: ${features.length} segments`);
+      logger.gis(`Storm drain lines rendered: ${features.length} segments`);
     } catch (error) {
-      console.error('Failed to add storm lines layer:', error);
+      logger.error('Failed to add storm lines layer:', error);
     }
   }, [stormLines, mapLoaded, layerVisibility.stormLines]);
 
@@ -1378,9 +1379,9 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
 
-      console.log(`🕳️ Storm manholes rendered: ${features.length} manholes`);
+      logger.gis(`Storm manholes rendered: ${features.length} manholes`);
     } catch (error) {
-      console.error('Failed to add storm manholes layer:', error);
+      logger.error('Failed to add storm manholes layer:', error);
     }
   }, [stormManholes, mapLoaded, layerVisibility.stormManholes]);
 
@@ -1519,9 +1520,9 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
 
-      console.log(`💧 Water lines rendered: ${features.length} segments`);
+      logger.gis(`Water lines rendered: ${features.length} segments`);
     } catch (error) {
-      console.error('Failed to add water lines layer:', error);
+      logger.error('Failed to add water lines layer:', error);
     }
   }, [waterLines, mapLoaded, layerVisibility.waterLines]);
 
@@ -1660,9 +1661,9 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
 
-      console.log(`🟢 Sewer lines rendered: ${features.length} segments`);
+      logger.gis(`Sewer lines rendered: ${features.length} segments`);
     } catch (error) {
-      console.error('Failed to add sewer lines layer:', error);
+      logger.error('Failed to add sewer lines layer:', error);
     }
   }, [sewerLines, mapLoaded, layerVisibility.sewerLines]);
 
@@ -1756,7 +1757,7 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
     } catch (error) {
-      console.error('Failed to add traffic layer:', error);
+      logger.error('Failed to add traffic layer:', error);
     }
   }, [traffic, mapLoaded, layerVisibility.traffic]);
 
@@ -1887,7 +1888,7 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
     } catch (error) {
-      console.error('Failed to add employment centers layer:', error);
+      logger.error('Failed to add employment centers layer:', error);
     }
   }, [employmentCenters, mapLoaded, layerVisibility.employment]);
 
@@ -1949,7 +1950,7 @@ export function MapLibreCanvas({
 
       map.current.addControl(draw.current);
     } catch (error) {
-      console.error('Failed to initialize drawing plugin:', error);
+      logger.error('Failed to initialize drawing plugin:', error);
     }
   }, [mapLoaded]);
 
@@ -2122,7 +2123,7 @@ export function MapLibreCanvas({
         if (map.current) map.current.getCanvas().style.cursor = '';
       });
     } catch (error) {
-      console.error('Failed to add drawn parcels layer:', error);
+      logger.error('Failed to add drawn parcels layer:', error);
     }
   }, [drawnParcels, mapLoaded, layerVisibility.drawnParcels, selectedParcelId, onParcelSelected]);
 

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 
 export interface Tileset {
   id: string;
@@ -42,7 +43,7 @@ export function useTilesets(options?: { category?: string; jurisdiction?: string
   return useQuery({
     queryKey: ['tilesets', options?.category, options?.jurisdiction],
     queryFn: async () => {
-      console.log('🔍 TILE DEBUG: useTilesets query started', {
+      logger.tile('useTilesets query started', {
         category: options?.category,
         jurisdiction: options?.jurisdiction,
       });
@@ -64,11 +65,11 @@ export function useTilesets(options?: { category?: string; jurisdiction?: string
       const { data, error } = await query;
 
       if (error) {
-        console.error('🔍 TILE DEBUG: useTilesets query FAILED', error);
+        logger.error('useTilesets query FAILED', error);
         throw new Error(`Failed to fetch tilesets: ${error.message}`);
       }
 
-      console.log('🔍 TILE DEBUG: useTilesets query SUCCESS', {
+      logger.tile('useTilesets query SUCCESS', {
         count: data?.length || 0,
         tilesets: data?.map(t => ({
           key: t.tileset_key,
@@ -154,13 +155,13 @@ export function useVectorTileSources(jurisdiction: string = 'tx') {
   }> = {};
 
   if (tilesets) {
-    console.log('🔍 TILE DEBUG: useVectorTileSources building sources from', tilesets.length, 'tilesets');
+    logger.tile('useVectorTileSources building sources from', tilesets.length, 'tilesets');
     
     for (const tileset of tilesets) {
       const tileUrl = tileset.tile_url_template;
       const sourceId = `siteintel-${tileset.category}`;
 
-      console.log('🔍 TILE DEBUG: Building source', {
+      logger.tile('Building source', {
         sourceId,
         category: tileset.category,
         tileUrl,
@@ -184,7 +185,7 @@ export function useVectorTileSources(jurisdiction: string = 'tx') {
       };
     }
     
-    console.log('🔍 TILE DEBUG: useVectorTileSources complete', {
+    logger.tile('useVectorTileSources complete', {
       sourceCount: Object.keys(sources).length,
       sourceIds: Object.keys(sources),
     });
