@@ -6,6 +6,7 @@ import {
   buildArcGISExportTileUrl,
   findCountiesInBounds 
 } from '@/lib/countyTileSources';
+import { logger } from '@/lib/logger';
 
 export interface UseCountyTileOverlaysOptions {
   map: MapLibreMap | null;
@@ -103,12 +104,12 @@ export function useCountyTileOverlays({
       try {
         // Check if source already exists
         if (m.getSource(sourceId)) {
-          console.log(`[CountyTiles] Source ${sourceId} already exists`);
+          logger.debug('CountyTiles', `Source ${sourceId} already exists`);
           return;
         }
 
         const tileUrl = buildArcGISExportTileUrl(county);
-        console.log(`[CountyTiles] Adding county overlay: ${county.name}`, { tileUrl });
+        logger.debug('CountyTiles', `Adding county overlay: ${county.name}`, { tileUrl });
 
         // Add raster tile source
         m.addSource(sourceId, {
@@ -138,7 +139,7 @@ export function useCountyTileOverlays({
         // If no symbol layer found, insert at the top (above all raster layers)
         // This ensures county tiles are visible above the basemap
         if (!beforeLayerId && layers.length > 0) {
-          console.log(`[CountyTiles] No symbol layer found, inserting at top of layer stack`);
+          logger.debug('CountyTiles', 'No symbol layer found, inserting at top of layer stack');
         }
 
         // Add raster layer with lowered minzoom to 11 for earlier visibility
@@ -165,9 +166,9 @@ export function useCountyTileOverlays({
         });
 
         onCountyAdded?.(county);
-        console.log(`[CountyTiles] Successfully added ${county.name}`);
+        logger.debug('CountyTiles', `Successfully added ${county.name}`);
       } catch (err) {
-        console.error(`[CountyTiles] Failed to add ${county.name}:`, err);
+        logger.error(`[CountyTiles] Failed to add ${county.name}:`, err);
         setError(`Failed to add ${county.name} overlay`);
       }
     },
@@ -197,10 +198,10 @@ export function useCountyTileOverlays({
 
         setActiveCounties((prev) => prev.filter((c) => c.id !== countyId));
         onCountyRemoved?.(countyId);
-        console.log(`[CountyTiles] Removed ${countyId}`);
+        logger.debug('CountyTiles', `Removed ${countyId}`);
       } catch (err) {
         // Can happen during navigation/unmount; safe to ignore
-        console.debug(`[CountyTiles] Remove skipped for ${countyId} (map not ready)`);
+        logger.debug('CountyTiles', `Remove skipped for ${countyId} (map not ready)`);
       }
     },
     [onCountyRemoved]
