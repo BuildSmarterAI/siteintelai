@@ -17,8 +17,8 @@ import { useParcelComparisonStore } from '@/stores/useParcelComparisonStore';
 import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import * as turf from '@turf/turf';
-// DISABLED: Vector tiles not ready - using County CAD + GeoJSON fallback
-// import { useVectorTileLayers, hasVectorTileSource } from '@/hooks/useVectorTileLayers';
+// NOTE: Vector tile layers archived to src/deprecated/useVectorTileLayers.ts.bak
+// Using County CAD + GeoJSON fallback via useFallbackParcels and useCountyTileOverlays
 import { useFallbackParcels, HoveredParcel } from '@/hooks/useFallbackParcels';
 import { useCountyTileOverlays } from '@/hooks/useCountyTileOverlays';
 import {
