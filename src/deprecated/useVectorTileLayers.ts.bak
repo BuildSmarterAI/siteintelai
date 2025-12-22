@@ -1,0 +1,401 @@
+/**
+ * @deprecated This file has been archived and is no longer in use.
+ * 
+ * Reason: Vector tiles from CloudFront CDN are not ready for production.
+ * The application now uses County CAD + GeoJSON fallback via:
+ * - useFallbackParcels.ts
+ * - useCountyTileOverlays.ts
+ * 
+ * This file is preserved for reference when vector tiles become available.
+ * 
+ * Original location: src/hooks/useVectorTileLayers.ts
+ * Archived on: 2024-12-22
+ */
+
+import { useEffect, useRef, useCallback, useState } from 'react';
+import maplibregl from 'maplibre-gl';
+import { useVectorTileSources } from './useTilesets';
+import { 
+  UTILITY_COLORS, 
+  UTILITY_LAYER_IDS,
+  LINE_WIDTH_BY_ZOOM,
+} from '@/lib/utilityLayerConfig';
+
+// Terrain/Hillshade source configuration (free MapLibre demo tiles)
+const TERRAIN_SOURCE_ID = 'terrain-dem-source';
+const HILLSHADE_LAYER_ID = 'terrain-hillshade';
+
+/**
+ * Vector tile layer configuration for MapLibre
+ * Defines styling for each layer category from CloudFront CDN tiles
+ * 
+ * PRD-Compliant Utility Colors (§6.1):
+ * - Water: Blue #1F6AE1
+ * - Sewer: Brown #7A4A2E  
+ * - Stormwater: Teal #1C7C7C
+ * 
+ * SiteIntel brand colors: Feasibility Orange #FF7A00, Data Cyan #06B6D4
+ */
+const VECTOR_TILE_LAYER_CONFIG = {
+  parcels: {
+    sourceId: 'siteintel-parcels',
+    layers: [
+      {
+        id: 'siteintel-parcels-fill',
+        type: 'fill' as const,
+        'source-layer': 'parcels',
+        paint: {
+          'fill-color': '#FF7A00', // Feasibility Orange
+          'fill-opacity': 0.25, // Increased from 0.15 for better visibility
+        },
+      },
+      {
+        id: 'siteintel-parcels-line',
+        type: 'line' as const,
+        'source-layer': 'parcels',
+        paint: {
+          'line-color': '#FF7A00', // Feasibility Orange
+          'line-width': 2.5, // Increased from 1.5 for clearer boundaries
+        },
+      },
+    ],
+  },
+  flood: {
+    sourceId: 'siteintel-flood',
+    layers: [
+      {
+        id: 'siteintel-flood-fill',
+        type: 'fill' as const,
+        'source-layer': 'flood',
+        paint: {
+          'fill-color': [
+            'match',
+            ['get', 'zone'],
+            'AE', '#EF4444', // Red for AE zone
+            'VE', '#DC2626', // Darker red for VE zone
+            'AO', '#F97316', // Orange for AO zone
+            'AH', '#FB923C', // Light orange for AH zone
+            'X', '#10B981', // Green for X zone (minimal risk)
+            'X500', '#6EE7B7', // Light green for X500
+            '#6B7280', // Gray default
+          ],
+          'fill-opacity': 0.2, // Reduced from 0.4 for less clutter
+        },
+      },
+      {
+        id: 'siteintel-flood-line',
+        type: 'line' as const,
+        'source-layer': 'flood',
+        paint: {
+          'line-color': '#991B1B',
+          'line-width': 0.5, // Reduced from 1 for less visual noise
+          'line-opacity': 0.5, // Semi-transparent
+        },
+      },
+    ],
+  },
+  // ==========================================================================
+  // UTILITIES - PRD-Compliant Styling (§6)
+  // Colors: Water #1F6AE1, Sewer #7A4A2E, Stormwater #1C7C7C
+  // ==========================================================================
+  utilities: {
+    sourceId: 'siteintel-utilities',
+    layers: [
+      // ===== WATER LAYERS =====
+      // Water Mains - Solid blue line (§6.2)
+      {
+        id: UTILITY_LAYER_IDS.water_mains,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all', 
+          ['==', ['get', 'utility_type'], 'water'],
+          ['in', ['get', 'feature_type'], ['literal', ['main', 'transmission']]],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.water, // #1F6AE1
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.9,
+        },
+        minzoom: 12,
+      },
+      // Water Valves - Small blue circles (§6.3)
+      {
+        id: UTILITY_LAYER_IDS.water_valves,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'water'],
+          ['==', ['get', 'feature_type'], 'valve'],
+        ],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': UTILITY_COLORS.water,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 15,
+      },
+      // Water Laterals - Dashed blue line (§6.4)
+      {
+        id: UTILITY_LAYER_IDS.water_laterals,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'water'],
+          ['==', ['get', 'feature_type'], 'lateral'],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.water,
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-dasharray': [3, 2],
+          'line-opacity': 0.75,
+        },
+        minzoom: 14,
+      },
+
+      // ===== SEWER LAYERS =====
+      // Sewer Mains - Solid brown line (§6.5)
+      {
+        id: UTILITY_LAYER_IDS.sewer_mains,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['in', ['get', 'feature_type'], ['literal', ['main', 'transmission']]],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.sewer, // #7A4A2E
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.9,
+        },
+        minzoom: 12,
+      },
+      // Sewer Manholes - Small brown circles (§6.6)
+      {
+        id: UTILITY_LAYER_IDS.sewer_manholes,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['==', ['get', 'feature_type'], 'manhole'],
+        ],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': UTILITY_COLORS.sewer,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 15,
+      },
+      // Sewer Laterals - Dashed brown line (§6.7)
+      {
+        id: UTILITY_LAYER_IDS.sewer_laterals,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'sewer'],
+          ['==', ['get', 'feature_type'], 'lateral'],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.sewer,
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-dasharray': [3, 2],
+          'line-opacity': 0.75,
+        },
+        minzoom: 14,
+      },
+
+      // ===== STORMWATER LAYERS =====
+      // Stormwater Mains - Solid teal line (§6.8)
+      {
+        id: UTILITY_LAYER_IDS.stormwater_mains,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'stormwater'],
+          ['in', ['get', 'feature_type'], ['literal', ['main', 'transmission']]],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.stormwater, // #1C7C7C
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-opacity': 0.9,
+        },
+        minzoom: 12,
+      },
+      // Stormwater Structures - Small teal circles (§6.9)
+      {
+        id: UTILITY_LAYER_IDS.stormwater_structures,
+        type: 'circle' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'stormwater'],
+          ['in', ['get', 'feature_type'], ['literal', ['catch_basin', 'inlet', 'manhole']]],
+        ],
+        paint: {
+          'circle-radius': 5,
+          'circle-color': UTILITY_COLORS.stormwater,
+          'circle-stroke-color': '#FFFFFF',
+          'circle-stroke-width': 1,
+        },
+        minzoom: 15,
+      },
+      // Stormwater Laterals - Dashed teal line (§6.10)
+      {
+        id: UTILITY_LAYER_IDS.stormwater_laterals,
+        type: 'line' as const,
+        'source-layer': 'utilities',
+        filter: ['all',
+          ['==', ['get', 'utility_type'], 'stormwater'],
+          ['==', ['get', 'feature_type'], 'lateral'],
+        ],
+        paint: {
+          'line-color': UTILITY_COLORS.stormwater,
+          'line-width': LINE_WIDTH_BY_ZOOM,
+          'line-dasharray': [3, 2],
+          'line-opacity': 0.75,
+        },
+        minzoom: 14,
+      },
+    ],
+  },
+};
+
+interface UseVectorTileLayersProps {
+  map: maplibregl.Map | null;
+  showTerrain: boolean;
+}
+
+/**
+ * useVectorTileLayers Hook
+ *
+ * Manages vector tile layers for a MapLibre GL JS map.
+ * Includes:
+ *  - Adding/removing terrain (hillshade)
+ *  - Adding vector tile sources (parcels, flood zones, utilities)
+ *  - Adding vector tile layers with styling (based on VECTOR_TILE_LAYER_CONFIG)
+ *
+ * @param {UseVectorTileLayersProps} props - Hook properties
+ * @param {maplibregl.Map | null} props.map - The MapLibre map instance
+ * @param {boolean} props.showTerrain - Whether to show terrain/hillshade
+ */
+export const useVectorTileLayers = ({ map, showTerrain }: UseVectorTileLayersProps) => {
+  const [hasVectorTileSource, setHasVectorTileSource] = useState(false);
+  const terrainLoaded = useRef(false); // Track if terrain source is already loaded
+
+  // Fetch vector tile sources config (URLs, etc.)
+  const { sources } = useVectorTileSources();
+
+  // Add/Remove Terrain (Hillshade)
+  useEffect(() => {
+    if (!map) return;
+
+    if (showTerrain) {
+      // Add terrain source and hillshade layer if not already added
+      if (!terrainLoaded.current) {
+        map.addSource(TERRAIN_SOURCE_ID, {
+          type: 'raster-dem',
+          url: 'https://demotiles.maplibre.org/terrain-tiles/tiles.json', // MapLibre demo tiles
+          tileSize: 256,
+        });
+
+        map.addLayer({
+          id: HILLSHADE_LAYER_ID,
+          source: TERRAIN_SOURCE_ID,
+          type: 'hillshade',
+          paint: {
+            'hillshade-exaggeration': 0.3,
+          },
+        }, 'road-label'); // Add below road labels for better visibility
+
+        terrainLoaded.current = true; // Mark terrain as loaded
+      }
+    } else {
+      // Remove terrain source and hillshade layer if they exist
+      if (terrainLoaded.current) {
+        if (map.getLayer(HILLSHADE_LAYER_ID)) {
+          map.removeLayer(HILLSHADE_LAYER_ID);
+        }
+        if (map.getSource(TERRAIN_SOURCE_ID)) {
+          map.removeSource(TERRAIN_SOURCE_ID);
+        }
+        terrainLoaded.current = false; // Mark terrain as not loaded
+      }
+    }
+  }, [map, showTerrain]);
+
+  // Add Vector Tile Sources and Layers
+  const addVectorTileLayers = useCallback(() => {
+    if (!map || !sources) return;
+
+    Object.entries(sources).forEach(([key, source]) => {
+      // Add source if it doesn't exist
+      if (!map.getSource(source.id)) {
+        map.addSource(source.id, source.config);
+        console.log(`Vector tile source added: ${source.id}`);
+      }
+
+      // Add layers for each source based on VECTOR_TILE_LAYER_CONFIG
+      const layerConfig = VECTOR_TILE_LAYER_CONFIG[key as keyof typeof VECTOR_TILE_LAYER_CONFIG];
+      if (layerConfig) {
+        layerConfig.layers.forEach(layer => {
+          if (!map.getLayer(layer.id)) {
+            map.addLayer({
+              ...layer,
+              source: source.id, // Ensure source is explicitly set for each layer
+            });
+            console.log(`Vector tile layer added: ${layer.id}`);
+          }
+        });
+      }
+    });
+    setHasVectorTileSource(true); // Signal that vector tile source has been added
+  }, [map, sources]);
+
+  // Remove Vector Tile Sources and Layers
+  const removeVectorTileLayers = useCallback(() => {
+    if (!map || !sources) return;
+
+    Object.entries(sources).forEach(([key, source]) => {
+      // Remove layers for each source based on VECTOR_TILE_LAYER_CONFIG
+      const layerConfig = VECTOR_TILE_LAYER_CONFIG[key as keyof typeof VECTOR_TILE_LAYER_CONFIG];
+      if (layerConfig) {
+        layerConfig.layers.forEach(layer => {
+          if (map.getLayer(layer.id)) {
+            map.removeLayer(layer.id);
+            console.log(`Vector tile layer removed: ${layer.id}`);
+          }
+        });
+      }
+
+      // Remove source if it exists
+      if (map.getSource(source.id)) {
+        map.removeSource(source.id);
+        console.log(`Vector tile source removed: ${source.id}`);
+      }
+    });
+    setHasVectorTileSource(false); // Signal that vector tile source has been removed
+  }, [map, sources]);
+
+  // Initialize or remove vector tile layers based on map load state
+  useEffect(() => {
+    if (!map) return;
+
+    const handleMapLoad = () => {
+      console.log('Map loaded, adding vector tile layers...');
+      addVectorTileLayers();
+    };
+
+    if (map.loaded()) {
+      handleMapLoad();
+    } else {
+      map.on('load', handleMapLoad);
+    }
+
+    return () => {
+      map.off('load', handleMapLoad);
+      removeVectorTileLayers(); // Clean up layers and sources on unmount
+    };
+  }, [map, addVectorTileLayers, removeVectorTileLayers]);
+
+  return { hasVectorTileSource };
+};
