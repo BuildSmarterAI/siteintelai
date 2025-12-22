@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-
+import { logger } from "@/lib/logger";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScoreCircle } from "@/components/ScoreCircle";
 import { ScoreDashboard } from "@/components/report/ScoreDashboard";
@@ -341,7 +341,7 @@ export default function ReportViewer() {
         });
         
         if (error) {
-          console.warn('County demographics fetch failed:', error);
+          logger.warn('County demographics fetch failed:', error);
           return;
         }
         
@@ -357,7 +357,7 @@ export default function ReportViewer() {
           });
         }
       } catch (err) {
-        console.warn('Error fetching county comparison:', err);
+        logger.warn('Error fetching county comparison:', err);
       }
     }
     

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import type { HIIAlert } from '../types';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
@@ -25,7 +26,7 @@ export const useHiiAlerts = ({
   }, []);
 
   useEffect(() => {
-    console.log('[useHiiAlerts] Setting up realtime subscription');
+    logger.debug('useHiiAlerts', 'Setting up realtime subscription');
     
     const channel: RealtimeChannel = supabase
       .channel('hii_alerts_channel')
@@ -37,7 +38,7 @@ export const useHiiAlerts = ({
           table: 'hii_alerts'
         },
         (payload) => {
-          console.log('[useHiiAlerts] New alert received:', payload);
+          logger.debug('useHiiAlerts', 'New alert received:', payload);
           
           const newAlert: HIIAlert = {
             id: payload.new.id,
@@ -64,12 +65,12 @@ export const useHiiAlerts = ({
         }
       )
       .subscribe((status) => {
-        console.log('[useHiiAlerts] Subscription status:', status);
+        logger.debug('useHiiAlerts', 'Subscription status:', status);
         setIsSubscribed(status === 'SUBSCRIBED');
       });
 
     return () => {
-      console.log('[useHiiAlerts] Cleaning up subscription');
+      logger.debug('useHiiAlerts', 'Cleaning up subscription');
       supabase.removeChannel(channel);
       setIsSubscribed(false);
     };

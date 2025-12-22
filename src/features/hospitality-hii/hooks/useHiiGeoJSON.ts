@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { debounce } from 'lodash-es';
 import { useMemo } from 'react';
+import { logger } from '@/lib/logger';
 import type { HIIGeoJSON, HIIGeoJSONParams } from '../types';
 
 interface UseHiiGeoJSONOptions extends HIIGeoJSONParams {
@@ -29,25 +30,25 @@ export const useHiiGeoJSON = ({
   const query = useQuery({
     queryKey: ['hii-geojson', minLng, minLat, maxLng, maxLat, months_back],
     queryFn: async () => {
-      console.log('[useHiiGeoJSON] Fetching GeoJSON for bbox:', { minLng, minLat, maxLng, maxLat });
+      logger.debug('useHiiGeoJSON', 'Fetching GeoJSON for bbox:', { minLng, minLat, maxLng, maxLat });
       
       const { data, error } = await supabase.functions.invoke('hii-geojson', {
         body: { minLng, minLat, maxLng, maxLat, months_back }
       });
 
       if (error) {
-        console.error('[useHiiGeoJSON] Error:', error);
+        logger.error('[useHiiGeoJSON] Error:', error);
         toast.error('Failed to load hospitality data');
         throw error;
       }
 
       if (!data?.success) {
-        console.error('[useHiiGeoJSON] API returned error:', data?.error);
+        logger.error('[useHiiGeoJSON] API returned error:', data?.error);
         toast.error(data?.error || 'Failed to load GeoJSON data');
         throw new Error(data?.error || 'Failed to load GeoJSON data');
       }
 
-      console.log('[useHiiGeoJSON] Success: loaded', data.data?.features?.length || 0, 'features');
+      logger.debug('useHiiGeoJSON', 'Success: loaded', data.data?.features?.length || 0, 'features');
       return data.data as HIIGeoJSON;
     },
     enabled: enabled && isValidBounds,

@@ -4,6 +4,7 @@ import { CheckCircle, Calendar, Clock, Phone, ArrowRight, Loader2, RefreshCw, Al
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 
 export default function ThankYou() {
@@ -29,7 +30,7 @@ export default function ThankYou() {
     if (!applicationId) return;
     
     setChecking(true);
-    console.log('[Checking for report]', { applicationId });
+    logger.debug('ThankYou', 'Checking for report', { applicationId });
     
     try {
       // Check for report directly - don't rely on app status
@@ -45,7 +46,7 @@ export default function ThankYou() {
 
       // If report exists and is completed/partial, redirect immediately
       if (report && (report.status === 'completed' || report.status === 'partial')) {
-        console.log('[Report found]', { reportId: report.id, status: report.status, score: report.feasibility_score });
+        logger.debug('ThankYou', 'Report found', { reportId: report.id, status: report.status, score: report.feasibility_score });
         setReportReady(true);
         
         // Clear polling and timeout
@@ -66,7 +67,7 @@ export default function ThankYou() {
         .single();
         
       if (app?.status === 'error' && report?.id) {
-        console.log('[App errored but report exists, redirecting]', { reportId: report.id });
+        logger.debug('ThankYou', 'App errored but report exists, redirecting', { reportId: report.id });
         setReportReady(true);
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -77,15 +78,15 @@ export default function ThankYou() {
       
       // If app is in error state with no report, show error
       if (app?.status === 'error' && !report) {
-        console.log('[App errored with no report]');
+        logger.debug('ThankYou', 'App errored with no report');
         setReportError(true);
         if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
         return;
       }
       
-      console.log('[Report not ready yet]', report?.status || 'none', 'app:', app?.status);
+      logger.debug('ThankYou', 'Report not ready yet', report?.status || 'none', 'app:', app?.status);
     } catch (err) {
-      console.error('[Report check failed]', err);
+      logger.error('[ThankYou] Report check failed:', err);
     } finally {
       setChecking(false);
     }
@@ -120,7 +121,7 @@ export default function ThankYou() {
 
     // 3. Setup 15-minute timeout
     timeoutRef.current = setTimeout(() => {
-      console.error('[ThankYou] Report generation timeout - 15 minutes elapsed');
+      logger.error('[ThankYou] Report generation timeout - 15 minutes elapsed');
       setReportError(true);
       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     }, 15 * 60 * 1000);
@@ -180,14 +181,14 @@ export default function ThankYou() {
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error) {
-        console.error('Auth check error:', error);
+        logger.error('Auth check error:', error);
         setIsAuthenticated(false);
         return;
       }
       
       setIsAuthenticated(!!session?.user);
     } catch (err) {
-      console.error('Failed to check auth:', err);
+      logger.error('Failed to check auth:', err);
       setIsAuthenticated(false);
     }
   };
