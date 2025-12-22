@@ -40,11 +40,12 @@ const COUNTY_CONFIG: Record<string, {
   harris: {
     name: 'Harris County',
     apiUrl: 'https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0/query',
-    fields: ['OBJECTID', 'acct_num', 'owner_name_1', 'Acreage', 'site_zip', 'land_value', 'impr_value', 'SITUS_ADDRESS'],
+    // HCAD uses separate address component fields, not SITUS_ADDRESS
+    fields: ['OBJECTID', 'acct_num', 'owner_name_1', 'acreage_1', 'site_zip', 'land_value', 'impr_value', 'site_str_num', 'site_str_name', 'site_str_sfx', 'site_city'],
     idField: 'acct_num',
     ownerField: 'owner_name_1',
-    acreageField: 'Acreage',
-    addressField: 'SITUS_ADDRESS',
+    acreageField: 'acreage_1',
+    addressField: '', // Composite - built from site_str_* fields
     valueField: 'land_value',
     maxRecords: 1000,
     srid: 4326,
@@ -219,11 +220,26 @@ function normalizeProperties(
   config: typeof COUNTY_CONFIG[string],
   countyKey: string
 ): NormalizedParcelProperties {
+  // Build situs address - Harris County uses separate component fields
+  let situsAddress: string | null = null;
+  if (countyKey === 'harris') {
+    // HCAD stores address in separate fields: site_str_num, site_str_name, site_str_sfx, site_city
+    const parts = [
+      properties.site_str_num,
+      properties.site_str_name,
+      properties.site_str_sfx,
+      properties.site_city
+    ].filter(Boolean);
+    situsAddress = parts.length > 0 ? parts.join(' ') : null;
+  } else {
+    situsAddress = config.addressField ? (properties[config.addressField] as string | null) : null;
+  }
+
   return {
     parcel_id: String(properties[config.idField] || ''),
     owner_name: properties[config.ownerField] as string | null,
     acreage: properties[config.acreageField] as number | null,
-    situs_address: properties[config.addressField] as string | null,
+    situs_address: situsAddress,
     market_value: properties[config.valueField] as number | null,
     county: countyKey,
     source: config.name,
