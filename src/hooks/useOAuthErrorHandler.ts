@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { logger } from "@/lib/logger";
 import { useSearchParams, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -95,14 +96,14 @@ export function useOAuthErrorHandler() {
       };
 
       // Log to console for debugging
-      console.group('🔐 OAuth Error Detected');
-      console.error('Error Code:', oauthError.code);
-      console.error('Description:', oauthError.description);
-      console.log('Full URL:', oauthError.fullUrl);
-      console.log('Origin:', oauthError.origin);
-      console.log('Timestamp:', oauthError.timestamp);
-      console.log('Supabase Project:', 'mcmfwlgovubpdcfiqfvk');
-      console.groupEnd();
+      logger.group('🔐 OAuth Error Detected');
+      logger.error('Error Code:', oauthError.code);
+      logger.error('Description:', oauthError.description);
+      logger.log('Full URL:', oauthError.fullUrl);
+      logger.log('Origin:', oauthError.origin);
+      logger.log('Timestamp:', oauthError.timestamp);
+      logger.log('Supabase Project:', 'mcmfwlgovubpdcfiqfvk');
+      logger.groupEnd();
 
       // Show toast with error info
       toast.error(`${errorInfo.title}: ${errorInfo.description}`, {

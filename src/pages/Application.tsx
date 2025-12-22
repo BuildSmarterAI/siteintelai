@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,7 +72,7 @@ export default function Application() {
     const applicationInProgress = sessionStorage.getItem('application_in_progress');
     if (!applicationInProgress) {
       sessionStorage.setItem('application_in_progress', 'true');
-      console.log('[New Application] Started new application session');
+      logger.debug('New Application', 'Started new application session');
     }
     async function loadUserData() {
       try {
@@ -113,7 +114,7 @@ export default function Application() {
               // If user has a valid step in URL (e.g., returning to step 5), respect it
               if (currentStepFromUrl >= 1) {
                 // User is past contact - let them stay where they are
-                console.log('[Profile] User on step', currentStepFromUrl, '- respecting URL');
+                logger.debug('Profile', 'User on step', currentStepFromUrl, '- respecting URL');
                 setCurrentStep(currentStepFromUrl);
               } else {
                 // Contact info complete - skip to step 1 (Property)
@@ -126,7 +127,7 @@ export default function Application() {
               // Profile is PARTIAL - show friendly message and let them complete
               setProfileStatus('partial');
               setHasCompleteProfile(false);
-              console.log('Profile is partial - user needs to complete phone and company');
+              logger.log('Profile is partial - user needs to complete phone and company');
             } else {
               // Profile is missing basic info
               setProfileStatus('none');
@@ -135,7 +136,7 @@ export default function Application() {
           }
         }
       } catch (error) {
-        console.error('Error loading user data:', error);
+        logger.error('Error loading user data:', error);
       } finally {
         setAuthLoading(false);
       }
@@ -423,7 +424,7 @@ export default function Application() {
   // Use validation from hook
   const validateStep = validateStepFromHook;
   const handleNext = async () => {
-    console.log('[Next Button Clicked] Current Step:', currentStep, 'Form Data:', {
+    logger.debug('Next Button', 'Current Step:', currentStep, 'Form Data:', {
       propertyAddress: formData.propertyAddress
     });
 
@@ -453,7 +454,7 @@ export default function Application() {
       if (currentStep === 0) {
         sessionStorage.setItem('intent_captured_this_session', 'true');
         localStorage.setItem('user_intent_type', formData.intentType);
-        console.log('[Intent] Saved to session and localStorage:', formData.intentType);
+        logger.debug('Intent', 'Saved to session and localStorage:', formData.intentType);
       }
 
       // If completing Step 1 AND user is authenticated, update their profile
@@ -475,11 +476,11 @@ export default function Application() {
               updated_at: new Date().toISOString()
             }).eq('id', session.user.id);
             if (error) throw error;
-            console.log('Profile updated successfully');
+            logger.log('Profile updated successfully');
             setProfileStatus('complete');
             setHasCompleteProfile(true);
           } catch (error) {
-            console.error('Error updating profile:', error);
+            logger.error('Error updating profile:', error);
             // Non-blocking - continue even if update fails
           }
         }
@@ -505,7 +506,7 @@ export default function Application() {
       const nextStep = Math.min(currentStep + 1, totalSteps);
       goToStep(nextStep);
     } else {
-      console.log('[Validation Failed] Errors:', errors);
+      logger.debug('Validation Failed', 'Errors:', errors);
     }
   };
   const handlePrev = () => {
@@ -712,14 +713,14 @@ export default function Application() {
       sessionStorage.removeItem('application_in_progress');
       sessionStorage.removeItem('intent_captured_this_session');
       clearDraft(); // Clear draft after successful submission
-      console.log('[Submission] Cleared session markers and draft for next application');
+      logger.debug('Submission', 'Cleared session markers and draft for next application');
 
       // Redirect to thank you page with application ID
       setTimeout(() => {
         navigate(`/thank-you?applicationId=${result.id}`);
       }, 1500);
     } catch (error) {
-      console.error("Error submitting application:", error);
+      logger.error("Error submitting application:", error);
       toast({
         title: "Submission Error",
         description: "There was an issue submitting your application. Please try again.",
@@ -813,7 +814,7 @@ export default function Application() {
           }}
           onChange={handleInputChange}
           onAddressSelect={async (lat: number, lng: number, address: string) => {
-            console.log('[Address Selected]', { lat, lng, address });
+            logger.debug('Address Selected', { lat, lng, address });
             setFormData(prev => ({
               ...prev,
               propertyAddress: address,
@@ -830,7 +831,7 @@ export default function Application() {
                 body: { lat, lng, formatted_address: address, mode: 'geocode_only' }
               });
               if (error) {
-                console.error('[Enrichment Error]', error);
+                logger.error('[Enrichment Error]', error);
                 toast({
                   title: "Enrichment Failed",
                   description: "Could not load property details. Please enter them manually.",
@@ -869,7 +870,7 @@ export default function Application() {
                 });
               }
             } catch (err) {
-              console.error('[Enrichment Error]', err);
+              logger.error('[Enrichment Error]', err);
             } finally {
               setIsAddressLoading(false);
             }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from "@/lib/logger";
 import { supabase } from '@/integrations/supabase/client';
 import { ApplicationFormData } from './useApplicationForm';
 import { useToast } from './use-toast';
@@ -55,7 +56,7 @@ export function useApplicationDraft(
             .maybeSingle();
 
           if (draft && !error) {
-            console.log('[Draft] Loaded existing draft:', draftId);
+            logger.debug('Draft', 'Loaded existing draft:', draftId);
             restoreFormFromDraft(draft);
             setDraftState(prev => ({
               ...prev,
@@ -78,7 +79,7 @@ export function useApplicationDraft(
           .maybeSingle();
 
         if (recentDraft && !error) {
-          console.log('[Draft] Found recent draft:', recentDraft.id);
+          logger.debug('Draft', 'Found recent draft:', recentDraft.id);
           restoreFormFromDraft(recentDraft);
           localStorage.setItem('current_draft_id', recentDraft.id);
           setDraftState(prev => ({
@@ -91,7 +92,7 @@ export function useApplicationDraft(
           setDraftState(prev => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
-        console.error('[Draft] Error loading draft:', error);
+        logger.error('[Draft] Error loading draft:', error);
         setDraftState(prev => ({ ...prev, isLoading: false }));
       }
     }
@@ -132,7 +133,7 @@ export function useApplicationDraft(
     if (draft.zoning_code) updates.zoning = draft.zoning_code;
 
     if (Object.keys(updates).length > 0) {
-      console.log('[Draft] Restoring form fields:', Object.keys(updates));
+      logger.debug('Draft', 'Restoring form fields:', Object.keys(updates));
       updateMultipleFields(updates);
     }
   };
@@ -179,9 +180,9 @@ export function useApplicationDraft(
         completionPercent: data.completionPercent,
       }));
 
-      console.log('[Draft] Saved successfully:', data.draft_id);
+      logger.debug('Draft', 'Saved successfully:', data.draft_id);
     } catch (error) {
-      console.error('[Draft] Save error:', error);
+      logger.error('[Draft] Save error:', error);
       setDraftState(prev => ({ ...prev, isSaving: false }));
     }
   }, [formData, currentStep, draftState.draftId]);

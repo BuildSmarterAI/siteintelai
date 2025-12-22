@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from "@/lib/logger";
 
 export interface ApplicationFormData {
   // Step 0: Contact Information
@@ -204,7 +205,7 @@ export function useApplicationForm() {
   const updateField = useCallback((field: string, value: any) => {
     setFormData(prev => {
       const updated = { ...prev, [field]: value };
-      console.log('[Form Update]', field, '=', value, '| Previous:', prev[field as keyof ApplicationFormData]);
+      logger.debug('Form Update', field, '=', value, '| Previous:', prev[field as keyof ApplicationFormData]);
       return updated;
     });
     

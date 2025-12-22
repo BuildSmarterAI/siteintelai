@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logger } from "@/lib/logger";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +44,7 @@ export function ReEnrichProgressModal({
     const channel = supabase
       .channel(`app:${applicationId}`)
       .on('broadcast', { event: 'status_update' }, (payload: any) => {
-        console.log('[ReEnrich] Status update:', payload);
+        logger.debug('ReEnrich', 'Status update:', payload);
         setStatus(payload.payload.status);
         setProgress(payload.payload.status_percent || 0);
         setStageLabel(payload.payload.stage_label || 'Processing');
@@ -65,7 +66,7 @@ export function ReEnrichProgressModal({
         }
       })
       .on('broadcast', { event: 'progress_log' }, (payload: any) => {
-        console.log('[ReEnrich] Progress log:', payload);
+        logger.debug('ReEnrich', 'Progress log:', payload);
         const logEntry = payload.payload as ProgressLog;
         setLogs(prev => [...prev, logEntry]);
       })

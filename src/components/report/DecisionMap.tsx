@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { logger } from "@/lib/logger";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
@@ -77,7 +78,7 @@ export function DecisionMap({
     isLayerEnabled,
   } = useMapPresets({
     onPresetChange: (preset) => {
-      console.log('[DecisionMap] Preset changed:', preset.id);
+      logger.debug('DecisionMap', 'Preset changed:', preset.id);
     },
   });
 
@@ -108,7 +109,7 @@ export function DecisionMap({
 
   // Handle geometry click from map - sync to kill-factors
   const handleGeometryClick = useCallback((type: string, feature: any) => {
-    console.log('[DecisionMap] Geometry clicked:', type, feature);
+    logger.debug('DecisionMap', 'Geometry clicked:', type, feature);
     
     // Notify parent
     onGeometryClick?.(type, feature);

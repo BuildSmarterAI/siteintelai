@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { logger } from "@/lib/logger";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -157,26 +158,26 @@ export function SmartParcelSearch({
       clearTimeout(debounceRef.current);
     }
 
-    console.log('[SmartParcelSearch] Query changed:', { query, length: query.trim().length, detectedMode });
+    logger.debug('SmartParcelSearch', 'Query changed:', { query, length: query.trim().length, detectedMode });
 
     if (query.trim().length >= 3 && detectedMode === 'address') {
       debounceRef.current = setTimeout(async () => {
-        console.log('[SmartParcelSearch] Fetching suggestions for:', query.trim());
+        logger.debug('SmartParcelSearch', 'Fetching suggestions for:', query.trim());
         try {
           const { data, error } = await supabase.functions.invoke('search-parcels', {
             body: { query: query.trim(), type: 'address' }
           });
 
-          console.log('[SmartParcelSearch] Suggestions response:', { data, error });
+          logger.debug('SmartParcelSearch', 'Suggestions response:', { data, error });
 
           if (error) {
-            console.error('[SmartParcelSearch] API error:', error);
+            logger.error('[SmartParcelSearch] API error:', error);
             return;
           }
 
           // Check for API configuration errors
           if (data?.error_message || data?.status === 'REQUEST_DENIED') {
-            console.error('[SmartParcelSearch] API denied:', data.error_message);
+            logger.error('[SmartParcelSearch] API denied:', data.error_message);
             return;
           }
 
@@ -192,7 +193,7 @@ export function SmartParcelSearch({
             setShowSuggestions(true);
           }
         } catch (err) {
-          console.error('[SmartParcelSearch] Suggestion error:', err);
+          logger.error('[SmartParcelSearch] Suggestion error:', err);
         }
       }, 300);
     } else {
@@ -208,7 +209,7 @@ export function SmartParcelSearch({
   const handleSearch = useCallback(async () => {
     if (!query.trim()) return;
 
-    console.log('[SmartParcelSearch] Starting search:', { query, detectedMode, detectedCounty });
+    logger.debug('SmartParcelSearch', 'Starting search:', { query, detectedMode, detectedCounty });
     setIsLoading(true);
     setShowSuggestions(false);
 
@@ -221,7 +222,7 @@ export function SmartParcelSearch({
         }
       });
 
-      console.log('[SmartParcelSearch] Search response:', { data, error });
+      logger.debug('SmartParcelSearch', 'Search response:', { data, error });
 
       if (error) throw error;
 
@@ -237,7 +238,7 @@ export function SmartParcelSearch({
 
       if (data?.results?.length > 0) {
         const result = data.results[0];
-        console.log('[SmartParcelSearch] Found result:', result);
+        logger.debug('SmartParcelSearch', 'Found result:', result);
         
         // Save to recent searches
         setRecentSearches(prev => {
@@ -259,7 +260,7 @@ export function SmartParcelSearch({
           });
         }
       } else {
-        console.log('[SmartParcelSearch] No results found');
+        logger.debug('SmartParcelSearch', 'No results found');
         // No results - offer fallback options
         toast({
           title: "No Results Found",
@@ -269,7 +270,7 @@ export function SmartParcelSearch({
         });
       }
     } catch (error) {
-      console.error('[SmartParcelSearch] Search error:', error);
+      logger.error('[SmartParcelSearch] Search error:', error);
       toast({
         title: "Search Error",
         description: "Please try again or use a different search method.",

@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { logger } from "@/lib/logger";
 import { Helmet } from 'react-helmet';
 import { useHiiStore } from '@/features/hospitality-hii';
 import { Building2, TrendingUp } from 'lucide-react';
@@ -8,7 +9,7 @@ const HospitalityIntelligence = () => {
 
   useEffect(() => {
     // Initialize module (future: check feature flag)
-    console.log('HII Module initialized for:', city);
+    logger.debug('HII', 'Module initialized for:', city);
   }, [city]);
 
   return (
