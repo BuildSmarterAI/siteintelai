@@ -7,6 +7,7 @@ import { Loader2, Database, CheckCircle, XCircle, MapPin, RefreshCw } from 'luci
 import { useToast } from '@/hooks/use-toast';
 import { useReEnrichApplication } from '@/hooks/useReEnrichApplication';
 import { ReEnrichProgressModal } from '@/components/admin/ReEnrichProgressModal';
+import { logger } from '@/lib/logger';
 
 const TEST_COORDINATES = [
   { name: 'Houston (Downtown)', lat: 29.7604, lng: -95.3698 },
@@ -45,7 +46,7 @@ export default function AdminGeospatial() {
       if (error) throw error;
       setLatestApp(data);
     } catch (err: any) {
-      console.error('Error fetching latest application:', err);
+      logger.error('Error fetching latest application:', err);
     } finally {
       setFetchingApp(false);
     }
@@ -110,7 +111,7 @@ export default function AdminGeospatial() {
     setTestResults(null);
 
     try {
-      console.log(`Testing compute-geospatial-score for ${location.name}...`);
+      logger.debug('AdminGeospatial', `Testing compute-geospatial-score for ${location.name}...`);
       
       const { data, error: functionError } = await supabase.functions.invoke(
         'compute-geospatial-score',
