@@ -280,8 +280,8 @@ async function fetchFromCounty(
     console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (params.lat !== undefined && params.lng !== undefined) {
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    // Use simple comma-separated envelope format (more compatible with ArcGIS servers)
-    const buffer = 0.0001; // ~11 meters at Texas latitudes
+    // Use larger buffer to catch parcels when geocode lands on street
+    const buffer = 0.001; // ~110 meters at Texas latitudes - catches nearby parcels
     const minLng = params.lng - buffer;
     const minLat = params.lat - buffer;
     const maxLng = params.lng + buffer;
