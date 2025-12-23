@@ -4,7 +4,15 @@
  * Ensures parcel integrity across the selection → feasibility flow.
  */
 
-import type { SelectedParcel, CandidateParcel, ConfidenceLevel, ParcelSelectionInputMode, ParcelSource } from '@/types/parcelSelection';
+import type { 
+  SelectedParcel, 
+  CandidateParcel, 
+  ConfidenceLevel, 
+  ParcelSelectionInputMode, 
+  ParcelSource,
+  VerificationAuditData,
+} from '@/types/parcelSelection';
+import { supabase } from '@/integrations/supabase/client';
 
 const STORAGE_KEY = 'siteintel_locked_parcel';
 
@@ -60,6 +68,60 @@ export async function createLockedParcel(
     zoning: candidate.zoning || undefined,
     market_value: candidate.market_value || undefined,
   };
+}
+
+/**
+ * Persist verification audit to Supabase.
+ * This is REQUIRED for audit trail - returns false if fails.
+ */
+export async function persistVerificationAudit(data: VerificationAuditData): Promise<boolean> {
+  try {
+    // Get current user
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    
+    if (!userId) {
+      console.error('[parcelLock] No authenticated user for audit');
+      return false;
+    }
+
+    // Use type assertion since types.ts hasn't been regenerated yet
+    const { error } = await (supabase.from('parcel_verification_logs') as any).insert({
+      user_id: userId,
+      parcel_id: data.parcel_id,
+      county: data.county,
+      geometry_hash: data.geometry_hash,
+      geometry_wkt: data.geometry_wkt || null,
+      input_method: data.input_method,
+      raw_input: data.raw_input,
+      geocode_confidence: data.geocode_confidence,
+      geocode_precision: data.geocode_precision || null,
+      geocode_source: data.geocode_source || null,
+      candidate_count: data.candidate_count,
+      candidates_presented: data.candidates_presented,
+      warnings_shown: data.warnings_shown,
+      checkbox_correct_boundary_at: data.checkbox_correct_boundary_at || null,
+      checkbox_location_matches_at: data.checkbox_location_matches_at || null,
+      checkbox_understands_analysis_at: data.checkbox_understands_analysis_at || null,
+      typed_confirmation_phrase: data.typed_confirmation_phrase || null,
+      user_agent: data.user_agent,
+      map_zoom_level: data.map_zoom_level || null,
+      map_center_lat: data.map_center_lat || null,
+      map_center_lng: data.map_center_lng || null,
+      lock_confirmed_at: new Date().toISOString(),
+    });
+
+    if (error) {
+      console.error('[parcelLock] Failed to persist audit:', error);
+      return false;
+    }
+
+    console.log('[parcelLock] Verification audit persisted successfully');
+    return true;
+  } catch (err) {
+    console.error('[parcelLock] Exception persisting audit:', err);
+    return false;
+  }
 }
 
 /**

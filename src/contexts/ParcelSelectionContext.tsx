@@ -12,12 +12,15 @@ import type {
   SelectedParcel,
   VerificationChecks,
   ParcelSelectionInputMode,
+  CheckboxTimestamps,
+  VerificationAuditData,
 } from '@/types/parcelSelection';
 import {
   createLockedParcel,
   persistLockedParcel,
   clearLockedParcel,
   retrieveLockedParcel,
+  persistVerificationAudit,
 } from '@/lib/parcelLock';
 
 const initialState: ParcelSelectionState = {
@@ -30,10 +33,14 @@ const initialState: ParcelSelectionState = {
     locationMatches: false,
     understandsAnalysis: false,
   },
+  checkboxTimestamps: {},
   lockedParcel: null,
   warnings: [],
   isLoading: false,
   error: null,
+  typedConfirmationPhrase: '',
+  rawInput: '',
+  mapState: undefined,
 };
 
 function parcelSelectionReducer(
@@ -50,7 +57,9 @@ function parcelSelectionReducer(
         selectedCandidate: null,
         isVerified: false,
         verificationChecks: initialState.verificationChecks,
+        checkboxTimestamps: {},
         warnings: [],
+        typedConfirmationPhrase: '',
       };
 
     case 'SET_CANDIDATES':
@@ -60,6 +69,7 @@ function parcelSelectionReducer(
         selectedCandidate: null,
         isVerified: false,
         verificationChecks: initialState.verificationChecks,
+        checkboxTimestamps: {},
       };
 
     case 'SELECT_CANDIDATE':
@@ -68,6 +78,8 @@ function parcelSelectionReducer(
         selectedCandidate: action.candidate,
         isVerified: false,
         verificationChecks: initialState.verificationChecks,
+        checkboxTimestamps: {},
+        typedConfirmationPhrase: '',
       };
 
     case 'CLEAR_SELECTION':
@@ -76,6 +88,8 @@ function parcelSelectionReducer(
         selectedCandidate: null,
         isVerified: false,
         verificationChecks: initialState.verificationChecks,
+        checkboxTimestamps: {},
+        typedConfirmationPhrase: '',
       };
 
     case 'UPDATE_VERIFICATION_CHECK': {
@@ -83,6 +97,12 @@ function parcelSelectionReducer(
         ...state.verificationChecks,
         [action.check]: action.value,
       };
+      // Track timestamp when checkbox is checked (not when unchecked)
+      const newTimestamps = { ...state.checkboxTimestamps };
+      if (action.value) {
+        newTimestamps[action.check] = action.timestamp;
+      }
+      
       // All three checks must be true to be verified
       const isVerified = 
         newChecks.correctBoundary && 
@@ -92,6 +112,7 @@ function parcelSelectionReducer(
       return {
         ...state,
         verificationChecks: newChecks,
+        checkboxTimestamps: newTimestamps,
         isVerified,
       };
     }
@@ -109,6 +130,8 @@ function parcelSelectionReducer(
         lockedParcel: null,
         isVerified: false,
         verificationChecks: initialState.verificationChecks,
+        checkboxTimestamps: {},
+        typedConfirmationPhrase: '',
       };
 
     case 'ADD_WARNING':
@@ -136,6 +159,24 @@ function parcelSelectionReducer(
         isLoading: false,
       };
 
+    case 'SET_TYPED_CONFIRMATION':
+      return {
+        ...state,
+        typedConfirmationPhrase: action.phrase,
+      };
+
+    case 'SET_RAW_INPUT':
+      return {
+        ...state,
+        rawInput: action.input,
+      };
+
+    case 'SET_MAP_STATE':
+      return {
+        ...state,
+        mapState: action.state,
+      };
+
     case 'RESET':
       return initialState;
 
@@ -155,6 +196,12 @@ interface ParcelSelectionContextValue {
   // Verification
   updateVerificationCheck: (check: keyof VerificationChecks, value: boolean) => void;
   canLock: boolean;
+  // Typed confirmation (for low confidence)
+  setTypedConfirmation: (phrase: string) => void;
+  // Raw input tracking
+  setRawInput: (input: string) => void;
+  // Map state tracking
+  setMapState: (state: { zoom: number; centerLat: number; centerLng: number }) => void;
   // Locking
   lockParcel: () => Promise<SelectedParcel>;
   unlockParcel: () => void;
@@ -196,7 +243,19 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
   }, []);
 
   const updateVerificationCheck = useCallback((check: keyof VerificationChecks, value: boolean) => {
-    dispatch({ type: 'UPDATE_VERIFICATION_CHECK', check, value });
+    dispatch({ type: 'UPDATE_VERIFICATION_CHECK', check, value, timestamp: new Date().toISOString() });
+  }, []);
+
+  const setTypedConfirmation = useCallback((phrase: string) => {
+    dispatch({ type: 'SET_TYPED_CONFIRMATION', phrase });
+  }, []);
+
+  const setRawInput = useCallback((input: string) => {
+    dispatch({ type: 'SET_RAW_INPUT', input });
+  }, []);
+
+  const setMapState = useCallback((mapState: { zoom: number; centerLat: number; centerLng: number }) => {
+    dispatch({ type: 'SET_MAP_STATE', state: mapState });
   }, []);
 
   // Can lock when all verification checks are complete and a candidate is selected
@@ -211,10 +270,39 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
     }
 
     const locked = await createLockedParcel(state.selectedCandidate, state.inputMode);
+    
+    // Build audit data
+    const auditData: VerificationAuditData = {
+      parcel_id: locked.parcel_id,
+      county: locked.county,
+      geometry_hash: locked.geometry_hash,
+      input_method: state.inputMode,
+      raw_input: state.rawInput,
+      geocode_confidence: state.selectedCandidate.confidence,
+      candidate_count: state.candidates.length,
+      candidates_presented: state.candidates,
+      warnings_shown: state.warnings,
+      checkbox_correct_boundary_at: state.checkboxTimestamps.correctBoundary,
+      checkbox_location_matches_at: state.checkboxTimestamps.locationMatches,
+      checkbox_understands_analysis_at: state.checkboxTimestamps.understandsAnalysis,
+      typed_confirmation_phrase: state.typedConfirmationPhrase || undefined,
+      user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      map_zoom_level: state.mapState?.zoom,
+      map_center_lat: state.mapState?.centerLat,
+      map_center_lng: state.mapState?.centerLng,
+    };
+
+    // Persist to server (required for audit trail)
+    const serverPersisted = await persistVerificationAudit(auditData);
+    if (!serverPersisted) {
+      throw new Error('Failed to save verification to server. Please try again.');
+    }
+
+    // Also persist to localStorage as fallback
     persistLockedParcel(locked);
     dispatch({ type: 'LOCK_PARCEL', parcel: locked });
     return locked;
-  }, [state.selectedCandidate, state.inputMode, state.isVerified]);
+  }, [state.selectedCandidate, state.inputMode, state.isVerified, state.rawInput, state.candidates, state.warnings, state.checkboxTimestamps, state.typedConfirmationPhrase, state.mapState]);
 
   const unlockParcel = useCallback(() => {
     clearLockedParcel();
@@ -258,6 +346,9 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
     clearSelection,
     updateVerificationCheck,
     canLock,
+    setTypedConfirmation,
+    setRawInput,
+    setMapState,
     lockParcel,
     unlockParcel,
     addWarning,

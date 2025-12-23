@@ -1,6 +1,11 @@
 /**
  * Parcel Selection Gate
  * The truth gate - resolves user intent into one verified parcel before any analysis.
+ * 
+ * Key behaviors:
+ * - NO auto-selection for single candidates - user must explicitly click
+ * - Tracks raw input and map state for audit
+ * - Server-side persistence required before proceeding
  */
 
 import { useState, useCallback, useEffect } from "react";
@@ -14,7 +19,7 @@ import { ParcelSelectionTabs } from "./ParcelSelectionTabs";
 import { CandidateParcelList } from "./CandidateParcelList";
 import { ParcelVerificationPanel } from "./ParcelVerificationPanel";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
-import { Shield, AlertTriangle, Lock, ArrowRight, Search, Map, CheckCircle } from "lucide-react";
+import { Shield, AlertTriangle, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
@@ -34,6 +39,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     selectCandidate, 
     lockParcel,
     recoverFromStorage,
+    setRawInput,
+    setMapState,
   } = useParcelSelection();
   
   const [isMapLoading, setIsMapLoading] = useState(true);
@@ -43,6 +50,15 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const [mapZoom, setMapZoom] = useState(14);
   const [isLocking, setIsLocking] = useState(false);
   const [mobileStep, setMobileStep] = useState<MobileStep>('search');
+
+  // Track map state for audit
+  useEffect(() => {
+    setMapState({
+      zoom: mapZoom,
+      centerLat: mapCenter[0],
+      centerLng: mapCenter[1],
+    });
+  }, [mapZoom, mapCenter, setMapState]);
 
   // Try to recover locked parcel from storage on mount
   useEffect(() => {
@@ -64,13 +80,21 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     setMapZoom(zoom || 17);
   }, []);
 
-  const handleCandidatesFound = useCallback((candidates: CandidateParcel[]) => {
+  const handleCandidatesFound = useCallback((candidates: CandidateParcel[], rawInput?: string) => {
     setCandidates(candidates);
-    // Auto-select if only one candidate
-    if (candidates.length === 1) {
-      selectCandidate(candidates[0]);
+    // Track raw input for audit
+    if (rawInput) {
+      setRawInput(rawInput);
     }
-  }, [setCandidates, selectCandidate]);
+    // NOTE: NO auto-selection even for single candidate - user must explicitly click
+    // This is intentional per audit requirements
+    if (candidates.length === 1) {
+      // Just highlight but don't select - show prompt to user
+      toast.info("1 parcel found. Click to select and verify.", {
+        duration: 4000,
+      });
+    }
+  }, [setCandidates, setRawInput]);
 
   const handleCandidateSelect = useCallback((candidate: CandidateParcel) => {
     selectCandidate(candidate);
@@ -111,9 +135,9 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       const lockedParcel = await lockParcel();
       toast.success("Parcel locked for feasibility analysis");
       onParcelLocked(lockedParcel);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ParcelSelectionGate] Lock failed:', err);
-      toast.error("Failed to lock parcel. Please try again.");
+      toast.error(err?.message || "Failed to lock parcel. Please try again.");
     } finally {
       setIsLocking(false);
     }
@@ -151,7 +175,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const searchPanel = (
     <>
       <ParcelSelectionTabs
-        onCandidatesFound={handleCandidatesFound}
+        onCandidatesFound={(candidates) => handleCandidatesFound(candidates)}
         onNavigateToLocation={handleNavigateToLocation}
         mapCenter={mapCenter}
       />
@@ -161,6 +185,15 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
           selectedId={state.selectedCandidate?.parcel_id || null}
           onSelect={handleCandidateSelect}
         />
+        {/* Prompt for single candidate */}
+        {state.candidates.length === 1 && !state.selectedCandidate && (
+          <Alert className="mt-4 bg-primary/5 border-primary/20">
+            <MousePointerClick className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-sm">
+              <strong>1 parcel found.</strong> Click the parcel above to select and verify it.
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
     </>
   );

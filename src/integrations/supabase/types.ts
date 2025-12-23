@@ -4386,6 +4386,96 @@ export type Database = {
           },
         ]
       }
+      parcel_verification_logs: {
+        Row: {
+          candidate_count: number
+          candidates_presented: Json | null
+          checkbox_correct_boundary_at: string | null
+          checkbox_location_matches_at: string | null
+          checkbox_understands_analysis_at: string | null
+          county: string
+          created_at: string
+          geocode_confidence: string | null
+          geocode_precision: string | null
+          geocode_source: string | null
+          geometry_hash: string
+          geometry_stale: boolean | null
+          geometry_stale_detected_at: string | null
+          geometry_verified_at: string | null
+          geometry_wkt: string | null
+          input_method: string
+          lock_confirmed_at: string
+          lock_id: string
+          map_center_lat: number | null
+          map_center_lng: number | null
+          map_zoom_level: number | null
+          parcel_id: string
+          raw_input: string
+          typed_confirmation_phrase: string | null
+          user_agent: string | null
+          user_id: string
+          warnings_shown: string[] | null
+        }
+        Insert: {
+          candidate_count?: number
+          candidates_presented?: Json | null
+          checkbox_correct_boundary_at?: string | null
+          checkbox_location_matches_at?: string | null
+          checkbox_understands_analysis_at?: string | null
+          county: string
+          created_at?: string
+          geocode_confidence?: string | null
+          geocode_precision?: string | null
+          geocode_source?: string | null
+          geometry_hash: string
+          geometry_stale?: boolean | null
+          geometry_stale_detected_at?: string | null
+          geometry_verified_at?: string | null
+          geometry_wkt?: string | null
+          input_method: string
+          lock_confirmed_at?: string
+          lock_id?: string
+          map_center_lat?: number | null
+          map_center_lng?: number | null
+          map_zoom_level?: number | null
+          parcel_id: string
+          raw_input: string
+          typed_confirmation_phrase?: string | null
+          user_agent?: string | null
+          user_id: string
+          warnings_shown?: string[] | null
+        }
+        Update: {
+          candidate_count?: number
+          candidates_presented?: Json | null
+          checkbox_correct_boundary_at?: string | null
+          checkbox_location_matches_at?: string | null
+          checkbox_understands_analysis_at?: string | null
+          county?: string
+          created_at?: string
+          geocode_confidence?: string | null
+          geocode_precision?: string | null
+          geocode_source?: string | null
+          geometry_hash?: string
+          geometry_stale?: boolean | null
+          geometry_stale_detected_at?: string | null
+          geometry_verified_at?: string | null
+          geometry_wkt?: string | null
+          input_method?: string
+          lock_confirmed_at?: string
+          lock_id?: string
+          map_center_lat?: number | null
+          map_center_lng?: number | null
+          map_zoom_level?: number | null
+          parcel_id?: string
+          raw_input?: string
+          typed_confirmation_phrase?: string | null
+          user_agent?: string | null
+          user_id?: string
+          warnings_shown?: string[] | null
+        }
+        Relationships: []
+      }
       parcels: {
         Row: {
           acreage: number | null
