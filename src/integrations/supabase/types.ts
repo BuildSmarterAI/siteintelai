@@ -5935,6 +5935,57 @@ export type Database = {
         }
         Relationships: []
       }
+      user_saved_locations: {
+        Row: {
+          county: string | null
+          created_at: string
+          id: string
+          is_favorite: boolean
+          label: string
+          last_used_at: string
+          lat: number | null
+          lng: number | null
+          parcel_id: string | null
+          query: string
+          query_type: string
+          updated_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          county?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          label: string
+          last_used_at?: string
+          lat?: number | null
+          lng?: number | null
+          parcel_id?: string | null
+          query: string
+          query_type: string
+          updated_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          county?: string | null
+          created_at?: string
+          id?: string
+          is_favorite?: boolean
+          label?: string
+          last_used_at?: string
+          lat?: number | null
+          lng?: number | null
+          parcel_id?: string | null
+          query?: string
+          query_type?: string
+          updated_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_subscriptions: {
         Row: {
           created_at: string
