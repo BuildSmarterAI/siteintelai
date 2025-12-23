@@ -4403,6 +4403,7 @@ export type Database = {
           geometry_stale_detected_at: string | null
           geometry_verified_at: string | null
           geometry_wkt: string | null
+          guest_session_id: string | null
           input_method: string
           lock_confirmed_at: string
           lock_id: string
@@ -4413,7 +4414,7 @@ export type Database = {
           raw_input: string
           typed_confirmation_phrase: string | null
           user_agent: string | null
-          user_id: string
+          user_id: string | null
           warnings_shown: string[] | null
         }
         Insert: {
@@ -4432,6 +4433,7 @@ export type Database = {
           geometry_stale_detected_at?: string | null
           geometry_verified_at?: string | null
           geometry_wkt?: string | null
+          guest_session_id?: string | null
           input_method: string
           lock_confirmed_at?: string
           lock_id?: string
@@ -4442,7 +4444,7 @@ export type Database = {
           raw_input: string
           typed_confirmation_phrase?: string | null
           user_agent?: string | null
-          user_id: string
+          user_id?: string | null
           warnings_shown?: string[] | null
         }
         Update: {
@@ -4461,6 +4463,7 @@ export type Database = {
           geometry_stale_detected_at?: string | null
           geometry_verified_at?: string | null
           geometry_wkt?: string | null
+          guest_session_id?: string | null
           input_method?: string
           lock_confirmed_at?: string
           lock_id?: string
@@ -4471,7 +4474,7 @@ export type Database = {
           raw_input?: string
           typed_confirmation_phrase?: string | null
           user_agent?: string | null
-          user_id?: string
+          user_id?: string | null
           warnings_shown?: string[] | null
         }
         Relationships: []
