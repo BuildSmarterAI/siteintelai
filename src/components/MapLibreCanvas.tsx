@@ -1956,15 +1956,21 @@ export function MapLibreCanvas({
 
   // Handle drawing mode toggle
   useEffect(() => {
-    if (!draw.current) return;
-
-    if (drawingEnabled) {
-      draw.current.changeMode('draw_polygon');
-    } else {
-      draw.current.changeMode('simple_select');
-      draw.current.deleteAll();
+    if (!draw.current || !map.current || !mapLoaded) return;
+    
+    // Ensure draw control is fully initialized before changing mode
+    try {
+      if (drawingEnabled) {
+        draw.current.changeMode('draw_polygon');
+      } else {
+        draw.current.changeMode('simple_select');
+        draw.current.deleteAll();
+      }
+    } catch (error) {
+      // Draw control may not be fully initialized yet
+      logger.debug('MapLibreCanvas', 'Draw mode change deferred:', error);
     }
-  }, [drawingEnabled]);
+  }, [drawingEnabled, mapLoaded]);
 
   // Handle polygon completion
   useEffect(() => {
