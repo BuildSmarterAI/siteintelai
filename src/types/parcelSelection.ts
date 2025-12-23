@@ -51,16 +51,34 @@ export interface VerificationChecks {
   understandsAnalysis: boolean;
 }
 
+// Timestamps for when each checkbox was checked
+export interface CheckboxTimestamps {
+  correctBoundary?: string; // ISO date
+  locationMatches?: string; // ISO date
+  understandsAnalysis?: string; // ISO date
+}
+
 export interface ParcelSelectionState {
   inputMode: ParcelSelectionInputMode;
   candidates: CandidateParcel[];
   selectedCandidate: CandidateParcel | null;
   isVerified: boolean;
   verificationChecks: VerificationChecks;
+  checkboxTimestamps: CheckboxTimestamps;
   lockedParcel: SelectedParcel | null;
   warnings: string[];
   isLoading: boolean;
   error: string | null;
+  // For low-confidence typed confirmation
+  typedConfirmationPhrase: string;
+  // Raw input for audit
+  rawInput: string;
+  // Map state for audit
+  mapState?: {
+    zoom: number;
+    centerLat: number;
+    centerLng: number;
+  };
 }
 
 // Address search input
@@ -123,17 +141,44 @@ export interface ParcelSearchResponse {
   search_type: string;
 }
 
+// Verification audit log data
+export interface VerificationAuditData {
+  parcel_id: string;
+  county: string;
+  geometry_hash: string;
+  geometry_wkt?: string;
+  input_method: ParcelSelectionInputMode;
+  raw_input: string;
+  geocode_confidence: ConfidenceLevel;
+  geocode_precision?: string;
+  geocode_source?: string;
+  candidate_count: number;
+  candidates_presented: CandidateParcel[];
+  warnings_shown: string[];
+  checkbox_correct_boundary_at?: string;
+  checkbox_location_matches_at?: string;
+  checkbox_understands_analysis_at?: string;
+  typed_confirmation_phrase?: string;
+  user_agent: string;
+  map_zoom_level?: number;
+  map_center_lat?: number;
+  map_center_lng?: number;
+}
+
 // Actions for the parcel selection reducer
 export type ParcelSelectionAction =
   | { type: 'SET_INPUT_MODE'; mode: ParcelSelectionInputMode }
   | { type: 'SET_CANDIDATES'; candidates: CandidateParcel[] }
   | { type: 'SELECT_CANDIDATE'; candidate: CandidateParcel }
   | { type: 'CLEAR_SELECTION' }
-  | { type: 'UPDATE_VERIFICATION_CHECK'; check: keyof VerificationChecks; value: boolean }
+  | { type: 'UPDATE_VERIFICATION_CHECK'; check: keyof VerificationChecks; value: boolean; timestamp: string }
   | { type: 'LOCK_PARCEL'; parcel: SelectedParcel }
   | { type: 'UNLOCK_PARCEL' }
   | { type: 'ADD_WARNING'; warning: string }
   | { type: 'CLEAR_WARNINGS' }
   | { type: 'SET_LOADING'; isLoading: boolean }
   | { type: 'SET_ERROR'; error: string | null }
+  | { type: 'SET_TYPED_CONFIRMATION'; phrase: string }
+  | { type: 'SET_RAW_INPUT'; input: string }
+  | { type: 'SET_MAP_STATE'; state: { zoom: number; centerLat: number; centerLng: number } }
   | { type: 'RESET' };
