@@ -134,6 +134,30 @@ const COUNTY_CONFIG: Record<string, {
     maxRecords: 2000,
     srid: 4326,
   },
+  brazoria: {
+    name: 'Brazoria County',
+    apiUrl: 'https://arcgis-web.brazoriacountytx.gov/arcgis/rest/services/general/Parcels/MapServer/1/query',
+    fields: ['OBJECTID', 'prop_id', 'py_owner_name', 'legal_acreage', 'SITUS', 'appraised_val', 'situs_num', 'situs_street', 'situs_city', 'situs_zip'],
+    idField: 'prop_id',
+    ownerField: 'py_owner_name',
+    acreageField: 'legal_acreage',
+    addressField: 'SITUS',
+    valueField: 'appraised_val',
+    maxRecords: 1000,
+    srid: 4326,
+  },
+  collin: {
+    name: 'Collin County',
+    apiUrl: 'https://maps.collincountytx.gov/server/rest/services/InteractiveMap/Appraisal_District/MapServer/1/query',
+    fields: ['OBJECTID_1', 'PROP_ID', 'situs_disp', 'cert_asses', 'geo_id'],
+    idField: 'PROP_ID',
+    ownerField: '',
+    acreageField: '',
+    addressField: 'situs_disp',
+    valueField: 'cert_asses',
+    maxRecords: 1000,
+    srid: 4326,
+  },
 };
 
 // County boundary boxes for auto-detection (approximate)
@@ -146,6 +170,8 @@ const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: nu
   tarrant: { minLng: -97.55, maxLng: -96.98, minLat: 32.55, maxLat: 33.00 },
   williamson: { minLng: -98.05, maxLng: -97.28, minLat: 30.48, maxLat: 30.91 },
   fortbend: { minLng: -96.01, maxLng: -95.45, minLat: 29.35, maxLat: 29.82 },
+  brazoria: { minLng: -95.85, maxLng: -95.05, minLat: 28.85, maxLat: 29.55 },
+  collin: { minLng: -96.90, maxLng: -96.30, minLat: 33.00, maxLat: 33.50 },
 };
 
 // Texas bounding box for fallback detection
@@ -417,7 +443,7 @@ Deno.serve(async (req) => {
 
       // Otherwise, try all counties (starting with Harris as most common)
       console.log('[fetch-parcels] Searching all counties for parcel ID...');
-      const countyOrder = ['harris', 'fortbend', 'montgomery', 'travis', 'dallas', 'tarrant', 'bexar', 'williamson'];
+      const countyOrder = ['harris', 'fortbend', 'montgomery', 'travis', 'dallas', 'tarrant', 'bexar', 'williamson', 'brazoria', 'collin'];
       for (const countyKey of countyOrder) {
         const config = COUNTY_CONFIG[countyKey];
         const result = await fetchFromCounty(config, countyKey, { parcelId });
