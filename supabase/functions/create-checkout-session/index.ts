@@ -90,7 +90,9 @@ serve(async (req) => {
       ? `${origin}/application?payment=canceled&application_id=${application_id}`
       : `${origin}/application?payment=canceled`;
 
-    logStep("Creating checkout session", { successUrl, cancelUrl, hasMetadata: Object.keys(metadata).length > 0 });
+    // Generate idempotency key to prevent duplicate charges
+    const idempotencyKey = `checkout_${userEmail}_${application_id || 'direct'}_${Date.now()}`;
+    logStep("Creating checkout session", { successUrl, cancelUrl, hasMetadata: Object.keys(metadata).length > 0, idempotencyKey });
 
     // Create a one-time payment session for Site Feasibility Intelligence™
     const session = await stripe.checkout.sessions.create({
@@ -106,6 +108,9 @@ serve(async (req) => {
       metadata,
       success_url: successUrl,
       cancel_url: cancelUrl,
+      allow_promotion_codes: true, // Enable promo/coupon codes
+    }, {
+      idempotencyKey,
     });
 
     logStep("Checkout session created", { sessionId: session.id });
