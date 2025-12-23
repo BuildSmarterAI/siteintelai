@@ -63,11 +63,29 @@ function rowToSavedLocation(row: Record<string, unknown>): SavedLocation {
 
 export function useSearchHistory(options: UseSearchHistoryOptions = {}): UseSearchHistoryReturn {
   const { maxRecent = 10, maxFavorites = 20 } = options;
-  const { user, isAuthenticated } = useAuth();
   
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [recentSearches, setRecentSearches] = useState<SavedLocation[]>([]);
   const [favorites, setFavorites] = useState<SavedLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Set up auth listener
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setIsAuthenticated(!!session?.user);
+    });
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        setIsAuthenticated(!!session?.user);
+      }
+    );
+    
+    return () => subscription.unsubscribe();
+  }, []);
 
   // Load from localStorage for unauthenticated users
   const loadFromLocalStorage = useCallback((): SavedLocation[] => {

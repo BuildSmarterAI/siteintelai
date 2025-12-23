@@ -143,11 +143,37 @@ export const COUNTY_TILE_SOURCES: CountyTileSource[] = [
 /**
  * Build ArcGIS export tile URL for MapLibre raster source
  * Uses Web Mercator (EPSG:3857) for tile coordinates
+ * Uses dynamicLayers to render outline-only (no solid fill)
  */
 export function buildArcGISExportTileUrl(source: CountyTileSource): string {
   const baseUrl = source.mapServerUrl;
+  
+  // Dynamic layer definition for outline-only rendering (no fill)
+  const dynamicLayers = JSON.stringify([{
+    id: source.layerId,
+    source: { 
+      type: "mapLayer", 
+      mapLayerId: source.layerId 
+    },
+    drawingInfo: {
+      renderer: {
+        type: "simple",
+        symbol: {
+          type: "esriSFS",        // Simple Fill Symbol
+          style: "esriSFSNull",   // No fill
+          outline: {
+            type: "esriSLS",      // Simple Line Symbol
+            style: "esriSLSSolid",
+            color: [120, 120, 120, 180], // Gray color (R,G,B,A)
+            width: 0.5
+          }
+        }
+      }
+    }
+  }]);
+
   // MapLibre provides {bbox-epsg-3857} placeholder for the tile bounds
-  return `${baseUrl}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image&layers=show:${source.layerId}`;
+  return `${baseUrl}/export?bbox={bbox-epsg-3857}&bboxSR=3857&imageSR=3857&size=256,256&format=png32&transparent=true&f=image&dynamicLayers=${encodeURIComponent(dynamicLayers)}`;
 }
 
 /**
