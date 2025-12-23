@@ -40,6 +40,9 @@ serve(async (req) => {
       customerId = customers.data[0].id;
     }
 
+    // Generate idempotency key to prevent duplicate subscriptions
+    const idempotencyKey = `subscription_${user.email}_${Date.now()}`;
+
     // Create a subscription session for SiteIntel Pro
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -53,6 +56,9 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/dashboard?subscription=success`,
       cancel_url: `${req.headers.get("origin")}/dashboard?subscription=canceled`,
+      allow_promotion_codes: true, // Enable promo/coupon codes
+    }, {
+      idempotencyKey,
     });
 
     return new Response(JSON.stringify({ url: session.url }), {

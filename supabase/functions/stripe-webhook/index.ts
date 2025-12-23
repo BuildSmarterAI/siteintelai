@@ -98,9 +98,26 @@ serve(async (req) => {
           }
         }
 
-        // Record payment
+        // Record payment with receipt URL for one-time payments
         const paymentType = session.mode === "subscription" ? "subscription" : "one_time";
         const productName = session.mode === "subscription" ? "SiteIntel Pro Subscription" : "Site Feasibility Intelligence™";
+        
+        // For one-time payments, retrieve the payment intent to get receipt URL
+        let receiptUrl: string | null = null;
+        if (session.mode === "payment" && session.payment_intent) {
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent as string, {
+              expand: ['charges'],
+            });
+            const charges = paymentIntent.charges?.data;
+            if (charges && charges.length > 0) {
+              receiptUrl = charges[0].receipt_url || null;
+              logStep("Retrieved receipt URL", { receiptUrl: receiptUrl ? "present" : "null" });
+            }
+          } catch (receiptError) {
+            logStep("Warning: Could not retrieve receipt URL", { error: receiptError instanceof Error ? receiptError.message : String(receiptError) });
+          }
+        }
         
         await supabaseAdmin.from("payment_history").insert({
           user_id: user.id,
@@ -111,6 +128,7 @@ serve(async (req) => {
           status: "completed",
           payment_type: paymentType,
           product_name: productName,
+          receipt_url: receiptUrl,
         });
 
         // Handle one-time report purchase - credit user with 1 report
