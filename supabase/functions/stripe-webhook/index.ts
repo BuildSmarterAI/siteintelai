@@ -118,12 +118,19 @@ serve(async (req) => {
             logStep("Warning: Could not retrieve receipt URL", { error: receiptError instanceof Error ? receiptError.message : String(receiptError) });
           }
         }
+
+        // Extract tax amount from Stripe Tax (if enabled)
+        const taxAmountCents = session.total_details?.amount_tax || null;
+        if (taxAmountCents) {
+          logStep("Tax collected via Stripe Tax", { taxAmountCents, taxAmountUsd: taxAmountCents / 100 });
+        }
         
         await supabaseAdmin.from("payment_history").insert({
           user_id: user.id,
           stripe_session_id: session.id,
           stripe_payment_intent_id: session.payment_intent as string,
           amount_cents: session.amount_total || 0,
+          tax_amount_cents: taxAmountCents,
           currency: session.currency || "usd",
           status: "completed",
           payment_type: paymentType,
