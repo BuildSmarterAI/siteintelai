@@ -72,22 +72,23 @@ export async function createLockedParcel(
 
 /**
  * Persist verification audit to Supabase.
- * This is REQUIRED for audit trail - returns false if fails.
+ * Supports both authenticated users and guest sessions.
  */
 export async function persistVerificationAudit(data: VerificationAuditData): Promise<boolean> {
   try {
-    // Get current user
+    // Get current user (may be null for guests)
     const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
+    const userId = sessionData?.session?.user?.id || null;
     
-    if (!userId) {
-      console.error('[parcelLock] No authenticated user for audit');
-      return false;
-    }
+    // Generate a guest session ID if no authenticated user
+    const guestSessionId = !userId 
+      ? `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`
+      : null;
 
     // Use type assertion since types.ts hasn't been regenerated yet
     const { error } = await (supabase.from('parcel_verification_logs') as any).insert({
       user_id: userId,
+      guest_session_id: guestSessionId,
       parcel_id: data.parcel_id,
       county: data.county,
       geometry_hash: data.geometry_hash,
