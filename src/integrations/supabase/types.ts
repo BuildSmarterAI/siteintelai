@@ -4700,6 +4700,7 @@ export type Database = {
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
+          tax_amount_cents: number | null
           updated_at: string
           user_id: string
         }
@@ -4714,6 +4715,7 @@ export type Database = {
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
+          tax_amount_cents?: number | null
           updated_at?: string
           user_id: string
         }
@@ -4728,6 +4730,7 @@ export type Database = {
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
+          tax_amount_cents?: number | null
           updated_at?: string
           user_id?: string
         }
