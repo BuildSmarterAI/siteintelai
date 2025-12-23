@@ -56,7 +56,13 @@ serve(async (req) => {
       mode: "subscription",
       success_url: `${req.headers.get("origin")}/dashboard?subscription=success`,
       cancel_url: `${req.headers.get("origin")}/dashboard?subscription=canceled`,
-      allow_promotion_codes: true, // Enable promo/coupon codes
+      allow_promotion_codes: true,
+      // Stripe Tax: automatic tax calculation based on customer location
+      automatic_tax: { enabled: true },
+      // Collect customer tax IDs for B2B compliance (VAT, GST, etc.)
+      tax_id_collection: { enabled: true },
+      // Update customer address from checkout for future tax calculations
+      customer_update: customerId ? { address: 'auto', name: 'auto' } : undefined,
     }, {
       idempotencyKey,
     });
