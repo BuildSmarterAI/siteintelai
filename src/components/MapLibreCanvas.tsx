@@ -122,7 +122,7 @@ function getInitialLayerVisibility(
     floodZones: false,
     zoningDistricts: false,
     topography: false, // Off by default - terrain can be heavy
-    countyParcels: true, // County CAD tile overlays - enabled for parcel boundaries
+    countyParcels: false, // County CAD tile overlays - disabled (server doesn't support outline-only)
   };
   
   if (savedPreferences && Object.keys(savedPreferences).length > 0) {
@@ -376,7 +376,7 @@ export function MapLibreCanvas({
     map: mapInstance,
     mapLoaded,
     // Force county tiles as primary source - don't wait for vector tiles
-    enabled: showParcels, // Always load when parcels requested (bypasses hasVectorTiles)
+    enabled: showParcels && layerVisibility.countyParcels, // Only load when layer enabled
     autoDetect: true,
     opacity: 0.85, // Increased opacity for better visibility
     onCountyAdded: (county) => {
