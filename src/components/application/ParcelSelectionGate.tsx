@@ -106,19 +106,25 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   }, [selectCandidate]);
 
   const handleMapParcelClick = useCallback((parcel: any) => {
-    // Convert map click to candidate format
-    const props = parcel.properties || {};
+    // Fallback parcels hook provides flat object, but also check for nested properties 
+    // in case it comes from a different source (e.g., vector tiles)
+    const props = parcel.properties || parcel;
+    
+    // Determine source and confidence based on data origin
+    const isCanonical = props.source === 'canonical';
+    
     const candidate: CandidateParcel = {
-      parcel_id: props.ACCOUNT || props.parcelId || props.apn || 'UNKNOWN',
-      county: props.COUNTY || props.county || 'unknown',
-      source: 'external',
+      // Prioritize normalized field names over legacy HCAD names
+      parcel_id: props.parcel_id || props.ACCOUNT || props.parcelId || props.apn || 'UNKNOWN',
+      county: props.jurisdiction || props.COUNTY || props.county || 'unknown',
+      source: isCanonical ? 'canonical' : 'external',
       geom: parcel.geometry,
-      acreage: props.ACREAGE || props.acreage || null,
-      confidence: 'medium',
-      situs_address: props.SITUS_ADDR || props.situs_address || null,
-      owner_name: props.OWNER_NAME || props.owner_name || null,
-      zoning: props.ZONING || props.zoning || null,
-      market_value: null,
+      acreage: props.acreage || props.ACREAGE || null,
+      confidence: isCanonical ? 'high' : 'medium',
+      situs_address: props.situs_address || props.SITUS_ADDR || null,
+      owner_name: props.owner_name || props.OWNER_NAME || null,
+      zoning: props.land_use_desc || props.ZONING || props.zoning || null,
+      market_value: props.market_value || null,
     };
     
     // Add to candidates if not already there
