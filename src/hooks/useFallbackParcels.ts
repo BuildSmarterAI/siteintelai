@@ -38,6 +38,7 @@ interface UseFallbackParcelsOptions {
   map: maplibregl.Map | null;
   mapLoaded: boolean;
   enabled: boolean;
+  showFill?: boolean; // Controls fill layer visibility (default: false)
   onParcelClick?: (parcel: any) => void;
   onParcelHover?: (parcel: HoveredParcel | null, position: { x: number; y: number } | null) => void;
   onParcelRightClick?: (parcel: any, position: { x: number; y: number }) => void;
@@ -66,6 +67,7 @@ export function useFallbackParcels({
   map,
   mapLoaded,
   enabled,
+  showFill = false,
   onParcelClick,
   onParcelHover,
   onParcelRightClick,
@@ -95,6 +97,7 @@ export function useFallbackParcels({
   const onParcelClickRef = useRef(onParcelClick);
   const onParcelHoverRef = useRef(onParcelHover);
   const onParcelRightClickRef = useRef(onParcelRightClick);
+  const showFillRef = useRef(showFill);
 
   // Store event handler references for proper cleanup
   const clickHandlerRef = useRef<((e: maplibregl.MapLayerMouseEvent) => void) | null>(null);
@@ -118,6 +121,10 @@ export function useFallbackParcels({
   useEffect(() => {
     onParcelRightClickRef.current = onParcelRightClick;
   }, [onParcelRightClick]);
+
+  useEffect(() => {
+    showFillRef.current = showFill;
+  }, [showFill]);
 
   useEffect(() => {
     mapRef.current = map;
@@ -265,12 +272,15 @@ export function useFallbackParcels({
       if (!layersAdded.current) {
         logger.debug('useFallbackParcels', 'Adding fallback parcel layers to map');
 
-        // Fill layer
+        // Fill layer - initially hidden unless showFill is true
         if (!currentMap.getLayer(FALLBACK_FILL_LAYER_ID)) {
           currentMap.addLayer({
             id: FALLBACK_FILL_LAYER_ID,
             type: "fill",
             source: FALLBACK_SOURCE_ID,
+            layout: {
+              visibility: showFillRef.current ? 'visible' : 'none',
+            },
             paint: {
               "fill-color": [
                 "match",
@@ -440,6 +450,23 @@ export function useFallbackParcels({
       }
     };
   }, [map, mapLoaded, enabled, handleMapMove, fetchParcelsForViewport]);
+
+  // Toggle fill layer visibility based on showFill prop
+  useEffect(() => {
+    if (!map || !mapLoaded) return;
+    
+    try {
+      if (map.getLayer(FALLBACK_FILL_LAYER_ID)) {
+        map.setLayoutProperty(
+          FALLBACK_FILL_LAYER_ID,
+          'visibility',
+          showFill ? 'visible' : 'none'
+        );
+      }
+    } catch {
+      // Layer may not exist yet
+    }
+  }, [map, mapLoaded, showFill]);
 
   // Cleanup layers and event handlers on disable or unmount
   useEffect(() => {

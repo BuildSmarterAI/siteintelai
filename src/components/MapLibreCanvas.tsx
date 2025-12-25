@@ -357,6 +357,7 @@ export function MapLibreCanvas({
     map: mapInstance,
     mapLoaded,
     enabled: shouldUseFallback,
+    showFill: layerVisibility.parcel, // Only show fill when parcel layer visibility is on
     onParcelClick: onParcelSelect,
     onParcelHover: handleParcelHover,
     onParcelRightClick: handleParcelRightClick,
