@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { DollarSign, Building2, Calendar, Layers, TrendingUp, Calculator } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip as RechartsTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ChartTooltip } from "recharts";
 import { cn } from "@/lib/utils";
 import {
@@ -239,32 +239,36 @@ export function ValuationCard({
               const colors = info ? getCategoryColorClasses(info.category) : null;
               return (
                 <TooltipProvider>
-                  <TooltipTrigger asChild>
-                    <Badge 
-                      variant="outline" 
-                      className={cn("font-mono cursor-help", colors?.bg, colors?.text, colors?.border)}
-                    >
-                      {stateClass} — {getStateClassDescription(stateClass)}
-                    </Badge>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <p className="text-sm font-semibold">{info?.category || 'Property'} Classification</p>
-                    <p className="text-xs text-muted-foreground mt-1">{info?.description}</p>
-                  </TooltipContent>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge 
+                        variant="outline" 
+                        className={cn("font-mono cursor-help", colors?.bg, colors?.text, colors?.border)}
+                      >
+                        {stateClass} — {getStateClassDescription(stateClass)}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p className="text-sm font-semibold">{info?.category || 'Property'} Classification</p>
+                      <p className="text-xs text-muted-foreground mt-1">{info?.description}</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </TooltipProvider>
               );
             })()}
             {landUseCode && (
               <TooltipProvider>
-                <TooltipTrigger asChild>
-                  <Badge variant="outline" className="font-mono cursor-help">
-                    {landUseCode} — {getLandUseDescription(landUseCode)}
-                  </Badge>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs">
-                  <p className="text-sm font-semibold">Land Use Code</p>
-                  <p className="text-xs text-muted-foreground mt-1">{getLandUseDescription(landUseCode)}</p>
-                </TooltipContent>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="font-mono cursor-help">
+                      {landUseCode} — {getLandUseDescription(landUseCode)}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-sm font-semibold">Land Use Code</p>
+                    <p className="text-xs text-muted-foreground mt-1">{getLandUseDescription(landUseCode)}</p>
+                  </TooltipContent>
+                </Tooltip>
               </TooltipProvider>
             )}
             {effectiveYr && (
