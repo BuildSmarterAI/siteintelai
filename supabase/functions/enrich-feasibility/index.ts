@@ -804,6 +804,193 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
   }
 }
 
+// ============================================
+// NEW: USDA SSURGO Shrink-Swell Potential (Foundation Risk Assessment)
+// ============================================
+async function fetchShrinkSwellData(lat: number, lng: number): Promise<{
+  shrink_swell_potential: string | null;
+  linear_extensibility_pct: number | null;
+}> {
+  try {
+    const sdaUrl = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
+    
+    // Query for Linear Extensibility Percent (LEP) from chorizon table
+    // LEP >= 6% = High shrink-swell, LEP 3-6% = Moderate, LEP < 3% = Low
+    const query = `
+      SELECT TOP 1 
+        ch.lep_r as linear_extensibility_pct,
+        CASE 
+          WHEN ch.lep_r >= 6 THEN 'High'
+          WHEN ch.lep_r >= 3 THEN 'Moderate'
+          WHEN ch.lep_r IS NOT NULL THEN 'Low'
+          ELSE NULL
+        END as shrink_swell_class
+      FROM component c
+      INNER JOIN chorizon ch ON c.cokey = ch.cokey
+      WHERE c.mukey IN (
+        SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
+      )
+      AND ch.lep_r IS NOT NULL
+      ORDER BY c.comppct_r DESC, ch.hzdept_r ASC
+    `;
+    
+    const response = await fetch(sdaUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: `query=${encodeURIComponent(query)}&format=JSON`
+    });
+    
+    const text = await response.text();
+    
+    if (text && !text.trim().startsWith('<')) {
+      try {
+        const data = JSON.parse(text);
+        if (data?.Table?.[0]) {
+          const row = data.Table[0];
+          const result = {
+            linear_extensibility_pct: row[0] ? Number(row[0]) : null,
+            shrink_swell_potential: row[1] || null
+          };
+          console.log('✅ Shrink-swell data from USDA SDA:', result);
+          return result;
+        }
+      } catch (parseError) {
+        console.error('Failed to parse shrink-swell response:', parseError);
+      }
+    }
+    
+    console.log('⚠️ No shrink-swell data available');
+    return { shrink_swell_potential: null, linear_extensibility_pct: null };
+  } catch (error) {
+    console.error('Shrink-swell data fetch error:', error);
+    return { shrink_swell_potential: null, linear_extensibility_pct: null };
+  }
+}
+
+// ============================================
+// NEW: USGS Groundwater Levels API Integration
+// ============================================
+async function fetchGroundwaterData(lat: number, lng: number): Promise<{
+  groundwater_depth_ft: number | null;
+  groundwater_well_distance_ft: number | null;
+  groundwater_measurement_date: string | null;
+  nearest_groundwater_well_id: string | null;
+}> {
+  try {
+    // Create bounding box ~10km around the parcel (0.1° ≈ 11km at Houston's latitude)
+    const delta = 0.1;
+    const bBox = `${(lng - delta).toFixed(6)},${(lat - delta).toFixed(6)},${(lng + delta).toFixed(6)},${(lat + delta).toFixed(6)}`;
+    
+    // USGS Water Services API - Groundwater Levels
+    // parameterCd=72019 = Depth to water level, feet below land surface
+    const url = `https://waterservices.usgs.gov/nwis/gwlevels/?format=json&bBox=${bBox}&parameterCd=72019&siteStatus=all&period=P365D`;
+    
+    console.log(`🔍 Querying USGS Groundwater API: ${url}`);
+    
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      console.log(`⚠️ USGS Groundwater API returned ${response.status}`);
+      return { 
+        groundwater_depth_ft: null, 
+        groundwater_well_distance_ft: null,
+        groundwater_measurement_date: null,
+        nearest_groundwater_well_id: null
+      };
+    }
+    
+    const data = await response.json();
+    
+    if (!data?.value?.timeSeries || data.value.timeSeries.length === 0) {
+      console.log('⚠️ No USGS groundwater wells found within search area');
+      return { 
+        groundwater_depth_ft: null, 
+        groundwater_well_distance_ft: null,
+        groundwater_measurement_date: null,
+        nearest_groundwater_well_id: null
+      };
+    }
+    
+    // Find nearest well and get latest measurement
+    let nearestWell: any = null;
+    let minDistance = Infinity;
+    
+    for (const series of data.value.timeSeries) {
+      const siteInfo = series.sourceInfo;
+      if (!siteInfo?.geoLocation?.geogLocation) continue;
+      
+      const wellLat = siteInfo.geoLocation.geogLocation.latitude;
+      const wellLng = siteInfo.geoLocation.geogLocation.longitude;
+      
+      // Calculate distance in feet (approximate using Haversine)
+      const R = 20902231; // Earth radius in feet
+      const dLat = (wellLat - lat) * Math.PI / 180;
+      const dLng = (wellLng - lng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat * Math.PI / 180) * Math.cos(wellLat * Math.PI / 180) *
+                Math.sin(dLng/2) * Math.sin(dLng/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const distance = R * c;
+      
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestWell = series;
+      }
+    }
+    
+    if (!nearestWell) {
+      console.log('⚠️ Could not find valid well with measurements');
+      return { 
+        groundwater_depth_ft: null, 
+        groundwater_well_distance_ft: null,
+        groundwater_measurement_date: null,
+        nearest_groundwater_well_id: null
+      };
+    }
+    
+    // Extract latest measurement
+    const values = nearestWell.values?.[0]?.value;
+    if (!values || values.length === 0) {
+      console.log('⚠️ Well found but no measurements available');
+      return { 
+        groundwater_depth_ft: null, 
+        groundwater_well_distance_ft: Math.round(minDistance),
+        groundwater_measurement_date: null,
+        nearest_groundwater_well_id: nearestWell.sourceInfo?.siteCode?.[0]?.value || null
+      };
+    }
+    
+    // Get most recent measurement
+    const latestMeasurement = values[values.length - 1];
+    const depthFt = latestMeasurement?.value ? Number(latestMeasurement.value) : null;
+    const measurementDate = latestMeasurement?.dateTime || null;
+    const wellId = nearestWell.sourceInfo?.siteCode?.[0]?.value || null;
+    
+    const result = {
+      groundwater_depth_ft: depthFt,
+      groundwater_well_distance_ft: Math.round(minDistance),
+      groundwater_measurement_date: measurementDate,
+      nearest_groundwater_well_id: wellId
+    };
+    
+    console.log('✅ USGS Groundwater data:', result);
+    return result;
+  } catch (error) {
+    console.error('USGS Groundwater API error:', error);
+    return { 
+      groundwater_depth_ft: null, 
+      groundwater_well_distance_ft: null,
+      groundwater_measurement_date: null,
+      nearest_groundwater_well_id: null
+    };
+  }
+}
+
 // Helper function to infer soil drainage class from soil series name
 function inferDrainageFromSoilSeries(soilSeries: string | null): string | null {
   if (!soilSeries) return null;
@@ -3386,6 +3573,30 @@ serve(async (req) => {
       dataFlags.push(ERROR_FLAGS.SOIL_API_ERROR);
     }
 
+    // ⭐ NEW: Fetch USDA Shrink-Swell Potential (Foundation Risk)
+    console.log('Fetching USDA shrink-swell potential data...');
+    try {
+      const shrinkSwellData = await fetchShrinkSwellData(geoLat, geoLng);
+      if (shrinkSwellData.shrink_swell_potential || shrinkSwellData.linear_extensibility_pct) {
+        Object.assign(enrichedData, shrinkSwellData);
+        console.log('✅ Shrink-swell data applied:', shrinkSwellData);
+      }
+    } catch (shrinkSwellError) {
+      console.error('Shrink-swell API error:', shrinkSwellError);
+    }
+
+    // ⭐ NEW: Fetch USGS Groundwater Levels (Actual Well Measurements)
+    console.log('Fetching USGS groundwater data...');
+    try {
+      const groundwaterData = await fetchGroundwaterData(geoLat, geoLng);
+      if (groundwaterData.groundwater_depth_ft || groundwaterData.nearest_groundwater_well_id) {
+        Object.assign(enrichedData, groundwaterData);
+        console.log('✅ USGS groundwater data applied:', groundwaterData);
+      }
+    } catch (groundwaterError) {
+      console.error('USGS Groundwater API error:', groundwaterError);
+    }
+
     console.log('Fetching environmental sites...');
     try {
       const envSites = await fetchEnvironmentalSites(geoLat, geoLng, countyName);
@@ -3946,6 +4157,15 @@ serve(async (req) => {
       // NWI Cowardin classification
       if (enrichedData.wetland_cowardin_code) updateData.wetland_cowardin_code = enrichedData.wetland_cowardin_code;
       
+      // ⭐ NEW: Shrink-Swell Potential (Foundation Risk)
+      if (enrichedData.shrink_swell_potential) updateData.shrink_swell_potential = enrichedData.shrink_swell_potential;
+      if (enrichedData.linear_extensibility_pct !== null && enrichedData.linear_extensibility_pct !== undefined) updateData.linear_extensibility_pct = enrichedData.linear_extensibility_pct;
+      
+      // ⭐ NEW: USGS Groundwater Data
+      if (enrichedData.groundwater_depth_ft !== null && enrichedData.groundwater_depth_ft !== undefined) updateData.groundwater_depth_ft = enrichedData.groundwater_depth_ft;
+      if (enrichedData.groundwater_well_distance_ft !== null && enrichedData.groundwater_well_distance_ft !== undefined) updateData.groundwater_well_distance_ft = enrichedData.groundwater_well_distance_ft;
+      if (enrichedData.groundwater_measurement_date) updateData.groundwater_measurement_date = enrichedData.groundwater_measurement_date;
+      if (enrichedData.nearest_groundwater_well_id) updateData.nearest_groundwater_well_id = enrichedData.nearest_groundwater_well_id;
       // Utilities / Infrastructure
       if (enrichedData.water_lines) updateData.water_lines = enrichedData.water_lines;
       if (enrichedData.sewer_lines) updateData.sewer_lines = enrichedData.sewer_lines;

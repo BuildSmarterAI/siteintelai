@@ -526,6 +526,9 @@ export type Database = {
           gis_provenance: Json | null
           governing_path: string | null
           graduate_degree_pct: number | null
+          groundwater_depth_ft: number | null
+          groundwater_measurement_date: string | null
+          groundwater_well_distance_ft: number | null
           growth_potential_index: number | null
           growth_rate_5yr: number | null
           growth_trajectory: string | null
@@ -556,6 +559,7 @@ export type Database = {
           legal_dscr_2: string | null
           legal_dscr_3: string | null
           legal_dscr_4: string | null
+          linear_extensibility_pct: number | null
           lot: string | null
           lot_size_unit: string | null
           lot_size_value: number | null
@@ -580,6 +584,7 @@ export type Database = {
           nearby_places: Json | null
           nearest_facility_dist: number | null
           nearest_facility_type: string | null
+          nearest_groundwater_well_id: string | null
           nearest_highway: string | null
           nearest_signal_distance_ft: number | null
           nearest_transit_stop: string | null
@@ -635,6 +640,7 @@ export type Database = {
           service_sector_pct: number | null
           sewer_capacity_mgd: number | null
           sewer_lines: Json | null
+          shrink_swell_potential: string | null
           single_family_pct: number | null
           situs_address: string | null
           soil_drainage_class: string | null
@@ -806,6 +812,9 @@ export type Database = {
           gis_provenance?: Json | null
           governing_path?: string | null
           graduate_degree_pct?: number | null
+          groundwater_depth_ft?: number | null
+          groundwater_measurement_date?: string | null
+          groundwater_well_distance_ft?: number | null
           growth_potential_index?: number | null
           growth_rate_5yr?: number | null
           growth_trajectory?: string | null
@@ -836,6 +845,7 @@ export type Database = {
           legal_dscr_2?: string | null
           legal_dscr_3?: string | null
           legal_dscr_4?: string | null
+          linear_extensibility_pct?: number | null
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
@@ -860,6 +870,7 @@ export type Database = {
           nearby_places?: Json | null
           nearest_facility_dist?: number | null
           nearest_facility_type?: string | null
+          nearest_groundwater_well_id?: string | null
           nearest_highway?: string | null
           nearest_signal_distance_ft?: number | null
           nearest_transit_stop?: string | null
@@ -915,6 +926,7 @@ export type Database = {
           service_sector_pct?: number | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
+          shrink_swell_potential?: string | null
           single_family_pct?: number | null
           situs_address?: string | null
           soil_drainage_class?: string | null
@@ -1086,6 +1098,9 @@ export type Database = {
           gis_provenance?: Json | null
           governing_path?: string | null
           graduate_degree_pct?: number | null
+          groundwater_depth_ft?: number | null
+          groundwater_measurement_date?: string | null
+          groundwater_well_distance_ft?: number | null
           growth_potential_index?: number | null
           growth_rate_5yr?: number | null
           growth_trajectory?: string | null
@@ -1116,6 +1131,7 @@ export type Database = {
           legal_dscr_2?: string | null
           legal_dscr_3?: string | null
           legal_dscr_4?: string | null
+          linear_extensibility_pct?: number | null
           lot?: string | null
           lot_size_unit?: string | null
           lot_size_value?: number | null
@@ -1140,6 +1156,7 @@ export type Database = {
           nearby_places?: Json | null
           nearest_facility_dist?: number | null
           nearest_facility_type?: string | null
+          nearest_groundwater_well_id?: string | null
           nearest_highway?: string | null
           nearest_signal_distance_ft?: number | null
           nearest_transit_stop?: string | null
@@ -1195,6 +1212,7 @@ export type Database = {
           service_sector_pct?: number | null
           sewer_capacity_mgd?: number | null
           sewer_lines?: Json | null
+          shrink_swell_potential?: string | null
           single_family_pct?: number | null
           situs_address?: string | null
           soil_drainage_class?: string | null
