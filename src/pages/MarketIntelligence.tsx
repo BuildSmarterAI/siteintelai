@@ -1,33 +1,54 @@
-import { useMemo, useState } from 'react';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { DashboardSidebar } from '@/components/navigation/DashboardSidebar';
-import { PresetSelector } from '@/components/market-intelligence/PresetSelector';
-import { TradeAreaMap } from '@/components/market-intelligence/TradeAreaMap';
-import { MetricsSummaryPanel } from '@/components/market-intelligence/MetricsSummaryPanel';
-import { DemographicBreakdownChart } from '@/components/market-intelligence/DemographicBreakdownChart';
-import { GrowthProjectionCard } from '@/components/market-intelligence/GrowthProjectionCard';
-import { MetricSelector, MetricType } from '@/components/market-intelligence/MetricSelector';
-import { AddressSearchInput } from '@/components/market-intelligence/AddressSearchInput';
-import { useMarketPresets } from '@/hooks/useMarketPresets';
-import { useComputeTradeAreaMetrics } from '@/hooks/useComputeTradeAreaMetrics';
-import { generateMockMetrics } from '@/hooks/useTradeAreaMetrics';
-import { Globe2, Sparkles, Loader2 } from 'lucide-react';
+import { useMemo, useState } from "react";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
+import { PresetSelector } from "@/components/market-intelligence/PresetSelector";
+import { TradeAreaMap } from "@/components/market-intelligence/TradeAreaMap";
+import { MetricsSummaryPanel } from "@/components/market-intelligence/MetricsSummaryPanel";
+import { DemographicBreakdownChart } from "@/components/market-intelligence/DemographicBreakdownChart";
+import { GrowthProjectionCard } from "@/components/market-intelligence/GrowthProjectionCard";
+import {
+  MetricSelector,
+  MetricType,
+} from "@/components/market-intelligence/MetricSelector";
+import { AddressSearchInput } from "@/components/market-intelligence/AddressSearchInput";
+import { useMarketPresets } from "@/hooks/useMarketPresets";
+import { useComputeTradeAreaMetrics } from "@/hooks/useComputeTradeAreaMetrics";
+import { generateMockMetrics } from "@/hooks/useTradeAreaMetrics";
+import { Globe2, Sparkles, Loader2, Database } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Default center: Downtown Houston
 const DEFAULT_CENTER = { lat: 29.7604, lng: -95.3698 };
 
 export default function MarketIntelligence() {
-  const { presets, isLoading: presetsLoading, selectedPreset, setSelectedPresetId } = useMarketPresets();
-  
+  const {
+    presets,
+    isLoading: presetsLoading,
+    selectedPreset,
+    setSelectedPresetId,
+  } = useMarketPresets();
+
   const [center, setCenter] = useState(DEFAULT_CENTER);
-  const [selectedAddress, setSelectedAddress] = useState('Downtown Houston, TX');
-  const [selectedMetric, setSelectedMetric] = useState<MetricType>('population');
+  const [selectedAddress, setSelectedAddress] = useState(
+    "Downtown Houston, TX"
+  );
+  const [selectedMetric, setSelectedMetric] = useState<MetricType>("population");
 
   // Get radius from selected preset
   const radiusMiles = selectedPreset?.radius_miles || 1;
 
   // Fetch real Census data via edge function
-  const { data: tradeAreaData, isLoading: metricsLoading, error: metricsError } = useComputeTradeAreaMetrics({
+  const {
+    data: tradeAreaData,
+    isLoading: metricsLoading,
+    error: metricsError,
+  } = useComputeTradeAreaMetrics({
     centerLat: center.lat,
     centerLng: center.lng,
     radiusMiles,
@@ -35,7 +56,10 @@ export default function MarketIntelligence() {
   });
 
   // Use real metrics if available; memoize mock fallback so it doesn't change every render
-  const fallbackMetrics = useMemo(() => generateMockMetrics(radiusMiles), [center.lat, center.lng, radiusMiles]);
+  const fallbackMetrics = useMemo(
+    () => generateMockMetrics(radiusMiles),
+    [center.lat, center.lng, radiusMiles]
+  );
   const metrics = tradeAreaData?.metrics || fallbackMetrics;
 
   // Avoid showing mock hexes while real data is loading (prevents "changing" hexagons)
@@ -56,31 +80,45 @@ export default function MarketIntelligence() {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-slate-50">
+      <div className="min-h-screen flex w-full bg-background">
         <DashboardSidebar />
-        
+
         <main className="flex-1 overflow-hidden">
           {/* Header */}
-          <header className="bg-white border-b border-slate-200 px-6 py-4">
+          <header className="bg-card border-b border-border px-6 py-4 shadow-soft">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-[hsl(var(--data-cyan))] to-[hsl(var(--data-cyan)/0.8)] rounded-lg">
-                  <Globe2 className="h-6 w-6 text-white" />
+                <div className="p-2.5 bg-gradient-to-br from-data-cyan to-data-cyan/80 rounded-xl shadow-md">
+                  <Globe2 className="h-6 w-6 text-data-cyan-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-900">Market Intelligence</h1>
-                  <p className="text-sm text-slate-500">
+                  <h1 className="text-xl font-bold text-foreground font-heading">
+                    Market Intelligence
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
                     Analyze trade areas with H3 hexagon visualization
                   </p>
                 </div>
-                <span className="ml-2 px-2 py-0.5 bg-[hsl(var(--feasibility-orange))] text-white text-xs font-medium rounded-full flex items-center gap-1">
-                  <Sparkles className="h-3 w-3" />
-                  NEW
-                </span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="ml-2 px-2.5 py-1 bg-accent text-accent-foreground text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-help shadow-sm hover:shadow-md transition-shadow">
+                        <Sparkles className="h-3 w-3" />
+                        NEW
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-sm">
+                        New feature: Real-time Census data visualization with H3
+                        hexagons
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
-              
+
               {/* Address Search */}
-              <AddressSearchInput 
+              <AddressSearchInput
                 onSelect={handleAddressSelect}
                 className="w-full lg:w-96"
               />
@@ -105,7 +143,7 @@ export default function MarketIntelligence() {
           <div className="flex flex-col lg:flex-row h-[calc(100vh-180px)]">
             {/* Map Panel */}
             <div className="flex-1 p-4 min-h-[400px] lg:min-h-0">
-              <div className="h-full bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+              <div className="h-full bg-card rounded-xl shadow-soft border border-border overflow-hidden relative">
                 <TradeAreaMap
                   centerLat={center.lat}
                   centerLng={center.lng}
@@ -124,69 +162,76 @@ export default function MarketIntelligence() {
                   externalMaxValue={tradeAreaData?.maxValue}
                   isLoading={metricsLoading}
                 />
+
+                {/* Map overlay badge */}
+                {coverage && (
+                  <div className="absolute top-4 left-4 z-10">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2 bg-card/95 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md border border-border cursor-help hover:shadow-lg transition-shadow">
+                            <Database className="h-3.5 w-3.5 text-data-cyan" />
+                            <span className="text-xs font-medium text-foreground">
+                              {coverage.coveredCells} hexagons
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              (Census)
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p className="text-sm">
+                            {coverage.coveragePercent}% coverage from{" "}
+                            {coverage.requestedCells} requested Census block
+                            groups
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Metrics Panel */}
-            <div className="w-full lg:w-[420px] p-4 overflow-y-auto">
-              <div className="space-y-6">
-                {/* Location Badge */}
-                <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                  <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
-                    Selected Location
-                  </div>
-                  <div className="text-sm font-semibold text-slate-900">
-                    {selectedAddress}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    {center.lat.toFixed(4)}, {center.lng.toFixed(4)}
-                  </div>
-                </div>
-
-                {/* Coverage Info */}
-                {coverage && (
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                    <div className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">
-                      Data Coverage
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full bg-[hsl(var(--data-cyan))] rounded-full transition-all"
-                          style={{ width: `${coverage.coveragePercent}%` }}
-                        />
-                      </div>
-                      <span className="text-sm font-semibold text-slate-700">
-                        {coverage.coveragePercent}%
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1">
-                      {coverage.coveredCells}/{coverage.requestedCells} Census tracts
-                    </div>
-                  </div>
-                )}
-
+            <div className="w-full lg:w-[420px] p-4 overflow-y-auto bg-muted/30">
+              <div className="space-y-4">
                 {metricsLoading && (
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex items-center gap-3">
-                    <Loader2 className="h-5 w-5 animate-spin text-[hsl(var(--data-cyan))]" />
-                    <span className="text-sm text-slate-600">Loading Census data...</span>
+                  <div className="bg-card rounded-xl p-4 shadow-soft border border-border flex items-center gap-3">
+                    <Loader2 className="h-5 w-5 animate-spin text-data-cyan" />
+                    <span className="text-sm text-muted-foreground">
+                      Loading Census data...
+                    </span>
                   </div>
                 )}
 
-                <MetricsSummaryPanel 
-                  metrics={metrics} 
+                <MetricsSummaryPanel
+                  metrics={metrics}
                   radiusMiles={radiusMiles}
+                  isLoading={metricsLoading}
+                  hexCount={coverage?.coveredCells}
+                  selectedAddress={selectedAddress}
                 />
-                
-                <DemographicBreakdownChart metrics={metrics} />
-                
-                <GrowthProjectionCard metrics={metrics} />
+
+                <DemographicBreakdownChart
+                  metrics={metrics}
+                  isLoading={metricsLoading}
+                />
+
+                <GrowthProjectionCard
+                  metrics={metrics}
+                  isLoading={metricsLoading}
+                />
 
                 {/* Data Attribution */}
-                <div className="text-xs text-slate-400 text-center py-4">
-                  {tradeAreaData?.dataSource || 'Data sources: U.S. Census ACS 2022, ESRI Demographics'}
-                  <br />
-                  Last updated: {new Date().toLocaleDateString()}
+                <div className="text-xs text-muted-foreground text-center py-4 border-t border-border">
+                  <p>
+                    {tradeAreaData?.dataSource ||
+                      "Data sources: U.S. Census ACS 2022, ESRI Demographics"}
+                  </p>
+                  <p className="mt-1">
+                    Last updated: {new Date().toLocaleDateString()}
+                  </p>
                 </div>
               </div>
             </div>
