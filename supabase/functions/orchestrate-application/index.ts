@@ -726,11 +726,26 @@ async function validateData(app: any, traceId: string) {
     hasFlood
   });
   
-  const missingCritical = [];
+  const missingCritical: string[] = [];
   if (!hasGeocode) missingCritical.push('geocode');
-  if (!hasParcel) missingCritical.push('parcel');
-  
-  // Utilities, zoning, and flood are now optional - log warnings but don't fail
+
+  // Parcel is IMPORTANT but not always available; treat as non-blocking.
+  if (!hasParcel) {
+    console.warn(`⚠️ [TRACE:${traceId}] [validateData] No parcel data available, continuing with partial report...`);
+
+    // Ensure we record a flag for downstream UI/reporting.
+    const nextFlags = Array.from(new Set([...(freshApp.data_flags || []), 'parcel_not_found']));
+    try {
+      await sbAdmin
+        .from('applications')
+        .update({ data_flags: nextFlags })
+        .eq('id', freshApp.id);
+    } catch (flagErr) {
+      console.warn(`⚠️ [TRACE:${traceId}] [validateData] Failed to persist parcel_not_found flag:`, flagErr);
+    }
+  }
+
+  // Utilities, zoning, and flood are optional - log warnings but don't fail
   if (!hasAnyUtility) {
     console.warn(`⚠️ [TRACE:${traceId}] [validateData] No utility data available, but continuing...`);
   }
@@ -740,19 +755,14 @@ async function validateData(app: any, traceId: string) {
   if (!hasFlood) {
     console.warn(`⚠️ [TRACE:${traceId}] [validateData] No flood data available, continuing...`);
   }
-  
-  // Check for critical error flags (only geocode and parcel are truly critical)
-  const criticalFlags = [
-    'geocode_failed',
-    'parcel_not_found'
-    // Removed: utilities_api_timeout, zoning_unavailable, flood_data_error
-    // These are now warnings, not critical failures
-  ];
-  
+
+  // Only geocode is truly critical for proceeding.
+  const criticalFlags = ['geocode_failed'];
+
   const hasCriticalErrors = (freshApp.data_flags || []).some(
     (flag: string) => criticalFlags.includes(flag)
   );
-  
+
   if (missingCritical.length > 0 || hasCriticalErrors) {
     console.error(`❌ [TRACE:${traceId}] [validateData] Validation FAILED for ${freshApp.id}:`, {
       missingCritical,
@@ -765,7 +775,7 @@ async function validateData(app: any, traceId: string) {
       details: { missingCritical, hasCriticalErrors }
     };
   }
-  
+
   console.log(`✅ [TRACE:${traceId}] [validateData] Validation PASSED for ${freshApp.id}`);
   return { isComplete: true, missingCritical: [], hasCriticalErrors: false };
 }
@@ -809,14 +819,17 @@ async function orchestrate(appId: string, traceId: string): Promise<any> {
     throw new Error(`Application exceeded max retry attempts: ${currentAttempts}/${MAX_APPLICATION_ATTEMPTS}`);
   }
   
-  // ===== API BUDGET CHECK: Count existing API calls for this application =====
+  // ===== API BUDGET CHECK: Count recent API calls for this application =====
+  // Count is limited to a rolling 24h window so historic logs don't permanently block re-runs.
+  const budgetWindowStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
   const { count: apiCallCount, error: countError } = await sbAdmin
     .from('api_logs')
     .select('*', { count: 'exact', head: true })
-    .eq('application_id', appId);
-  
+    .eq('application_id', appId)
+    .gte('timestamp', budgetWindowStart);
+
   if (!countError && apiCallCount !== null && apiCallCount >= MAX_API_CALLS_PER_APPLICATION) {
-    console.error(`💸 [TRACE:${traceId}] [orchestrate] API BUDGET EXCEEDED: App ${appId} has ${apiCallCount} API calls (max: ${MAX_API_CALLS_PER_APPLICATION})`);
+    console.error(`💸 [TRACE:${traceId}] [orchestrate] API BUDGET EXCEEDED: App ${appId} has ${apiCallCount} API calls (24h, max: ${MAX_API_CALLS_PER_APPLICATION})`);
     
     await sbAdmin
       .from('applications')
