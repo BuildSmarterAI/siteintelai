@@ -33,6 +33,15 @@ export default function EnvironmentalPage() {
         corrosionSteel={app?.corrosion_steel}
         septicSuitability={app?.septic_suitability}
         buildingSiteRating={app?.building_site_rating}
+        // ⭐ NEW: Shrink-Swell Potential (Foundation Risk)
+        shrinkSwellPotential={app?.shrink_swell_potential}
+        linearExtensibilityPct={app?.linear_extensibility_pct}
+        // ⭐ NEW: USGS Groundwater Data
+        groundwaterDepthFt={app?.groundwater_depth_ft}
+        groundwaterWellDistanceFt={app?.groundwater_well_distance_ft}
+        groundwaterMeasurementDate={app?.groundwater_measurement_date}
+        nearestGroundwaterWellId={app?.nearest_groundwater_well_id}
+        // Other props
         epaFacilitiesCount={app?.epa_facilities_count}
         environmentalSites={app?.environmental_sites}
         elevation={app?.elevation}

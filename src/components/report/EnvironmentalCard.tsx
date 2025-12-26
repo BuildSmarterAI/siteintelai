@@ -63,6 +63,14 @@ interface EnvironmentalCardProps {
   corrosionSteel?: string | null;
   septicSuitability?: string | null;
   buildingSiteRating?: string | null;
+  // ⭐ NEW: Shrink-Swell Potential (Foundation Risk)
+  shrinkSwellPotential?: string | null;
+  linearExtensibilityPct?: number | null;
+  // ⭐ NEW: USGS Groundwater Data
+  groundwaterDepthFt?: number | null;
+  groundwaterWellDistanceFt?: number | null;
+  groundwaterMeasurementDate?: string | null;
+  nearestGroundwaterWellId?: string | null;
   // Other props
   environmentalSites?: any[] | null;
   epaFacilitiesCount?: number | null;
@@ -91,6 +99,15 @@ export function EnvironmentalCard({
   corrosionSteel,
   septicSuitability,
   buildingSiteRating,
+  // ⭐ NEW: Shrink-Swell Potential
+  shrinkSwellPotential,
+  linearExtensibilityPct,
+  // ⭐ NEW: USGS Groundwater
+  groundwaterDepthFt,
+  groundwaterWellDistanceFt,
+  groundwaterMeasurementDate,
+  nearestGroundwaterWellId,
+  // Other props
   environmentalSites = [],
   epaFacilitiesCount,
   elevation,
@@ -460,6 +477,164 @@ export function EnvironmentalCard({
           </div>
         )}
 
+        {/* ⭐ NEW: Geotechnical Hazards - Shrink-Swell Potential */}
+        {(shrinkSwellPotential || linearExtensibilityPct) && (
+          <div className={cn(
+            "p-4 rounded-xl border-2",
+            shrinkSwellPotential?.toLowerCase() === 'high' 
+              ? "bg-gradient-to-br from-red-500/10 to-orange-500/5 border-red-500/30"
+              : shrinkSwellPotential?.toLowerCase() === 'moderate'
+                ? "bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border-amber-500/30"
+                : "bg-gradient-to-br from-green-500/10 to-emerald-500/5 border-green-500/30"
+          )}>
+            <div className="flex items-center gap-2 mb-3">
+              <Building2 className="h-5 w-5 text-amber-600" />
+              <h4 className="font-semibold text-sm">Geotechnical Hazards</h4>
+              <Badge variant="outline" className="text-[10px] ml-auto">USDA SSURGO</Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {shrinkSwellPotential && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-[10px] text-muted-foreground">Shrink-Swell Potential</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-3 w-3 text-muted-foreground/50" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[250px]">
+                          <p className="text-xs">Indicates soil expansion/contraction with moisture changes. High shrink-swell soils can cause foundation movement and structural damage.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className={cn(
+                      "font-semibold text-lg",
+                      shrinkSwellPotential.toLowerCase() === 'high' ? "text-red-600" : 
+                      shrinkSwellPotential.toLowerCase() === 'moderate' ? "text-amber-600" : "text-green-600"
+                    )}>
+                      {shrinkSwellPotential}
+                    </p>
+                    {shrinkSwellPotential.toLowerCase() === 'high' && (
+                      <Badge variant="destructive" className="text-xs">Foundation Risk</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {linearExtensibilityPct !== null && linearExtensibilityPct !== undefined && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-[10px] text-muted-foreground">Linear Extensibility (LEP)</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-3 w-3 text-muted-foreground/50" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[250px]">
+                          <p className="text-xs">LEP measures clay soil shrink-swell. ≥6% = High, 3-6% = Moderate, &lt;3% = Low. Texas clay soils often have high LEP.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <p className={cn(
+                    "font-semibold text-lg font-mono",
+                    linearExtensibilityPct >= 6 ? "text-red-600" : 
+                    linearExtensibilityPct >= 3 ? "text-amber-600" : "text-green-600"
+                  )}>
+                    {linearExtensibilityPct.toFixed(1)}%
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {shrinkSwellPotential?.toLowerCase() === 'high' && (
+              <div className="mt-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-medium text-red-600">Foundation Engineering Required:</span> High shrink-swell clay soils may require pier-and-beam foundations, post-tensioned slabs, or other specialized foundation systems.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ⭐ NEW: USGS Groundwater Conditions */}
+        {(groundwaterDepthFt || nearestGroundwaterWellId) && (
+          <div className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/5 rounded-xl border border-blue-500/20">
+            <div className="flex items-center gap-2 mb-3">
+              <Droplets className="h-5 w-5 text-blue-500" />
+              <h4 className="font-semibold text-sm">Groundwater Conditions</h4>
+              <Badge variant="outline" className="text-[10px] ml-auto">USGS NWIS</Badge>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {groundwaterDepthFt !== null && groundwaterDepthFt !== undefined && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <div className="flex items-center gap-1 mb-1">
+                    <span className="text-[10px] text-muted-foreground">Depth to Water Table</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-3 w-3 text-muted-foreground/50" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-[250px]">
+                          <p className="text-xs">Actual measurement from nearest USGS monitoring well. Shallow water tables (&lt;10ft) may impact basement/foundation construction.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <p className={cn(
+                    "font-semibold text-lg font-mono",
+                    groundwaterDepthFt < 10 ? "text-amber-600" : "text-foreground"
+                  )}>
+                    {groundwaterDepthFt.toFixed(1)} ft
+                  </p>
+                  {groundwaterDepthFt < 10 && (
+                    <Badge variant="secondary" className="text-xs mt-1">Shallow</Badge>
+                  )}
+                </div>
+              )}
+              
+              {groundwaterWellDistanceFt && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <span className="text-[10px] text-muted-foreground block mb-1">Nearest Well Distance</span>
+                  <p className="font-medium text-sm font-mono">
+                    {(groundwaterWellDistanceFt / 5280).toFixed(1)} mi
+                  </p>
+                </div>
+              )}
+              
+              {groundwaterMeasurementDate && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <span className="text-[10px] text-muted-foreground block mb-1">Measurement Date</span>
+                  <p className="font-medium text-sm">
+                    {new Date(groundwaterMeasurementDate).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {nearestGroundwaterWellId && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>USGS Well ID:</span>
+                <a 
+                  href={`https://waterdata.usgs.gov/nwis/gwlevels?site_no=${nearestGroundwaterWellId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-blue-500 hover:underline"
+                >
+                  {nearestGroundwaterWellId}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Environmental Constraints */}
         {environmentalConstraints && environmentalConstraints.length > 0 && (
           <div className="p-4 bg-muted/20 rounded-xl border">
@@ -544,8 +719,9 @@ export function EnvironmentalCard({
               <p className="text-xs font-medium text-muted-foreground">Data Sources</p>
               <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
                 Environmental data sourced from USFWS National Wetlands Inventory (NWI), EPA ECHO facility database, 
-                USGS elevation data, and USDA Web Soil Survey. Enhanced SSURGO soil engineering properties 
-                (hydric rating, bedrock depth, corrosion indices) are available for select regions.
+                USGS elevation data, USGS National Water Information System (NWIS) groundwater monitoring wells, 
+                and USDA Web Soil Survey. Enhanced SSURGO soil engineering properties including shrink-swell potential 
+                (Linear Extensibility Percent), hydric rating, bedrock depth, and corrosion indices are available for select regions.
               </p>
             </div>
           </div>
