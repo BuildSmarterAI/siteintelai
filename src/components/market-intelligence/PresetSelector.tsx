@@ -1,6 +1,13 @@
-import { cn } from '@/lib/utils';
-import { MapPin, Clock, Pencil } from 'lucide-react';
-import type { MarketPreset } from '@/hooks/useMarketPresets';
+import { cn } from "@/lib/utils";
+import { MapPin, Clock, Pencil } from "lucide-react";
+import type { MarketPreset } from "@/hooks/useMarketPresets";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface PresetSelectorProps {
   presets: MarketPreset[];
@@ -15,20 +22,24 @@ const presetIcons: Record<string, typeof MapPin> = {
   custom: Pencil,
 };
 
-export function PresetSelector({ 
-  presets, 
-  selectedPresetId, 
+const presetTooltips: Record<string, string> = {
+  radius: "Circular trade area based on distance from the selected location.",
+  drive_time:
+    "Trade area based on driving time from the selected location, accounting for road networks.",
+  custom: "Custom-drawn trade area polygon.",
+};
+
+export function PresetSelector({
+  presets,
+  selectedPresetId,
   onSelect,
-  isLoading 
+  isLoading,
 }: PresetSelectorProps) {
   if (isLoading) {
     return (
       <div className="flex gap-2">
         {[1, 2, 3, 4].map((i) => (
-          <div 
-            key={i}
-            className="h-10 w-24 bg-slate-200 animate-pulse rounded-full"
-          />
+          <Skeleton key={i} className="h-10 w-24 rounded-full" />
         ))}
       </div>
     );
@@ -39,32 +50,65 @@ export function PresetSelector({
       {presets.map((preset) => {
         const Icon = presetIcons[preset.preset_type] || MapPin;
         const isSelected = selectedPresetId === preset.id;
-        
+        const tooltipText =
+          presetTooltips[preset.preset_type] ||
+          "Select this trade area configuration.";
+
         return (
-          <button
-            key={preset.id}
-            onClick={() => onSelect(preset.id)}
-            className={cn(
-              "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all",
-              "border-2",
-              isSelected
-                ? "bg-[hsl(var(--data-cyan))] text-white border-[hsl(var(--data-cyan))] shadow-md"
-                : "bg-white text-slate-700 border-slate-200 hover:border-[hsl(var(--data-cyan))] hover:text-[hsl(var(--data-cyan))]"
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            <span>{preset.name}</span>
-            {preset.radius_miles && (
-              <span className="text-xs opacity-70">
-                ({preset.radius_miles}mi)
-              </span>
-            )}
-            {preset.drive_time_minutes && (
-              <span className="text-xs opacity-70">
-                ({preset.drive_time_minutes}min)
-              </span>
-            )}
-          </button>
+          <TooltipProvider key={preset.id}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => onSelect(preset.id)}
+                  className={cn(
+                    "inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
+                    "border-2 transition-all duration-200",
+                    "focus:outline-none focus:ring-2 focus:ring-data-cyan/50 focus:ring-offset-2",
+                    isSelected
+                      ? "bg-data-cyan text-data-cyan-foreground border-data-cyan shadow-md scale-[1.02]"
+                      : [
+                          "bg-card text-foreground border-border",
+                          "hover:border-data-cyan hover:text-data-cyan hover:shadow-soft hover:-translate-y-0.5",
+                        ]
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      "h-4 w-4 transition-transform",
+                      isSelected && "scale-110"
+                    )}
+                  />
+                  <span>{preset.name}</span>
+                  {preset.radius_miles && (
+                    <span
+                      className={cn(
+                        "text-xs",
+                        isSelected ? "opacity-80" : "text-muted-foreground"
+                      )}
+                    >
+                      ({preset.radius_miles}mi)
+                    </span>
+                  )}
+                  {preset.drive_time_minutes && (
+                    <span
+                      className={cn(
+                        "text-xs",
+                        isSelected ? "opacity-80" : "text-muted-foreground"
+                      )}
+                    >
+                      ({preset.drive_time_minutes}min)
+                    </span>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                className="max-w-xs bg-popover text-popover-foreground"
+              >
+                <p className="text-sm">{tooltipText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       })}
     </div>
