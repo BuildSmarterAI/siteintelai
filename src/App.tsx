@@ -8,6 +8,7 @@ import { Footer } from "./components/navigation/Footer";
 import { SkipLinks } from "./components/SkipLinks";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
+import { GlobalBuildBadge } from "./components/GlobalBuildBadge";
 import Index from "./pages/Index";
 
 import ThankYou from "./pages/ThankYou";
@@ -108,6 +109,7 @@ const App = () => (
       <SubscriptionProvider>
         <Toaster />
         <Sonner />
+        <GlobalBuildBadge />
         <BrowserRouter>
           <Layout>
             <Routes>
