@@ -176,6 +176,211 @@ function safePercentage(val: any): number | null {
   return parsed;
 }
 
+// ============= Data Quality Validation System =============
+
+interface DataQualityFlags {
+  is_valid: boolean;
+  warnings: string[];
+  errors: string[];
+  confidence_penalty: number;
+}
+
+// Validation rules based on real-world benchmarks
+const VALIDATION_RULES = {
+  // CRITICAL: Values that indicate calculation errors (block or fix)
+  critical: {
+    unemployment_rate: { min: 0, max: 50, message: 'Unemployment rate outside valid range' },
+    poverty_rate: { min: 0, max: 90, message: 'Poverty rate exceeds realistic bounds' },
+    vacancy_rate: { min: 0, max: 80, message: 'Vacancy rate exceeds realistic bounds' },
+    median_household_income: { min: 5000, max: 1000000, message: 'Median income outside realistic range' },
+    median_home_value: { min: 10000, max: 50000000, message: 'Median home value outside realistic range' },
+  },
+  // WARNING: Unusual but possible values (flag but allow)
+  warning: {
+    unemployment_rate: { max: 15, message: 'Unemployment rate unusually high (>15%)' },
+    poverty_rate: { max: 50, message: 'Poverty rate very high (>50%)' },
+    vacancy_rate: { max: 30, message: 'Vacancy rate very high (>30%)' },
+    median_household_income: { min: 15000, message: 'Median income below typical range' },
+    owner_occupied_pct: { min: 5, max: 95, message: 'Owner-occupied rate at extreme' },
+    labor_force_participation: { min: 30, max: 85, message: 'Labor force participation unusual' },
+  }
+};
+
+// Texas and national benchmarks for sanity checks (2020-2023 averages)
+const BENCHMARK_VALUES = {
+  unemployment_rate: { texas_avg: 4.5, national_avg: 4.0, max_distressed: 20 },
+  poverty_rate: { texas_avg: 13.5, national_avg: 11.5, max_distressed: 60 },
+  median_household_income: { texas_avg: 67500, national_avg: 75000 },
+  vacancy_rate: { texas_avg: 9.5, national_avg: 10.5 },
+};
+
+function validateDemographicRecord(record: any, geoid: string): DataQualityFlags {
+  const flags: DataQualityFlags = {
+    is_valid: true,
+    warnings: [],
+    errors: [],
+    confidence_penalty: 0
+  };
+
+  // ============= CRITICAL VALIDATIONS =============
+  
+  // Unemployment rate validation
+  if (record.unemployment_rate !== null && record.unemployment_rate !== undefined) {
+    if (record.unemployment_rate < 0 || record.unemployment_rate > 50) {
+      flags.errors.push(`INVALID_UNEMPLOYMENT: ${record.unemployment_rate.toFixed(1)}% (expected 0-50%)`);
+      flags.is_valid = false;
+      flags.confidence_penalty += 30;
+    } else if (record.unemployment_rate > 25) {
+      flags.warnings.push(`SUSPECT_UNEMPLOYMENT: ${record.unemployment_rate.toFixed(1)}% exceeds Great Depression peak`);
+      flags.confidence_penalty += 15;
+    } else if (record.unemployment_rate > 15) {
+      flags.warnings.push(`HIGH_UNEMPLOYMENT: ${record.unemployment_rate.toFixed(1)}% significantly above benchmarks`);
+      flags.confidence_penalty += 5;
+    }
+  }
+
+  // Poverty rate validation
+  if (record.poverty_rate !== null && record.poverty_rate !== undefined) {
+    if (record.poverty_rate < 0 || record.poverty_rate > 90) {
+      flags.errors.push(`INVALID_POVERTY: ${record.poverty_rate.toFixed(1)}%`);
+      flags.is_valid = false;
+      flags.confidence_penalty += 20;
+    } else if (record.poverty_rate > 50) {
+      flags.warnings.push(`VERY_HIGH_POVERTY: ${record.poverty_rate.toFixed(1)}%`);
+      flags.confidence_penalty += 5;
+    }
+  }
+
+  // Vacancy rate validation
+  if (record.vacancy_rate !== null && record.vacancy_rate !== undefined) {
+    if (record.vacancy_rate < 0 || record.vacancy_rate > 80) {
+      flags.errors.push(`INVALID_VACANCY: ${record.vacancy_rate.toFixed(1)}%`);
+      flags.confidence_penalty += 10;
+    } else if (record.vacancy_rate > 40) {
+      flags.warnings.push(`VERY_HIGH_VACANCY: ${record.vacancy_rate.toFixed(1)}%`);
+      flags.confidence_penalty += 5;
+    }
+  }
+
+  // Income validation
+  if (record.median_household_income !== null && record.median_household_income !== undefined) {
+    if (record.median_household_income < 5000 || record.median_household_income > 1000000) {
+      flags.warnings.push(`SUSPECT_INCOME: $${record.median_household_income.toLocaleString()}`);
+      flags.confidence_penalty += 10;
+    }
+  }
+
+  // ============= CROSS-FIELD CONTRADICTION CHECKS =============
+  
+  // Employment contradiction: high employment + high unemployment
+  if (record.employed_population > 0 && record.labor_force > 0) {
+    const impliedEmploymentRate = (record.employed_population / record.labor_force) * 100;
+    const impliedUnemploymentRate = 100 - impliedEmploymentRate;
+    
+    // If calculated unemployment differs significantly from stored, flag it
+    if (Math.abs(impliedUnemploymentRate - record.unemployment_rate) > 10) {
+      flags.warnings.push(`EMPLOYMENT_MISMATCH: Implied ${impliedUnemploymentRate.toFixed(1)}% vs stored ${record.unemployment_rate.toFixed(1)}%`);
+      flags.confidence_penalty += 10;
+    }
+  }
+
+  // Income contradiction: low median but high upper bracket
+  if (record.median_household_income < 30000 && record.income_above_100k_pct > 30) {
+    flags.warnings.push(`INCOME_CONTRADICTION: Low median ($${record.median_household_income.toLocaleString()}) but ${record.income_above_100k_pct.toFixed(1)}% earn >$100K`);
+    flags.confidence_penalty += 10;
+  }
+
+  // Labor force vs population sanity check
+  if (record.labor_force > 0 && record.total_population > 0) {
+    const laborForcePct = (record.labor_force / record.total_population) * 100;
+    if (laborForcePct > 80) {
+      flags.warnings.push(`HIGH_LABOR_PARTICIPATION: ${laborForcePct.toFixed(1)}% of population in labor force`);
+      flags.confidence_penalty += 5;
+    }
+  }
+
+  // Percentages should sum reasonably
+  const racePctSum = (record.white_pct || 0) + (record.black_pct || 0) + 
+                     (record.asian_pct || 0) + (record.hispanic_pct || 0);
+  if (racePctSum > 0 && racePctSum < 50) {
+    flags.warnings.push(`INCOMPLETE_RACE_DATA: Race percentages sum to only ${racePctSum.toFixed(1)}%`);
+    flags.confidence_penalty += 5;
+  }
+
+  // Log significant issues
+  if (flags.errors.length > 0) {
+    console.error(`[VALIDATION] ${geoid}: ERRORS - ${flags.errors.join(', ')}`);
+  }
+  if (flags.warnings.length > 0 && flags.confidence_penalty >= 10) {
+    console.warn(`[VALIDATION] ${geoid}: WARNINGS - ${flags.warnings.join(', ')}`);
+  }
+
+  return flags;
+}
+
+// ============= Improved Unemployment Rate Calculation =============
+
+function calculateUnemploymentRate(
+  employed: number, 
+  unemployed: number, 
+  laborForce: number,
+  geoid: string
+): { rate: number; method: string; flags: string[] } {
+  const flags: string[] = [];
+  let rate: number;
+  let method: string;
+
+  // Method 1: Use labor force directly if available
+  if (laborForce > 0 && unemployed >= 0) {
+    rate = (unemployed / laborForce) * 100;
+    method = 'labor_force_direct';
+    
+    // Sanity check: if rate seems unreasonable, verify with employed
+    if (rate > 20 && employed > 0) {
+      const altRate = (unemployed / (employed + unemployed)) * 100;
+      
+      // If the alternative calculation gives a much lower (more realistic) rate, 
+      // the labor_force field might be inconsistent
+      if (altRate < rate * 0.5) {
+        console.warn(`[UNEMPLOYMENT] ${geoid}: labor_force method gave ${rate.toFixed(1)}%, employed+unemployed method gave ${altRate.toFixed(1)}%`);
+        flags.push('LABOR_FORCE_INCONSISTENCY');
+        
+        // Use the more conservative (lower) estimate if within reasonable bounds
+        if (altRate <= 15) {
+          rate = altRate;
+          method = 'employed_unemployed_sum';
+        }
+      }
+    }
+  }
+  // Method 2: Calculate from employed + unemployed
+  else if (employed > 0 && unemployed >= 0) {
+    rate = (unemployed / (employed + unemployed)) * 100;
+    method = 'employed_unemployed_sum';
+    flags.push('NO_LABOR_FORCE_FIELD');
+  }
+  // Method 3: No reliable data
+  else {
+    rate = 0;
+    method = 'no_data';
+    flags.push('NO_EMPLOYMENT_DATA');
+  }
+
+  // Final sanity cap with detailed logging
+  if (rate > 25) {
+    console.warn(`[UNEMPLOYMENT] ${geoid}: High rate ${rate.toFixed(1)}% via ${method}. Employed=${employed}, Unemployed=${unemployed}, LF=${laborForce}`);
+    flags.push(`HIGH_RATE_${Math.round(rate)}`);
+    
+    // Cap at 25% (higher than Great Depression peak of ~25%) with flag
+    if (rate > 25) {
+      flags.push('CAPPED_AT_25');
+      rate = Math.min(rate, 25);
+    }
+  }
+
+  return { rate, method, flags };
+}
+
 // ============= Proprietary CRE Index Calculations =============
 
 function computeRetailSpendingIndex(row: any): number {
@@ -545,22 +750,31 @@ serve(async (req) => {
       const over65Pct = totalPopNum > 0 ? (over65 / totalPopNum) * 100 : 0;
       const workingAgePct = totalPopNum > 0 ? (workingAge / totalPopNum) * 100 : 0;
 
-      // ============= EMPLOYMENT CALCULATIONS =============
+      // ============= EMPLOYMENT CALCULATIONS (IMPROVED) =============
       let employedNum = safeInt(employed);
       let unemployedNum = safeInt(unemployed);
-      let laborForce = safeInt(popInLaborForce) || (employedNum + unemployedNum);
+      let laborForce = safeInt(popInLaborForce);
+      
+      // Track data quality flags for this record
+      const recordDataFlags: string[] = [];
 
-      if (employedNum === 0 && unemployedNum > 0) {
-        employedNum = Math.round(unemployedNum / 0.05 * 0.95);
+      // If labor force is missing, derive from employed + unemployed
+      if (laborForce === 0 && (employedNum > 0 || unemployedNum > 0)) {
         laborForce = employedNum + unemployedNum;
-        console.warn(`[seed-census-canonical] Derived employed for ${geoid}: ${employedNum}`);
+        recordDataFlags.push('DERIVED_LABOR_FORCE');
       }
 
-      let unemploymentRate = laborForce > 0 ? (unemployedNum / laborForce) * 100 : 0;
-      if (unemploymentRate > 30) {
-        console.warn(`[seed-census-canonical] Capping unemployment ${unemploymentRate.toFixed(1)}% to 30% for ${geoid}`);
-        unemploymentRate = 30;
+      // Handle edge case: only unemployed reported (very rare, likely data issue)
+      if (employedNum === 0 && unemployedNum > 0 && laborForce > 0) {
+        // Don't fabricate employed count - flag as data quality issue instead
+        recordDataFlags.push('MISSING_EMPLOYED_COUNT');
+        console.warn(`[seed-census-canonical] ${geoid}: No employed count, unemployed=${unemployedNum}, LF=${laborForce}`);
       }
+
+      // Use improved unemployment calculation with validation
+      const unemploymentResult = calculateUnemploymentRate(employedNum, unemployedNum, laborForce, geoid);
+      const unemploymentRate = unemploymentResult.rate;
+      recordDataFlags.push(...unemploymentResult.flags);
 
       // ============= INCOME CALCULATIONS =============
       let medianIncomeNum = safeFloat(medianIncome);
@@ -691,6 +905,31 @@ serve(async (req) => {
       const laborPoolDepth = computeLaborPoolDepth(rowData);
       const daytimePopulation = computeDaytimePopulation(rowData);
 
+      // ============= DATA VALIDATION =============
+      const validationInput = {
+        ...rowData,
+        total_population: totalPopNum,
+        employed_population: employedNum,
+        income_above_100k_pct: incomeAbove100kPct,
+        white_pct: whitePct,
+        black_pct: blackPct,
+        asian_pct: asianPct,
+        hispanic_pct: hispanicPct,
+      };
+      
+      const validationResult = validateDemographicRecord(validationInput, geoid);
+      
+      // Combine all data quality flags
+      const allDataFlags = [
+        ...recordDataFlags,
+        ...validationResult.warnings.map(w => `WARN:${w.split(':')[0]}`),
+        ...validationResult.errors.map(e => `ERR:${e.split(':')[0]}`),
+      ];
+      
+      // Calculate adjusted confidence based on validation
+      const baseConfidence = 92;
+      const adjustedConfidence = Math.max(50, baseConfidence - validationResult.confidence_penalty);
+
       canonicalRecords.push({
         geoid,
         acs_vintage: "2020_5yr",
@@ -751,9 +990,11 @@ serve(async (req) => {
         affluence_concentration: affluenceConcentration,
         labor_pool_depth: laborPoolDepth,
         daytime_population_estimate: daytimePopulation,
-        accuracy_tier: "T1",
-        confidence: 92,
+        accuracy_tier: validationResult.is_valid ? "T1" : "T2",
+        confidence: adjustedConfidence,
         source_dataset: "bigquery_acs_5yr",
+        // Store data quality flags for transparency
+        data_quality_flags: allDataFlags.length > 0 ? allDataFlags : null,
         centroid: (lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))) 
           ? `SRID=4326;POINT(${parseFloat(lng)} ${parseFloat(lat)})` 
           : null,
@@ -789,7 +1030,18 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[seed-census-canonical] Transformed ${canonicalRecords.length} records with expanded data`);
+    // Validation summary statistics
+    const validationStats = {
+      total_records: canonicalRecords.length,
+      records_with_warnings: canonicalRecords.filter(r => r.data_quality_flags?.some((f: string) => f.startsWith('WARN:'))).length,
+      records_with_errors: canonicalRecords.filter(r => r.data_quality_flags?.some((f: string) => f.startsWith('ERR:'))).length,
+      records_flagged: canonicalRecords.filter(r => r.data_quality_flags && r.data_quality_flags.length > 0).length,
+      high_unemployment_count: canonicalRecords.filter(r => r.unemployment_rate > 10).length,
+      avg_confidence: Math.round(canonicalRecords.reduce((sum, r) => sum + r.confidence, 0) / canonicalRecords.length),
+    };
+    
+    console.log(`[seed-census-canonical] Validation Summary:`, JSON.stringify(validationStats, null, 2));
+    console.log(`[seed-census-canonical] Transformed ${canonicalRecords.length} records with expanded data and validation`);
 
     // Batch upsert to canonical_demographics (batch size 500 for reliability)
     const BATCH_SIZE = 500;
@@ -921,7 +1173,8 @@ serve(async (req) => {
         elapsed_ms: elapsedMs,
         elapsed_min: parseFloat(elapsedMin),
         county_filter: countyFips || "ALL_TEXAS",
-        message: `Seeded ${canonicalRecords.length} Texas tracts with expanded 83+ ACS variables and 6 proprietary indices`,
+        validation_summary: validationStats,
+        message: `Seeded ${canonicalRecords.length} Texas tracts with expanded 83+ ACS variables, 6 proprietary indices, and data validation`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
