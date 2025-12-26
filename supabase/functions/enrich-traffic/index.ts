@@ -75,11 +75,16 @@ interface TrafficResult {
   traffic_direction: string | null;
   road_classification: string | null;
   peak_hour_volume: number | null;
+  design_hourly_volume: number | null;
   truck_percent: number | null;
+  single_truck_aadt: number | null;
+  combo_truck_aadt: number | null;
+  directional_factor: number | null;
   congestion_level: string | null;
   nearest_signal_distance_ft: number | null;
   speed_limit: number | null;
   surface_type: string | null;
+  traffic_map_url: string | null;
   traffic_data_source: string;
   data_flags: string[];
 }
@@ -296,6 +301,90 @@ function estimateCongestionLevel(aadt: number | null, classification: string | n
 }
 
 /**
+ * Query OpenStreetMap Overpass API for traffic signals within radius
+ */
+async function queryOSMTrafficSignals(lat: number, lng: number, radiusMeters: number = 500): Promise<number | null> {
+  const overpassQuery = `
+    [out:json][timeout:10];
+    node["highway"="traffic_signals"](around:${radiusMeters},${lat},${lng});
+    out count;
+  `;
+  
+  try {
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(overpassQuery)}`,
+    });
+    
+    if (!response.ok) {
+      console.log(`[enrich-traffic] OSM Overpass API error: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    const count = data.elements?.length || 0;
+    
+    if (count > 0) {
+      // Find nearest signal
+      let nearestDist = Infinity;
+      for (const el of data.elements || []) {
+        if (el.lat && el.lon) {
+          const dist = calculateDistanceFt(lat, lng, el.lat, el.lon);
+          if (dist < nearestDist) nearestDist = dist;
+        }
+      }
+      return nearestDist < Infinity ? Math.round(nearestDist) : null;
+    }
+    
+    return null;
+  } catch (err) {
+    console.log(`[enrich-traffic] OSM signal query failed:`, err);
+    return null;
+  }
+}
+
+/**
+ * Query OpenStreetMap for speed limit fallback
+ */
+async function queryOSMSpeedLimit(lat: number, lng: number): Promise<number | null> {
+  const overpassQuery = `
+    [out:json][timeout:10];
+    way["highway"]["maxspeed"](around:100,${lat},${lng});
+    out tags 1;
+  `;
+  
+  try {
+    const response = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `data=${encodeURIComponent(overpassQuery)}`,
+    });
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    const way = data.elements?.[0];
+    
+    if (way?.tags?.maxspeed) {
+      const maxspeed = way.tags.maxspeed;
+      // Parse "45 mph" or "45" format
+      const match = maxspeed.match(/(\d+)/);
+      if (match) {
+        const speed = parseInt(match[1], 10);
+        // Validate reasonable speed limits
+        if (speed > 0 && speed <= 85) return speed;
+      }
+    }
+    
+    return null;
+  } catch (err) {
+    console.log(`[enrich-traffic] OSM speed limit query failed:`, err);
+    return null;
+  }
+}
+
+/**
  * Find the nearest traffic segment to the parcel
  */
 function findNearestSegment(features: any[], parcelLat: number, parcelLng: number): { feature: any; distance: number } | null {
@@ -374,14 +463,22 @@ Deno.serve(async (req) => {
       traffic_direction: null,
       road_classification: null,
       peak_hour_volume: null,
+      design_hourly_volume: null,
       truck_percent: null,
+      single_truck_aadt: null,
+      combo_truck_aadt: null,
+      directional_factor: null,
       congestion_level: null,
       nearest_signal_distance_ft: null,
       speed_limit: null,
       surface_type: null,
+      traffic_map_url: null,
       traffic_data_source: 'TxDOT_AADT',
       data_flags: [],
     };
+    
+    // Generate traffic map URL
+    result.traffic_map_url = `https://www.txdot.gov/apps/statewide_mapping/StratMap.html?lat=${app.geo_lat}&lon=${app.geo_lng}&zoom=15`;
     
     // Query TxDOT AADT within 2000 ft buffer
     const features = await queryTxDOTAADT(app.geo_lat, app.geo_lng, 2000);
@@ -431,11 +528,21 @@ Deno.serve(async (req) => {
       result.road_classification = getRoadwayClassification(props);
       result.truck_percent = props.T_PCT || null;
       
-      // Calculate peak hour volume (K-factor estimation)
-      if (aadt) {
-        // Use actual K_FLAG if available, otherwise use standard 10%
+      // Extract additional TxDOT fields
+      result.single_truck_aadt = props.AADT_SINGL || null;
+      result.combo_truck_aadt = props.AADT_COMBN || null;
+      result.directional_factor = props.D_FLAG || null;
+      
+      // Use Design Hourly Volume (DHV) if available, otherwise calculate from K-factor
+      if (props.DHV && props.DHV > 0) {
+        result.design_hourly_volume = Math.round(props.DHV);
+        result.peak_hour_volume = result.design_hourly_volume;
+        console.log(`${tracePrefix} [enrich-traffic] Using TxDOT DHV: ${result.design_hourly_volume}`);
+      } else if (aadt) {
+        // Fall back to K-factor calculation
         const kFactor = props.K_FLAG ? props.K_FLAG / 100 : PEAK_HOUR_K_FACTOR;
         result.peak_hour_volume = Math.round(aadt * kFactor);
+        console.log(`${tracePrefix} [enrich-traffic] Calculated peak_hour_volume from K-factor: ${result.peak_hour_volume}`);
       }
       
       // Estimate congestion level
@@ -449,7 +556,11 @@ Deno.serve(async (req) => {
         distance_ft: result.traffic_distance_ft,
         classification: result.road_classification,
         peak_hour: result.peak_hour_volume,
+        dhv: result.design_hourly_volume,
         truck_pct: result.truck_percent,
+        single_truck: result.single_truck_aadt,
+        combo_truck: result.combo_truck_aadt,
+        directional: result.directional_factor,
       });
     }
     
@@ -489,6 +600,27 @@ Deno.serve(async (req) => {
       result.data_flags.push('no_roadway_inventory');
     }
     
+    // Query OSM for traffic signals if not available
+    if (!result.nearest_signal_distance_ft) {
+      console.log(`${tracePrefix} [enrich-traffic] Querying OSM for traffic signals`);
+      const signalDist = await queryOSMTrafficSignals(app.geo_lat, app.geo_lng, 500);
+      if (signalDist !== null) {
+        result.nearest_signal_distance_ft = signalDist;
+        console.log(`${tracePrefix} [enrich-traffic] Found OSM traffic signal at ${signalDist} ft`);
+      }
+    }
+    
+    // Query OSM for speed limit fallback if TxDOT didn't have it
+    if (!result.speed_limit) {
+      console.log(`${tracePrefix} [enrich-traffic] Querying OSM for speed limit fallback`);
+      const osmSpeed = await queryOSMSpeedLimit(app.geo_lat, app.geo_lng);
+      if (osmSpeed !== null) {
+        result.speed_limit = osmSpeed;
+        result.data_flags.push('speed_limit_from_osm');
+        console.log(`${tracePrefix} [enrich-traffic] Found OSM speed limit: ${osmSpeed} mph`);
+      }
+    }
+    
     // Update application with traffic data
     const updateFields: Record<string, any> = {
       traffic_aadt: result.traffic_aadt,
@@ -505,6 +637,7 @@ Deno.serve(async (req) => {
       speed_limit: result.speed_limit,
       surface_type: result.surface_type,
       traffic_data_source: result.traffic_data_source,
+      traffic_map_url: result.traffic_map_url,
       // Also update legacy fields for backward compatibility
       aadt_near: result.traffic_aadt,
       aadt_road_name: result.traffic_road_name,
