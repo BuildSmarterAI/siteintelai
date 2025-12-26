@@ -10,31 +10,31 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.gis-fetch-with-versioning]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gis-get-layer]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gis-refresh-scheduler]
-verify_jwt = false
+verify_jwt = true
 
 [functions.orchestrate-application]
 verify_jwt = false
 
 [functions.hii-ingest]
-verify_jwt = false
+verify_jwt = true
 
 [functions.hii-alerts]
-verify_jwt = false
+verify_jwt = true
 
 [functions.hii-score]
-verify_jwt = false
+verify_jwt = true
 
 [functions.hii-geojson]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-gis-endpoints]
-verify_jwt = false
+verify_jwt = true
 
 [functions.submit-application]
 verify_jwt = true
@@ -61,7 +61,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.cron-enrichment]
-verify_jwt = false
+verify_jwt = true
 
 [functions.utility-proxy]
 verify_jwt = false
@@ -136,7 +136,7 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.chat-with-report]
-verify_jwt = false
+verify_jwt = true
 
 [functions.fetch-hcad-parcels]
 verify_jwt = true
@@ -151,7 +151,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.gis-migrate-legacy-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.submit-beta-signup]
 verify_jwt = false
@@ -181,55 +181,55 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.credit-reset]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cache-cleanup]
-verify_jwt = false
+verify_jwt = true
 
 [functions.alert-check]
-verify_jwt = false
+verify_jwt = true
 
 [functions.aggregate-api-health]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gis-transform-to-canonical]
-verify_jwt = false
+verify_jwt = true
 
 [functions.enrich-from-canonical]
 verify_jwt = true
 
 [functions.seed-houston-canonical]
-verify_jwt = false
+verify_jwt = true
 
 [functions.seed-texas-canonical]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scraper-gis-fetch]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-permits]
-verify_jwt = false
+verify_jwt = true
 
 [functions.scrape-tax-records]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gis-health-check]
-verify_jwt = false
+verify_jwt = true
 
 [functions.bootstrap-gis-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.discover-gis-layers]
-verify_jwt = false
+verify_jwt = true
 
 [functions.resolve-jurisdiction]
 verify_jwt = false
 
 [functions.recover-error-applications]
-verify_jwt = false
+verify_jwt = true
 
 [functions.auto-recover-errors]
-verify_jwt = false
+verify_jwt = true
 
 [functions.enrich-traffic]
 verify_jwt = false
@@ -247,14 +247,14 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.seed-census-canonical]
-verify_jwt = false
+verify_jwt = true
 max_execution_time = 300
 
 [functions.enrich-census-canonical]
-verify_jwt = false
+verify_jwt = true
 
 [functions.admin-trigger-enrich]
-verify_jwt = false
+verify_jwt = true
 
 [functions.validate-address]
 verify_jwt = false
@@ -272,25 +272,25 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.aggregate-api-costs]
-verify_jwt = false
+verify_jwt = true
 
 [functions.send-cost-alert]
-verify_jwt = false
+verify_jwt = true
 
 [functions.cost-circuit-breaker]
-verify_jwt = false
+verify_jwt = true
 
 [functions.lookup-parcel-by-apn]
 verify_jwt = false
 
 [functions.seed-elevation-data]
-verify_jwt = false
+verify_jwt = true
 
 [functions.nominatim-autocomplete]
 verify_jwt = false
 
 [functions.skip-enrichment-step]
-verify_jwt = false
+verify_jwt = true
 
 [functions.create-guest-application]
 verify_jwt = false
