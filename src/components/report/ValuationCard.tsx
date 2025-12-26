@@ -2,8 +2,15 @@ import { motion } from "framer-motion";
 import { DollarSign, Building2, Calendar, Layers, TrendingUp, Calculator } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { Tooltip as RechartsTooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ChartTooltip } from "recharts";
 import { cn } from "@/lib/utils";
+import {
+  getStateClassDescription,
+  getStateClassInfo,
+  getLandUseDescription,
+  getCategoryColorClasses,
+} from "@/lib/propertyClassification";
 
 interface ValuationCardProps {
   totApprVal?: number | null;
@@ -132,7 +139,7 @@ export function ValuationCard({
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip
+                    <ChartTooltip
                       formatter={(value: number) => formatCurrency(value)}
                       contentStyle={{
                         backgroundColor: "hsl(var(--background))",
@@ -227,15 +234,38 @@ export function ValuationCard({
         {/* Additional Details */}
         {(stateClass || landUseCode || effectiveYr) && (
           <div className="flex flex-wrap gap-2 pt-4 border-t">
-            {stateClass && (
-              <Badge variant="outline" className="font-mono">
-                Class: {stateClass}
-              </Badge>
-            )}
+            {stateClass && (() => {
+              const info = getStateClassInfo(stateClass);
+              const colors = info ? getCategoryColorClasses(info.category) : null;
+              return (
+                <TooltipProvider>
+                  <TooltipTrigger asChild>
+                    <Badge 
+                      variant="outline" 
+                      className={cn("font-mono cursor-help", colors?.bg, colors?.text, colors?.border)}
+                    >
+                      {stateClass} — {getStateClassDescription(stateClass)}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-sm font-semibold">{info?.category || 'Property'} Classification</p>
+                    <p className="text-xs text-muted-foreground mt-1">{info?.description}</p>
+                  </TooltipContent>
+                </TooltipProvider>
+              );
+            })()}
             {landUseCode && (
-              <Badge variant="outline" className="font-mono">
-                Use Code: {landUseCode}
-              </Badge>
+              <TooltipProvider>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="font-mono cursor-help">
+                    {landUseCode} — {getLandUseDescription(landUseCode)}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <p className="text-sm font-semibold">Land Use Code</p>
+                  <p className="text-xs text-muted-foreground mt-1">{getLandUseDescription(landUseCode)}</p>
+                </TooltipContent>
+              </TooltipProvider>
             )}
             {effectiveYr && (
               <Badge variant="outline">
