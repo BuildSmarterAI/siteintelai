@@ -9,7 +9,7 @@ import { SkipLinks } from "./components/SkipLinks";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import Index from "./pages/Index";
-import Application from "./pages/Application";
+
 import ThankYou from "./pages/ThankYou";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
