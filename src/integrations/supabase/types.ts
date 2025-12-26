@@ -446,6 +446,7 @@ export type Database = {
           asian_pct: number | null
           attachments: Json | null
           attempts: number
+          available_water_capacity_in: number | null
           average_permit_time_months: number | null
           avg_household_size: number | null
           bachelors_pct: number | null
@@ -511,6 +512,7 @@ export type Database = {
           executive_summary_output: string | null
           exemption_code: string | null
           existing_improvements: string
+          farmland_classification: string | null
           fema_firm_panel: string | null
           fema_panel_id: string | null
           fiber_available: boolean | null
@@ -644,6 +646,7 @@ export type Database = {
           single_family_pct: number | null
           situs_address: string | null
           soil_drainage_class: string | null
+          soil_permeability_in_hr: number | null
           soil_series: string | null
           soil_slope_percent: number | null
           some_college_pct: number | null
@@ -732,6 +735,7 @@ export type Database = {
           asian_pct?: number | null
           attachments?: Json | null
           attempts?: number
+          available_water_capacity_in?: number | null
           average_permit_time_months?: number | null
           avg_household_size?: number | null
           bachelors_pct?: number | null
@@ -797,6 +801,7 @@ export type Database = {
           executive_summary_output?: string | null
           exemption_code?: string | null
           existing_improvements: string
+          farmland_classification?: string | null
           fema_firm_panel?: string | null
           fema_panel_id?: string | null
           fiber_available?: boolean | null
@@ -930,6 +935,7 @@ export type Database = {
           single_family_pct?: number | null
           situs_address?: string | null
           soil_drainage_class?: string | null
+          soil_permeability_in_hr?: number | null
           soil_series?: string | null
           soil_slope_percent?: number | null
           some_college_pct?: number | null
@@ -1018,6 +1024,7 @@ export type Database = {
           asian_pct?: number | null
           attachments?: Json | null
           attempts?: number
+          available_water_capacity_in?: number | null
           average_permit_time_months?: number | null
           avg_household_size?: number | null
           bachelors_pct?: number | null
@@ -1083,6 +1090,7 @@ export type Database = {
           executive_summary_output?: string | null
           exemption_code?: string | null
           existing_improvements?: string
+          farmland_classification?: string | null
           fema_firm_panel?: string | null
           fema_panel_id?: string | null
           fiber_available?: boolean | null
@@ -1216,6 +1224,7 @@ export type Database = {
           single_family_pct?: number | null
           situs_address?: string | null
           soil_drainage_class?: string | null
+          soil_permeability_in_hr?: number | null
           soil_series?: string | null
           soil_slope_percent?: number | null
           some_college_pct?: number | null

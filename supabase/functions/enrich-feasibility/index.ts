@@ -634,13 +634,150 @@ async function fetchWetlands(lat: number, lng: number): Promise<{
   }
 }
 
+// Helper function to fetch soil interpretations from cointerp table (dedicated query)
+async function fetchSoilInterpretations(lat: number, lng: number): Promise<{
+  corrosion_concrete: string | null;
+  corrosion_steel: string | null;
+  septic_suitability: string | null;
+  building_site_rating: string | null;
+}> {
+  const sdaUrl = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
+  const result = {
+    corrosion_concrete: null as string | null,
+    corrosion_steel: null as string | null,
+    septic_suitability: null as string | null,
+    building_site_rating: null as string | null
+  };
+
+  try {
+    // Query cointerp with exact rulename matching instead of LIKE patterns
+    const query = `
+      SELECT 
+        ci.mrulename,
+        ci.interphrc
+      FROM component c
+      INNER JOIN cointerp ci ON c.cokey = ci.cokey
+      WHERE c.cokey IN (
+        SELECT TOP 1 c2.cokey
+        FROM mapunit m
+        INNER JOIN component c2 ON m.mukey = c2.mukey
+        WHERE m.mukey IN (
+          SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
+        )
+        ORDER BY c2.comppct_r DESC
+      )
+      AND ci.ruledepth = 0
+      AND ci.mrulename IN (
+        'Corrosion of Concrete',
+        'Corrosion of Steel',
+        'Septic Tank Absorption Fields',
+        'Dwellings With Basements',
+        'Dwellings Without Basements'
+      )`;
+
+    const response = await fetch(sdaUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: `query=${encodeURIComponent(query)}&format=JSON`
+    });
+
+    const text = await response.text();
+    if (text && !text.trim().startsWith('<')) {
+      const data = JSON.parse(text);
+      if (data?.Table) {
+        for (const row of data.Table) {
+          const rulename = row[0]?.toLowerCase() || '';
+          const rating = row[1] || null;
+          
+          if (rulename.includes('corrosion') && rulename.includes('concrete')) {
+            result.corrosion_concrete = rating;
+          } else if (rulename.includes('corrosion') && rulename.includes('steel')) {
+            result.corrosion_steel = rating;
+          } else if (rulename.includes('septic')) {
+            result.septic_suitability = rating;
+          } else if (rulename.includes('dwellings')) {
+            result.building_site_rating = rating;
+          }
+        }
+        console.log('✅ Soil interpretations from cointerp:', result);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error fetching soil interpretations:', error);
+  }
+
+  return result;
+}
+
+// Helper function to fetch additional soil properties (farmland, permeability, AWC)
+async function fetchAdditionalSoilProperties(lat: number, lng: number): Promise<{
+  farmland_classification: string | null;
+  soil_permeability_in_hr: number | null;
+  available_water_capacity_in: number | null;
+}> {
+  const sdaUrl = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
+  const result = {
+    farmland_classification: null as string | null,
+    soil_permeability_in_hr: null as number | null,
+    available_water_capacity_in: null as number | null
+  };
+
+  try {
+    // Query for farmland class and horizon properties
+    const query = `
+      SELECT TOP 1
+        c.nirrcapcl,
+        m.farmlndcl,
+        AVG(ch.ksat_r) as ksat_avg,
+        SUM((ch.awc_r * (ch.hzdepb_r - ch.hzdept_r)) / 2.54) as awc_in
+      FROM mapunit m
+      INNER JOIN component c ON m.mukey = c.mukey
+      LEFT JOIN chorizon ch ON c.cokey = ch.cokey
+      WHERE m.mukey IN (
+        SELECT * FROM SDA_Get_Mukey_from_intersection_with_WktWgs84('POINT(${lng} ${lat})')
+      )
+      GROUP BY c.nirrcapcl, m.farmlndcl, c.comppct_r
+      ORDER BY c.comppct_r DESC`;
+
+    const response = await fetch(sdaUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: `query=${encodeURIComponent(query)}&format=JSON`
+    });
+
+    const text = await response.text();
+    if (text && !text.trim().startsWith('<')) {
+      const data = JSON.parse(text);
+      if (data?.Table?.[0]) {
+        const row = data.Table[0];
+        // nirrcapcl is numeric capability class, farmlndcl is text classification
+        result.farmland_classification = row[1] || (row[0] ? `Capability Class ${row[0]}` : null);
+        // Convert micrometers/sec to inches/hour: 1 μm/s = 0.1417 in/hr
+        result.soil_permeability_in_hr = row[2] ? Number(row[2]) * 0.1417 : null;
+        result.available_water_capacity_in = row[3] ? Number(row[3]) : null;
+        console.log('✅ Additional soil properties:', result);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error fetching additional soil properties:', error);
+  }
+
+  return result;
+}
+
 // Helper function to fetch soil data from USDA NRCS with enhanced SSURGO properties
 async function fetchSoilData(lat: number, lng: number): Promise<any> {
   try {
     // Try USDA Soil Data Access API with expanded query for enhanced properties
     const sdaUrl = `https://SDMDataAccess.sc.egov.usda.gov/Tabular/post.rest`;
     
-    // Enhanced query to include additional soil properties
+    // Simplified primary query - no cointerp subqueries (those are handled by fetchSoilInterpretations)
     const query = `
       SELECT TOP 1 
         m.muname,
@@ -651,23 +788,7 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
         c.wtdepannmin,
         c.brockdepmin,
         c.pondfreqdcd,
-        ch.kffact,
-        COALESCE(
-          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Corros%Concrete%'),
-          NULL
-        ) as corcon,
-        COALESCE(
-          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Corros%Steel%'),
-          NULL
-        ) as corsteel,
-        COALESCE(
-          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Septic%'),
-          NULL
-        ) as septic_rating,
-        COALESCE(
-          (SELECT TOP 1 interphr FROM cointerp WHERE cokey = c.cokey AND mrulename LIKE '%Dwellings%Basement%'),
-          NULL
-        ) as building_rating
+        ch.kffact
       FROM mapunit m 
       INNER JOIN component c ON m.mukey = c.mukey
       LEFT JOIN chorizon ch ON c.cokey = ch.cokey
@@ -698,19 +819,16 @@ async function fetchSoilData(lat: number, lng: number): Promise<any> {
             soil_series: row[0] || null,
             soil_slope_percent: row[1] ? Number(row[1]) : null,
             soil_drainage_class: row[2] || null,
-            // Enhanced SSURGO properties (new)
+            // Enhanced SSURGO properties
             hydric_soil_rating: row[3] || null,
             flood_frequency_usda: row[4] || null,
             water_table_depth_cm: row[5] ? Number(row[5]) : null,
             bedrock_depth_cm: row[6] ? Number(row[6]) : null,
             ponding_frequency: row[7] || null,
-            erosion_k_factor: row[8] ? Number(row[8]) : null,
-            corrosion_concrete: row[9] || null,
-            corrosion_steel: row[10] || null,
-            septic_suitability: row[11] || null,
-            building_site_rating: row[12] || null
+            erosion_k_factor: row[8] ? Number(row[8]) : null
+            // Note: corrosion, septic, building ratings now fetched via fetchSoilInterpretations()
           };
-          console.log('✅ Enhanced soil data from USDA SDA:', soilData);
+          console.log('✅ Basic soil data from USDA SDA:', soilData);
           return soilData;
         }
       } catch (parseError) {
@@ -3573,7 +3691,33 @@ serve(async (req) => {
       dataFlags.push(ERROR_FLAGS.SOIL_API_ERROR);
     }
 
-    // ⭐ NEW: Fetch USDA Shrink-Swell Potential (Foundation Risk)
+    // ⭐ NEW: Fetch soil interpretations (corrosion, septic, building suitability) via dedicated query
+    console.log('Fetching soil interpretations (cointerp)...');
+    try {
+      const soilInterps = await fetchSoilInterpretations(geoLat, geoLng);
+      if (soilInterps.corrosion_concrete || soilInterps.corrosion_steel || 
+          soilInterps.septic_suitability || soilInterps.building_site_rating) {
+        Object.assign(enrichedData, soilInterps);
+        console.log('✅ Soil interpretations applied:', soilInterps);
+      }
+    } catch (interpError) {
+      console.error('Soil interpretations error:', interpError);
+    }
+
+    // ⭐ NEW: Fetch additional soil properties (farmland, permeability, AWC)
+    console.log('Fetching additional soil properties...');
+    try {
+      const additionalProps = await fetchAdditionalSoilProperties(geoLat, geoLng);
+      if (additionalProps.farmland_classification || additionalProps.soil_permeability_in_hr ||
+          additionalProps.available_water_capacity_in) {
+        Object.assign(enrichedData, additionalProps);
+        console.log('✅ Additional soil properties applied:', additionalProps);
+      }
+    } catch (addPropError) {
+      console.error('Additional soil properties error:', addPropError);
+    }
+
+    // ⭐ Fetch USDA Shrink-Swell Potential (Foundation Risk)
     console.log('Fetching USDA shrink-swell potential data...');
     try {
       const shrinkSwellData = await fetchShrinkSwellData(geoLat, geoLng);
@@ -3585,7 +3729,7 @@ serve(async (req) => {
       console.error('Shrink-swell API error:', shrinkSwellError);
     }
 
-    // ⭐ NEW: Fetch USGS Groundwater Levels (Actual Well Measurements)
+    // ⭐ Fetch USGS Groundwater Levels (Actual Well Measurements)
     console.log('Fetching USGS groundwater data...');
     try {
       const groundwaterData = await fetchGroundwaterData(geoLat, geoLng);
