@@ -60,13 +60,10 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     });
   }, [mapZoom, mapCenter, setMapState]);
 
-  // Try to recover locked parcel from storage on mount
+  // Clear any previously stored parcel on mount - always start fresh
   useEffect(() => {
-    const recovered = recoverFromStorage();
-    if (recovered) {
-      toast.info("Recovered previously locked parcel");
-    }
-  }, [recoverFromStorage]);
+    localStorage.removeItem('siteintel_locked_parcel');
+  }, []);
 
   // Auto-advance mobile step when candidate is selected
   useEffect(() => {
