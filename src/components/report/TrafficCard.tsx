@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Car, TrendingUp, Clock, MapPin, Activity, Truck, ExternalLink, Gauge, CircleDot } from "lucide-react";
+import { Car, TrendingUp, Clock, MapPin, Activity, Truck, ExternalLink, Gauge, CircleDot, TrafficCone, AlertCircle } from "lucide-react";
 import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
@@ -15,12 +15,30 @@ interface TrafficCardProps {
   congestionLevel?: string | null;
   trafficDirection?: string | null;
   peakHourVolume?: number | null;
+  designHourlyVolume?: number | null;
   trafficMapUrl?: string | null;
   speedLimit?: number | null;
   surfaceType?: string | null;
+  nearestSignalDistanceFt?: number | null;
+  singleTruckAadt?: number | null;
+  comboTruckAadt?: number | null;
+  directionalFactor?: number | null;
+  roadClassification?: string | null;
   verdict?: string | null;
   className?: string;
   updatedAt?: string | null;
+}
+
+function NoDataIndicator({ label }: { label: string }) {
+  return (
+    <div className="p-4 bg-muted/20 rounded-xl border border-dashed border-border/50">
+      <div className="flex items-center gap-2 mb-2">
+        <AlertCircle className="h-4 w-4 text-muted-foreground/50" />
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+      <p className="text-sm text-muted-foreground/70 italic">No data available</p>
+    </div>
+  );
 }
 
 export function TrafficCard({
@@ -32,9 +50,15 @@ export function TrafficCard({
   congestionLevel,
   trafficDirection,
   peakHourVolume,
+  designHourlyVolume,
   trafficMapUrl,
   speedLimit,
   surfaceType,
+  nearestSignalDistanceFt,
+  singleTruckAadt,
+  comboTruckAadt,
+  directionalFactor,
+  roadClassification,
   verdict,
   className,
   updatedAt
@@ -48,6 +72,11 @@ export function TrafficCard({
   };
 
   const traffic = getTrafficLevel(aadt);
+  
+  // Determine if we have minimal data
+  const hasTrafficData = aadt !== null && aadt !== undefined;
+  const hasSpeedLimit = speedLimit !== null && speedLimit !== undefined;
+  const hasTruckData = truckPercent !== null && truckPercent !== undefined;
 
   return (
     <Card className={cn(
@@ -73,11 +102,11 @@ export function TrafficCard({
           
           {/* Traffic Level Strip */}
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            {aadt && (
+            {hasTrafficData ? (
               <>
                 <div className="px-4 py-2 rounded-lg bg-white/10">
                   <span className="text-2xl font-bold font-mono text-white">
-                    {aadt.toLocaleString()}
+                    {aadt!.toLocaleString()}
                   </span>
                   <span className="text-sm text-white/60 ml-2">VPD</span>
                 </div>
@@ -90,10 +119,19 @@ export function TrafficCard({
                   {traffic.level} Traffic
                 </Badge>
               </>
+            ) : (
+              <div className="px-4 py-2 rounded-lg bg-white/10">
+                <span className="text-lg text-white/60">No traffic count data</span>
+              </div>
             )}
             {roadName && (
               <Badge variant="outline" className="bg-white/10 border-white/20 text-white">
                 {roadName}
+              </Badge>
+            )}
+            {roadClassification && (
+              <Badge variant="outline" className="bg-white/10 border-white/20 text-white capitalize">
+                {roadClassification}
               </Badge>
             )}
           </div>
@@ -110,19 +148,21 @@ export function TrafficCard({
           </div>
 
           {/* Daily Traffic */}
-          {aadt && (
+          {hasTrafficData ? (
             <div className="p-4 bg-gradient-to-br from-[hsl(var(--feasibility-orange)/0.1)] to-[hsl(var(--feasibility-orange)/0.05)] rounded-xl border border-[hsl(var(--feasibility-orange)/0.3)]">
               <div className="flex items-center gap-2 mb-2">
                 <Activity className="h-4 w-4 text-[hsl(var(--feasibility-orange))]" />
                 <span className="text-xs text-muted-foreground">Daily Traffic</span>
               </div>
-              <p className="text-2xl font-bold font-mono">{aadt.toLocaleString()}</p>
+              <p className="text-2xl font-bold font-mono">{aadt!.toLocaleString()}</p>
               <p className="text-xs text-muted-foreground">vehicles/day</p>
             </div>
+          ) : (
+            <NoDataIndicator label="Daily Traffic" />
           )}
 
           {/* Speed Limit */}
-          {speedLimit && (
+          {hasSpeedLimit ? (
             <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-500/5 rounded-xl border border-blue-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <Gauge className="h-4 w-4 text-blue-500" />
@@ -131,10 +171,12 @@ export function TrafficCard({
               <p className="text-2xl font-bold font-mono text-blue-600">{speedLimit}</p>
               <p className="text-xs text-muted-foreground">MPH</p>
             </div>
+          ) : (
+            <NoDataIndicator label="Speed Limit" />
           )}
 
           {/* Truck Traffic */}
-          {truckPercent !== null && truckPercent !== undefined && (
+          {hasTruckData ? (
             <div className="p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-xl border border-amber-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <Truck className="h-4 w-4 text-amber-600" />
@@ -143,10 +185,12 @@ export function TrafficCard({
               <p className="text-2xl font-bold font-mono text-amber-600">{truckPercent}%</p>
               <p className="text-xs text-muted-foreground">commercial vehicles</p>
             </div>
+          ) : (
+            <NoDataIndicator label="Truck Traffic" />
           )}
 
           {/* Surface Type */}
-          {surfaceType && (
+          {surfaceType ? (
             <div className="p-4 bg-gradient-to-br from-slate-500/10 to-slate-500/5 rounded-xl border border-slate-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <CircleDot className="h-4 w-4 text-slate-500" />
@@ -155,10 +199,12 @@ export function TrafficCard({
               <p className="text-lg font-bold">{surfaceType}</p>
               <p className="text-xs text-muted-foreground">pavement</p>
             </div>
+          ) : (
+            <NoDataIndicator label="Surface Type" />
           )}
 
           {/* Congestion */}
-          {congestionLevel && (
+          {congestionLevel ? (
             <div className={cn(
               "p-4 rounded-xl border",
               congestionLevel.toLowerCase() === 'high' || congestionLevel.toLowerCase() === 'severe'
@@ -182,8 +228,81 @@ export function TrafficCard({
                 {congestionLevel}
               </Badge>
             </div>
+          ) : (
+            <NoDataIndicator label="Congestion" />
           )}
         </div>
+
+        {/* Peak Hour & DHV Row */}
+        {(peakHourVolume || designHourlyVolume || nearestSignalDistanceFt !== null) && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Peak Hour Volume */}
+            {peakHourVolume && (
+              <div className="p-4 bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 rounded-xl border border-indigo-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-indigo-500" />
+                  <span className="text-sm font-medium">Peak Hour Volume</span>
+                </div>
+                <p className="text-2xl font-bold font-mono text-indigo-600">{peakHourVolume.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  {designHourlyVolume ? 'TxDOT DHV' : 'Est. (10% K-factor)'}
+                </p>
+              </div>
+            )}
+
+            {/* Nearest Traffic Signal */}
+            {nearestSignalDistanceFt !== null && nearestSignalDistanceFt !== undefined && (
+              <div className="p-4 bg-gradient-to-br from-red-500/10 to-red-500/5 rounded-xl border border-red-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrafficCone className="h-4 w-4 text-red-500" />
+                  <span className="text-sm font-medium">Nearest Signal</span>
+                </div>
+                <p className="text-2xl font-bold font-mono text-red-600">{nearestSignalDistanceFt.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">feet away</p>
+              </div>
+            )}
+
+            {/* Directional Split */}
+            {directionalFactor && directionalFactor > 0 && (
+              <div className="p-4 bg-gradient-to-br from-teal-500/10 to-teal-500/5 rounded-xl border border-teal-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-teal-500" />
+                  <span className="text-sm font-medium">Directional Split</span>
+                </div>
+                <p className="text-lg font-bold text-teal-600">
+                  {directionalFactor}% / {100 - directionalFactor}%
+                </p>
+                <p className="text-xs text-muted-foreground">peak direction factor</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Truck Breakdown */}
+        {(singleTruckAadt || comboTruckAadt) && (
+          <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+            <h4 className="font-semibold mb-4 flex items-center gap-2">
+              <Truck className="h-4 w-4 text-muted-foreground" />
+              Commercial Vehicle Breakdown
+            </h4>
+            <div className="grid grid-cols-2 gap-4">
+              {singleTruckAadt && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Single-Unit Trucks</p>
+                  <p className="text-xl font-bold font-mono">{singleTruckAadt.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">vehicles/day</p>
+                </div>
+              )}
+              {comboTruckAadt && (
+                <div className="p-3 bg-background/50 rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Combination Trucks</p>
+                  <p className="text-xl font-bold font-mono">{comboTruckAadt.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">vehicles/day</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Peak Hour Analysis */}
         {congestionLevel && (
@@ -251,7 +370,7 @@ export function TrafficCard({
                 onClick={() => window.open(trafficMapUrl, '_blank')}
               >
                 <ExternalLink className="h-3 w-3 mr-2" />
-                View Interactive Map
+                View TxDOT Map
               </Button>
             </div>
           )}
@@ -283,13 +402,20 @@ export function TrafficCard({
             rawData={{
               aadt,
               roadName,
+              roadClassification,
               trafficYear,
               truckPercent,
+              singleTruckAadt,
+              comboTruckAadt,
               congestionLevel,
               trafficDirection,
               peakHourVolume,
+              designHourlyVolume,
+              nearestSignalDistanceFt,
+              directionalFactor,
               speedLimit,
               surfaceType,
+              trafficMapUrl,
             }}
           />
         </div>
