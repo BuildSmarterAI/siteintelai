@@ -63,14 +63,18 @@ interface EnvironmentalCardProps {
   corrosionSteel?: string | null;
   septicSuitability?: string | null;
   buildingSiteRating?: string | null;
-  // ⭐ NEW: Shrink-Swell Potential (Foundation Risk)
+  // ⭐ Shrink-Swell Potential (Foundation Risk)
   shrinkSwellPotential?: string | null;
   linearExtensibilityPct?: number | null;
-  // ⭐ NEW: USGS Groundwater Data
+  // ⭐ USGS Groundwater Data
   groundwaterDepthFt?: number | null;
   groundwaterWellDistanceFt?: number | null;
   groundwaterMeasurementDate?: string | null;
   nearestGroundwaterWellId?: string | null;
+  // ⭐ NEW: Additional soil properties
+  farmlandClassification?: string | null;
+  soilPermeabilityInHr?: number | null;
+  availableWaterCapacityIn?: number | null;
   // Other props
   environmentalSites?: any[] | null;
   epaFacilitiesCount?: number | null;
@@ -99,14 +103,18 @@ export function EnvironmentalCard({
   corrosionSteel,
   septicSuitability,
   buildingSiteRating,
-  // ⭐ NEW: Shrink-Swell Potential
+  // ⭐ Shrink-Swell Potential
   shrinkSwellPotential,
   linearExtensibilityPct,
-  // ⭐ NEW: USGS Groundwater
+  // ⭐ USGS Groundwater
   groundwaterDepthFt,
   groundwaterWellDistanceFt,
   groundwaterMeasurementDate,
   nearestGroundwaterWellId,
+  // ⭐ NEW: Additional soil properties
+  farmlandClassification,
+  soilPermeabilityInHr,
+  availableWaterCapacityIn,
   // Other props
   environmentalSites = [],
   epaFacilitiesCount,
@@ -383,6 +391,71 @@ export function EnvironmentalCard({
               </div>
             )}
 
+            {/* Additional Soil Properties - Farmland & Permeability */}
+            {(farmlandClassification || soilPermeabilityInHr || availableWaterCapacityIn) && (
+              <div className="pt-4 mt-4 border-t border-amber-500/20">
+                <p className="text-xs text-muted-foreground uppercase mb-3">Land Use & Drainage Suitability</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {farmlandClassification && (
+                    <div className="p-2 bg-background/50 rounded-lg col-span-2 md:col-span-1">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Farmland Class</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground/50" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px]">
+                              <p className="text-xs">USDA NRCS farmland classification. Prime farmland may have development restrictions.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm",
+                        farmlandClassification.toLowerCase().includes('prime') ? "text-amber-600" : "text-foreground"
+                      )}>
+                        {farmlandClassification}
+                      </p>
+                    </div>
+                  )}
+                  {soilPermeabilityInHr !== null && soilPermeabilityInHr !== undefined && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Permeability (Ksat)</span>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Info className="h-3 w-3 text-muted-foreground/50" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px]">
+                              <p className="text-xs">Saturated hydraulic conductivity. Higher = better drainage. Low (&lt;0.2 in/hr) may require engineered drainage.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <p className={cn(
+                        "font-medium text-sm font-mono",
+                        soilPermeabilityInHr < 0.2 ? "text-amber-600" : "text-foreground"
+                      )}>
+                        {soilPermeabilityInHr.toFixed(2)} in/hr
+                      </p>
+                    </div>
+                  )}
+                  {availableWaterCapacityIn !== null && availableWaterCapacityIn !== undefined && (
+                    <div className="p-2 bg-background/50 rounded-lg">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-[10px] text-muted-foreground">Water Capacity (AWC)</span>
+                      </div>
+                      <p className="font-medium text-sm font-mono">
+                        {availableWaterCapacityIn.toFixed(1)} in
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Construction-related soil properties */}
             {(erosionKFactor || bedrockDepthCm || corrosionConcrete || corrosionSteel || buildingSiteRating) && (
               <div className="pt-4 mt-4 border-t border-amber-500/20">
@@ -461,6 +534,25 @@ export function EnvironmentalCard({
                       <p className="font-medium text-sm">{septicSuitability}</p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* No Enhanced Data Available indicator */}
+            {!hydricSoilRating && !floodFrequencyUsda && !waterTableDepthCm && !pondingFrequency && 
+             !erosionKFactor && !bedrockDepthCm && !corrosionConcrete && !corrosionSteel && 
+             !buildingSiteRating && !septicSuitability && !farmlandClassification && 
+             !soilPermeabilityInHr && !availableWaterCapacityIn && (
+              <div className="pt-4 mt-4 border-t border-amber-500/20">
+                <div className="flex items-start gap-2 p-3 bg-muted/30 rounded-lg">
+                  <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">Enhanced Soil Data Not Available</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-1">
+                      Detailed soil engineering properties (corrosion, septic suitability, bedrock depth) are not available for this location. 
+                      This is common for urban land complexes or areas with limited SSURGO coverage.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
