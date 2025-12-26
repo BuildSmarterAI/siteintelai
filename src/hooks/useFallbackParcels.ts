@@ -282,16 +282,8 @@ export function useFallbackParcels({
               visibility: showFillRef.current ? 'visible' : 'none',
             },
             paint: {
-              "fill-color": [
-                "match",
-                ["get", "source"],
-                "canonical",
-                "#FF7A00",
-                "external",
-                "#FBBF24",
-                "#FF7A00",
-              ],
-              "fill-opacity": 0.25,
+              "fill-color": "#06B6D4",
+              "fill-opacity": 0.08,
             },
           });
           logger.debug('useFallbackParcels', 'Added fill layer:', FALLBACK_FILL_LAYER_ID);
@@ -304,16 +296,8 @@ export function useFallbackParcels({
             type: "line",
             source: FALLBACK_SOURCE_ID,
             paint: {
-              "line-color": [
-                "match",
-                ["get", "source"],
-                "canonical",
-                "#FF7A00",
-                "external",
-                "#F59E0B",
-                "#FF7A00",
-              ],
-              "line-width": 2,
+              "line-color": "#374151",
+              "line-width": 1,
             },
           });
           logger.debug('useFallbackParcels', 'Added line layer:', FALLBACK_LINE_LAYER_ID);
