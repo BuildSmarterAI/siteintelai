@@ -1,7 +1,8 @@
-import { X, Sparkles, MapPin, Copy, ExternalLink, Building2, CheckCircle2, AlertTriangle, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { X, Sparkles, MapPin, Copy, ExternalLink, Building2, CheckCircle2, AlertTriangle, ShieldCheck, ShieldAlert, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { getStateClassDescription, getStateClassInfo, getLandUseDescription, getCategoryColorClasses } from '@/lib/propertyClassification';
 
 // County display config with colors
 const COUNTY_CONFIG: Record<string, { label: string; color: string }> = {
@@ -39,6 +40,8 @@ interface ParcelDetailsPopupProps {
     source?: string;
     datasetVersion?: string | null;
     landUseDesc?: string | null;
+    landUseCode?: string | null;
+    stateClass?: string | null;
     // New coverage tracking fields
     coverageStatus?: 'seeded' | 'not_seeded';
     dataSource?: 'canonical_parcels' | 'external_fallback';
@@ -160,6 +163,38 @@ export function ParcelDetailsPopup({ parcel, onClose, onUseForAnalysis }: Parcel
             <span className="font-mono text-foreground">
               ${parcel.imprValue.toLocaleString()}
             </span>
+          </div>
+        )}
+        
+        {/* Property Classification */}
+        {(parcel.stateClass || parcel.landUseCode || parcel.landUseDesc) && (
+          <div className="pt-2 border-t border-border/30 space-y-2">
+            {parcel.stateClass && (() => {
+              const info = getStateClassInfo(parcel.stateClass);
+              const colors = info ? getCategoryColorClasses(info.category) : null;
+              return (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    Class:
+                  </span>
+                  <Badge 
+                    variant="outline" 
+                    className={`font-mono text-xs ${colors?.bg} ${colors?.text} ${colors?.border}`}
+                  >
+                    {parcel.stateClass} — {info?.category || 'Unknown'}
+                  </Badge>
+                </div>
+              );
+            })()}
+            {(parcel.landUseCode || parcel.landUseDesc) && (
+              <div className="flex justify-between items-start">
+                <span className="text-muted-foreground">Land Use:</span>
+                <span className="font-mono text-foreground text-right text-xs max-w-[60%]">
+                  {parcel.landUseCode ? getLandUseDescription(parcel.landUseCode) : parcel.landUseDesc}
+                </span>
+              </div>
+            )}
           </div>
         )}
         

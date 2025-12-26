@@ -18,6 +18,7 @@ import { LenderReadyBadge } from "@/components/report/LenderReadyBadge";
 import { ExecutiveSummaryCard } from "@/components/report/ExecutiveSummaryCard";
 import { PropertyOwnerCard } from "@/components/report/PropertyOwnerCard";
 import { ValuationCard } from "@/components/report/ValuationCard";
+import { PropertyClassificationCard } from "@/components/report/PropertyClassificationCard";
 import { ProjectFeasibilityCard } from "@/components/report/ProjectFeasibilityCard";
 
 // PRD-compliant components
@@ -1410,6 +1411,16 @@ export default function ReportViewer() {
             stateClass={report.applications.state_class}
             propType={report.applications.prop_type}
             landUseCode={report.applications.land_use_code}
+            className="mb-8"
+          />
+        )}
+
+        {/* Property Classification Explainer */}
+        {(report.applications?.state_class || report.applications?.land_use_code) && (
+          <PropertyClassificationCard
+            stateClass={report.applications.state_class}
+            landUseCode={report.applications.land_use_code}
+            propType={report.applications.prop_type}
             className="mb-8"
           />
         )}
