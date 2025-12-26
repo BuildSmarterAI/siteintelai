@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
+import { BuildId } from "@/components/BuildId";
 
 export const Footer = () => {
   const footerSections = [
@@ -114,9 +115,12 @@ export const Footer = () => {
               © {new Date().getFullYear()} SiteIntel AI. All rights reserved.
             </span>
           </div>
-          <p className="text-white/40 text-xs">
-            Transforming complexity into verified clarity.
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-white/40 text-xs">
+              Transforming complexity into verified clarity.
+            </p>
+            <BuildId className="text-white/30" />
+          </div>
         </div>
       </div>
     </footer>
