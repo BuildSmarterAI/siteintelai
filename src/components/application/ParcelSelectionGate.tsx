@@ -8,7 +8,7 @@
  * - Server-side persistence required before proceeding
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,11 @@ import { ParcelSelectionTabs } from "./ParcelSelectionTabs";
 import { CandidateParcelList } from "./CandidateParcelList";
 import { ParcelVerificationPanel } from "./ParcelVerificationPanel";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
+import { MatchFoundBadge } from "./MatchFoundBadge";
 import { Shield, AlertTriangle, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
 
 interface ParcelSelectionGateProps {
@@ -50,6 +52,12 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const [mapZoom, setMapZoom] = useState(14);
   const [isLocking, setIsLocking] = useState(false);
   const [mobileStep, setMobileStep] = useState<MobileStep>('search');
+  
+  // Spotlight state for "Match Found" experience
+  const [showMatchBadge, setShowMatchBadge] = useState(false);
+  const [spotlightParcel, setSpotlightParcel] = useState<any>(null);
+  const [srAnnouncement, setSrAnnouncement] = useState<string>("");
+  const mapRef = useRef<{ flyToBounds: (bounds: [[number, number], [number, number]], options?: any) => void } | null>(null);
 
   // Track map state for audit
   useEffect(() => {
@@ -83,16 +91,33 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     if (rawInput) {
       setRawInput(rawInput);
     }
-    // AUTO-SELECT single parcel (per strict flow spec)
+    // AUTO-SELECT single parcel with spotlight experience
     if (candidates.length === 1) {
       const single = candidates[0];
       selectCandidate(single);
-      // Navigate to it
+      
+      // Trigger spotlight experience
+      setSpotlightParcel(single.geom);
+      setShowMatchBadge(true);
+      
+      // Screen reader announcement
+      const address = single.situs_address || single.parcel_id;
+      setSrAnnouncement(`Match found. ${address}. Parcel boundary now highlighted on map.`);
+      
+      // Navigate to parcel centroid
       if (single.centroid) {
         setMapCenter([single.centroid.lat, single.centroid.lng]);
         setMapZoom(17);
       }
-      toast.success("Parcel found. Please verify before continuing.");
+      
+      // Auto-hide badge after 2.5s
+      setTimeout(() => setShowMatchBadge(false), 2500);
+      
+      // Clear spotlight after 3s
+      setTimeout(() => setSpotlightParcel(null), 3000);
+      
+      // Clear announcement after read
+      setTimeout(() => setSrAnnouncement(""), 4000);
     }
   }, [setCandidates, setRawInput, selectCandidate]);
 
@@ -218,6 +243,19 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         )}
       </AnimatePresence>
       
+      {/* Match Found Badge */}
+      <MatchFoundBadge 
+        show={showMatchBadge} 
+        address={state.selectedCandidate?.situs_address || undefined}
+      />
+      
+      {/* Screen Reader Announcement */}
+      <VisuallyHidden>
+        <div aria-live="polite" aria-atomic="true">
+          {srAnnouncement}
+        </div>
+      </VisuallyHidden>
+      
       <MapLibreCanvas
         center={mapCenter}
         zoom={mapZoom}
@@ -225,6 +263,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         onParcelSelect={handleMapParcelClick}
         onMapLoad={() => setIsMapLoading(false)}
         selectedParcelId={state.selectedCandidate?.parcel_id}
+        spotlightParcel={spotlightParcel}
         showLegend={false}
         showAttribution={false}
         showZoomHint={false}

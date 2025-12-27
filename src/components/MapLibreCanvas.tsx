@@ -197,6 +197,8 @@ interface MapLibreCanvasProps {
   showAttribution?: boolean;
   showZoomHint?: boolean;
   showDataSourceBadge?: boolean;
+  /** Parcel geometry to spotlight with pulse animation and fitBounds */
+  spotlightParcel?: any;
 }
 
 /**
@@ -244,6 +246,7 @@ export function MapLibreCanvas({
   showAttribution = true,
   showZoomHint = true,
   showDataSourceBadge = true,
+  spotlightParcel,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -745,6 +748,130 @@ export function MapLibreCanvas({
       duration: 1000,
     });
   }, [center, zoom, mapLoaded]);
+
+  // Spotlight parcel effect - fly to bounds with pulse animation
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !spotlightParcel) return;
+    
+    try {
+      // Handle both GeoJSON geometry and raw coordinates
+      const geometry = spotlightParcel.coordinates ? spotlightParcel : spotlightParcel;
+      const coords = geometry?.coordinates?.[0];
+      
+      if (!coords || !Array.isArray(coords)) {
+        logger.warn('Spotlight parcel has invalid geometry');
+        return;
+      }
+      
+      const lngs = coords.map((c: [number, number]) => c[0]);
+      const lats = coords.map((c: [number, number]) => c[1]);
+      
+      const bounds = new maplibregl.LngLatBounds(
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)]
+      );
+      
+      // Add spotlight source and layer
+      const spotlightSourceId = 'spotlight-parcel-source';
+      const spotlightFillId = 'spotlight-parcel-fill';
+      const spotlightLineId = 'spotlight-parcel-line';
+      const spotlightGlowId = 'spotlight-parcel-glow';
+      
+      // Clean up any existing spotlight layers
+      [spotlightLineId, spotlightFillId, spotlightGlowId].forEach(id => {
+        if (map.current?.getLayer(id)) map.current.removeLayer(id);
+      });
+      if (map.current.getSource(spotlightSourceId)) map.current.removeSource(spotlightSourceId);
+      
+      // Add spotlight source
+      map.current.addSource(spotlightSourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: geometry,
+          properties: {},
+        },
+      });
+      
+      // Add glow layer (wider, semi-transparent)
+      map.current.addLayer({
+        id: spotlightGlowId,
+        type: 'line',
+        source: spotlightSourceId,
+        paint: {
+          'line-color': '#FF7A00',
+          'line-width': 12,
+          'line-opacity': 0.3,
+          'line-blur': 8,
+        },
+      });
+      
+      // Add fill layer with subtle orange
+      map.current.addLayer({
+        id: spotlightFillId,
+        type: 'fill',
+        source: spotlightSourceId,
+        paint: {
+          'fill-color': '#FF7A00',
+          'fill-opacity': 0.15,
+        },
+      });
+      
+      // Add main highlight line - this will get the pulse animation via paint property updates
+      map.current.addLayer({
+        id: spotlightLineId,
+        type: 'line',
+        source: spotlightSourceId,
+        paint: {
+          'line-color': '#FF7A00',
+          'line-width': 4,
+          'line-opacity': 1,
+        },
+      });
+      
+      // Fly to parcel bounds with smooth animation
+      map.current.fitBounds(bounds, { 
+        padding: 80, 
+        duration: 1200,
+        easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // easeInOutCubic
+      });
+      
+      // Pulse animation - update line width 3 times
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      
+      if (!prefersReducedMotion) {
+        let pulseCount = 0;
+        const pulseInterval = setInterval(() => {
+          if (!map.current || pulseCount >= 6) {
+            clearInterval(pulseInterval);
+            return;
+          }
+          
+          const isExpanded = pulseCount % 2 === 0;
+          const lineWidth = isExpanded ? 6 : 3;
+          const lineOpacity = isExpanded ? 1 : 0.7;
+          
+          if (map.current.getLayer(spotlightLineId)) {
+            map.current.setPaintProperty(spotlightLineId, 'line-width', lineWidth);
+            map.current.setPaintProperty(spotlightLineId, 'line-opacity', lineOpacity);
+          }
+          
+          pulseCount++;
+        }, 400);
+      }
+      
+      // Clean up spotlight layers after 3 seconds
+      setTimeout(() => {
+        [spotlightLineId, spotlightFillId, spotlightGlowId].forEach(id => {
+          if (map.current?.getLayer(id)) map.current.removeLayer(id);
+        });
+        if (map.current?.getSource(spotlightSourceId)) map.current.removeSource(spotlightSourceId);
+      }, 3000);
+      
+    } catch (error) {
+      logger.error('Failed to spotlight parcel:', error);
+    }
+  }, [spotlightParcel, mapLoaded]);
 
   // Add parcel layer
   useEffect(() => {
