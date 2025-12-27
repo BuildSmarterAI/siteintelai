@@ -205,12 +205,20 @@ async function searchByAddress(
               }
             }
 
+            // Build cleaner address from structured_formatting if available
+            let cleanAddress = pred.description;
+            if (pred.structured_formatting) {
+              const main = pred.structured_formatting.main_text || '';
+              const secondary = pred.structured_formatting.secondary_text || '';
+              cleanAddress = secondary ? `${main}, ${secondary}` : main;
+            }
+            
             results.push({
               type: 'address',
               confidence: 0.85 - (results.length * 0.1),
               lat,
               lng,
-              formatted_address: pred.description,
+              formatted_address: cleanAddress,
               county,
               parcel: parcel || undefined,
             });
@@ -284,12 +292,20 @@ async function searchByAddress(
           }
         }
 
+        // Build cleaner address from structured_formatting if available
+        let cleanAddress = prediction.description;
+        if (prediction.structured_formatting) {
+          const main = prediction.structured_formatting.main_text || '';
+          const secondary = prediction.structured_formatting.secondary_text || '';
+          cleanAddress = secondary ? `${main}, ${secondary}` : main;
+        }
+        
         results.push({
           type: 'address',
           confidence: 0.9 - (results.length * 0.1),
           lat: location.lat,
           lng: location.lng,
-          formatted_address: prediction.description,
+          formatted_address: cleanAddress,
           county: county || undefined,
           parcel: parcel || undefined,
         });
