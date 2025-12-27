@@ -2,7 +2,7 @@
  * Build ID component - displays a timestamp to verify which version is deployed.
  * This helps quickly identify if production has the latest code.
  */
-export const BUILD_ID = "2025-12-26T22:30";
+export const BUILD_ID = "2025-12-27T14:45";
 
 export const BuildId = ({ className = "" }: { className?: string }) => {
   return (
