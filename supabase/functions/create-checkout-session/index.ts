@@ -97,8 +97,8 @@ serve(async (req) => {
     // Create a one-time payment session for Site Feasibility Intelligence™
     // Note: Price ID must match the Stripe mode (test vs live)
     // Live mode: price_1SeqwnAsWVx52wY38U6jif0R ($1,495)
-    // Test mode: price_1SHcbNAsWVx52wY3n2MXt76a ($795)
-    const priceId = Deno.env.get("STRIPE_PRICE_ID") || "price_1SHcbNAsWVx52wY3n2MXt76a";
+    // Test mode: price_1Sj2ehAsWVx52wY3G9vvb9T3 ($795)
+    const priceId = Deno.env.get("STRIPE_PRICE_ID") || "price_1Sj2ehAsWVx52wY3G9vvb9T3";
     
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
