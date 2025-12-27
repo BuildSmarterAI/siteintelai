@@ -293,6 +293,34 @@ async function fetchWithTimeout(url: string, timeout = 10000): Promise<Response>
   }
 }
 
+// Helper: check if a point is inside a polygon (simple ray casting)
+function pointInPolygon(lat: number, lng: number, polygon: number[][][]): boolean {
+  const ring = polygon[0]; // outer ring
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    if (((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / (yj - yi) + xi)) {
+      inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Helper: calculate distance from point to polygon centroid
+function distanceToPolygonCentroid(lat: number, lng: number, polygon: number[][][]): number {
+  const ring = polygon[0];
+  let sumLng = 0, sumLat = 0;
+  for (const coord of ring) {
+    sumLng += coord[0];
+    sumLat += coord[1];
+  }
+  const centroidLng = sumLng / ring.length;
+  const centroidLat = sumLat / ring.length;
+  // Simple Euclidean distance (sufficient for nearby parcels)
+  return Math.sqrt(Math.pow(lng - centroidLng, 2) + Math.pow(lat - centroidLat, 2));
+}
+
 async function fetchFromCounty(
   config: typeof COUNTY_CONFIG[string],
   countyKey: string,
@@ -300,23 +328,20 @@ async function fetchFromCounty(
 ): Promise<{ type: string; features: Array<{ type: string; geometry: unknown; properties: NormalizedParcelProperties }>; error?: string; errorCode?: string }> {
   const queryParams = new URLSearchParams();
   
+  const isPointQuery = params.lat !== undefined && params.lng !== undefined && !params.bbox && !params.parcelId;
+  
   // CRITICAL: Always add a where clause - many ArcGIS servers require it
   if (params.parcelId) {
     queryParams.set('where', `${config.idField}='${params.parcelId}'`);
     console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
-  } else if (params.lat !== undefined && params.lng !== undefined) {
+  } else if (isPointQuery) {
     queryParams.set('where', '1=1'); // Required for spatial-only queries
-    // Use larger buffer to catch parcels when geocode lands on street
-    const buffer = 0.001; // ~110 meters at Texas latitudes - catches nearby parcels
-    const minLng = params.lng - buffer;
-    const minLat = params.lat - buffer;
-    const maxLng = params.lng + buffer;
-    const maxLat = params.lat + buffer;
-    queryParams.set('geometry', `${minLng},${minLat},${maxLng},${maxLat}`);
-    queryParams.set('geometryType', 'esriGeometryEnvelope');
+    // Use TRUE point-in-polygon query first (no buffer)
+    queryParams.set('geometry', `${params.lng},${params.lat}`);
+    queryParams.set('geometryType', 'esriGeometryPoint');
     queryParams.set('inSR', '4326');
-    queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: point-in-parcel via envelope (${params.lat}, ${params.lng})`);
+    queryParams.set('spatialRel', 'esriSpatialRelWithin');
+    console.log(`[fetch-parcels] Query type: TRUE point-in-parcel (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
     queryParams.set('where', '1=1'); // Required for spatial-only queries
@@ -339,7 +364,7 @@ async function fetchFromCounty(
   console.log(`[fetch-parcels] Querying ${config.name}: ${url.substring(0, 250)}...`);
   
   try {
-    const response = await fetchWithTimeout(url, 15000);
+    let response = await fetchWithTimeout(url, 15000);
     
     console.log(`[fetch-parcels] ${config.name} response status: ${response.status}`);
     
@@ -354,7 +379,7 @@ async function fetchFromCounty(
       };
     }
     
-    const data = await response.json();
+    let data = await response.json();
     
     // Check for ArcGIS error response
     if (data.error) {
@@ -367,14 +392,77 @@ async function fetchFromCounty(
       };
     }
     
+    // FALLBACK: If point query returned 0 features (geocode might be on street), use small envelope
+    if (isPointQuery && (!data.features || data.features.length === 0)) {
+      console.log(`[fetch-parcels] Point query returned 0 features, trying small envelope fallback...`);
+      
+      const fallbackParams = new URLSearchParams();
+      fallbackParams.set('where', '1=1');
+      // Small buffer: ~25 meters (catches nearby parcels when point lands on street)
+      const buffer = 0.00025;
+      fallbackParams.set('geometry', `${params.lng! - buffer},${params.lat! - buffer},${params.lng! + buffer},${params.lat! + buffer}`);
+      fallbackParams.set('geometryType', 'esriGeometryEnvelope');
+      fallbackParams.set('inSR', '4326');
+      fallbackParams.set('spatialRel', 'esriSpatialRelIntersects');
+      fallbackParams.set('outFields', config.fields.join(','));
+      fallbackParams.set('outSR', '4326');
+      fallbackParams.set('returnGeometry', 'true');
+      fallbackParams.set('resultRecordCount', '10'); // Limit fallback results
+      fallbackParams.set('f', 'geojson');
+      
+      const fallbackUrl = `${config.apiUrl}?${fallbackParams.toString()}`;
+      console.log(`[fetch-parcels] Fallback query: ${fallbackUrl.substring(0, 250)}...`);
+      
+      response = await fetchWithTimeout(fallbackUrl, 15000);
+      if (response.ok) {
+        data = await response.json();
+        console.log(`[fetch-parcels] Fallback returned ${data.features?.length || 0} features`);
+      }
+    }
+    
     // Normalize features
-    const normalizedFeatures = (data.features || []).map((feature: { type: string; geometry: unknown; properties: Record<string, unknown> }) => ({
+    let normalizedFeatures = (data.features || []).map((feature: { type: string; geometry: unknown; properties: Record<string, unknown> }) => ({
       type: 'Feature',
       geometry: feature.geometry,
       properties: normalizeProperties(feature.properties, config, countyKey),
     }));
     
-    console.log(`[fetch-parcels] ${config.name}: Found ${normalizedFeatures.length} parcels`);
+    // POST-PROCESSING: If point query returned multiple features, pick the BEST one
+    if (isPointQuery && normalizedFeatures.length > 1) {
+      console.log(`[fetch-parcels] Multiple parcels (${normalizedFeatures.length}) found, selecting best match...`);
+      
+      // First, try to find the parcel that actually CONTAINS the point
+      const containingFeature = normalizedFeatures.find((f: { geometry: { type: string; coordinates: number[][][] } }) => {
+        if (f.geometry?.type === 'Polygon' && f.geometry.coordinates) {
+          return pointInPolygon(params.lat!, params.lng!, f.geometry.coordinates);
+        }
+        return false;
+      });
+      
+      if (containingFeature) {
+        console.log(`[fetch-parcels] Found containing parcel: ${containingFeature.properties.parcel_id}`);
+        normalizedFeatures = [containingFeature];
+      } else {
+        // No containing parcel - pick the one with closest centroid
+        let bestFeature = normalizedFeatures[0];
+        let bestDistance = Infinity;
+        
+        for (const feature of normalizedFeatures) {
+          if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates) {
+            const dist = distanceToPolygonCentroid(params.lat!, params.lng!, feature.geometry.coordinates);
+            if (dist < bestDistance) {
+              bestDistance = dist;
+              bestFeature = feature;
+            }
+          }
+        }
+        
+        console.log(`[fetch-parcels] No containing parcel; picked closest: ${bestFeature.properties.parcel_id}`);
+        normalizedFeatures = [bestFeature];
+      }
+    }
+    
+    console.log(`[fetch-parcels] ${config.name}: Returning ${normalizedFeatures.length} parcel(s)`);
     
     return {
       type: 'FeatureCollection',
