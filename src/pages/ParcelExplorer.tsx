@@ -48,6 +48,7 @@ export default function ParcelExplorer() {
   const [zoom, setZoom] = useState(15);
   const [selectedParcel, setSelectedParcel] = useState<any>(null);
   const [currentCounty, setCurrentCounty] = useState<string>('harris');
+  const [spotlightParcel, setSpotlightParcel] = useState<any>(null);
 
   // Update current county when center changes
   useEffect(() => {
@@ -68,6 +69,13 @@ export default function ParcelExplorer() {
     // Extract coverage status from response (if it came from query-canonical-parcel)
     const coverageStatus = parcel.coverage_status || props.coverage_status;
     const dataSource = parcel.source || props.source;
+    
+    // Activate Parcel Confirmation Mode - spotlight with auto-zoom, glow, pulse
+    if (parcel.geometry) {
+      setSpotlightParcel(parcel.geometry);
+      // Auto-clear spotlight after 3 seconds
+      setTimeout(() => setSpotlightParcel(null), 3000);
+    }
     
     // Map canonical_parcels fields to popup display format
     setSelectedParcel({
@@ -118,6 +126,7 @@ export default function ParcelExplorer() {
           zoom={zoom}
           showParcels={true}
           onParcelSelect={handleParcelSelect}
+          spotlightParcel={spotlightParcel}
           className="h-full w-full"
         />
       </div>
