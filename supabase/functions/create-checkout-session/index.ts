@@ -59,7 +59,12 @@ serve(async (req) => {
     }
 
     // Initialize Stripe
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY") || "";
+    if (!stripeKey) {
+      throw new Error("STRIPE_SECRET_KEY is not set");
+    }
+
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -85,21 +90,34 @@ serve(async (req) => {
     const successUrl = userId
       ? `${origin}/thank-you?applicationId=${application_id || ''}&payment=success`
       : `${origin}/create-account?session_id={CHECKOUT_SESSION_ID}`;
-    
+
     const cancelUrl = application_id
       ? `${origin}/application?payment=canceled&application_id=${application_id}`
       : `${origin}/application?payment=canceled`;
 
     // Generate idempotency key to prevent duplicate charges
     const idempotencyKey = `checkout_${userEmail}_${application_id || 'direct'}_${Date.now()}`;
-    logStep("Creating checkout session", { successUrl, cancelUrl, hasMetadata: Object.keys(metadata).length > 0, idempotencyKey });
 
     // Create a one-time payment session for Site Feasibility Intelligence™
-    // Note: Price ID must match the Stripe mode (test vs live)
+    // IMPORTANT: Price ID must match the Stripe mode (test vs live)
     // Live mode: price_1SeqwnAsWVx52wY38U6jif0R ($1,495)
-    // Test mode: price_1Sj2ehAsWVx52wY3G9vvb9T3 ($795)
-    const priceId = Deno.env.get("STRIPE_PRICE_ID") || "price_1Sj2ehAsWVx52wY3G9vvb9T3";
-    
+    // Test mode: price_1SHcbNAsWVx52wY3n2MXt76a ($795)
+    const isTestMode = stripeKey.startsWith("sk_test");
+    const fallbackPriceId = isTestMode
+      ? "price_1SHcbNAsWVx52wY3n2MXt76a"
+      : "price_1SeqwnAsWVx52wY38U6jif0R";
+
+    const priceId = Deno.env.get("STRIPE_PRICE_ID") || fallbackPriceId;
+
+    logStep("Creating checkout session", {
+      successUrl,
+      cancelUrl,
+      hasMetadata: Object.keys(metadata).length > 0,
+      idempotencyKey,
+      isTestMode,
+      priceId,
+    });
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
