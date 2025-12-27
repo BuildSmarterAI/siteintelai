@@ -6,13 +6,10 @@
 
 export const PARCEL_ERRORS = {
   /** No parcel found for the given address */
-  NOT_FOUND: "We couldn't confidently match this address to a parcel. Try refining the address or use CAD/APN.",
+  NOT_FOUND: "We couldn't match this address to a parcel. Try refining the address or use CAD/APN.",
   
   /** Multiple parcels overlap the address location */
-  MULTIPLE_PARCELS: "This address overlaps multiple parcels. Please select the correct one.",
-  
-  /** Low confidence match - user must confirm explicitly */
-  LOW_CONFIDENCE: "This match has low confidence. Confirm before continuing.",
+  MULTIPLE_PARCELS: "Multiple parcels match this address. Please select the correct one.",
   
   /** Address is incomplete or invalid */
   INCOMPLETE_ADDRESS: "This looks incomplete. Please select a full street address.",
@@ -31,6 +28,9 @@ export const PARCEL_ERRORS = {
   
   /** Validation failed at analysis start - regression guard */
   VALIDATION_REGRESSION: "Please complete the address selection and parcel confirmation before proceeding.",
+  
+  /** No geometry available */
+  NO_GEOMETRY: "This parcel has no boundary data. Try a different address or use CAD/APN.",
 } as const;
 
 export type ParcelErrorKey = keyof typeof PARCEL_ERRORS;
@@ -40,7 +40,7 @@ export type ParcelErrorKey = keyof typeof PARCEL_ERRORS;
  */
 export function getParcelErrorMessage(
   candidateCount: number,
-  confidence?: 'high' | 'medium' | 'low'
+  _confidence?: 'high' | 'medium' | 'low'
 ): string | null {
   if (candidateCount === 0) {
     return PARCEL_ERRORS.NOT_FOUND;
@@ -50,9 +50,6 @@ export function getParcelErrorMessage(
     return PARCEL_ERRORS.MULTIPLE_PARCELS;
   }
   
-  if (confidence === 'low') {
-    return PARCEL_ERRORS.LOW_CONFIDENCE;
-  }
-  
-  return null; // No error - single high/medium confidence match
+  // Single match found - no error (confidence is internal, not user-facing)
+  return null;
 }

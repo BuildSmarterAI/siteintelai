@@ -43,6 +43,15 @@ const initialState: ParcelSelectionState = {
   mapState: undefined,
 };
 
+/**
+ * Simplified verification: selection = verification
+ * User selects a parcel and clicks "Analyze" - that's the gate.
+ */
+function isParcelVerified(state: ParcelSelectionState): boolean {
+  // Selection with geometry = verified
+  return state.selectedCandidate !== null && state.selectedCandidate.geom !== null;
+}
+
 function parcelSelectionReducer(
   state: ParcelSelectionState,
   action: ParcelSelectionAction
@@ -258,20 +267,21 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
     dispatch({ type: 'SET_MAP_STATE', state: mapState });
   }, []);
 
-  // Can lock when all verification checks are complete and a candidate is selected
-  const canLock = state.isVerified && state.selectedCandidate !== null && state.selectedCandidate.geom !== null;
+  // Simplified: can lock when a candidate with geometry is selected
+  const canLock = isParcelVerified(state);
 
   const lockParcel = useCallback(async (): Promise<SelectedParcel> => {
     if (!state.selectedCandidate || !state.selectedCandidate.geom) {
       throw new Error('No candidate selected or candidate has no geometry');
     }
-    if (!state.isVerified) {
-      throw new Error('Parcel must be verified before locking');
+    // Simplified: selection with geometry = can lock
+    if (!isParcelVerified(state)) {
+      throw new Error('Please select a parcel with valid geometry');
     }
 
     const locked = await createLockedParcel(state.selectedCandidate, state.inputMode);
     
-    // Build audit data
+    // Build audit data (simplified - no checkbox timestamps needed)
     const auditData: VerificationAuditData = {
       parcel_id: locked.parcel_id,
       county: locked.county,
@@ -282,10 +292,11 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
       candidate_count: state.candidates.length,
       candidates_presented: state.candidates,
       warnings_shown: state.warnings,
-      checkbox_correct_boundary_at: state.checkboxTimestamps.correctBoundary,
-      checkbox_location_matches_at: state.checkboxTimestamps.locationMatches,
-      checkbox_understands_analysis_at: state.checkboxTimestamps.understandsAnalysis,
-      typed_confirmation_phrase: state.typedConfirmationPhrase || undefined,
+      // Keep checkbox fields for backward compatibility but they won't be populated
+      checkbox_correct_boundary_at: undefined,
+      checkbox_location_matches_at: undefined,
+      checkbox_understands_analysis_at: undefined,
+      typed_confirmation_phrase: undefined,
       user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
       map_zoom_level: state.mapState?.zoom,
       map_center_lat: state.mapState?.centerLat,
@@ -302,7 +313,7 @@ export function ParcelSelectionProvider({ children }: ParcelSelectionProviderPro
     persistLockedParcel(locked);
     dispatch({ type: 'LOCK_PARCEL', parcel: locked });
     return locked;
-  }, [state.selectedCandidate, state.inputMode, state.isVerified, state.rawInput, state.candidates, state.warnings, state.checkboxTimestamps, state.typedConfirmationPhrase, state.mapState]);
+  }, [state.selectedCandidate, state.inputMode, state.rawInput, state.candidates, state.warnings, state.mapState]);
 
   const unlockParcel = useCallback(() => {
     clearLockedParcel();
