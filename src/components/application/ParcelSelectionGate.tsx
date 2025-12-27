@@ -280,16 +280,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       isLocking={isLocking}
       warnings={state.warnings}
     />
-  ) : (
-    <div className="h-full flex items-center justify-center text-center p-4">
-      <div className="space-y-2">
-        <Shield className="h-8 w-8 mx-auto text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">
-          Select a parcel from the list or click on the map to verify
-        </p>
-      </div>
-    </div>
-  );
+  ) : null;
 
   return (
     <div className="relative w-full h-[calc(100vh-120px)] min-h-[600px]">
@@ -299,10 +290,10 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
           <div>
             <h1 className="text-lg font-semibold flex items-center gap-2">
               <Shield className="h-5 w-5 text-primary" />
-              Select Your Property Parcel
+              Confirm Your Parcel
             </h1>
             <p className="text-sm text-muted-foreground hidden sm:block">
-              Verification required before feasibility analysis
+              Select the correct parcel to continue
             </p>
           </div>
           {state.warnings.length > 0 && (
@@ -321,15 +312,27 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
           {searchPanel}
         </div>
 
-        {/* Center - Map */}
+        {/* Center - Map (expands when no selection) */}
         <div className="flex-1 relative">
           {mapPanel}
         </div>
 
-        {/* Right Panel - Verification */}
-        <div className="w-[320px] border-l bg-background p-4 overflow-y-auto">
-          {verifyPanel}
-        </div>
+        {/* Right Panel - Only visible when parcel selected */}
+        <AnimatePresence>
+          {state.selectedCandidate && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 320, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="border-l bg-background overflow-hidden"
+            >
+              <div className="w-[320px] p-4 overflow-y-auto h-full">
+                {verifyPanel}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Mobile/Tablet Layout - Step-based */}
@@ -378,7 +381,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
             disabled={!state.selectedCandidate}
           >
             <CheckCircle className="h-4 w-4 mr-2" />
-            Verify
+            Confirm
           </Button>
         </div>
       </div>

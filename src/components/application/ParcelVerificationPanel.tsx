@@ -123,11 +123,15 @@ export function ParcelVerificationPanel({
             </>
           ) : (
             <>
-              Analyze Selected Parcel
+              Run Feasibility Analysis
               <ArrowRight className="h-4 w-4 ml-2" />
             </>
           )}
         </Button>
+        
+        <p className="text-xs text-muted-foreground text-center">
+          Uses this parcel's boundary and data
+        </p>
 
         {!candidate.geom && (
           <p className="text-xs text-destructive text-center">
