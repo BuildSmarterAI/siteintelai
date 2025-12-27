@@ -30,8 +30,8 @@ export function parseAddressString(address: string): Partial<AddressComponents> 
   
   if (!address) return components;
   
-  // Try to extract street number (starts with digits)
-  const streetNumberMatch = address.match(/^(\d+[\w-]*)\s+/);
+  // Try to extract street number (starts with digits, may be followed by comma or space)
+  const streetNumberMatch = address.match(/^(\d+[\w-]*)[,\s]+/);
   if (streetNumberMatch) {
     components.streetNumber = streetNumberMatch[1];
   }
