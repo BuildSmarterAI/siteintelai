@@ -1,11 +1,10 @@
 /**
  * Candidate Parcel List
  * Displays ranked parcel candidates as selectable decision cards.
- * Selection is the decision - no confidence badges shown.
+ * Selection is the decision - clean, simple cards.
  */
 
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { MapPin, User, Ruler, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CandidateParcel } from "@/types/parcelSelection";
@@ -61,60 +60,35 @@ export function CandidateParcelList({ candidates, selectedId, onSelect }: Candid
               )}
               onClick={() => onSelect(candidate)}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  {/* Address */}
-                  <div className="flex items-center gap-2 mb-1">
-                    <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <p className="text-sm font-medium truncate">
-                      {candidate.situs_address || 'No address on file'}
-                    </p>
-                  </div>
-                  
-                  {/* Details Row */}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-mono">{candidate.parcel_id}</span>
-                    {candidate.acreage && (
-                      <span className="flex items-center gap-1">
-                        <Ruler className="h-3 w-3" />
-                        {candidate.acreage.toFixed(2)} ac
-                      </span>
-                    )}
-                    {candidate.owner_name && (
-                      <span className="flex items-center gap-1 truncate max-w-[120px]">
-                        <User className="h-3 w-3" />
-                        {candidate.owner_name}
-                      </span>
-                    )}
-                  </div>
+              <div className="flex-1 min-w-0">
+                {/* Address */}
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <p className="text-sm font-medium truncate">
+                    {candidate.situs_address || 'No address on file'}
+                  </p>
                 </div>
                 
-                {/* Source Badge - simplified */}
-                <div className="shrink-0">
-                  <SourceBadge source={candidate.source} />
+                {/* Details Row - Acreage and Owner only */}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pl-5">
+                  {candidate.acreage && (
+                    <span className="flex items-center gap-1">
+                      <Ruler className="h-3 w-3" />
+                      {candidate.acreage.toFixed(2)} ac
+                    </span>
+                  )}
+                  {candidate.owner_name && (
+                    <span className="flex items-center gap-1 truncate max-w-[180px]">
+                      <User className="h-3 w-3" />
+                      {candidate.owner_name}
+                    </span>
+                  )}
                 </div>
               </div>
-              
-              {isSelected && (
-                <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1 text-xs text-primary font-medium">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Selected
-                </div>
-              )}
             </Card>
           );
         })}
       </div>
     </div>
   );
-}
-
-function SourceBadge({ source }: { source: 'canonical' | 'external' | 'mixed' }) {
-  const config = {
-    canonical: { label: 'Verified', className: 'bg-[hsl(var(--status-success)/0.1)] text-[hsl(var(--status-success))] border-[hsl(var(--status-success)/0.2)]' },
-    external: { label: 'External', className: 'bg-[hsl(var(--status-warning)/0.1)] text-[hsl(var(--status-warning))] border-[hsl(var(--status-warning)/0.2)]' },
-    mixed: { label: 'Mixed', className: 'bg-[hsl(var(--status-warning)/0.1)] text-[hsl(var(--status-warning))] border-[hsl(var(--status-warning)/0.2)]' },
-  };
-  const c = config[source];
-  return <Badge variant="outline" className={cn("text-[10px] px-1.5", c.className)}>{c.label}</Badge>;
 }
