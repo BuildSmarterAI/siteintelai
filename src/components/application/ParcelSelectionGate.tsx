@@ -285,12 +285,12 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   return (
     <div className="relative w-full h-[calc(100vh-120px)] min-h-[600px]">
       {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b p-4">
+      <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-r from-background via-background to-[hsl(var(--feasibility-orange)/0.03)] backdrop-blur-sm border-b p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
-              Confirm Your Parcel
+            <h1 className="text-lg font-heading font-semibold flex items-center gap-2">
+              <Shield className="h-5 w-5 text-[hsl(var(--feasibility-orange))]" />
+              Confirm <span className="text-[hsl(var(--feasibility-orange))]">Your Parcel</span>
             </h1>
             <p className="text-sm text-muted-foreground hidden sm:block">
               Select the correct parcel to continue
@@ -324,7 +324,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 320, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
               className="border-l bg-background overflow-hidden"
             >
               <div className="w-[320px] p-4 overflow-y-auto h-full">
