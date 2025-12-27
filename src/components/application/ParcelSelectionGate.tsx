@@ -83,15 +83,18 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     if (rawInput) {
       setRawInput(rawInput);
     }
-    // NOTE: NO auto-selection even for single candidate - user must explicitly click
-    // This is intentional per audit requirements
+    // AUTO-SELECT single parcel (per strict flow spec)
     if (candidates.length === 1) {
-      // Just highlight but don't select - show prompt to user
-      toast.info("1 parcel found. Click to select and verify.", {
-        duration: 4000,
-      });
+      const single = candidates[0];
+      selectCandidate(single);
+      // Navigate to it
+      if (single.centroid) {
+        setMapCenter([single.centroid.lat, single.centroid.lng]);
+        setMapZoom(17);
+      }
+      toast.success("Parcel found. Please verify before continuing.");
     }
-  }, [setCandidates, setRawInput]);
+  }, [setCandidates, setRawInput, selectCandidate]);
 
   const handleCandidateSelect = useCallback((candidate: CandidateParcel) => {
     selectCandidate(candidate);
