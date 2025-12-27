@@ -382,7 +382,6 @@ export function MapLibreCanvas({
     opacity: 0.85, // Increased opacity for better visibility
     onCountyAdded: (county) => {
       logger.map(`County tile overlay added: ${county.name}`);
-      toast.info(`Loading ${county.name} parcels`, { duration: 2000 });
     },
   });
 
