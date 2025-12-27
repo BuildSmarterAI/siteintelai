@@ -35,17 +35,17 @@ export function ParcelVerificationPanel({
   const canConfirm = !isLocking && candidate.geom;
 
   return (
-    <Card className="border-primary/20">
+    <Card className="border-t-2 border-t-[hsl(var(--feasibility-orange))] border-border/50 bg-background/80 backdrop-blur-sm shadow-[var(--shadow-glass)]">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" />
+        <CardTitle className="text-base font-heading flex items-center gap-2">
+          <MapPin className="h-4 w-4 text-[hsl(var(--feasibility-orange))]" />
           Selected Parcel
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Address - Primary */}
         <div className="space-y-1">
-          <p className="text-lg font-semibold text-foreground">
+          <p className="text-lg font-heading font-semibold text-foreground">
             {candidate.situs_address || 'No address on file'}
           </p>
           <Badge variant="outline" className="text-xs">
@@ -56,14 +56,14 @@ export function ParcelVerificationPanel({
         {/* Parcel Facts - Read Only */}
         <div className="bg-muted/50 rounded-lg p-3 space-y-2">
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div>
-              <span className="text-xs text-muted-foreground uppercase tracking-wider">CAD/APN</span>
-              <p className="font-mono text-foreground">{candidate.parcel_id}</p>
+              <div>
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">CAD/APN</span>
+                <p className="font-mono tabular-nums text-foreground">{candidate.parcel_id}</p>
             </div>
             {candidate.acreage && (
               <div>
-                <span className="text-xs text-muted-foreground uppercase tracking-wider">Acreage</span>
-                <p className="flex items-center gap-1 text-foreground">
+                <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Acreage</span>
+                <p className="flex items-center gap-1 font-mono tabular-nums text-foreground">
                   <Ruler className="h-3 w-3 text-muted-foreground" />
                   {candidate.acreage.toFixed(2)} ac
                 </p>
@@ -113,7 +113,7 @@ export function ParcelVerificationPanel({
         <Button 
           onClick={onConfirm}
           disabled={!canConfirm}
-          className="w-full"
+          className="w-full bg-[hsl(var(--feasibility-orange))] hover:bg-[hsl(var(--feasibility-orange)/0.9)] text-white shadow-[var(--shadow-glow)] transition-all duration-[180ms]"
           size="lg"
         >
           {isLocking ? (

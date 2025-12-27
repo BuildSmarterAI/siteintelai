@@ -55,16 +55,22 @@ export function CandidateParcelList({ candidates, selectedId, onSelect }: Candid
             <Card
               key={candidate.parcel_id}
               className={cn(
-                "p-3 cursor-pointer transition-all hover:border-primary/50",
-                isSelected && "border-primary bg-primary/5 ring-1 ring-primary"
+                "p-3 cursor-pointer transition-all duration-[180ms] hover:shadow-md hover:-translate-y-0.5 border-l-2",
+                isSelected 
+                  ? "border-l-[hsl(var(--feasibility-orange))] bg-[hsl(var(--feasibility-orange)/0.05)] shadow-sm" 
+                  : "border-l-transparent hover:border-l-[hsl(var(--feasibility-orange)/0.5)]",
+                selectedId && !isSelected && "opacity-60"
               )}
               onClick={() => onSelect(candidate)}
             >
               <div className="flex-1 min-w-0">
                 {/* Address */}
                 <div className="flex items-center gap-2 mb-1">
-                  <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <p className="text-sm font-medium truncate">
+                  <MapPin className={cn(
+                    "h-3.5 w-3.5 shrink-0 transition-colors duration-[180ms]",
+                    isSelected ? "text-[hsl(var(--feasibility-orange))]" : "text-muted-foreground"
+                  )} />
+                  <p className="text-sm font-heading font-medium truncate">
                     {candidate.situs_address || 'No address on file'}
                   </p>
                 </div>
@@ -72,7 +78,7 @@ export function CandidateParcelList({ candidates, selectedId, onSelect }: Candid
                 {/* Details Row - Acreage and Owner only */}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground pl-5">
                   {candidate.acreage && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 font-mono tabular-nums">
                       <Ruler className="h-3 w-3" />
                       {candidate.acreage.toFixed(2)} ac
                     </span>
