@@ -217,17 +217,16 @@ export function AddressSearchTab({
     if (suggestion.lat && suggestion.lng) {
       onNavigateToLocation(suggestion.lat, suggestion.lng, 17);
     }
+
+    // AUTO-TRIGGER SEARCH after valid selection
+    setTimeout(() => {
+      handleSearchWithSuggestion(suggestion);
+    }, 100);
   };
 
-  // Search for parcels - ONLY enabled after valid selection
-  const handleSearch = useCallback(async () => {
-    // CRITICAL GATE: Must have selected a suggestion
-    if (!hasSelectedSuggestion || !selectedSuggestion) {
-      setErrorMessage(PARCEL_ERRORS.SELECTION_REQUIRED);
-      return;
-    }
-
-    if (!selectedSuggestion.lat || !selectedSuggestion.lng) {
+  // Search for parcels - called directly with suggestion for auto-trigger
+  const handleSearchWithSuggestion = useCallback(async (suggestion: Suggestion) => {
+    if (!suggestion.lat || !suggestion.lng) {
       setErrorMessage(PARCEL_ERRORS.NO_COORDINATES);
       return;
     }
@@ -326,7 +325,16 @@ export function AddressSearchTab({
       setIsSearching(false);
       setLoading(false);
     }
-  }, [hasSelectedSuggestion, selectedSuggestion, onCandidatesFound, setLoading, addWarning]);
+  }, [onCandidatesFound, setLoading, addWarning]);
+
+  // Wrapper for button click (uses state)
+  const handleSearch = useCallback(() => {
+    if (!hasSelectedSuggestion || !selectedSuggestion) {
+      setErrorMessage(PARCEL_ERRORS.SELECTION_REQUIRED);
+      return;
+    }
+    handleSearchWithSuggestion(selectedSuggestion);
+  }, [hasSelectedSuggestion, selectedSuggestion, handleSearchWithSuggestion]);
 
   // Near me functionality
   const handleNearMe = useCallback(() => {
@@ -474,30 +482,31 @@ export function AddressSearchTab({
         )}
       </AnimatePresence>
 
-      {/* Find Parcel Button - DISABLED until selection */}
-      <Button
-        onClick={handleSearch}
-        disabled={!hasSelectedSuggestion || isSearching}
-        className="w-full"
-      >
-        {isSearching ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Searching...
-          </>
-        ) : (
-          <>
-            <Search className="mr-2 h-4 w-4" />
-            Find Parcel
-          </>
-        )}
-      </Button>
+      {/* Search Again Button - only shown after search or if no results */}
+      {hasSelectedSuggestion && !isSearching && (
+        <Button
+          onClick={handleSearch}
+          variant="outline"
+          className="w-full"
+        >
+          <Search className="mr-2 h-4 w-4" />
+          Search Again
+        </Button>
+      )}
+
+      {/* Loading indicator during auto-search */}
+      {isSearching && (
+        <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Searching for parcels...
+        </div>
+      )}
 
       {/* Helper Text */}
       <p className="text-xs text-muted-foreground text-center">
         {!hasSelectedSuggestion 
           ? "Type an address and select from the suggestions above"
-          : "Address selected. Click 'Find Parcel' to continue."
+          : ""
         }
       </p>
     </div>
