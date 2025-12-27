@@ -239,11 +239,11 @@ export function AddressSearchTab({
       // First search with 50m radius
       const { data, error } = await supabase.functions.invoke('search-parcels', {
         body: { 
-          query: selectedSuggestion.label, 
+          query: suggestion.label, 
           type: 'address', 
           radius: 50,
-          lat: selectedSuggestion.lat,
-          lng: selectedSuggestion.lng
+          lat: suggestion.lat,
+          lng: suggestion.lng
         }
       });
 
@@ -275,11 +275,11 @@ export function AddressSearchTab({
         
         const { data: expandedData } = await supabase.functions.invoke('search-parcels', {
           body: { 
-            query: selectedSuggestion.label, 
+            query: suggestion.label, 
             type: 'address', 
             radius: 150,
-            lat: selectedSuggestion.lat,
-            lng: selectedSuggestion.lng
+            lat: suggestion.lat,
+            lng: suggestion.lng
           }
         });
 
