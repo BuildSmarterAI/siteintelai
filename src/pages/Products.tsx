@@ -78,7 +78,7 @@ const Products = () => {
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-6 text-lg"
             >
-              <Link to="/application">Get Your Report - $1,495</Link>
+              <Link to="/application">Get Your Report - $999</Link>
             </Button>
           </motion.div>
         </section>
@@ -214,7 +214,7 @@ const Products = () => {
             <div className="grid md:grid-cols-2 gap-8">
               <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 text-left">
                 <h3 className="text-2xl font-bold text-white mb-2">Site Feasibility Intelligence™</h3>
-                <div className="text-4xl font-bold text-[#FF7A00] mb-6">$1,495<span className="text-lg text-white/60">/asset</span></div>
+                <div className="text-4xl font-bold text-[#FF7A00] mb-6">$999<span className="text-lg text-white/60">/asset</span></div>
                 <ul className="space-y-3 mb-8">
                   <li className="flex items-start gap-2 text-white/80">
                     <Check className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
@@ -273,14 +273,14 @@ const Products = () => {
               Ready to Build with <span className="text-[#FF7A00]">Intelligence</span>?
             </h2>
             <p className="text-xl text-white/70 mb-10">
-              Experience the power of AI-driven feasibility analysis with our comprehensive $1,495 report.
+              Experience the power of AI-driven feasibility analysis with our comprehensive $999 report.
             </p>
             <Button
               asChild
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_8px_40px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg"
             >
-              <Link to="/application">Get Your Report - $1,495</Link>
+              <Link to="/application">Get Your Report - $999</Link>
             </Button>
           </div>
         </section>

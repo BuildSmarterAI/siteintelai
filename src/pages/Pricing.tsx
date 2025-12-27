@@ -33,7 +33,7 @@ const faqs = [
     answer: "Reports are generated in under 60 seconds. Our AI pipeline pulls data from 8+ authoritative sources (FEMA, EPA, TxDOT, county CAD records, and more) and synthesizes it into a comprehensive feasibility analysis.",
   },
   {
-    question: "What's included in the $1,495 report?",
+    question: "What's included in the $999 report?",
     answer: "Everything you need for site due diligence: AI feasibility score, detailed zoning analysis, FEMA flood zone data, utility infrastructure analysis, EPA environmental data, TxDOT traffic counts, market demographics, AI-generated narrative report, and a lender-ready PDF export.",
   },
   {
@@ -42,11 +42,11 @@ const faqs = [
   },
   {
     question: "How is this different from a traditional feasibility study?",
-    answer: "Traditional feasibility studies cost $5,000-$15,000 and take 2-4 weeks. SiteIntel delivers the same authoritative data analysis in 60 seconds for $1,495, with full source citations and lender-ready formatting.",
+    answer: "Traditional feasibility studies cost $5,000-$15,000 and take 2-4 weeks. SiteIntel delivers the same authoritative data analysis in 60 seconds for $999, with full source citations and lender-ready formatting.",
   },
   {
     question: "Can I purchase multiple reports?",
-    answer: "Yes, each report is $1,495 per property. For teams processing 50+ properties per month, contact us about enterprise pricing with volume discounts.",
+    answer: "Yes, each report is $999 per property. For teams processing 50+ properties per month, contact us about enterprise pricing with volume discounts.",
   },
   {
     question: "What payment methods do you accept?",
@@ -111,7 +111,7 @@ export default function Pricing() {
               <CardTitle className="text-2xl">Site Feasibility Intelligence™</CardTitle>
               <CardDescription>Complete lender-ready feasibility analysis</CardDescription>
               <div className="mt-4">
-                <span className="text-5xl font-bold text-foreground">$1,495</span>
+                <span className="text-5xl font-bold text-foreground">$999</span>
                 <span className="text-muted-foreground ml-2">per report</span>
               </div>
             </CardHeader>
@@ -130,14 +130,14 @@ export default function Pricing() {
                   type="report" 
                   className="w-full bg-primary hover:bg-primary/90 text-lg py-6"
                 >
-                  Get Your Report - $1,495
+                  Get Your Report - $999
                 </PaymentButton>
               ) : (
                 <Button 
                   asChild 
                   className="w-full bg-primary hover:bg-primary/90 text-lg py-6"
                 >
-                  <Link to="/auth">Get Your Report - $1,495</Link>
+                  <Link to="/auth">Get Your Report - $999</Link>
                 </Button>
               )}
             </CardContent>
@@ -250,11 +250,11 @@ export default function Pricing() {
               variant="secondary" 
               className="text-lg px-8 py-6"
             >
-              Get Your Report - $1,495
+              Get Your Report - $999
             </PaymentButton>
           ) : (
             <Button asChild variant="secondary" size="lg" className="text-lg px-8 py-6">
-              <Link to="/auth">Get Your Report - $1,495</Link>
+              <Link to="/auth">Get Your Report - $999</Link>
             </Button>
           )}
         </div>

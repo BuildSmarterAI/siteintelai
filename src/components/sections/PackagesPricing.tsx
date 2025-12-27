@@ -75,7 +75,7 @@ export const PackagesPricing = () => {
                     Complete lender-ready feasibility analysis
                   </p>
                   <div className="text-4xl md:text-5xl font-bold text-maxx-red mb-1">
-                    $1,495
+                    $999
                   </div>
                   <div className="text-sm text-charcoal/60">
                     per report
@@ -96,7 +96,7 @@ export const PackagesPricing = () => {
                 <div className="mt-8">
                   {isAuthenticated ? (
                     <PaymentButton type="report" className="w-full text-lg py-6">
-                      Get Your Report - $1,495
+                      Get Your Report - $999
                     </PaymentButton>
                   ) : (
                     <Button 
@@ -104,7 +104,7 @@ export const PackagesPricing = () => {
                       className="w-full text-lg py-6 bg-maxx-red hover:bg-maxx-red/90"
                       onClick={() => navigate('/auth')}
                     >
-                      Get Your Report - $1,495
+                      Get Your Report - $999
                     </Button>
                   )}
                 </div>

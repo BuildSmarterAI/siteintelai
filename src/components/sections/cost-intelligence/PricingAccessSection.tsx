@@ -8,7 +8,7 @@ const tiers = [
   {
     name: "Site Feasibility Intelligence™",
     icon: Zap,
-    price: "$1,495",
+    price: "$999",
     description: "Complete lender-ready feasibility analysis",
     features: [
       "Full feasibility analysis report",

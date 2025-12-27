@@ -143,7 +143,7 @@ export const PaymentGate = ({
           {/* Pricing */}
           <div className="text-center py-4 border-y border-border/50">
             <div className="flex items-baseline justify-center gap-1">
-              <span className="text-4xl font-bold text-foreground">$1,495</span>
+              <span className="text-4xl font-bold text-foreground">$999</span>
               <span className="text-muted-foreground">one-time</span>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
@@ -188,7 +188,7 @@ export const PaymentGate = ({
             ) : (
               <>
                 <Lock className="mr-2 h-5 w-5" />
-                Purchase Report — $1,495
+                Purchase Report — $999
               </>
             )}
           </Button>

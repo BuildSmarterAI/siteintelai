@@ -586,7 +586,7 @@ const Developers = () => {
                     </td>
                     <td className="py-4 px-6 font-body font-semibold text-charcoal">Site Feasibility Intelligence™</td>
                     <td className="py-4 px-6">
-                      <div className="font-body font-semibold text-feasibility-orange mb-2">$1,495</div>
+                      <div className="font-body font-semibold text-feasibility-orange mb-2">$999</div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <motion.div
                           className="bg-gradient-to-r from-feasibility-orange to-status-warning h-2 rounded-full"
@@ -652,7 +652,7 @@ const Developers = () => {
                 aria-label="Get feasibility report"
               >
                 <Link to="/application">
-                  Get Your Report - $1,495
+                  Get Your Report - $999
                 </Link>
               </Button>
             </div>
