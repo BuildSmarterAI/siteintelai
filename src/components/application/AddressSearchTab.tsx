@@ -310,11 +310,8 @@ export function AddressSearchTab({
         setErrorMessage(PARCEL_ERRORS.NOT_FOUND);
         onCandidatesFound([]);
       } else if (candidates.length === 1) {
-        // Single parcel found
+        // Single parcel found - no confidence message shown
         onCandidatesFound(candidates);
-        if (candidates[0].confidence === 'low') {
-          setErrorMessage(PARCEL_ERRORS.LOW_CONFIDENCE);
-        }
       } else {
         // Multiple parcels - user must choose
         setErrorMessage(PARCEL_ERRORS.MULTIPLE_PARCELS);
@@ -467,9 +464,8 @@ export function AddressSearchTab({
             exit={{ opacity: 0, height: 0 }}
           >
             <Alert variant={
-              errorMessage === PARCEL_ERRORS.MULTIPLE_PARCELS || 
-              errorMessage === PARCEL_ERRORS.LOW_CONFIDENCE 
-                ? 'default' 
+              errorMessage === PARCEL_ERRORS.MULTIPLE_PARCELS
+                ? 'default'
                 : 'destructive'
             }>
               <AlertDescription>{errorMessage}</AlertDescription>
