@@ -101,10 +101,10 @@ serve(async (req) => {
     // Create a one-time payment session for Site Feasibility Intelligence™
     // IMPORTANT: Price ID must match the Stripe mode (test vs live)
     // Live mode: price_1SeqwnAsWVx52wY38U6jif0R ($1,495)
-    // Test mode: price_1Sj397AsWVx52wY3nQC9A5dZ ($999)
+    // Test mode: price_1Sj3JrAsWVx52wY3xrTF0AxU ($999) - prod_TgQAYoYJQktUQn
     const isTestMode = stripeKey.startsWith("sk_test");
     const fallbackPriceId = isTestMode
-      ? "price_1Sj397AsWVx52wY3nQC9A5dZ"
+      ? "price_1Sj3JrAsWVx52wY3xrTF0AxU"
       : "price_1SeqwnAsWVx52wY38U6jif0R";
 
     const priceId = Deno.env.get("STRIPE_PRICE_ID") || fallbackPriceId;
