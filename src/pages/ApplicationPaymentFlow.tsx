@@ -200,6 +200,10 @@ export default function ApplicationPaymentFlow() {
           onPaymentInitiated={() => {
             toast.success("Redirecting to checkout...");
           }}
+          onChangeAddress={() => {
+            setCurrentStep("property");
+            setApplicationId(null);
+          }}
         />
       )}
     </div>
