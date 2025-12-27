@@ -100,8 +100,8 @@ serve(async (req) => {
       nda_confidentiality: false,
       marketing_opt_in: false,
       
-      // Status fields
-      status: "pending",
+      // Status fields - must match applications_status_check constraint
+      status: "queued",
       payment_status: "pending",
       enrichment_status: "pending",
       user_id: userId, // NULL for guests, will be linked after account creation
