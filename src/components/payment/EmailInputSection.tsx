@@ -21,11 +21,11 @@ export const EmailInputSection = ({
   if (isAuthenticated && authenticatedEmail) {
     return (
       <div className="space-y-2">
-        <Label className="text-sm text-muted-foreground">Email Address</Label>
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-border">
+        <Label className="font-heading text-sm font-medium text-muted-foreground uppercase tracking-wide">Email Address</Label>
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/50 border border-border">
           <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
           <span className="text-sm text-foreground">
-            Signed in as <strong>{authenticatedEmail}</strong>
+            Signed in as <strong className="font-semibold">{authenticatedEmail}</strong>
           </span>
         </div>
         <p className="text-xs text-muted-foreground">
@@ -37,7 +37,7 @@ export const EmailInputSection = ({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor="email">Email Address</Label>
+      <Label htmlFor="email" className="font-heading text-sm font-medium uppercase tracking-wide">Email Address</Label>
       <Input
         id="email"
         type="email"
@@ -50,7 +50,7 @@ export const EmailInputSection = ({
         className={emailError ? "border-destructive" : ""}
       />
       {emailError && (
-        <p className="text-sm text-destructive">{emailError}</p>
+        <p className="text-sm text-destructive font-medium">{emailError}</p>
       )}
       <p className="text-xs text-muted-foreground">
         We'll email your report and use this address for secure access. No spam.

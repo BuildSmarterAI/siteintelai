@@ -22,7 +22,7 @@ export const TrustBadges = () => {
             <TooltipTrigger asChild>
               <Badge 
                 variant="secondary" 
-                className="text-xs cursor-help hover:bg-secondary/80"
+                className="font-mono text-xs tracking-wide uppercase cursor-help hover:bg-secondary/80 border border-border/50"
               >
                 {name} Verified
               </Badge>

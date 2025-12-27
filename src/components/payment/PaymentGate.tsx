@@ -114,12 +114,12 @@ export const PaymentGate = ({
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl border-primary/20 shadow-2xl">
+      <Card className="w-full max-w-2xl border-primary/20 shadow-2xl rounded-2xl">
         <CardHeader className="text-center pb-2">
           <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <FileText className="h-8 w-8 text-primary" />
+            <FileText className="h-8 w-8 text-primary" strokeWidth={1.5} />
           </div>
-          <CardTitle className="text-2xl md:text-3xl">
+          <CardTitle className="font-heading text-2xl md:text-3xl font-bold tracking-tight">
             Site Feasibility Intelligence™
           </CardTitle>
           <CardDescription className="text-base mt-2">
