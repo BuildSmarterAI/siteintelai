@@ -571,13 +571,30 @@ Deno.serve(async (req) => {
       results = results.filter(r => !r.county || r.county.toLowerCase() === county.toLowerCase());
     }
 
+    // CRITICAL: Deduplicate by parcel_id to prevent "multiple parcels" error
+    // when the same parcel is returned from different address variations
+    const seenParcelIds = new Set<string>();
+    const deduplicatedResults = results.filter(r => {
+      // Keep results without parcels (they're address-only results)
+      if (!r.parcel?.parcel_id) return true;
+      
+      // Skip duplicates
+      if (seenParcelIds.has(r.parcel.parcel_id)) {
+        console.log(`[search-parcels] Deduplicating parcel: ${r.parcel.parcel_id}`);
+        return false;
+      }
+      
+      seenParcelIds.add(r.parcel.parcel_id);
+      return true;
+    });
+
     const response: SearchResponse = {
-      results,
+      results: deduplicatedResults,
       query: query.trim(),
       search_type: searchType,
     };
 
-    console.log(`[search-parcels] Returning ${results.length} results`);
+    console.log(`[search-parcels] Returning ${deduplicatedResults.length} results (${results.length - deduplicatedResults.length} duplicates removed)`);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

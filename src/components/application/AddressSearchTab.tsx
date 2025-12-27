@@ -253,8 +253,15 @@ export function AddressSearchTab({
       let candidates: CandidateParcel[] = [];
 
       if (data?.results?.length > 0) {
+        // Deduplicate by parcel_id (defensive layer - server should also dedupe)
+        const seenParcelIds = new Set<string>();
         candidates = data.results
           .filter((r: any) => r.parcel)
+          .filter((r: any) => {
+            if (seenParcelIds.has(r.parcel.parcel_id)) return false;
+            seenParcelIds.add(r.parcel.parcel_id);
+            return true;
+          })
           .map((r: any) => searchResultToCandidate(
             r.parcel,
             r.county || 'unknown',
@@ -277,8 +284,15 @@ export function AddressSearchTab({
           }
         });
 
+        // Deduplicate by parcel_id (defensive layer)
+        const seenParcelIds = new Set<string>();
         candidates = (expandedData?.results || [])
           .filter((r: any) => r.parcel)
+          .filter((r: any) => {
+            if (seenParcelIds.has(r.parcel.parcel_id)) return false;
+            seenParcelIds.add(r.parcel.parcel_id);
+            return true;
+          })
           .map((r: any) => searchResultToCandidate(
             r.parcel,
             r.county || 'unknown',
