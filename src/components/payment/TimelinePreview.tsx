@@ -8,17 +8,17 @@ const steps = [
 
 export const TimelinePreview = () => {
   return (
-    <div className="space-y-2">
-      <h3 className="text-sm font-semibold text-foreground">What Happens Next</h3>
+    <div className="space-y-3">
+      <h3 className="font-heading text-sm font-semibold text-foreground uppercase tracking-wide">What Happens Next</h3>
       <div className="flex items-center justify-between gap-2">
         {steps.map(({ icon: Icon, label, description }, index) => (
           <div key={label} className="flex-1 relative">
             <div className="flex flex-col items-center text-center gap-1.5">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                <Icon className="h-5 w-5 text-primary" />
+                <Icon className="h-5 w-5 text-primary" strokeWidth={1.5} />
               </div>
               <div>
-                <p className="text-xs font-medium text-foreground">{label}</p>
+                <p className="text-xs font-semibold text-foreground">{label}</p>
                 <p className="text-xs text-muted-foreground">{description}</p>
               </div>
             </div>
