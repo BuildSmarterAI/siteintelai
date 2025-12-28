@@ -53,10 +53,22 @@ serve(async (req) => {
       console.log('[generate-ai-report] No geospatial data found (non-blocking)');
     }
 
+    // 🚀 PHASE 4: Extract construction params for refined cost estimates
+    const constructionParams = application.ai_context?.construction_params || null;
+    const existingCostEstimate = application.ai_context?.cost_estimate || null;
+    
+    if (constructionParams) {
+      console.log('[generate-ai-report] Construction params found:', {
+        building_type: constructionParams.building_type,
+        quality_tier: constructionParams.quality_tier,
+        proposed_gfa_sf: constructionParams.proposed_gfa_sf
+      });
+    }
+
     // Build structured prompt based on enriched data
     const intentType = application.intent_type || 'build';
     const systemPrompt = buildSystemPrompt(report_type, intentType);
-    const userPrompt = buildUserPrompt(application, report_type, geospatialData, intentType);
+    const userPrompt = buildUserPrompt(application, report_type, geospatialData, intentType, constructionParams, existingCostEstimate);
 
     console.log('[generate-ai-report] Calling Lovable AI...');
 
@@ -479,7 +491,7 @@ Narrative Tone: Investor-focused, underwriting-ready, ROI-oriented language.` +
   return baseInstructions + fullReportSchema;
 }
 
-function buildUserPrompt(application: any, reportType: string, geospatialData?: any, intentType: string = 'build'): string {
+function buildUserPrompt(application: any, reportType: string, geospatialData?: any, intentType: string = 'build', constructionParams?: any, costEstimate?: any): string {
   const address = application.formatted_address || application.property_address || 'Unknown';
   
   const dataPoints = [
@@ -494,6 +506,32 @@ function buildUserPrompt(application: any, reportType: string, geospatialData?: 
     `Acreage: ${application.acreage_cad || 'N/A'}`,
     `Coordinates: ${application.geo_lat}, ${application.geo_lng}`
   ];
+
+  // 🚀 PHASE 4: Include user-provided construction parameters for refined cost estimates
+  if (constructionParams) {
+    dataPoints.push('');
+    dataPoints.push('=== USER-PROVIDED CONSTRUCTION PARAMETERS ===');
+    dataPoints.push(`Building Type: ${constructionParams.building_type?.replace(/_/g, ' ') || 'Not specified'}`);
+    dataPoints.push(`Quality Tier: ${constructionParams.quality_tier || 'standard'}`);
+    dataPoints.push(`Proposed GFA: ${constructionParams.proposed_gfa_sf?.toLocaleString() || 'N/A'} SF`);
+    dataPoints.push(`Number of Stories: ${constructionParams.num_stories || 1}`);
+    dataPoints.push(`Project Timeline: ${constructionParams.project_timeline_months || 18} months`);
+    dataPoints.push(`Include Sitework: ${constructionParams.include_sitework ? 'Yes' : 'No'}`);
+    if (constructionParams.include_parking_structure) {
+      dataPoints.push(`Parking Structure: ${constructionParams.parking_spaces || 0} spaces`);
+    }
+    
+    if (costEstimate) {
+      dataPoints.push('');
+      dataPoints.push('=== PRE-CALCULATED COST ESTIMATE (RSMeans 2024) ===');
+      dataPoints.push(`Hard Cost Range: $${costEstimate.hard_cost_range?.low?.toLocaleString()} - $${costEstimate.hard_cost_range?.high?.toLocaleString()}`);
+      dataPoints.push(`Per SF: $${costEstimate.hard_cost_range?.per_sf_low} - $${costEstimate.hard_cost_range?.per_sf_high}/SF`);
+      dataPoints.push(`Soft Costs: $${costEstimate.soft_cost_range?.low?.toLocaleString()} - $${costEstimate.soft_cost_range?.high?.toLocaleString()}`);
+      dataPoints.push(`Total Project Cost: $${costEstimate.total_project_cost_range?.low?.toLocaleString()} - $${costEstimate.total_project_cost_range?.high?.toLocaleString()}`);
+      dataPoints.push(`Confidence: ${costEstimate.confidence_score}%`);
+      dataPoints.push(`USE THESE COST FIGURES IN YOUR COST_SCHEDULE SECTION - do not recalculate.`);
+    }
+  }
   
   // 🚀 PHASE 3: Include geospatial intelligence in AI context
   if (geospatialData) {
