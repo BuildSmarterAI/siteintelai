@@ -1,10 +1,12 @@
 import { motion } from "framer-motion";
-import { FileText, TrendingUp, AlertTriangle, Lightbulb, ChevronDown, CheckCircle2 } from "lucide-react";
+import { FileText, TrendingUp, AlertTriangle, Lightbulb, ChevronDown, CheckCircle2, Calculator, Sparkles } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { CostIntakeModal } from "./CostIntakeModal";
 
 interface ExecutiveSummaryCardProps {
   executiveSummary: string;
@@ -16,6 +18,8 @@ interface ExecutiveSummaryCardProps {
   floodZone?: string;
   acreage?: number;
   className?: string;
+  applicationId?: string;
+  onCostEstimateRefresh?: () => void;
 }
 
 export function ExecutiveSummaryCard({
@@ -28,8 +32,11 @@ export function ExecutiveSummaryCard({
   floodZone,
   acreage,
   className,
+  applicationId,
+  onCostEstimateRefresh,
 }: ExecutiveSummaryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showCostIntake, setShowCostIntake] = useState(false);
 
   const getRecommendation = () => {
     if (scoreBand === "A" || scoreBand === "B") {
@@ -184,6 +191,38 @@ export function ExecutiveSummaryCard({
           )}
         </div>
 
+        {/* Cost Estimate CTA */}
+        {applicationId && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="p-4 rounded-lg bg-gradient-to-r from-[hsl(var(--feasibility-orange)/0.1)] to-[hsl(var(--data-cyan)/0.05)] border border-[hsl(var(--feasibility-orange)/0.2)]"
+          >
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[hsl(var(--feasibility-orange)/0.15)]">
+                  <Calculator className="h-5 w-5 text-[hsl(var(--feasibility-orange))]" />
+                </div>
+                <div>
+                  <p className="font-medium text-sm">Refine Your Cost Estimate</p>
+                  <p className="text-xs text-muted-foreground">
+                    Add construction details for a more accurate budget range
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setShowCostIntake(true)}
+                className="bg-[hsl(var(--feasibility-orange))] hover:bg-[hsl(var(--feasibility-orange)/0.9)] shrink-0"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Add Details
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
         {/* Expandable Detailed Analysis */}
         <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
           <div className="border-t pt-4">
@@ -210,6 +249,16 @@ export function ExecutiveSummaryCard({
           </div>
         </Collapsible>
       </CardContent>
+
+      {/* Cost Intake Modal */}
+      {applicationId && (
+        <CostIntakeModal
+          open={showCostIntake}
+          onOpenChange={setShowCostIntake}
+          applicationId={applicationId}
+          onSubmitSuccess={onCostEstimateRefresh}
+        />
+      )}
     </Card>
   );
 }

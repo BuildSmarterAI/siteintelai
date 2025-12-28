@@ -1268,6 +1268,11 @@ export default function ReportViewer() {
                   zoningCode={report.applications?.zoning_code}
                   floodZone={report.applications?.floodplain_zone}
                   acreage={report.applications?.acreage_cad || report.applications?.lot_size_value}
+                  applicationId={report.application_id}
+                  onCostEstimateRefresh={() => {
+                    // Refresh the report after cost estimate update
+                    fetchReport();
+                  }}
                 />
               )}
 
