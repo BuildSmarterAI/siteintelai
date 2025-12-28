@@ -1,7 +1,7 @@
 /**
  * Geocode with Cache Edge Function
  * Wraps Google Geocoding API with 30-day caching in geocoder_cache table
- * Falls back to OpenStreetMap Nominatim when Google fails
+ * Fallback chain: Google → Nominatim → Mapbox
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -23,7 +23,7 @@ interface GeocodeResponse {
   lng: number;
   formatted_address: string;
   confidence: number;
-  source: 'cache' | 'google' | 'nominatim';
+  source: 'cache' | 'google' | 'nominatim' | 'mapbox';
   cache_hit: boolean;
 }
 
@@ -35,6 +35,36 @@ interface NominatimResult {
   type: string;
   class: string;
 }
+
+interface MapboxFeature {
+  id: string;
+  type: string;
+  place_type: string[];
+  relevance: number;
+  text: string;
+  place_name: string;
+  center: [number, number]; // [lng, lat]
+  geometry: {
+    type: string;
+    coordinates: [number, number];
+  };
+  properties: {
+    accuracy?: string;
+    mapbox_id?: string;
+  };
+}
+
+interface MapboxResponse {
+  type: string;
+  features: MapboxFeature[];
+  attribution: string;
+}
+
+// Texas bounding box for Mapbox geocoding
+const TEXAS_BBOX = '-106.645646,25.837377,-93.508039,36.500704';
+
+// Houston center for proximity bias
+const HOUSTON_CENTER = { lng: -95.3698, lat: 29.7604 };
 
 // Generate SHA-256 hash for cache key
 async function generateHash(input: string): Promise<string> {
@@ -65,6 +95,34 @@ function calculateNominatimConfidence(result: NominatimResult): number {
   }
   
   return Math.max(0.5, Math.min(baseConfidence, 0.85));
+}
+
+// Calculate confidence from Mapbox result
+function calculateMapboxConfidence(feature: MapboxFeature): number {
+  // Start with Mapbox relevance score (0-1)
+  let confidence = feature.relevance * 0.85;
+  
+  // Boost based on place_type (most specific first)
+  const placeType = feature.place_type[0];
+  if (placeType === 'address') {
+    confidence += 0.15;
+  } else if (placeType === 'poi') {
+    confidence += 0.12;
+  } else if (placeType === 'postcode') {
+    confidence += 0.08;
+  } else if (placeType === 'place' || placeType === 'locality') {
+    confidence += 0.05;
+  }
+  
+  // Boost for high accuracy property
+  if (feature.properties?.accuracy === 'rooftop') {
+    confidence += 0.05;
+  } else if (feature.properties?.accuracy === 'parcel') {
+    confidence += 0.03;
+  }
+  
+  // Cap at 0.95 (Google ROOFTOP gets 1.0)
+  return Math.max(0.5, Math.min(confidence, 0.95));
 }
 
 // Geocode using OpenStreetMap Nominatim (free fallback)
@@ -116,6 +174,63 @@ async function geocodeWithNominatim(query: string): Promise<{
   }
 }
 
+// Geocode using Mapbox Geocoding API (third fallback)
+async function geocodeWithMapbox(query: string, accessToken: string): Promise<{
+  lat: number;
+  lng: number;
+  formatted_address: string;
+  confidence: number;
+} | null> {
+  console.log(`[geocode-with-cache] Trying Mapbox fallback for: "${query}"`);
+  
+  // Build Mapbox geocoding URL with Texas bounding and Houston proximity
+  const mapboxUrl = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json`);
+  mapboxUrl.searchParams.set('access_token', accessToken);
+  mapboxUrl.searchParams.set('country', 'US');
+  mapboxUrl.searchParams.set('bbox', TEXAS_BBOX);
+  mapboxUrl.searchParams.set('proximity', `${HOUSTON_CENTER.lng},${HOUSTON_CENTER.lat}`);
+  mapboxUrl.searchParams.set('types', 'address,poi,postcode,place,locality');
+  mapboxUrl.searchParams.set('limit', '1');
+  mapboxUrl.searchParams.set('language', 'en');
+  
+  try {
+    const response = await fetch(mapboxUrl.toString(), {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[geocode-with-cache] Mapbox HTTP error: ${response.status} - ${errorText}`);
+      return null;
+    }
+    
+    const data: MapboxResponse = await response.json();
+    
+    if (!data.features || data.features.length === 0) {
+      console.log(`[geocode-with-cache] Mapbox returned no results`);
+      return null;
+    }
+    
+    const feature = data.features[0];
+    const [lng, lat] = feature.center;
+    const confidence = calculateMapboxConfidence(feature);
+    
+    console.log(`[geocode-with-cache] Mapbox success: ${feature.place_name} (type: ${feature.place_type[0]}, relevance: ${feature.relevance.toFixed(2)}, confidence: ${confidence.toFixed(2)})`);
+    
+    return {
+      lat,
+      lng,
+      formatted_address: feature.place_name,
+      confidence,
+    };
+  } catch (error) {
+    console.error(`[geocode-with-cache] Mapbox error:`, error);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -134,6 +249,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
+    const mapboxToken = Deno.env.get('MAPBOX_ACCESS_TOKEN');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -184,7 +300,7 @@ Deno.serve(async (req) => {
       lng: number;
       formatted_address: string;
       confidence: number;
-      source: 'google' | 'nominatim';
+      source: 'google' | 'nominatim' | 'mapbox';
     } | null = null;
 
     // Try Google first if API key is available
@@ -244,13 +360,32 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If both failed, return error
+    // Fall back to Mapbox if Nominatim also failed
+    if (!geocodeResult && mapboxToken) {
+      const mapboxResult = await geocodeWithMapbox(geocodeQuery, mapboxToken);
+      
+      if (mapboxResult) {
+        geocodeResult = {
+          ...mapboxResult,
+          source: 'mapbox',
+        };
+      }
+    } else if (!geocodeResult && !mapboxToken) {
+      console.log(`[geocode-with-cache] No Mapbox token available, skipping Mapbox fallback`);
+    }
+
+    // If all providers failed, return error
     if (!geocodeResult) {
-      console.error(`[geocode-with-cache] All geocoding methods failed`);
+      console.error(`[geocode-with-cache] All geocoding providers failed (Google → Nominatim → Mapbox)`);
       return new Response(
         JSON.stringify({
           success: false,
           error: 'Geocoding failed: No results from any provider',
+          providers_tried: [
+            googleApiKey ? 'google' : null,
+            'nominatim',
+            mapboxToken ? 'mapbox' : null,
+          ].filter(Boolean),
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
