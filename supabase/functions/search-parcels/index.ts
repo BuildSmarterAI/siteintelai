@@ -125,6 +125,20 @@ function calculateAddressMatchScore(inputAddress: string, situsAddress: string |
 
 type SearchType = 'address' | 'cad' | 'intersection' | 'point' | 'auto';
 
+interface ValidationData {
+  valid: boolean;
+  confidence: number;
+  geocodeGranularity?: string;
+  usps?: {
+    dpvConfirmation: string;
+    fipsCountyCode: string;
+    county: string;
+    isVacant: boolean;
+  };
+  standardizedAddress?: string;
+  issues?: string[];
+}
+
 interface SearchResult {
   type: 'address' | 'cad' | 'intersection' | 'point';
   confidence: number;
@@ -140,6 +154,7 @@ interface SearchResult {
     market_value: number | null;
     geometry?: unknown;
   };
+  validation?: ValidationData;
 }
 
 interface SearchResponse {
@@ -224,8 +239,56 @@ function detectSearchType(query: string): SearchType {
 async function searchByAddress(
   query: string,
   supabaseUrl: string,
-  supabaseKey: string
+  supabaseKey: string,
+  validateFirst: boolean = false
 ): Promise<SearchResult[]> {
+  // Optional: Pre-validate address with Google Address Validation for USPS data
+  let validationData: ValidationData | undefined;
+  
+  if (validateFirst) {
+    try {
+      const validationResponse = await fetch(`${supabaseUrl}/functions/v1/validate-address-google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({ address: query }),
+      });
+      
+      if (validationResponse.ok) {
+        const vData = await validationResponse.json();
+        validationData = {
+          valid: vData.valid,
+          confidence: vData.confidence,
+          geocodeGranularity: vData.geocodeGranularity,
+          usps: vData.usps ? {
+            dpvConfirmation: vData.usps.dpvConfirmation,
+            fipsCountyCode: vData.usps.fipsCountyCode,
+            county: vData.usps.county,
+            isVacant: vData.usps.isVacant,
+          } : undefined,
+          standardizedAddress: vData.standardizedAddress,
+          issues: vData.issues,
+        };
+        
+        console.log('[search-parcels] Address validation:', {
+          valid: validationData.valid,
+          dpvConfirmation: validationData.usps?.dpvConfirmation,
+          geocodeGranularity: validationData.geocodeGranularity,
+        });
+        
+        // If USPS says address doesn't exist, warn but continue
+        // (allow the user to see results but flag it)
+        if (validationData.usps?.dpvConfirmation === 'N') {
+          console.warn('[search-parcels] USPS says address not deliverable - continuing with caution');
+        }
+      }
+    } catch (err) {
+      console.error('[search-parcels] Address validation error (non-fatal):', err);
+    }
+  }
+  
   let predictions: Array<{ place_id: string; description: string; lat?: number; lng?: number; addressDetails?: Record<string, string> }> = [];
   let useNominatim = false;
 
@@ -495,12 +558,18 @@ async function searchByAddress(
     const filtered = validResults.filter((r, i) => i === 0 || (r.parcel && r.matchScore >= topScore - 0.2));
     if (filtered.length < validResults.length) {
       console.log(`[search-parcels] Returning only high-confidence matches: ${filtered.length} of ${validResults.length}`);
-      return filtered.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => rest);
+      return filtered.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => ({
+        ...rest,
+        validation: validationData,
+      }));
     }
   }
   
-  // Return cleaned results (without internal matchScore/matchReason)
-  return validResults.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => rest);
+  // Return cleaned results (without internal matchScore/matchReason) with validation data
+  return validResults.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => ({
+    ...rest,
+    validation: validationData,
+  }));
 }
 
 async function searchByCAD(

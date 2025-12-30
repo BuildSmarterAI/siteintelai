@@ -12,6 +12,29 @@ interface AddressComponent {
   };
   componentType: string;
   confirmationLevel: string;
+  inferred?: boolean;
+  spellCorrected?: boolean;
+  replaced?: boolean;
+  unexpected?: boolean;
+}
+
+interface UspsData {
+  dpvConfirmation: 'Y' | 'N' | 'S' | 'D' | '';  // Y=Confirmed, N=Not found, S=Secondary missing, D=Default
+  dpvFootnote: string;
+  isVacant: boolean;
+  carrierRoute: string;
+  fipsCountyCode: string;
+  county: string;
+  zipPlus4: string;
+  addressRecordType: string;
+  postOfficeCity: string;
+  postOfficeState: string;
+  deliveryPointCode: string;
+  deliveryPointCheckDigit: string;
+}
+
+interface ComponentConfirmations {
+  [component: string]: 'CONFIRMED' | 'UNCONFIRMED_BUT_PLAUSIBLE' | 'UNCONFIRMED_AND_SUSPICIOUS';
 }
 
 interface ValidationResult {
@@ -34,6 +57,29 @@ interface ValidationResult {
   };
   addressType?: string;
   issues?: string[];
+  
+  // NEW: Enhanced geocode quality
+  geocodeGranularity?: 'ROOFTOP' | 'RANGE_INTERPOLATED' | 'GEOMETRIC_CENTER' | 'APPROXIMATE' | 'OTHER';
+  featureSizeMeters?: number;
+  
+  // NEW: Component-level confidence
+  componentConfirmations?: ComponentConfirmations;
+  hasInferredComponents?: boolean;
+  hasReplacedComponents?: boolean;
+  hasSpellCorrectedComponents?: boolean;
+  suggestedAction?: 'ACCEPT' | 'CONFIRM' | 'FIX';
+  
+  // NEW: Property metadata
+  propertyType?: 'RESIDENTIAL' | 'BUSINESS' | 'PO_BOX' | 'UNKNOWN';
+  
+  // NEW: USPS validation (US addresses)
+  usps?: UspsData;
+  
+  // NEW: Plus code
+  plusCode?: {
+    global: string;
+    compound: string;
+  };
 }
 
 // Texas bounding box for coordinate validation
@@ -148,14 +194,30 @@ serve(async (req) => {
     const verdict = result?.verdict;
     const addressComplete = verdict?.addressComplete === true;
     const hasUnconfirmedComponents = verdict?.hasUnconfirmedComponentTypes === true;
+    const hasInferredComponents = verdict?.hasInferredComponents === true;
+    const hasReplacedComponents = verdict?.hasReplacedComponents === true;
     
-    // Extract address components
+    // Extract address components with confirmation levels
     const components: ValidationResult['components'] = {};
-    const addressComponents = result?.address?.addressComponents || [];
+    const componentConfirmations: ComponentConfirmations = {};
+    const addressComponents: AddressComponent[] = result?.address?.addressComponents || [];
+    
+    let hasSpellCorrectedComponents = false;
     
     for (const comp of addressComponents) {
       const type = comp.componentType;
       const name = comp.componentName?.text;
+      const confirmationLevel = comp.confirmationLevel as 'CONFIRMED' | 'UNCONFIRMED_BUT_PLAUSIBLE' | 'UNCONFIRMED_AND_SUSPICIOUS';
+      
+      // Track spell corrections
+      if (comp.spellCorrected) {
+        hasSpellCorrectedComponents = true;
+      }
+      
+      // Store confirmation level for each component type
+      if (confirmationLevel) {
+        componentConfirmations[type] = confirmationLevel;
+      }
       
       switch (type) {
         case 'street_number':
@@ -179,12 +241,75 @@ serve(async (req) => {
       }
     }
 
-    // Get geocode
+    // Get geocode with granularity
     const geocode = result?.geocode;
     const location = geocode?.location;
+    const placeType = geocode?.placeType;
+    const featureSizeMeters = geocode?.featureSizeMeters;
+    
+    // Map Google's placeType to our granularity enum
+    let geocodeGranularity: ValidationResult['geocodeGranularity'] = 'OTHER';
+    if (placeType === 'ROOFTOP' || placeType === 'PREMISE' || placeType === 'SUBPREMISE') {
+      geocodeGranularity = 'ROOFTOP';
+    } else if (placeType === 'RANGE_INTERPOLATED') {
+      geocodeGranularity = 'RANGE_INTERPOLATED';
+    } else if (placeType === 'GEOMETRIC_CENTER') {
+      geocodeGranularity = 'GEOMETRIC_CENTER';
+    } else if (placeType === 'APPROXIMATE') {
+      geocodeGranularity = 'APPROXIMATE';
+    }
     
     // Build standardized address
     const standardizedAddress = result?.address?.formattedAddress || address;
+
+    // Extract USPS data if available
+    let uspsData: UspsData | undefined;
+    const uspsRaw = result?.uspsData;
+    if (uspsRaw) {
+      uspsData = {
+        dpvConfirmation: uspsRaw.dpvConfirmation || '',
+        dpvFootnote: uspsRaw.dpvFootnote || '',
+        isVacant: uspsRaw.addressVacant === 'Y',
+        carrierRoute: uspsRaw.carrierRoute || '',
+        fipsCountyCode: uspsRaw.fipsCountyCode || '',
+        county: uspsRaw.county || '',
+        zipPlus4: uspsRaw.standardizedAddress?.zipCodePlus4Extension 
+          ? `${components.zip}-${uspsRaw.standardizedAddress.zipCodePlus4Extension}` 
+          : components.zip || '',
+        addressRecordType: uspsRaw.addressRecordType || '',
+        postOfficeCity: uspsRaw.postOfficeCity || '',
+        postOfficeState: uspsRaw.postOfficeState || '',
+        deliveryPointCode: uspsRaw.dpvDeliveryPointCode || '',
+        deliveryPointCheckDigit: uspsRaw.dpvDeliveryPointCheckDigit || '',
+      };
+      
+      // Use USPS county if not already extracted
+      if (!components.county && uspsData.county) {
+        components.county = uspsData.county.replace(' County', '');
+      }
+    }
+    
+    // Extract plus code if available
+    let plusCode: ValidationResult['plusCode'];
+    if (geocode?.plusCode) {
+      plusCode = {
+        global: geocode.plusCode.globalCode || '',
+        compound: geocode.plusCode.compoundCode || '',
+      };
+    }
+    
+    // Determine property type from metadata
+    let propertyType: ValidationResult['propertyType'] = 'UNKNOWN';
+    const metadata = result?.metadata;
+    if (metadata) {
+      if (metadata.poBox) {
+        propertyType = 'PO_BOX';
+      } else if (metadata.business) {
+        propertyType = 'BUSINESS';
+      } else if (metadata.residential) {
+        propertyType = 'RESIDENTIAL';
+      }
+    }
 
     // Determine if valid for SiteIntel purposes
     const issues: string[] = [];
@@ -211,31 +336,85 @@ serve(async (req) => {
     }
 
     // Check geocode quality
-    const granularity = geocode?.placeType;
-    if (granularity && !['PREMISE', 'SUBPREMISE', 'ROOFTOP'].includes(granularity)) {
-      issues.push('Low geocode accuracy');
+    if (geocodeGranularity && geocodeGranularity !== 'ROOFTOP') {
+      issues.push(`Low geocode accuracy: ${geocodeGranularity}`);
+    }
+    
+    // Check USPS validation
+    if (uspsData?.dpvConfirmation === 'N') {
+      issues.push('USPS: Address not deliverable');
+    } else if (uspsData?.dpvConfirmation === 'S') {
+      issues.push('USPS: Missing secondary/unit number');
+    } else if (uspsData?.dpvConfirmation === 'D') {
+      issues.push('USPS: Default delivery only');
+    }
+    
+    if (uspsData?.isVacant) {
+      issues.push('USPS: Address marked as vacant');
+    }
+    
+    // Check for unconfirmed components
+    const hasSuspiciousComponents = Object.values(componentConfirmations).some(
+      level => level === 'UNCONFIRMED_AND_SUSPICIOUS'
+    );
+    if (hasSuspiciousComponents) {
+      issues.push('Has suspicious/unconfirmed address components');
     }
 
+    // Calculate confidence based on all factors
+    let confidence = 1.0;
+    if (!addressComplete) confidence -= 0.3;
+    if (hasUnconfirmedComponents) confidence -= 0.1;
+    if (hasInferredComponents) confidence -= 0.05;
+    if (hasReplacedComponents) confidence -= 0.1;
+    if (geocodeGranularity !== 'ROOFTOP') confidence -= 0.1;
+    if (uspsData?.dpvConfirmation !== 'Y') confidence -= 0.15;
+    if (hasSuspiciousComponents) confidence -= 0.2;
+    confidence = Math.max(0.1, Math.min(1.0, confidence));
+
     const valid = issues.length === 0 && addressComplete;
+    
+    // Determine suggested action
+    let suggestedAction: ValidationResult['suggestedAction'] = 'ACCEPT';
+    if (!valid) {
+      suggestedAction = hasSuspiciousComponents ? 'FIX' : 'CONFIRM';
+    }
     
     const validationResult: ValidationResult = {
       valid,
       verdict: valid ? 'CONFIRMED' : (hasUnconfirmedComponents ? 'UNCONFIRMED' : 'INVALID'),
-      confidence: valid ? 0.95 : (addressComplete ? 0.7 : 0.3),
+      confidence,
       standardizedAddress,
       components,
       geocode: location ? {
         lat: location.latitude,
         lng: location.longitude,
-        accuracy: granularity || 'UNKNOWN'
+        accuracy: placeType || 'UNKNOWN'
       } : undefined,
-      addressType: result?.metadata?.addressType,
-      issues: issues.length > 0 ? issues : undefined
+      addressType: metadata?.addressType,
+      issues: issues.length > 0 ? issues : undefined,
+      
+      // Enhanced data
+      geocodeGranularity,
+      featureSizeMeters,
+      componentConfirmations: Object.keys(componentConfirmations).length > 0 ? componentConfirmations : undefined,
+      hasInferredComponents,
+      hasReplacedComponents,
+      hasSpellCorrectedComponents,
+      suggestedAction,
+      propertyType,
+      usps: uspsData,
+      plusCode,
     };
 
     console.log('[validate-address-google] Validation result:', {
       valid: validationResult.valid,
       verdict: validationResult.verdict,
+      confidence: validationResult.confidence.toFixed(2),
+      geocodeGranularity: validationResult.geocodeGranularity,
+      propertyType: validationResult.propertyType,
+      dpvConfirmation: validationResult.usps?.dpvConfirmation,
+      fipsCountyCode: validationResult.usps?.fipsCountyCode,
       issues: validationResult.issues,
       duration_ms: duration
     });
