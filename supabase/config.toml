@@ -292,6 +292,9 @@ verify_jwt = false
 [functions.skip-enrichment-step]
 verify_jwt = true
 
+[functions.validate-address-google]
+verify_jwt = false
+
 [functions.create-guest-application]
 verify_jwt = false
 
