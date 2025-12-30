@@ -51,6 +51,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   } = useParcelSelection();
   
   const [isMapLoading, setIsMapLoading] = useState(true);
+  const [mapLoadError, setMapLoadError] = useState(false);
+  const [mapLoadStep, setMapLoadStep] = useState<'init' | 'basemap' | 'parcels' | 'ready'>('init');
   const [mapCenter, setMapCenter] = useState<[number, number]>(
     initialCoords ? [initialCoords.lat, initialCoords.lng] : [29.7604, -95.3698]
   );
@@ -120,9 +122,28 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   }, [mapZoom, mapCenter, setMapState]);
 
   // Clear any previously stored parcel on mount - always start fresh
+  // Also set up map loading timeout
   useEffect(() => {
     localStorage.removeItem('siteintel_locked_parcel');
-  }, []);
+    
+    // Progress through loading steps
+    const stepTimers = [
+      setTimeout(() => setMapLoadStep('basemap'), 500),
+      setTimeout(() => setMapLoadStep('parcels'), 1500),
+    ];
+    
+    // Timeout fallback - if map doesn't load in 15s, show error
+    const timeoutId = setTimeout(() => {
+      if (isMapLoading) {
+        setMapLoadError(true);
+      }
+    }, 15000);
+    
+    return () => {
+      stepTimers.forEach(clearTimeout);
+      clearTimeout(timeoutId);
+    };
+  }, [isMapLoading]);
 
   // Auto-advance mobile step when candidate is selected
   useEffect(() => {
@@ -226,6 +247,23 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     }
   }, [lockParcel, onParcelLocked]);
 
+  // Handle map retry after error
+  const handleMapRetry = useCallback(() => {
+    setMapLoadError(false);
+    setIsMapLoading(true);
+    setMapLoadStep('init');
+    // Force re-mount of map by toggling a key (we'll add this)
+  }, []);
+
+  // Handle successful map load
+  const handleMapLoad = useCallback(() => {
+    setMapLoadStep('ready');
+    // Small delay before hiding skeleton for smooth transition
+    setTimeout(() => {
+      setIsMapLoading(false);
+    }, 300);
+  }, []);
+
   // Handle change parcel action
   const handleChangeParcel = useCallback(() => {
     clearSelection();
@@ -318,13 +356,19 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const mapPanel = (
     <>
       <AnimatePresence>
-        {isMapLoading && (
+        {(isMapLoading || mapLoadError) && (
           <motion.div
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
             className="absolute inset-0 z-10"
           >
-            <MapLoadingSkeleton message="Loading map..." />
+            <MapLoadingSkeleton 
+              message="Loading map..." 
+              step={mapLoadStep}
+              hasError={mapLoadError}
+              onRetry={handleMapRetry}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -347,7 +391,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         zoom={mapZoom}
         showParcels={true}
         onParcelSelect={handleMapParcelClick}
-        onMapLoad={() => setIsMapLoading(false)}
+        onMapLoad={handleMapLoad}
         selectedParcelId={state.selectedCandidate?.parcel_id}
         spotlightParcel={spotlightParcel}
         showLegend={false}

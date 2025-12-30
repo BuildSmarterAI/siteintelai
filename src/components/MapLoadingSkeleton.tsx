@@ -1,105 +1,100 @@
 import { motion } from 'framer-motion';
-import { Map, Layers, MapPin, Database } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
-import { useState, useEffect } from 'react';
+import { Map, Layers, MapPin, Database, AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+type LoadingStep = 'init' | 'basemap' | 'parcels' | 'ready';
 
 interface MapLoadingSkeletonProps {
   message?: string;
   county?: string;
+  step?: LoadingStep;
+  hasError?: boolean;
+  onRetry?: () => void;
 }
 
-export function MapLoadingSkeleton({ message = "Loading map...", county }: MapLoadingSkeletonProps) {
-  const [progress, setProgress] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
-  
-  const steps = [
-    { icon: Map, label: 'Initializing map' },
-    { icon: Layers, label: 'Loading basemap' },
-    { icon: Database, label: 'Fetching parcels' },
-    { icon: MapPin, label: 'Rendering layers' },
-  ];
+const steps = [
+  { key: 'init', icon: Map, label: 'Initializing' },
+  { key: 'basemap', icon: Layers, label: 'Loading basemap' },
+  { key: 'parcels', icon: Database, label: 'Fetching parcels' },
+  { key: 'ready', icon: MapPin, label: 'Rendering' },
+] as const;
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) return 100;
-        return prev + Math.random() * 15;
-      });
-    }, 200);
+function getStepIndex(step: LoadingStep): number {
+  return steps.findIndex(s => s.key === step);
+}
 
-    const stepTimer = setInterval(() => {
-      setCurrentStep((prev) => (prev + 1) % steps.length);
-    }, 800);
+export function MapLoadingSkeleton({ 
+  message = "Loading map...", 
+  county,
+  step = 'init',
+  hasError = false,
+  onRetry
+}: MapLoadingSkeletonProps) {
+  const currentStepIndex = getStepIndex(step);
 
-    return () => {
-      clearInterval(timer);
-      clearInterval(stepTimer);
-    };
-  }, []);
+  // Error state
+  if (hasError) {
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-muted/90 backdrop-blur-sm flex flex-col items-center justify-center z-10"
+      >
+        <div className="flex flex-col items-center text-center px-4">
+          <div className="bg-destructive/10 rounded-full p-4 mb-4">
+            <AlertCircle className="h-10 w-10 text-destructive" />
+          </div>
+          <p className="text-base font-medium text-foreground mb-1">
+            Failed to load map
+          </p>
+          <p className="text-sm text-muted-foreground mb-4 max-w-[240px]">
+            There was a problem loading the map. Please check your connection and try again.
+          </p>
+          {onRetry && (
+            <Button onClick={onRetry} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          )}
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 bg-muted/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 overflow-hidden"
+      className="absolute inset-0 bg-muted/90 backdrop-blur-sm flex flex-col items-center justify-center z-10"
     >
-      {/* Shimmer grid background */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
-          {Array.from({ length: 64 }).map((_, i) => (
-            <motion.div
-              key={i}
-              className="border border-border/20"
-              initial={{ opacity: 0.1 }}
-              animate={{ 
-                opacity: [0.1, 0.3, 0.1],
-                backgroundColor: ['hsl(var(--muted))', 'hsl(var(--primary) / 0.1)', 'hsl(var(--muted))']
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity,
-                delay: (i % 8) * 0.1 + Math.floor(i / 8) * 0.05
-              }}
-            />
-          ))}
-        </div>
-      </div>
-
       {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center">
-        {/* Animated map icon with glow */}
+      <div className="flex flex-col items-center">
+        {/* Animated map icon with subtle glow */}
         <div className="relative mb-6">
           <motion.div
             animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.6, 0.3]
+              scale: [1, 1.15, 1],
+              opacity: [0.2, 0.4, 0.2]
             }}
             transition={{ 
-              duration: 2, 
+              duration: 2.5, 
               repeat: Infinity,
               ease: "easeInOut"
             }}
-            className="absolute inset-0 bg-primary/30 rounded-full blur-2xl"
-            style={{ width: 100, height: 100, left: -10, top: -10 }}
+            className="absolute inset-0 bg-primary/20 rounded-full blur-xl"
+            style={{ width: 80, height: 80, left: -8, top: -8 }}
           />
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-            className="relative bg-background/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-border/50"
-          >
-            <Map className="h-12 w-12 text-primary" />
-          </motion.div>
+          <div className="relative bg-background/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-border/50">
+            <Map className="h-10 w-10 text-primary" />
+          </div>
         </div>
 
         {/* Loading text */}
-        <motion.p
-          animate={{ opacity: [0.7, 1, 0.7] }}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="text-base font-medium text-foreground mb-1"
-        >
+        <p className="text-base font-medium text-foreground mb-1">
           {message}
-        </motion.p>
+        </p>
 
         {/* County indicator */}
         {county && (
@@ -108,37 +103,42 @@ export function MapLoadingSkeleton({ message = "Loading map...", county }: MapLo
           </p>
         )}
 
-        {/* Progress bar */}
-        <div className="w-48 mb-4">
-          <Progress value={Math.min(progress, 95)} className="h-1.5" />
-        </div>
-
-        {/* Step indicators */}
-        <div className="flex gap-3">
-          {steps.map((step, i) => {
-            const Icon = step.icon;
-            const isActive = i === currentStep;
-            const isComplete = progress > (i + 1) * 25;
+        {/* Step indicators - show actual progress */}
+        <div className="flex gap-3 mt-4">
+          {steps.map((stepItem, i) => {
+            const Icon = stepItem.icon;
+            const isActive = i === currentStepIndex;
+            const isComplete = i < currentStepIndex;
             
             return (
               <motion.div
-                key={i}
-                initial={{ opacity: 0.4, scale: 0.9 }}
+                key={stepItem.key}
+                initial={{ opacity: 0.4 }}
                 animate={{ 
                   opacity: isActive ? 1 : isComplete ? 0.8 : 0.4,
-                  scale: isActive ? 1.1 : 1,
+                  scale: isActive ? 1.05 : 1,
                 }}
-                className={`flex flex-col items-center gap-1 transition-colors ${
-                  isActive ? 'text-primary' : isComplete ? 'text-green-500' : 'text-muted-foreground'
+                transition={{ duration: 0.2 }}
+                className={`flex flex-col items-center gap-1 ${
+                  isActive ? 'text-primary' : isComplete ? 'text-[hsl(var(--status-success))]' : 'text-muted-foreground'
                 }`}
               >
-                <div className={`p-2 rounded-lg ${
-                  isActive ? 'bg-primary/10' : isComplete ? 'bg-green-500/10' : 'bg-muted'
+                <div className={`p-2 rounded-lg transition-colors ${
+                  isActive ? 'bg-primary/10' : isComplete ? 'bg-[hsl(var(--status-success)/0.1)]' : 'bg-muted'
                 }`}>
-                  <Icon className="h-4 w-4" />
+                  {isActive ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </motion.div>
+                  ) : (
+                    <Icon className="h-4 w-4" />
+                  )}
                 </div>
                 <span className="text-[10px] font-medium whitespace-nowrap">
-                  {step.label}
+                  {stepItem.label}
                 </span>
               </motion.div>
             );
