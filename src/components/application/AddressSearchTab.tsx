@@ -40,6 +40,14 @@ interface Suggestion {
   description: string;
   lat?: number;
   lng?: number;
+  place_id?: string;
+  addressDetails?: {
+    county?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    neighborhood?: string;
+  };
 }
 
 // Selection state for visual feedback
@@ -471,27 +479,52 @@ export function AddressSearchTab({
         <AnimatePresence>
           {showSuggestions && suggestions.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="absolute top-full left-0 right-12 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 max-h-[200px] overflow-y-auto"
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 overflow-hidden"
             >
-              {suggestions.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  className={`w-full px-3 py-2 text-left transition-colors flex items-start gap-2 ${
-                    idx === highlightedIndex ? 'bg-accent' : 'hover:bg-accent/50'
-                  }`}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  onMouseEnter={() => setHighlightedIndex(idx)}
-                >
-                  <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{suggestion.label}</p>
-                    <p className="text-xs text-muted-foreground">{suggestion.description}</p>
-                  </div>
-                </button>
-              ))}
+              <ul className="py-1 max-h-[220px] overflow-y-auto">
+                {suggestions.map((suggestion, idx) => {
+                  const fullAddress = suggestion.description || suggestion.label;
+                  const secondaryText = suggestion.addressDetails?.county 
+                    ? `${suggestion.addressDetails.county} County${suggestion.addressDetails?.zipCode ? ` • ${suggestion.addressDetails.zipCode}` : ''}`
+                    : suggestion.description;
+                  
+                  return (
+                    <li key={idx}>
+                      <button
+                        type="button"
+                        title={fullAddress}
+                        className={`w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 ${
+                          idx === highlightedIndex ? 'bg-primary/10' : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => handleSuggestionClick(suggestion)}
+                        onMouseEnter={() => setHighlightedIndex(idx)}
+                      >
+                        <MapPin className={`h-4 w-4 mt-0.5 shrink-0 transition-colors ${
+                          idx === highlightedIndex ? 'text-primary' : 'text-muted-foreground'
+                        }`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground line-clamp-2">{suggestion.label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{secondaryText}</p>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+              {/* Keyboard navigation hint */}
+              <div className="px-3 py-1.5 border-t border-border/50 bg-muted/30">
+                <p className="text-[10px] text-muted-foreground text-center">
+                  <kbd className="px-1 py-0.5 bg-background rounded text-[9px] font-mono">↑</kbd>
+                  <kbd className="px-1 py-0.5 bg-background rounded text-[9px] font-mono ml-0.5">↓</kbd>
+                  <span className="mx-1.5">navigate</span>
+                  <kbd className="px-1 py-0.5 bg-background rounded text-[9px] font-mono">↵</kbd>
+                  <span className="ml-1.5">select</span>
+                </p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -532,14 +565,14 @@ export function AddressSearchTab({
       {isSearching && (
         <div className="flex items-center justify-center gap-2 py-2 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Searching for parcels...
+          <span>Locating parcel boundaries...</span>
         </div>
       )}
 
       {/* Helper Text */}
       <p className="text-xs text-muted-foreground text-center">
         {!hasSelectedSuggestion 
-          ? "Type an address and select from the suggestions above"
+          ? "e.g. 1616 Post Oak Blvd, Houston TX"
           : ""
         }
       </p>
