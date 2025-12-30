@@ -6,7 +6,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, User, Ruler, CheckCircle2, Hash, AlertTriangle, Building2 } from "lucide-react";
+import { MapPin, User, Ruler, CheckCircle2, Hash, AlertTriangle, Building2, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CandidateParcel } from "@/types/parcelSelection";
 
@@ -14,9 +14,12 @@ interface CandidateParcelListProps {
   candidates: CandidateParcel[];
   selectedId: string | null;
   onSelect: (candidate: CandidateParcel) => void;
+  onClear?: () => void;
+  onRefresh?: (parcelId: string) => void;
+  isRefreshing?: boolean;
 }
 
-export function CandidateParcelList({ candidates, selectedId, onSelect }: CandidateParcelListProps) {
+export function CandidateParcelList({ candidates, selectedId, onSelect, onClear, onRefresh, isRefreshing }: CandidateParcelListProps) {
   if (candidates.length === 0) {
     return (
       <div className="text-center py-10 px-4">
@@ -74,15 +77,58 @@ export function CandidateParcelList({ candidates, selectedId, onSelect }: Candid
               onClick={() => hasGeometry && onSelect(candidate)}
             >
               <div className="flex-1 min-w-0 space-y-2">
-                {/* Row 1: Address (primary) */}
+                {/* Row 1: Address (primary) + Action buttons */}
                 <div className="flex items-start gap-2">
                   <MapPin className={cn(
                     "h-3.5 w-3.5 shrink-0 mt-0.5 transition-colors duration-[180ms]",
                     isSelected ? "text-[hsl(var(--data-cyan))]" : "text-muted-foreground"
                   )} />
-                  <p className="text-sm font-heading font-medium leading-tight">
+                  <p className="text-sm font-heading font-medium leading-tight flex-1">
                     {candidate.situs_address || 'No address on file'}
                   </p>
+                  {/* Action icons for selected parcel */}
+                  {isSelected && (onRefresh || onClear) && (
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {onRefresh && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRefresh(candidate.parcel_id);
+                          }}
+                          disabled={isRefreshing}
+                          className={cn(
+                            "h-6 w-6 rounded flex items-center justify-center",
+                            "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                            "transition-colors duration-150",
+                            isRefreshing && "opacity-50 cursor-not-allowed"
+                          )}
+                          aria-label="Refresh property data"
+                          title="Refresh property data"
+                        >
+                          <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+                        </button>
+                      )}
+                      {onClear && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onClear();
+                          }}
+                          className={cn(
+                            "h-6 w-6 rounded flex items-center justify-center",
+                            "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+                            "transition-colors duration-150"
+                          )}
+                          aria-label="Clear selection"
+                          title="Clear selection"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Row 2: Parcel ID (mono) + County badge */}

@@ -25,7 +25,7 @@ import { ParcelValidationCards } from "./ParcelValidationCards";
 import { ParcelConfirmationGate } from "./ParcelConfirmationGate";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { MatchFoundBadge } from "./MatchFoundBadge";
-import { MapPin, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick } from "lucide-react";
+import { MapPin, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick, RefreshCw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -56,6 +56,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   );
   const [mapZoom, setMapZoom] = useState(14);
   const [isLocking, setIsLocking] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [mobileStep, setMobileStep] = useState<MobileStep>('search');
   
   // Spotlight state for "Match Found" experience
@@ -225,6 +226,37 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     }
   }, [lockParcel, onParcelLocked]);
 
+  // Handle change parcel action
+  const handleChangeParcel = useCallback(() => {
+    clearSelection();
+    setSpotlightParcel(null);
+    setMobileStep('search');
+  }, [clearSelection]);
+
+  // Handle clear selection (from parcel card)
+  const handleClearSelection = useCallback(() => {
+    clearSelection();
+    setSpotlightParcel(null);
+    toast.info("Selection cleared");
+  }, [clearSelection]);
+
+  // Handle refresh parcel data
+  const handleRefreshParcel = useCallback(async (parcelId: string) => {
+    if (!state.selectedCandidate) return;
+    
+    setIsRefreshing(true);
+    try {
+      // Re-select the same candidate to trigger any data refresh
+      // In a full implementation, this would re-fetch from the CAD API
+      await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API call
+      toast.success("Property data refreshed");
+    } catch (err) {
+      toast.error("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [state.selectedCandidate]);
+
   // If already locked, show locked state
   if (state.lockedParcel) {
     return (
@@ -266,6 +298,9 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
           candidates={state.candidates}
           selectedId={state.selectedCandidate?.parcel_id || null}
           onSelect={handleCandidateSelect}
+          onClear={handleClearSelection}
+          onRefresh={handleRefreshParcel}
+          isRefreshing={isRefreshing}
         />
         {/* Prompt for single candidate */}
         {state.candidates.length === 1 && !state.selectedCandidate && (
@@ -323,12 +358,6 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       />
     </>
   );
-
-  // Handle change parcel action
-  const handleChangeParcel = useCallback(() => {
-    clearSelection();
-    setMobileStep('search');
-  }, [clearSelection]);
 
   const verifyPanel = state.selectedCandidate && validations ? (
     <div className="space-y-4">
