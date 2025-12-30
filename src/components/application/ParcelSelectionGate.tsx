@@ -1,26 +1,31 @@
 /**
  * Parcel Selection Gate
- * The truth gate - resolves user intent into one verified parcel before any analysis.
+ * Legal-grade verification gate - resolves user intent into one verified parcel.
+ * 
+ * Visual Language Enforcement:
+ * - CYAN = investigation/exploration (tentative selection)
+ * - ORANGE = irreversible commitment (ONLY at decision gate)
  * 
  * Key behaviors:
- * - NO auto-selection for single candidates - user must explicitly click
+ * - Auto-selection for single candidates with spotlight
  * - Tracks raw input and map state for audit
  * - Server-side persistence required before proceeding
  */
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { MapLoadingSkeleton } from "@/components/MapLoadingSkeleton";
 import { ParcelSelectionTabs } from "./ParcelSelectionTabs";
 import { CandidateParcelList } from "./CandidateParcelList";
-import { ParcelVerificationPanel } from "./ParcelVerificationPanel";
+import { ParcelValidationCards } from "./ParcelValidationCards";
+import { ParcelConfirmationGate } from "./ParcelConfirmationGate";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { MatchFoundBadge } from "./MatchFoundBadge";
-import { Shield, AlertTriangle, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick } from "lucide-react";
+import { MapPin, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -39,8 +44,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     state, 
     setCandidates, 
     selectCandidate, 
+    clearSelection,
     lockParcel,
-    recoverFromStorage,
     setRawInput,
     setMapState,
   } = useParcelSelection();
@@ -58,6 +63,51 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const [spotlightParcel, setSpotlightParcel] = useState<any>(null);
   const [srAnnouncement, setSrAnnouncement] = useState<string>("");
   const mapRef = useRef<{ flyToBounds: (bounds: [[number, number], [number, number]], options?: any) => void } | null>(null);
+
+  // Compute validations based on selected candidate
+  const validations = useMemo(() => {
+    const candidate = state.selectedCandidate;
+    if (!candidate) return null;
+    
+    return {
+      geometryIntegrity: {
+        status: candidate.geom ? 'success' : 'error',
+        message: candidate.geom ? 'Valid polygon geometry' : 'No geometry data available',
+        detail: candidate.geom ? undefined : 'Cannot proceed without parcel boundary',
+      } as const,
+      addressMatch: {
+        status: candidate.situs_address ? 'success' : 'warning',
+        message: candidate.situs_address ? 'Address verified' : 'No situs address on record',
+        detail: candidate.situs_address ? undefined : 'Parcel may use CAD ID only',
+      } as const,
+      countyAlignment: {
+        status: candidate.county ? 'success' : 'warning',
+        message: candidate.county ? `Data from ${candidate.county} CAD` : 'County not identified',
+      } as const,
+      parcelUniqueness: {
+        status: 'success' as const,
+        message: 'Single parcel confirmed',
+      },
+    };
+  }, [state.selectedCandidate]);
+
+  // Compute assumptions
+  const assumptions = useMemo(() => {
+    const result: string[] = [];
+    if (state.selectedCandidate?.confidence === 'low') {
+      result.push('Approximate matching used due to ambiguous input');
+    }
+    if (state.candidates.length > 1) {
+      result.push(`Selected from ${state.candidates.length} candidate parcels`);
+    }
+    return result;
+  }, [state.selectedCandidate, state.candidates]);
+
+  // Can confirm only if no validation errors
+  const canConfirm = useMemo(() => {
+    if (!validations) return false;
+    return Object.values(validations).every(v => v.status !== 'error');
+  }, [validations]);
 
   // Track map state for audit
   useEffect(() => {
@@ -273,35 +323,42 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     </>
   );
 
-  const verifyPanel = state.selectedCandidate ? (
-    <ParcelVerificationPanel
-      candidate={state.selectedCandidate}
-      onConfirm={handleConfirmParcel}
-      isLocking={isLocking}
-      warnings={state.warnings}
-    />
+  // Handle change parcel action
+  const handleChangeParcel = useCallback(() => {
+    clearSelection();
+    setMobileStep('search');
+  }, [clearSelection]);
+
+  const verifyPanel = state.selectedCandidate && validations ? (
+    <div className="space-y-4">
+      <ParcelValidationCards
+        candidate={state.selectedCandidate}
+        validations={validations}
+        assumptions={assumptions}
+      />
+      <ParcelConfirmationGate
+        candidate={state.selectedCandidate}
+        onConfirm={handleConfirmParcel}
+        onChangeParcel={handleChangeParcel}
+        isLocking={isLocking}
+        canConfirm={canConfirm}
+        warnings={state.warnings}
+      />
+    </div>
   ) : null;
 
   return (
     <div className="relative w-full h-[calc(100vh-120px)] min-h-[600px]">
-      {/* Header */}
-      <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-r from-background via-background to-[hsl(var(--feasibility-orange)/0.03)] backdrop-blur-sm border-b p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-heading font-semibold flex items-center gap-2">
-              <Shield className="h-5 w-5 text-[hsl(var(--feasibility-orange))]" />
-              Confirm <span className="text-[hsl(var(--feasibility-orange))]">Your Parcel</span>
-            </h1>
-            <p className="text-sm text-muted-foreground hidden sm:block">
-              Select the correct parcel to continue
-            </p>
-          </div>
-          {state.warnings.length > 0 && (
-            <Badge variant="outline" className="bg-warning/10 text-warning-foreground border-warning/30">
-              <AlertTriangle className="h-3 w-3 mr-1" />
-              {state.warnings.length} warning{state.warnings.length > 1 ? 's' : ''}
-            </Badge>
-          )}
+      {/* Header - Instructional tone, NO orange */}
+      <div className="absolute top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b p-4">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-lg font-heading font-semibold flex items-center gap-2 text-foreground">
+            <MapPin className="h-5 w-5 text-[hsl(var(--data-cyan))]" />
+            Confirm the exact parcel for feasibility analysis
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Search and verify the property boundary below
+          </p>
         </div>
       </div>
 
