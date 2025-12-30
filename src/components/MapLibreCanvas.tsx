@@ -860,13 +860,7 @@ export function MapLibreCanvas({
         }, 400);
       }
       
-      // Clean up spotlight layers after 3 seconds
-      setTimeout(() => {
-        [spotlightLineId, spotlightFillId, spotlightGlowId].forEach(id => {
-          if (map.current?.getLayer(id)) map.current.removeLayer(id);
-        });
-        if (map.current?.getSource(spotlightSourceId)) map.current.removeSource(spotlightSourceId);
-      }, 3000);
+      // Spotlight layers persist until spotlightParcel changes (cleanup happens at effect start)
       
     } catch (error) {
       logger.error('Failed to spotlight parcel:', error);
