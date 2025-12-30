@@ -4,8 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Car, TrendingUp, Clock, MapPin, Activity, Truck, ExternalLink, Gauge, CircleDot, TrafficCone, AlertCircle } from "lucide-react";
 import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
+import { TrafficSpeedometer } from "./TrafficSpeedometer";
+import { TrafficVolumeChart } from "./TrafficVolumeChart";
+import { TruckMixDonut } from "./TruckMixDonut";
+import { PeakHourHeatmap } from "./PeakHourHeatmap";
 import { cn } from "@/lib/utils";
-
 interface TrafficCardProps {
   score: number;
   aadt?: number | null;
@@ -139,27 +142,26 @@ export function TrafficCard({
       </CardHeader>
 
       <CardContent className="pt-6 space-y-6">
+        {/* Visual Dashboard - Speedometer + Volume Chart */}
+        {hasTrafficData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Traffic Speedometer */}
+            <div className="p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
+              <TrafficSpeedometer aadt={aadt!} />
+            </div>
+            
+            {/* Volume Comparison Chart */}
+            <TrafficVolumeChart siteAadt={aadt!} />
+          </div>
+        )}
+
         {/* Score and Key Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Score Gauge */}
           <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
             <DataGauge value={score} label="Traffic Score" size="sm" />
             <span className="mt-2 text-xs font-medium text-muted-foreground">Traffic Score</span>
           </div>
-
-          {/* Daily Traffic */}
-          {hasTrafficData ? (
-            <div className="p-4 bg-gradient-to-br from-[hsl(var(--feasibility-orange)/0.1)] to-[hsl(var(--feasibility-orange)/0.05)] rounded-xl border border-[hsl(var(--feasibility-orange)/0.3)]">
-              <div className="flex items-center gap-2 mb-2">
-                <Activity className="h-4 w-4 text-[hsl(var(--feasibility-orange))]" />
-                <span className="text-xs text-muted-foreground">Daily Traffic</span>
-              </div>
-              <p className="text-2xl font-bold font-mono">{aadt!.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">vehicles/day</p>
-            </div>
-          ) : (
-            <NoDataIndicator label="Daily Traffic" />
-          )}
 
           {/* Speed Limit */}
           {hasSpeedLimit ? (
@@ -173,20 +175,6 @@ export function TrafficCard({
             </div>
           ) : (
             <NoDataIndicator label="Speed Limit" />
-          )}
-
-          {/* Truck Traffic */}
-          {hasTruckData ? (
-            <div className="p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/5 rounded-xl border border-amber-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Truck className="h-4 w-4 text-amber-600" />
-                <span className="text-xs text-muted-foreground">Truck Traffic</span>
-              </div>
-              <p className="text-2xl font-bold font-mono text-amber-600">{truckPercent}%</p>
-              <p className="text-xs text-muted-foreground">commercial vehicles</p>
-            </div>
-          ) : (
-            <NoDataIndicator label="Truck Traffic" />
           )}
 
           {/* Surface Type */}
@@ -278,58 +266,35 @@ export function TrafficCard({
           </div>
         )}
 
-        {/* Truck Breakdown */}
-        {(singleTruckAadt || comboTruckAadt) && (
-          <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
-            <h4 className="font-semibold mb-4 flex items-center gap-2">
-              <Truck className="h-4 w-4 text-muted-foreground" />
-              Commercial Vehicle Breakdown
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              {singleTruckAadt && (
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Single-Unit Trucks</p>
-                  <p className="text-xl font-bold font-mono">{singleTruckAadt.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">vehicles/day</p>
-                </div>
-              )}
-              {comboTruckAadt && (
-                <div className="p-3 bg-background/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Combination Trucks</p>
-                  <p className="text-xl font-bold font-mono">{comboTruckAadt.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">vehicles/day</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {/* Truck Mix Donut Chart & Peak Hour Heatmap */}
+        {(hasTruckData || hasTrafficData) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Truck Mix Donut */}
+            {hasTruckData && hasTrafficData && (
+              <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                <h4 className="font-semibold mb-2 flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  Vehicle Mix
+                </h4>
+                <TruckMixDonut 
+                  totalAadt={aadt!} 
+                  truckPercent={truckPercent!}
+                  singleUnitPercent={singleTruckAadt && aadt ? (singleTruckAadt / aadt) * 100 : undefined}
+                  combinationPercent={comboTruckAadt && aadt ? (comboTruckAadt / aadt) * 100 : undefined}
+                />
+              </div>
+            )}
 
-        {/* Peak Hour Analysis */}
-        {congestionLevel && (
-          <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
-            <h4 className="font-semibold mb-4 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              Peak Hour Analysis
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: 'Morning Rush', time: '7-9 AM', level: congestionLevel.toLowerCase() === 'high' ? 'Heavy' : congestionLevel },
-                { label: 'Midday', time: '11 AM-2 PM', level: congestionLevel.toLowerCase() === 'high' ? 'Moderate' : 'Light' },
-                { label: 'Evening Rush', time: '4-6 PM', level: congestionLevel.toLowerCase() === 'high' ? 'Heavy' : congestionLevel },
-                { label: 'Off-Peak', time: 'Other', level: 'Light' },
-              ].map((period, i) => (
-                <div key={i} className="p-3 bg-background/50 rounded-lg text-center">
-                  <p className="text-xs text-muted-foreground mb-1">{period.label}</p>
-                  <p className="text-xs font-mono text-muted-foreground mb-2">{period.time}</p>
-                  <Badge variant={
-                    period.level === 'Heavy' ? 'destructive' :
-                    period.level === 'Moderate' ? 'secondary' : 'outline'
-                  } className="text-xs">
-                    {period.level}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+            {/* Peak Hour Heatmap */}
+            {hasTrafficData && (
+              <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
+                <PeakHourHeatmap 
+                  aadt={aadt!} 
+                  peakHourVolume={peakHourVolume ?? undefined}
+                  congestionLevel={congestionLevel ?? undefined}
+                />
+              </div>
+            )}
           </div>
         )}
 

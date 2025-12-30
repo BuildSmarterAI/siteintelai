@@ -2,8 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Car, MapPin, Train, Building2, Navigation, CheckCircle2, AlertCircle, Route } from "lucide-react";
 import { DataGauge } from "./DataGauge";
+import { AccessDistanceVisual } from "./AccessDistanceVisual";
+import { RoadClassificationBadge } from "./RoadClassificationBadge";
+import { DriveTimeRings } from "./DriveTimeRings";
 import { cn } from "@/lib/utils";
-
 interface AccessCardProps {
   score?: number;
   distanceHighwayFt?: number | null;
@@ -100,16 +102,35 @@ export function AccessCard({
       </CardHeader>
 
       <CardContent className="pt-6 space-y-6">
-        {/* Score and Key Distances */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Score Gauge */}
-          {score > 0 && (
-            <div className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
-              <DataGauge value={score} label="Access Score" size="sm" />
-              <span className="mt-2 text-xs font-medium text-muted-foreground">Access Score</span>
+        {/* Visual Dashboard - Distance Radial + Drive Time Rings */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Access Distance Visual */}
+          {(distanceHighwayFt || distanceTransitFt || nearestSignalDistanceFt) && (
+            <div className="p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
+              <h4 className="font-semibold text-sm mb-2 text-center">Distance to Infrastructure</h4>
+              <AccessDistanceVisual 
+                distanceHighwayFt={distanceHighwayFt ?? undefined}
+                distanceTransitFt={distanceTransitFt ?? undefined}
+                nearestSignalDistanceFt={nearestSignalDistanceFt ?? undefined}
+              />
             </div>
           )}
 
+          {/* Drive Time Rings or Score */}
+          {driveTimeData ? (
+            <div className="p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
+              <DriveTimeRings driveTimeData={driveTimeData} />
+            </div>
+          ) : score > 0 ? (
+            <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
+              <DataGauge value={score} label="Access Score" size="md" />
+              <span className="mt-3 text-sm font-medium text-muted-foreground">Overall Access Score</span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Key Distances Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Highway Distance */}
           {distanceHighwayFt && (
             <div className={cn(
@@ -171,20 +192,14 @@ export function AccessCard({
               <p className="text-xs text-muted-foreground mt-1">Signalized intersection</p>
             </div>
           )}
-        </div>
 
-        {/* Road Classification */}
-        {roadClassification && (
-          <div className="p-4 bg-muted/30 rounded-xl border border-border/50">
-            <div className="flex items-center gap-2 mb-3">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              <h4 className="font-semibold text-sm">Road Classification</h4>
+          {/* Road Classification Badge */}
+          {roadClassification && (
+            <div className="p-4 bg-gradient-to-br from-muted/30 to-muted/10 rounded-xl border border-border/50">
+              <RoadClassificationBadge classification={roadClassification} size="md" />
             </div>
-            <Badge variant="outline" className="text-sm px-4 py-2">
-              {roadClassification}
-            </Badge>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Access Summary */}
         <div className="p-4 bg-gradient-to-r from-[hsl(var(--data-cyan)/0.1)] to-[hsl(var(--data-cyan)/0.05)] rounded-xl border border-[hsl(var(--data-cyan)/0.3)]">
