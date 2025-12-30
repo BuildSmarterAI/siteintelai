@@ -199,6 +199,8 @@ interface MapLibreCanvasProps {
   showDataSourceBadge?: boolean;
   /** Parcel geometry to spotlight with pulse animation and fitBounds */
   spotlightParcel?: any;
+  /** Whether parcel is in verified state - enhances spotlight styling */
+  isVerified?: boolean;
 }
 
 /**
@@ -247,6 +249,7 @@ export function MapLibreCanvas({
   showZoomHint = true,
   showDataSourceBadge = true,
   spotlightParcel,
+  isVerified = false,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -782,8 +785,9 @@ export function MapLibreCanvas({
       const spotlightCentroidLayerId = 'spotlight-centroid-layer';
       const adjacentSourceId = 'adjacent-parcels-source';
       const adjacentLabelLayerId = 'adjacent-parcels-labels';
+      const verifiedLabelLayerId = 'spotlight-verified-label';
       
-      [spotlightLineId, spotlightFillId, spotlightGlowId, spotlightCentroidLayerId, adjacentLabelLayerId].forEach(id => {
+      [spotlightLineId, spotlightFillId, spotlightGlowId, spotlightCentroidLayerId, adjacentLabelLayerId, verifiedLabelLayerId].forEach(id => {
         if (map.current?.getLayer(id)) map.current.removeLayer(id);
       });
       [spotlightSourceId, spotlightCentroidSourceId, adjacentSourceId].forEach(id => {
@@ -800,38 +804,48 @@ export function MapLibreCanvas({
         },
       });
       
+      // Enhanced styling when verified vs pre-verification
+      const glowWidth = isVerified ? 16 : 12;
+      const glowOpacity = isVerified ? 0.4 : 0.3;
+      const fillOpacity = isVerified ? 0.25 : 0.15;
+      const lineWidth = isVerified ? 6 : 4;
+      const centroidRadius = isVerified ? 8 : 6;
+      const glowColor = isVerified ? '#10B981' : '#FF7A00'; // Green for verified, orange for selection
+      const fillColor = isVerified ? '#10B981' : '#FF7A00';
+      const lineColor = isVerified ? '#10B981' : '#FF7A00';
+      
       // Add glow layer (wider, semi-transparent)
       map.current.addLayer({
         id: spotlightGlowId,
         type: 'line',
         source: spotlightSourceId,
         paint: {
-          'line-color': '#FF7A00',
-          'line-width': 12,
-          'line-opacity': 0.3,
+          'line-color': glowColor,
+          'line-width': glowWidth,
+          'line-opacity': glowOpacity,
           'line-blur': 8,
         },
       });
       
-      // Add fill layer with subtle orange
+      // Add fill layer with subtle color
       map.current.addLayer({
         id: spotlightFillId,
         type: 'fill',
         source: spotlightSourceId,
         paint: {
-          'fill-color': '#FF7A00',
-          'fill-opacity': 0.15,
+          'fill-color': fillColor,
+          'fill-opacity': fillOpacity,
         },
       });
       
-      // Add main highlight line - this will get the pulse animation via paint property updates
+      // Add main highlight line
       map.current.addLayer({
         id: spotlightLineId,
         type: 'line',
         source: spotlightSourceId,
         paint: {
-          'line-color': '#FF7A00',
-          'line-width': 4,
+          'line-color': lineColor,
+          'line-width': lineWidth,
           'line-opacity': 1,
         },
       });
@@ -855,12 +869,38 @@ export function MapLibreCanvas({
         type: 'circle',
         source: spotlightCentroidSourceId,
         paint: {
-          'circle-radius': 6,
-          'circle-color': '#FF7A00',
-          'circle-stroke-width': 2,
+          'circle-radius': centroidRadius,
+          'circle-color': isVerified ? '#10B981' : '#FF7A00',
+          'circle-stroke-width': isVerified ? 3 : 2,
           'circle-stroke-color': '#FFFFFF',
         },
       });
+      
+      // Add "VERIFIED" label when in verified state
+      if (isVerified) {
+        const verifiedLabelLayerId = 'spotlight-verified-label';
+        if (map.current.getLayer(verifiedLabelLayerId)) {
+          map.current.removeLayer(verifiedLabelLayerId);
+        }
+        
+        map.current.addLayer({
+          id: verifiedLabelLayerId,
+          type: 'symbol',
+          source: spotlightCentroidSourceId,
+          layout: {
+            'text-field': '✓ VERIFIED',
+            'text-size': 11,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-anchor': 'top',
+            'text-offset': [0, 1.2],
+          },
+          paint: {
+            'text-color': '#10B981',
+            'text-halo-color': '#FFFFFF',
+            'text-halo-width': 2,
+          },
+        });
+      }
       
       // Fetch adjacent parcels for context layer
       const fetchAdjacentParcels = async () => {
@@ -994,7 +1034,7 @@ export function MapLibreCanvas({
     } catch (error) {
       logger.error('Failed to spotlight parcel:', error);
     }
-  }, [spotlightParcel, mapLoaded]);
+  }, [spotlightParcel, mapLoaded, isVerified]);
 
   // Add parcel layer
   useEffect(() => {
