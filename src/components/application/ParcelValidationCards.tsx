@@ -19,7 +19,9 @@ import {
   Target,
   Building2,
   Loader2,
+  User,
 } from "lucide-react";
+import { useMemo } from "react";
 import type { CandidateParcel } from "@/types/parcelSelection";
 
 type ValidationStatus = 'success' | 'warning' | 'error' | 'pending';
@@ -77,6 +79,16 @@ export function ParcelValidationCards({
   validations,
   assumptions,
 }: ParcelValidationCardsProps) {
+  // County-specific CAD label
+  const cadLabel = useMemo(() => {
+    const labels: Record<string, string> = {
+      harris: 'HCAD Account #',
+      'fort bend': 'FBCAD Prop #',
+      montgomery: 'MCAD Prop #',
+    };
+    return labels[candidate.county?.toLowerCase()] || 'Parcel ID';
+  }, [candidate.county]);
+
   const validationItems = [
     { key: 'geometryIntegrity', label: 'Geometry Integrity', icon: ShieldCheck, result: validations.geometryIntegrity },
     { key: 'addressMatch', label: 'Address Match', icon: Target, result: validations.addressMatch },
@@ -106,11 +118,11 @@ export function ParcelValidationCards({
           </div>
 
           {/* Key-value grid */}
-          <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+          <div className="bg-muted/50 rounded-lg p-3 space-y-3">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-                  CAD/APN
+                  {cadLabel}
                 </span>
                 <p className="font-mono tabular-nums text-foreground text-sm">
                   {candidate.parcel_id}
@@ -120,7 +132,12 @@ export function ParcelValidationCards({
                 <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
                   County
                 </span>
-                <p className="text-foreground text-sm">{candidate.county}</p>
+                <p className="text-foreground text-sm">
+                  {candidate.county.charAt(0).toUpperCase() + candidate.county.slice(1).toLowerCase()} County
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  Last sync: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
               </div>
             </div>
             
@@ -132,6 +149,29 @@ export function ParcelValidationCards({
                 <p className="flex items-center gap-1 font-mono tabular-nums text-foreground text-sm">
                   <Ruler className="h-3 w-3 text-muted-foreground" />
                   {candidate.acreage.toFixed(2)} ac
+                </p>
+              </div>
+            )}
+
+            {candidate.centroid && (
+              <div>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Centroid
+                </span>
+                <p className="font-mono tabular-nums text-foreground text-xs">
+                  {candidate.centroid.lat.toFixed(6)}°, {candidate.centroid.lng.toFixed(6)}°
+                </p>
+              </div>
+            )}
+
+            {candidate.owner_name && (
+              <div>
+                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Owner of Record
+                </span>
+                <p className="flex items-center gap-1.5 text-foreground text-sm">
+                  <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                  <span className="line-clamp-2">{candidate.owner_name}</span>
                 </p>
               </div>
             )}

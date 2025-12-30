@@ -778,10 +778,17 @@ export function MapLibreCanvas({
       const spotlightGlowId = 'spotlight-parcel-glow';
       
       // Clean up any existing spotlight layers
-      [spotlightLineId, spotlightFillId, spotlightGlowId].forEach(id => {
+      const spotlightCentroidSourceId = 'spotlight-centroid-source';
+      const spotlightCentroidLayerId = 'spotlight-centroid-layer';
+      const adjacentSourceId = 'adjacent-parcels-source';
+      const adjacentLabelLayerId = 'adjacent-parcels-labels';
+      
+      [spotlightLineId, spotlightFillId, spotlightGlowId, spotlightCentroidLayerId, adjacentLabelLayerId].forEach(id => {
         if (map.current?.getLayer(id)) map.current.removeLayer(id);
       });
-      if (map.current.getSource(spotlightSourceId)) map.current.removeSource(spotlightSourceId);
+      [spotlightSourceId, spotlightCentroidSourceId, adjacentSourceId].forEach(id => {
+        if (map.current?.getSource(id)) map.current.removeSource(id);
+      });
       
       // Add spotlight source
       map.current.addSource(spotlightSourceId, {
@@ -828,6 +835,128 @@ export function MapLibreCanvas({
           'line-opacity': 1,
         },
       });
+      
+      // Calculate centroid for marker
+      const centroidLng = lngs.reduce((a: number, b: number) => a + b, 0) / lngs.length;
+      const centroidLat = lats.reduce((a: number, b: number) => a + b, 0) / lats.length;
+      
+      // Add centroid marker source
+      map.current.addSource(spotlightCentroidSourceId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [centroidLng, centroidLat] },
+          properties: {},
+        },
+      });
+
+      map.current.addLayer({
+        id: spotlightCentroidLayerId,
+        type: 'circle',
+        source: spotlightCentroidSourceId,
+        paint: {
+          'circle-radius': 6,
+          'circle-color': '#FF7A00',
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#FFFFFF',
+        },
+      });
+      
+      // Fetch adjacent parcels for context layer
+      const fetchAdjacentParcels = async () => {
+        if (!map.current) return;
+        
+        // Get bounding box with ~100m buffer
+        const buffer = 0.001; // ~100m in degrees
+        const bbox = {
+          min_lng: Math.min(...lngs) - buffer,
+          min_lat: Math.min(...lats) - buffer,
+          max_lng: Math.max(...lngs) + buffer,
+          max_lat: Math.max(...lats) + buffer,
+        };
+        
+        try {
+          const { data, error } = await supabase.rpc('find_parcels_in_bbox', {
+            min_lng: bbox.min_lng,
+            min_lat: bbox.min_lat,
+            max_lng: bbox.max_lng,
+            max_lat: bbox.max_lat,
+            max_results: 20,
+          });
+          
+          if (error || !data || !map.current) return;
+          
+          // Create label features from adjacent parcels
+          const features = (data as Array<{
+            source_parcel_id: string;
+            geom_json: unknown;
+            owner_name: string | null;
+          }>)
+            .filter((p) => p.geom_json)
+            .map((p) => {
+              try {
+                const geom = typeof p.geom_json === 'string' ? JSON.parse(p.geom_json) : p.geom_json;
+                const polyCoords = (geom as { coordinates?: [number, number][][] })?.coordinates?.[0];
+                if (!polyCoords || polyCoords.length === 0) return null;
+                
+                const cLng = polyCoords.reduce((a: number, c: [number, number]) => a + c[0], 0) / polyCoords.length;
+                const cLat = polyCoords.reduce((a: number, c: [number, number]) => a + c[1], 0) / polyCoords.length;
+                
+                return {
+                  type: 'Feature' as const,
+                  geometry: { type: 'Point' as const, coordinates: [cLng, cLat] },
+                  properties: {
+                    label: p.source_parcel_id?.slice(-8) || '',
+                  },
+                };
+              } catch {
+                return null;
+              }
+            })
+            .filter(Boolean);
+          
+          if (features.length === 0 || !map.current) return;
+          
+          // Clean up existing layer if any
+          if (map.current.getLayer(adjacentLabelLayerId)) map.current.removeLayer(adjacentLabelLayerId);
+          if (map.current.getSource(adjacentSourceId)) map.current.removeSource(adjacentSourceId);
+          
+          // Add source with adjacent parcels
+          map.current.addSource(adjacentSourceId, {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features,
+            },
+          });
+          
+          // Add label layer - only visible at zoom >= 17
+          map.current.addLayer({
+            id: adjacentLabelLayerId,
+            type: 'symbol',
+            source: adjacentSourceId,
+            minzoom: 17,
+            layout: {
+              'text-field': ['get', 'label'],
+              'text-size': 10,
+              'text-anchor': 'center',
+              'text-allow-overlap': false,
+              'text-ignore-placement': false,
+              'text-padding': 2,
+            },
+            paint: {
+              'text-color': 'hsl(220, 10%, 50%)',
+              'text-halo-color': 'hsl(0, 0%, 100%)',
+              'text-halo-width': 1,
+              'text-opacity': 0.7,
+            },
+          });
+        } catch (err) {
+          logger.warn('Failed to load adjacent parcels:', err);
+        }
+      };
+      
+      fetchAdjacentParcels();
       
       // Fly to parcel bounds with smooth animation
       map.current.fitBounds(bounds, { 
