@@ -148,10 +148,19 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                   )}
                 </div>
                 
-                {/* Row 2: Parcel ID (mono) + County badge */}
+                {/* Row 2: Parcel ID with CAD prefix + County badge */}
                 <div className="flex items-center gap-2 pl-5">
                   <span className="flex items-center gap-1 text-xs font-mono tabular-nums text-muted-foreground">
-                    <Hash className="h-3 w-3" />
+                    <span className="text-[10px] font-normal not-italic">
+                      {(() => {
+                        const prefixes: Record<string, string> = {
+                          harris: 'HCAD',
+                          'fort bend': 'FBCAD',
+                          montgomery: 'MCAD',
+                        };
+                        return prefixes[candidate.county?.toLowerCase()] || '#';
+                      })()}
+                    </span>
                     {candidate.parcel_id}
                   </span>
                   <Badge 

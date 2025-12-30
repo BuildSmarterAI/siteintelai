@@ -60,8 +60,13 @@ export function ParcelConfirmationGate({
               <Lock className="h-5 w-5 text-[hsl(var(--feasibility-orange))]" />
             </div>
             <p className="text-sm text-foreground font-medium">
-              This parcel will be locked
+              Confirm selection
             </p>
+            {candidate.geom && (
+              <p className="text-[10px] font-mono text-muted-foreground">
+                Boundary: {(candidate.geom as any).coordinates?.[0]?.length || '?'} vertices
+              </p>
+            )}
             <p className="text-xs text-muted-foreground leading-relaxed max-w-[240px] mx-auto">
               All feasibility calculations, reports, and analysis will use this parcel's boundary and data.
             </p>
@@ -80,10 +85,10 @@ export function ParcelConfirmationGate({
                 Locking Parcel...
               </>
             ) : (
-              <>
-                <Lock className="h-4 w-4 mr-2" />
-                Lock Parcel & Continue
-              </>
+            <>
+              <Lock className="h-4 w-4 mr-2" />
+              Lock <span className="font-mono">#{candidate.parcel_id?.slice(-10) || 'Parcel'}</span>
+            </>
             )}
           </Button>
 
