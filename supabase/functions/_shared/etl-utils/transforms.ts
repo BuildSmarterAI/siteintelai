@@ -27,9 +27,14 @@ export const transformFunctions: Record<string, (val: any) => any> = {
     return isNaN(date.getTime()) ? null : date.toISOString().split('T')[0];
   },
   identity: (val) => val,
+  to_string: (val) => val == null ? null : String(val),
   sqft_to_acres: (val) => {
     const sqft = parseFloat(String(val));
     return isNaN(sqft) ? null : sqft / 43560;
+  },
+  sqm_to_sqmi: (val) => {
+    const sqm = parseFloat(String(val));
+    return isNaN(sqm) ? null : sqm / 2589988.11; // sq meters to sq miles
   },
   meters_to_feet: (val) => {
     const meters = parseFloat(String(val));
