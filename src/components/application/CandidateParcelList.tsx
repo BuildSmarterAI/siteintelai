@@ -6,6 +6,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { MapPin, User, Ruler, CheckCircle2, Hash, AlertTriangle, Building2, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CandidateParcel } from "@/types/parcelSelection";
@@ -90,42 +91,58 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                   {isSelected && (onRefresh || onClear) && (
                     <div className="flex items-center gap-0.5 shrink-0">
                       {onRefresh && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRefresh(candidate.parcel_id);
-                          }}
-                          disabled={isRefreshing}
-                          className={cn(
-                            "h-6 w-6 rounded flex items-center justify-center",
-                            "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                            "transition-colors duration-150",
-                            isRefreshing && "opacity-50 cursor-not-allowed"
-                          )}
-                          aria-label="Refresh property data"
-                          title="Refresh property data"
-                        >
-                          <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
-                        </button>
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onRefresh(candidate.parcel_id);
+                                }}
+                                disabled={isRefreshing}
+                                className={cn(
+                                  "h-6 w-6 rounded flex items-center justify-center",
+                                  "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                                  "transition-colors duration-150",
+                                  isRefreshing && "opacity-50 cursor-not-allowed"
+                                )}
+                                aria-label="Refresh property data"
+                              >
+                                <RefreshCw className={cn("h-3.5 w-3.5", isRefreshing && "animate-spin")} />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Refresh data
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                       {onClear && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onClear();
-                          }}
-                          className={cn(
-                            "h-6 w-6 rounded flex items-center justify-center",
-                            "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
-                            "transition-colors duration-150"
-                          )}
-                          aria-label="Clear selection"
-                          title="Clear selection"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                        <TooltipProvider delayDuration={300}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onClear();
+                                }}
+                                className={cn(
+                                  "h-6 w-6 rounded flex items-center justify-center",
+                                  "text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+                                  "transition-colors duration-150"
+                                )}
+                                aria-label="Clear selection"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs">
+                              Clear selection
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                   )}
@@ -137,8 +154,11 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                     <Hash className="h-3 w-3" />
                     {candidate.parcel_id}
                   </span>
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
-                    {candidate.county}
+                  <Badge 
+                    variant="outline" 
+                    className="text-[10px] px-1.5 py-0 h-4 bg-[hsl(var(--data-cyan)/0.1)] border-[hsl(var(--data-cyan)/0.3)] text-[hsl(var(--data-cyan))] font-medium"
+                  >
+                    {candidate.county.charAt(0).toUpperCase() + candidate.county.slice(1).toLowerCase()}
                   </Badge>
                 </div>
                 
@@ -151,9 +171,9 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                     </span>
                   )}
                   {candidate.owner_name && (
-                    <span className="flex items-center gap-1 truncate max-w-[140px]">
-                      <User className="h-3 w-3" />
-                      {candidate.owner_name}
+                    <span className="flex items-center gap-1 max-w-[200px]" title={candidate.owner_name}>
+                      <User className="h-3 w-3 shrink-0" />
+                      <span className="line-clamp-2 leading-tight">{candidate.owner_name}</span>
                     </span>
                   )}
                   {candidate.zoning && (
