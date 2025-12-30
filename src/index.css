@@ -130,6 +130,23 @@ All colors MUST be HSL.
     --intent-buy-primary: 189 94% 43%;        /* Data Cyan */
     --intent-buy-bg: 189 94% 43% / 0.08;
     --intent-buy-border: 189 94% 43% / 0.2;
+    
+    /* SiteIntel Spacing Tokens */
+    --si-space-1: 4px;
+    --si-space-2: 8px;
+    --si-space-3: 12px;
+    --si-space-4: 16px;
+    --si-space-5: 24px;
+    --si-space-6: 32px;
+    --si-space-7: 48px;
+    --si-space-8: 64px;
+    
+    /* Parcel Selection Semantic Colors */
+    --exploration-cyan: 189 94% 43%;          /* Investigation state */
+    --exploration-cyan-subtle: 189 94% 43% / 0.08;
+    --exploration-cyan-hover: 189 94% 43% / 0.15;
+    --commitment-orange: 27 100% 50%;         /* Irreversible decision */
+    --commitment-orange-subtle: 27 100% 50% / 0.08;
   }
   
   .dark {
