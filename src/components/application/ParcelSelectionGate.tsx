@@ -163,9 +163,6 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       // Auto-hide badge after 2.5s
       setTimeout(() => setShowMatchBadge(false), 2500);
       
-      // Clear spotlight after 3s
-      setTimeout(() => setSpotlightParcel(null), 3000);
-      
       // Clear announcement after read
       setTimeout(() => setSrAnnouncement(""), 4000);
     }
@@ -173,6 +170,10 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
 
   const handleCandidateSelect = useCallback((candidate: CandidateParcel) => {
     selectCandidate(candidate);
+    // Update spotlight to new candidate's geometry (persistent orange)
+    if (candidate.geom) {
+      setSpotlightParcel(candidate.geom);
+    }
     // Navigate to candidate centroid
     if (candidate.centroid) {
       setMapCenter([candidate.centroid.lat, candidate.centroid.lng]);
