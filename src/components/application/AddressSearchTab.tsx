@@ -423,7 +423,7 @@ export function AddressSearchTab({
           <div className="flex-1 relative">
             <Input
               ref={inputRef}
-              placeholder="Start typing and select a full street address"
+              placeholder="Type address, e.g. 1234 Main St, Houston TX"
               value={query}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
