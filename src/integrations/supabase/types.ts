@@ -4265,6 +4265,111 @@ export type Database = {
           },
         ]
       }
+      parcel_transport_metrics: {
+        Row: {
+          aadt_max_nearby: number | null
+          aadt_road_name: string | null
+          aadt_weighted: number | null
+          aadt_year: number | null
+          access_density_score: number | null
+          arterial_proximity_score: number | null
+          citations: Json | null
+          computed_at: string
+          computed_version: string | null
+          confidence: number | null
+          confidence_factors: Json | null
+          expires_at: string | null
+          highway_proximity_score: number | null
+          id: string
+          intersection_count_1mi: number | null
+          intersection_count_500ft: number | null
+          nearest_arterial_ft: number | null
+          nearest_collector_ft: number | null
+          nearest_highway_ft: number | null
+          nearest_local_ft: number | null
+          parcel_id: number
+          parcel_uid: string | null
+          score_healthcare: number | null
+          score_industrial: number | null
+          score_office: number | null
+          score_residential: number | null
+          score_retail: number | null
+          signal_count_500ft: number | null
+          source_data_version: string | null
+          traffic_volume_score: number | null
+          txdot_district_id: string | null
+          txdot_district_name: string | null
+        }
+        Insert: {
+          aadt_max_nearby?: number | null
+          aadt_road_name?: string | null
+          aadt_weighted?: number | null
+          aadt_year?: number | null
+          access_density_score?: number | null
+          arterial_proximity_score?: number | null
+          citations?: Json | null
+          computed_at?: string
+          computed_version?: string | null
+          confidence?: number | null
+          confidence_factors?: Json | null
+          expires_at?: string | null
+          highway_proximity_score?: number | null
+          id?: string
+          intersection_count_1mi?: number | null
+          intersection_count_500ft?: number | null
+          nearest_arterial_ft?: number | null
+          nearest_collector_ft?: number | null
+          nearest_highway_ft?: number | null
+          nearest_local_ft?: number | null
+          parcel_id: number
+          parcel_uid?: string | null
+          score_healthcare?: number | null
+          score_industrial?: number | null
+          score_office?: number | null
+          score_residential?: number | null
+          score_retail?: number | null
+          signal_count_500ft?: number | null
+          source_data_version?: string | null
+          traffic_volume_score?: number | null
+          txdot_district_id?: string | null
+          txdot_district_name?: string | null
+        }
+        Update: {
+          aadt_max_nearby?: number | null
+          aadt_road_name?: string | null
+          aadt_weighted?: number | null
+          aadt_year?: number | null
+          access_density_score?: number | null
+          arterial_proximity_score?: number | null
+          citations?: Json | null
+          computed_at?: string
+          computed_version?: string | null
+          confidence?: number | null
+          confidence_factors?: Json | null
+          expires_at?: string | null
+          highway_proximity_score?: number | null
+          id?: string
+          intersection_count_1mi?: number | null
+          intersection_count_500ft?: number | null
+          nearest_arterial_ft?: number | null
+          nearest_collector_ft?: number | null
+          nearest_highway_ft?: number | null
+          nearest_local_ft?: number | null
+          parcel_id?: number
+          parcel_uid?: string | null
+          score_healthcare?: number | null
+          score_industrial?: number | null
+          score_office?: number | null
+          score_residential?: number | null
+          score_retail?: number | null
+          signal_count_500ft?: number | null
+          source_data_version?: string | null
+          traffic_volume_score?: number | null
+          txdot_district_id?: string | null
+          txdot_district_name?: string | null
+        }
+        Relationships: []
+      }
       parcel_utility_assignments: {
         Row: {
           application_id: string | null
@@ -5881,6 +5986,45 @@ export type Database = {
         }
         Relationships: []
       }
+      txdot_districts: {
+        Row: {
+          area_sq_mi: number | null
+          created_at: string
+          district_abbr: string | null
+          district_id: string
+          district_name: string
+          geom: unknown
+          headquarters_city: string | null
+          id: number
+          source_version: string | null
+          updated_at: string
+        }
+        Insert: {
+          area_sq_mi?: number | null
+          created_at?: string
+          district_abbr?: string | null
+          district_id: string
+          district_name: string
+          geom: unknown
+          headquarters_city?: string | null
+          id?: number
+          source_version?: string | null
+          updated_at?: string
+        }
+        Update: {
+          area_sq_mi?: number | null
+          created_at?: string
+          district_abbr?: string | null
+          district_id?: string
+          district_name?: string
+          geom?: unknown
+          headquarters_city?: string | null
+          id?: number
+          source_version?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       txdot_traffic_segments: {
         Row: {
           aadt: number | null
@@ -7108,6 +7252,10 @@ export type Database = {
           }
       calculate_acreage: { Args: { geom: unknown }; Returns: number }
       cleanup_expired_api_cache: { Args: never; Returns: number }
+      compute_transport_metrics: {
+        Args: { p_lat: number; p_lng: number; p_parcel_id: number }
+        Returns: Json
+      }
       disablelongtransactions: { Args: never; Returns: string }
       dropgeometrycolumn:
         | {
@@ -7144,6 +7292,17 @@ export type Database = {
       execute_canonical_insert: {
         Args: { p_record: Json; p_table_name: string }
         Returns: Json
+      }
+      find_nearest_roads: {
+        Args: { p_buffer_ft?: number; p_lat: number; p_lng: number }
+        Returns: {
+          aadt: number
+          aadt_year: number
+          distance_ft: number
+          road_class: string
+          road_name: string
+          speed_limit: number
+        }[]
       }
       find_parcels_in_bbox: {
         Args: {
@@ -7563,6 +7722,15 @@ export type Database = {
           truck_percent: number
         }[]
       }
+      get_txdot_district: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: {
+          district_abbr: string
+          district_id: string
+          district_name: string
+          headquarters_city: string
+        }[]
+      }
       get_utilities_for_parcel: {
         Args: { parcel_geom: unknown; search_radius_ft?: number }
         Returns: {
@@ -7699,6 +7867,27 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      resolve_parcel_candidates: {
+        Args: {
+          p_lat: number
+          p_limit?: number
+          p_lng: number
+          p_radius_m?: number
+        }
+        Returns: {
+          acreage: number
+          apn: string
+          centroid_lat: number
+          centroid_lng: number
+          distance_m: number
+          jurisdiction: string
+          land_use_code: string
+          owner_name: string
+          parcel_id: number
+          situs_address: string
+          source_parcel_id: string
+        }[]
+      }
       sanitize_report_json: {
         Args: { report_json: Json; user_id: string }
         Returns: Json

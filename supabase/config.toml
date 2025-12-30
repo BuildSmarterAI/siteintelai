@@ -297,3 +297,9 @@ verify_jwt = false
 
 [functions.save-construction-params]
 verify_jwt = false
+
+[functions.parcel-resolve]
+verify_jwt = false
+
+[functions.transport-score]
+verify_jwt = false

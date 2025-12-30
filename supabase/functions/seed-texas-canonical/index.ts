@@ -411,6 +411,25 @@ const HARDCODED_CONFIGS: LayerConfig[] = [
     max_records: 500,
   },
 
+  // ========== TXDOT DISTRICTS ==========
+  {
+    layer_key: 'txdot_districts',
+    source_url: 'https://services.arcgis.com/KTcxiTD9dsQw4r7Z/arcgis/rest/services/TxDOT_Districts/FeatureServer/0',
+    target_table: 'txdot_districts',
+    metro: 'statewide',
+    field_mappings: [
+      { source: 'DIST_NBR', target: 'district_id', transform: 'to_string' },
+      { source: 'DIST_NM', target: 'district_name', transform: 'trim' },
+      { source: 'DIST_ABBR', target: 'district_abbr', transform: 'uppercase' },
+      { source: 'DIST_HQ', target: 'headquarters_city', transform: 'trim' },
+      { source: 'Shape__Area', target: 'area_sq_mi', transform: 'sqm_to_sqmi' },
+    ],
+    constants: { 
+      source_version: '2025_01'
+    },
+    max_records: 30,
+  },
+
   // ========== TXDOT AADT ==========
   {
     layer_key: 'txdot_aadt',
