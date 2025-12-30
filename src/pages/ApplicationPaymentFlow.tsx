@@ -157,7 +157,7 @@ export default function ApplicationPaymentFlow() {
 
   // Step titles for progress
   const stepTitles = {
-    property: "Select Property",
+    property: "Find your property",
     payment: "Checkout",
   };
 

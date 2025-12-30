@@ -348,22 +348,9 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   ) : null;
 
   return (
-    <div className="relative w-full h-[calc(100vh-120px)] min-h-[600px]">
-      {/* Header - Instructional tone, NO orange */}
-      <div className="absolute top-0 left-0 right-0 z-30 bg-background/95 backdrop-blur-sm border-b p-4">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-lg font-heading font-semibold flex items-center gap-2 text-foreground">
-            <MapPin className="h-5 w-5 text-[hsl(var(--data-cyan))]" />
-            Confirm the exact parcel for feasibility analysis
-          </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Search and verify the property boundary below
-          </p>
-        </div>
-      </div>
-
+    <div className="relative w-full h-[calc(100vh-60px)] min-h-[600px]">
       {/* Desktop Layout - 3 Column */}
-      <div className="absolute top-[73px] bottom-0 left-0 right-0 hidden lg:flex">
+      <div className="absolute top-0 bottom-0 left-0 right-0 hidden lg:flex">
         {/* Left Panel - Input */}
         <div className="w-[360px] border-r bg-background p-4 overflow-y-auto">
           {searchPanel}
@@ -393,7 +380,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       </div>
 
       {/* Mobile/Tablet Layout - Step-based */}
-      <div className="absolute top-[73px] bottom-0 left-0 right-0 lg:hidden flex flex-col">
+      <div className="absolute top-0 bottom-0 left-0 right-0 lg:hidden flex flex-col">
         {/* Step content */}
         <div className="flex-1 overflow-hidden">
           {mobileStep === 'search' && (
