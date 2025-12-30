@@ -25,7 +25,9 @@ import { ParcelValidationCards } from "./ParcelValidationCards";
 import { ParcelConfirmationGate } from "./ParcelConfirmationGate";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { MatchFoundBadge } from "./MatchFoundBadge";
-import { MapPin, Lock, ArrowRight, Search, Map, CheckCircle, MousePointerClick, RefreshCw } from "lucide-react";
+import { MapPin, Search, Map, CheckCircle, MousePointerClick, RefreshCw } from "lucide-react";
+import { LockedParcelSummary } from "./LockedParcelSummary";
+import { VerifiedParcelProceed } from "./VerifiedParcelProceed";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
@@ -46,6 +48,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     selectCandidate, 
     clearSelection,
     lockParcel,
+    unlockParcel,
     setRawInput,
     setMapState,
   } = useParcelSelection();
@@ -295,30 +298,132 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     }
   }, [state.selectedCandidate]);
 
-  // If already locked, show locked state
+  // Handle unlock (change parcel) from verified state
+  const handleUnlockParcel = useCallback(() => {
+    unlockParcel();
+    clearSelection();
+    setSpotlightParcel(null);
+    setMobileStep('search');
+    toast.info("Selection cleared. Choose a different parcel.");
+  }, [unlockParcel, clearSelection]);
+
+  // Calculate centroid for verified parcel map centering
+  const getParcelCentroid = useCallback((geom: any): [number, number] | null => {
+    if (!geom || !geom.coordinates) return null;
+    try {
+      const coords = geom.type === 'MultiPolygon' 
+        ? geom.coordinates[0][0] 
+        : geom.coordinates[0];
+      const lngs = coords.map((c: number[]) => c[0]);
+      const lats = coords.map((c: number[]) => c[1]);
+      return [
+        lats.reduce((a: number, b: number) => a + b, 0) / lats.length,
+        lngs.reduce((a: number, b: number) => a + b, 0) / lngs.length
+      ];
+    } catch {
+      return null;
+    }
+  }, []);
+
+  // If already verified (locked), show verified checkpoint with full map
   if (state.lockedParcel) {
+    const centroid = getParcelCentroid(state.lockedParcel.geom);
+    
     return (
-      <div className="min-h-[600px] flex items-center justify-center p-8">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Lock className="h-6 w-6 text-primary" />
+      <div className="relative w-full h-[calc(100vh-60px)] min-h-[600px]">
+        {/* Desktop Layout - 3 Column Verified State */}
+        <div className="absolute top-0 bottom-0 left-0 right-0 hidden lg:flex">
+          {/* Left Panel - Verified Summary */}
+          <div className="w-[280px] border-r bg-background p-4 overflow-y-auto">
+            <LockedParcelSummary 
+              parcel={state.lockedParcel} 
+              onChangeParcel={handleUnlockParcel}
+            />
+          </div>
+
+          {/* Center - Map (fully interactive) */}
+          <div className="flex-1 relative">
+            {/* Verified indicator badge */}
+            <div className="absolute top-3 left-3 z-10 bg-[hsl(var(--status-success)/0.15)] backdrop-blur-sm rounded-full px-3 py-1.5 border border-[hsl(var(--status-success)/0.3)] flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-[hsl(var(--status-success))]" />
+              <span className="text-xs font-medium text-[hsl(var(--status-success))]">Verified</span>
             </div>
-            <CardTitle>Parcel Locked</CardTitle>
-            <CardDescription>
-              {state.lockedParcel.situs_address || state.lockedParcel.parcel_id}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex justify-center gap-2">
-              <Badge>{state.lockedParcel.county}</Badge>
-              <Badge variant="outline">{state.lockedParcel.acreage.toFixed(2)} ac</Badge>
+            
+            <MapLibreCanvas
+              center={centroid || mapCenter}
+              zoom={17}
+              showParcels={true}
+              onParcelSelect={() => {}} // Info-only mode in verified state
+              onMapLoad={handleMapLoad}
+              selectedParcelId={state.lockedParcel.parcel_id}
+              spotlightParcel={state.lockedParcel.geom}
+              isVerified={true}
+              showLegend={false}
+              showAttribution={false}
+              showZoomHint={false}
+              showDataSourceBadge={false}
+              className="w-full h-full"
+            />
+          </div>
+
+          {/* Right Panel - Proceed to Payment */}
+          <div className="w-[280px] border-l bg-background">
+            <VerifiedParcelProceed 
+              parcel={state.lockedParcel}
+              onContinue={() => onParcelLocked(state.lockedParcel!)}
+              onChangeParcel={handleUnlockParcel}
+            />
+          </div>
+        </div>
+
+        {/* Mobile/Tablet - Simplified verified state */}
+        <div className="absolute top-0 bottom-0 left-0 right-0 lg:hidden flex flex-col">
+          {/* Map takes most space */}
+          <div className="flex-1 relative">
+            <div className="absolute top-3 left-3 z-10 bg-[hsl(var(--status-success)/0.15)] backdrop-blur-sm rounded-full px-3 py-1.5 border border-[hsl(var(--status-success)/0.3)] flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-[hsl(var(--status-success))]" />
+              <span className="text-xs font-medium text-[hsl(var(--status-success))]">Verified</span>
             </div>
-            <Button onClick={() => onParcelLocked(state.lockedParcel!)} className="w-full">
-              Continue to Payment <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </CardContent>
-        </Card>
+            
+            <MapLibreCanvas
+              center={centroid || mapCenter}
+              zoom={17}
+              showParcels={true}
+              onParcelSelect={() => {}}
+              selectedParcelId={state.lockedParcel.parcel_id}
+              spotlightParcel={state.lockedParcel.geom}
+              isVerified={true}
+              showLegend={false}
+              showAttribution={false}
+              className="w-full h-full"
+            />
+          </div>
+          
+          {/* Bottom action bar */}
+          <div className="border-t bg-background p-4 space-y-3">
+            <div className="text-center">
+              <p className="text-sm font-medium">{state.lockedParcel.situs_address || state.lockedParcel.parcel_id}</p>
+              <p className="text-xs text-muted-foreground">{state.lockedParcel.acreage.toFixed(2)} ac · {state.lockedParcel.county}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                onClick={handleUnlockParcel}
+                className="flex-1"
+                size="sm"
+              >
+                Change
+              </Button>
+              <Button 
+                onClick={() => onParcelLocked(state.lockedParcel!)}
+                className="flex-[2] bg-[hsl(var(--feasibility-orange))] hover:bg-[hsl(var(--feasibility-orange)/0.9)] text-white"
+                size="sm"
+              >
+                Continue to Payment
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
