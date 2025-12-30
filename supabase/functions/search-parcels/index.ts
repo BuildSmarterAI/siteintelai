@@ -177,14 +177,14 @@ async function searchByAddress(
             let parcel = null;
             if (county) {
               try {
-                const parcelResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-parcels`, {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${supabaseKey}`,
-                  },
-                  body: JSON.stringify({ lat, lng, county }),
-                });
+              const parcelResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-parcels`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({ lat, lng, county, inputAddress: pred.description }),
+              });
                 
                 if (parcelResponse.ok) {
                   const parcelData = await parcelResponse.json();
@@ -270,7 +270,7 @@ async function searchByAddress(
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${supabaseKey}`,
               },
-              body: JSON.stringify({ lat: location.lat, lng: location.lng, county }),
+              body: JSON.stringify({ lat: location.lat, lng: location.lng, county, inputAddress: prediction.description }),
             });
             
             if (parcelResponse.ok) {
