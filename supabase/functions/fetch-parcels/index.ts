@@ -24,6 +24,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate a short trace ID for debugging
+function generateTraceId(): string {
+  return Math.random().toString(36).substring(2, 10);
+}
+
 // County configuration registry
 const COUNTY_CONFIG: Record<string, {
   name: string;
@@ -293,9 +298,8 @@ async function fetchWithTimeout(url: string, timeout = 10000): Promise<Response>
   }
 }
 
-// Helper: check if a point is inside a polygon (simple ray casting)
-function pointInPolygon(lat: number, lng: number, polygon: number[][][]): boolean {
-  const ring = polygon[0]; // outer ring
+// Helper: check if a point is inside a single polygon ring (ray casting)
+function pointInRing(lat: number, lng: number, ring: number[][]): boolean {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
     const xi = ring[i][0], yi = ring[i][1];
@@ -307,33 +311,212 @@ function pointInPolygon(lat: number, lng: number, polygon: number[][][]): boolea
   return inside;
 }
 
-// Helper: calculate distance from point to polygon centroid
-function distanceToPolygonCentroid(lat: number, lng: number, polygon: number[][][]): number {
+// Helper: check if a point is inside a polygon (handles holes)
+function pointInPolygon(lat: number, lng: number, polygon: number[][][]): boolean {
+  // Check outer ring first
+  if (!pointInRing(lat, lng, polygon[0])) {
+    return false;
+  }
+  // Check if point is inside any hole (exclude it)
+  for (let i = 1; i < polygon.length; i++) {
+    if (pointInRing(lat, lng, polygon[i])) {
+      return false; // Inside a hole
+    }
+  }
+  return true;
+}
+
+// Helper: check if a point is inside a geometry (Polygon or MultiPolygon)
+function pointInGeometry(lat: number, lng: number, geometry: { type: string; coordinates: unknown }): boolean {
+  if (!geometry || !geometry.coordinates) return false;
+  
+  if (geometry.type === 'Polygon') {
+    return pointInPolygon(lat, lng, geometry.coordinates as number[][][]);
+  } else if (geometry.type === 'MultiPolygon') {
+    const multiCoords = geometry.coordinates as number[][][][];
+    for (const polygon of multiCoords) {
+      if (pointInPolygon(lat, lng, polygon)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Helper: calculate centroid of a polygon
+function getPolygonCentroid(polygon: number[][][]): { lat: number; lng: number } {
   const ring = polygon[0];
   let sumLng = 0, sumLat = 0;
   for (const coord of ring) {
     sumLng += coord[0];
     sumLat += coord[1];
   }
-  const centroidLng = sumLng / ring.length;
-  const centroidLat = sumLat / ring.length;
+  return { lng: sumLng / ring.length, lat: sumLat / ring.length };
+}
+
+// Helper: calculate distance from point to geometry centroid
+function distanceToGeometryCentroid(lat: number, lng: number, geometry: { type: string; coordinates: unknown }): number {
+  if (!geometry || !geometry.coordinates) return Infinity;
+  
+  let centroid: { lat: number; lng: number };
+  
+  if (geometry.type === 'Polygon') {
+    centroid = getPolygonCentroid(geometry.coordinates as number[][][]);
+  } else if (geometry.type === 'MultiPolygon') {
+    // Use centroid of first polygon
+    const multiCoords = geometry.coordinates as number[][][][];
+    if (multiCoords.length === 0) return Infinity;
+    centroid = getPolygonCentroid(multiCoords[0]);
+  } else {
+    return Infinity;
+  }
+  
   // Simple Euclidean distance (sufficient for nearby parcels)
-  return Math.sqrt(Math.pow(lng - centroidLng, 2) + Math.pow(lat - centroidLat, 2));
+  return Math.sqrt(Math.pow(lng - centroid.lng, 2) + Math.pow(lat - centroid.lat, 2));
+}
+
+// =============================================
+// ADDRESS PARSING AND MATCHING
+// =============================================
+
+interface ParsedAddress {
+  streetNumber: string | null;
+  streetName: string | null;
+  normalized: string;
+}
+
+// Parse an address into street number and name components
+function parseAddress(address: string | null): ParsedAddress {
+  if (!address) {
+    return { streetNumber: null, streetName: null, normalized: '' };
+  }
+  
+  const normalized = address.toUpperCase().trim();
+  
+  // Match street number at start (e.g., "1234", "1234-A", "1234 1/2")
+  const numberMatch = normalized.match(/^(\d+[\-A-Z]?(?:\s*\d+\/\d+)?)\s+(.+)/);
+  
+  if (numberMatch) {
+    const streetNumber = numberMatch[1].trim();
+    let streetName = numberMatch[2].trim();
+    
+    // Remove common suffixes for better matching (ST, AVE, BLVD, DR, etc.)
+    streetName = streetName
+      .replace(/\s+(ST|STREET|AVE|AVENUE|BLVD|BOULEVARD|DR|DRIVE|RD|ROAD|LN|LANE|CT|COURT|CIR|CIRCLE|PL|PLACE|WAY|PKWY|PARKWAY|TRL|TRAIL|HWY|HIGHWAY)\.?$/i, '')
+      .trim();
+    
+    return { streetNumber, streetName, normalized };
+  }
+  
+  return { streetNumber: null, streetName: normalized, normalized };
+}
+
+// Calculate address match score (0-100)
+function calculateAddressMatchScore(inputAddress: string | null, parcelAddress: string | null): number {
+  const input = parseAddress(inputAddress);
+  const parcel = parseAddress(parcelAddress);
+  
+  let score = 0;
+  
+  // Street number match (highest weight - 60 points)
+  if (input.streetNumber && parcel.streetNumber) {
+    if (input.streetNumber === parcel.streetNumber) {
+      score += 60;
+    } else {
+      // Partial match for close numbers (e.g., 1234 vs 1234-A)
+      const inputNum = parseInt(input.streetNumber, 10);
+      const parcelNum = parseInt(parcel.streetNumber, 10);
+      if (!isNaN(inputNum) && !isNaN(parcelNum) && inputNum === parcelNum) {
+        score += 50;
+      }
+    }
+  }
+  
+  // Street name match (medium weight - 40 points)
+  if (input.streetName && parcel.streetName) {
+    if (input.streetName === parcel.streetName) {
+      score += 40;
+    } else if (parcel.streetName.includes(input.streetName) || input.streetName.includes(parcel.streetName)) {
+      score += 25; // Partial street name match
+    } else {
+      // Check for common abbreviations / variations
+      const inputWords = input.streetName.split(/\s+/);
+      const parcelWords = parcel.streetName.split(/\s+/);
+      const matchingWords = inputWords.filter(w => parcelWords.includes(w));
+      if (matchingWords.length > 0) {
+        score += Math.min(20, matchingWords.length * 10);
+      }
+    }
+  }
+  
+  return score;
+}
+
+// Resolution trace for debugging
+interface ResolutionTrace {
+  traceId: string;
+  inputAddress: string | null;
+  geocodeLat: number;
+  geocodeLng: number;
+  county: string;
+  pointInPolygonHit: boolean;
+  fallbackUsed: boolean;
+  candidateCount: number;
+  selectedParcelId: string | null;
+  selectionReason: 'contains_point' | 'address_match' | 'closest_centroid' | 'only_candidate' | 'multiple_returned';
+  addressMatchScores: Array<{ parcelId: string; score: number }>;
+}
+
+interface ParcelFeature {
+  type: string;
+  geometry: { type: string; coordinates: unknown };
+  properties: NormalizedParcelProperties;
 }
 
 async function fetchFromCounty(
   config: typeof COUNTY_CONFIG[string],
   countyKey: string,
-  params: { bbox?: [number, number, number, number]; parcelId?: string; lat?: number; lng?: number }
-): Promise<{ type: string; features: Array<{ type: string; geometry: unknown; properties: NormalizedParcelProperties }>; error?: string; errorCode?: string }> {
+  params: { 
+    bbox?: [number, number, number, number]; 
+    parcelId?: string; 
+    lat?: number; 
+    lng?: number;
+    inputAddress?: string; // For address-aware ranking
+  },
+  traceId: string
+): Promise<{ 
+  type: string; 
+  features: ParcelFeature[]; 
+  error?: string; 
+  errorCode?: string;
+  resolution_trace?: ResolutionTrace;
+}> {
   const queryParams = new URLSearchParams();
   
   const isPointQuery = params.lat !== undefined && params.lng !== undefined && !params.bbox && !params.parcelId;
   
+  // Initialize trace for point queries
+  let trace: ResolutionTrace | undefined;
+  if (isPointQuery) {
+    trace = {
+      traceId,
+      inputAddress: params.inputAddress || null,
+      geocodeLat: params.lat!,
+      geocodeLng: params.lng!,
+      county: countyKey,
+      pointInPolygonHit: false,
+      fallbackUsed: false,
+      candidateCount: 0,
+      selectedParcelId: null,
+      selectionReason: 'only_candidate',
+      addressMatchScores: [],
+    };
+  }
+  
   // CRITICAL: Always add a where clause - many ArcGIS servers require it
   if (params.parcelId) {
     queryParams.set('where', `${config.idField}='${params.parcelId}'`);
-    console.log(`[fetch-parcels] Query type: parcelId lookup for ${params.parcelId}`);
+    console.log(`[TRACE:${traceId}] Query type: parcelId lookup for ${params.parcelId}`);
   } else if (isPointQuery) {
     queryParams.set('where', '1=1'); // Required for spatial-only queries
     // Use TRUE point-in-polygon query first (no buffer)
@@ -341,7 +524,7 @@ async function fetchFromCounty(
     queryParams.set('geometryType', 'esriGeometryPoint');
     queryParams.set('inSR', '4326');
     queryParams.set('spatialRel', 'esriSpatialRelWithin');
-    console.log(`[fetch-parcels] Query type: TRUE point-in-parcel (${params.lat}, ${params.lng})`);
+    console.log(`[TRACE:${traceId}] Query type: TRUE point-in-parcel (${params.lat}, ${params.lng})`);
   } else if (params.bbox) {
     const [minLng, minLat, maxLng, maxLat] = params.bbox;
     queryParams.set('where', '1=1'); // Required for spatial-only queries
@@ -350,7 +533,7 @@ async function fetchFromCounty(
     queryParams.set('geometryType', 'esriGeometryEnvelope');
     queryParams.set('inSR', '4326');
     queryParams.set('spatialRel', 'esriSpatialRelIntersects');
-    console.log(`[fetch-parcels] Query type: bbox query via envelope`);
+    console.log(`[TRACE:${traceId}] Query type: bbox query via envelope`);
   }
   
   queryParams.set('outFields', config.fields.join(','));
@@ -361,21 +544,22 @@ async function fetchFromCounty(
   queryParams.set('f', 'geojson');
   
   const url = `${config.apiUrl}?${queryParams.toString()}`;
-  console.log(`[fetch-parcels] Querying ${config.name}: ${url.substring(0, 250)}...`);
+  console.log(`[TRACE:${traceId}] Querying ${config.name}: ${url.substring(0, 250)}...`);
   
   try {
     let response = await fetchWithTimeout(url, 15000);
     
-    console.log(`[fetch-parcels] ${config.name} response status: ${response.status}`);
+    console.log(`[TRACE:${traceId}] ${config.name} response status: ${response.status}`);
     
     if (!response.ok) {
       const errorText = await response.text().catch(() => 'Unknown error');
-      console.error(`[fetch-parcels] ${config.name} HTTP error: ${response.status} - ${errorText.substring(0, 200)}`);
+      console.error(`[TRACE:${traceId}] ${config.name} HTTP error: ${response.status} - ${errorText.substring(0, 200)}`);
       return { 
         type: 'FeatureCollection', 
         features: [],
         error: `${config.name} service returned ${response.status}`,
-        errorCode: 'HTTP_ERROR'
+        errorCode: 'HTTP_ERROR',
+        resolution_trace: trace,
       };
     }
     
@@ -383,18 +567,26 @@ async function fetchFromCounty(
     
     // Check for ArcGIS error response
     if (data.error) {
-      console.error(`[fetch-parcels] ${config.name} ArcGIS error:`, JSON.stringify(data.error));
+      console.error(`[TRACE:${traceId}] ${config.name} ArcGIS error:`, JSON.stringify(data.error));
       return { 
         type: 'FeatureCollection', 
         features: [],
         error: `${config.name}: ${data.error.message || 'Query failed'}`,
-        errorCode: 'ARCGIS_ERROR'
+        errorCode: 'ARCGIS_ERROR',
+        resolution_trace: trace,
       };
     }
     
+    const initialFeatureCount = data.features?.length || 0;
+    
     // FALLBACK: If point query returned 0 features (geocode might be on street), use small envelope
-    if (isPointQuery && (!data.features || data.features.length === 0)) {
-      console.log(`[fetch-parcels] Point query returned 0 features, trying small envelope fallback...`);
+    if (isPointQuery && initialFeatureCount === 0) {
+      console.log(`[TRACE:${traceId}] Point query returned 0 features, trying small envelope fallback...`);
+      
+      if (trace) {
+        trace.pointInPolygonHit = false;
+        trace.fallbackUsed = true;
+      }
       
       const fallbackParams = new URLSearchParams();
       fallbackParams.set('where', '1=1');
@@ -411,70 +603,123 @@ async function fetchFromCounty(
       fallbackParams.set('f', 'geojson');
       
       const fallbackUrl = `${config.apiUrl}?${fallbackParams.toString()}`;
-      console.log(`[fetch-parcels] Fallback query: ${fallbackUrl.substring(0, 250)}...`);
+      console.log(`[TRACE:${traceId}] Fallback query: ${fallbackUrl.substring(0, 250)}...`);
       
       response = await fetchWithTimeout(fallbackUrl, 15000);
       if (response.ok) {
         data = await response.json();
-        console.log(`[fetch-parcels] Fallback returned ${data.features?.length || 0} features`);
+        console.log(`[TRACE:${traceId}] Fallback returned ${data.features?.length || 0} features`);
       }
+    } else if (isPointQuery && initialFeatureCount > 0 && trace) {
+      trace.pointInPolygonHit = true;
     }
     
     // Normalize features
-    let normalizedFeatures = (data.features || []).map((feature: { type: string; geometry: unknown; properties: Record<string, unknown> }) => ({
+    let normalizedFeatures: ParcelFeature[] = (data.features || []).map((feature: { type: string; geometry: { type: string; coordinates: unknown }; properties: Record<string, unknown> }) => ({
       type: 'Feature',
       geometry: feature.geometry,
       properties: normalizeProperties(feature.properties, config, countyKey),
     }));
     
-    // POST-PROCESSING: If point query returned multiple features, pick the BEST one
+    if (trace) {
+      trace.candidateCount = normalizedFeatures.length;
+    }
+    
+    // POST-PROCESSING: If point query returned multiple features, use ADDRESS-AWARE ranking
     if (isPointQuery && normalizedFeatures.length > 1) {
-      console.log(`[fetch-parcels] Multiple parcels (${normalizedFeatures.length}) found, selecting best match...`);
+      console.log(`[TRACE:${traceId}] Multiple parcels (${normalizedFeatures.length}) found, applying address-aware ranking...`);
       
-      // First, try to find the parcel that actually CONTAINS the point
-      const containingFeature = normalizedFeatures.find((f: { geometry: { type: string; coordinates: number[][][] } }) => {
-        if (f.geometry?.type === 'Polygon' && f.geometry.coordinates) {
-          return pointInPolygon(params.lat!, params.lng!, f.geometry.coordinates);
-        }
-        return false;
+      // Calculate address match scores for each candidate
+      const scoredFeatures = normalizedFeatures.map(f => {
+        const addressScore = calculateAddressMatchScore(params.inputAddress || null, f.properties.situs_address);
+        const containsPoint = pointInGeometry(params.lat!, params.lng!, f.geometry);
+        const centroidDist = distanceToGeometryCentroid(params.lat!, params.lng!, f.geometry);
+        
+        return {
+          feature: f,
+          addressScore,
+          containsPoint,
+          centroidDist,
+        };
       });
       
-      if (containingFeature) {
-        console.log(`[fetch-parcels] Found containing parcel: ${containingFeature.properties.parcel_id}`);
-        normalizedFeatures = [containingFeature];
+      // Log all candidates with scores
+      console.log(`[TRACE:${traceId}] Candidate scores:`);
+      for (const sf of scoredFeatures) {
+        console.log(`  - ${sf.feature.properties.parcel_id}: addressScore=${sf.addressScore}, containsPoint=${sf.containsPoint}, centroidDist=${sf.centroidDist.toFixed(6)}, situs="${sf.feature.properties.situs_address}"`);
+      }
+      
+      if (trace) {
+        trace.addressMatchScores = scoredFeatures.map(sf => ({
+          parcelId: sf.feature.properties.parcel_id,
+          score: sf.addressScore,
+        }));
+      }
+      
+      // 1. First priority: parcel that contains the point AND has good address match
+      const containingWithGoodAddress = scoredFeatures.find(sf => sf.containsPoint && sf.addressScore >= 50);
+      if (containingWithGoodAddress) {
+        console.log(`[TRACE:${traceId}] Selected parcel ${containingWithGoodAddress.feature.properties.parcel_id}: contains point AND address match (score=${containingWithGoodAddress.addressScore})`);
+        if (trace) {
+          trace.selectedParcelId = containingWithGoodAddress.feature.properties.parcel_id;
+          trace.selectionReason = 'contains_point';
+        }
+        normalizedFeatures = [containingWithGoodAddress.feature];
       } else {
-        // No containing parcel - pick the one with closest centroid
-        let bestFeature = normalizedFeatures[0];
-        let bestDistance = Infinity;
-        
-        for (const feature of normalizedFeatures) {
-          if (feature.geometry?.type === 'Polygon' && feature.geometry.coordinates) {
-            const dist = distanceToPolygonCentroid(params.lat!, params.lng!, feature.geometry.coordinates);
-            if (dist < bestDistance) {
-              bestDistance = dist;
-              bestFeature = feature;
+        // 2. Second priority: best address match (if strong enough)
+        const bestAddressMatch = [...scoredFeatures].sort((a, b) => b.addressScore - a.addressScore)[0];
+        if (bestAddressMatch && bestAddressMatch.addressScore >= 50) {
+          console.log(`[TRACE:${traceId}] Selected parcel ${bestAddressMatch.feature.properties.parcel_id}: best address match (score=${bestAddressMatch.addressScore})`);
+          if (trace) {
+            trace.selectedParcelId = bestAddressMatch.feature.properties.parcel_id;
+            trace.selectionReason = 'address_match';
+          }
+          normalizedFeatures = [bestAddressMatch.feature];
+        } else {
+          // 3. Third priority: any parcel that contains the point
+          const anyContaining = scoredFeatures.find(sf => sf.containsPoint);
+          if (anyContaining) {
+            console.log(`[TRACE:${traceId}] Selected parcel ${anyContaining.feature.properties.parcel_id}: contains point (no strong address match)`);
+            if (trace) {
+              trace.selectedParcelId = anyContaining.feature.properties.parcel_id;
+              trace.selectionReason = 'contains_point';
             }
+            normalizedFeatures = [anyContaining.feature];
+          } else {
+            // 4. NO confident match - return ALL candidates for user selection
+            // This is a key change: don't silently pick wrong parcel
+            console.log(`[TRACE:${traceId}] ⚠️ No confident match! Returning all ${normalizedFeatures.length} candidates for user verification.`);
+            if (trace) {
+              trace.selectionReason = 'multiple_returned';
+              trace.selectedParcelId = null;
+            }
+            // Keep all normalized features - let the UI handle disambiguation
           }
         }
-        
-        console.log(`[fetch-parcels] No containing parcel; picked closest: ${bestFeature.properties.parcel_id}`);
-        normalizedFeatures = [bestFeature];
+      }
+    } else if (isPointQuery && normalizedFeatures.length === 1) {
+      console.log(`[TRACE:${traceId}] Single parcel found: ${normalizedFeatures[0].properties.parcel_id}`);
+      if (trace) {
+        trace.selectedParcelId = normalizedFeatures[0].properties.parcel_id;
+        trace.selectionReason = 'only_candidate';
       }
     }
     
-    console.log(`[fetch-parcels] ${config.name}: Returning ${normalizedFeatures.length} parcel(s)`);
+    console.log(`[TRACE:${traceId}] ${config.name}: Returning ${normalizedFeatures.length} parcel(s)`);
     
     return {
       type: 'FeatureCollection',
       features: normalizedFeatures,
+      resolution_trace: trace,
     };
   } catch (error) {
-    console.error(`[fetch-parcels] ${config.name} fetch error:`, error.message);
+    console.error(`[TRACE:${traceId}] ${config.name} fetch error:`, error.message);
     return { 
       type: 'FeatureCollection', 
       features: [],
       error: error.message || 'Network error',
-      errorCode: 'NETWORK_ERROR'
+      errorCode: 'NETWORK_ERROR',
+      resolution_trace: trace,
     };
   }
 }
@@ -484,32 +729,34 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const traceId = generateTraceId();
+
   try {
     const body = await req.json();
-    const { bbox, zoom, parcelId, lat, lng, county } = body;
+    const { bbox, zoom, parcelId, lat, lng, county, inputAddress } = body;
     
-    console.log('[fetch-parcels] === New Request ===');
-    console.log('[fetch-parcels] Input:', JSON.stringify({ bbox, zoom, parcelId, lat, lng, county }));
+    console.log(`[TRACE:${traceId}] === New Request ===`);
+    console.log(`[TRACE:${traceId}] Input:`, JSON.stringify({ bbox, zoom, parcelId, lat, lng, county, inputAddress }));
 
     // Determine which county to query
     let targetCounty = county?.toLowerCase();
     
     if (!targetCounty) {
       if (lat !== undefined && lng !== undefined) {
-        console.log('[fetch-parcels] Detecting county from lat/lng...');
+        console.log(`[TRACE:${traceId}] Detecting county from lat/lng...`);
         targetCounty = detectCounty(lat, lng);
       } else if (bbox && validateBbox(bbox)) {
-        console.log('[fetch-parcels] Detecting county from bbox...');
+        console.log(`[TRACE:${traceId}] Detecting county from bbox...`);
         targetCounty = detectCountyFromBbox(bbox);
       }
     }
     
-    console.log(`[fetch-parcels] Target county: ${targetCounty || 'NONE'}`);
+    console.log(`[TRACE:${traceId}] Target county: ${targetCounty || 'NONE'}`);
 
     // If searching by parcel ID
     if (parcelId) {
       if (!validateParcelId(parcelId)) {
-        console.log('[fetch-parcels] Invalid parcel ID format');
+        console.log(`[TRACE:${traceId}] Invalid parcel ID format`);
         return new Response(
           JSON.stringify({ 
             error: 'Invalid parcel ID format',
@@ -523,18 +770,18 @@ Deno.serve(async (req) => {
       // If county specified, query only that county
       if (targetCounty && COUNTY_CONFIG[targetCounty]) {
         const config = COUNTY_CONFIG[targetCounty];
-        const result = await fetchFromCounty(config, targetCounty, { parcelId });
+        const result = await fetchFromCounty(config, targetCounty, { parcelId }, traceId);
         return new Response(JSON.stringify(result), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       // Otherwise, try all counties (starting with Harris as most common)
-      console.log('[fetch-parcels] Searching all counties for parcel ID...');
+      console.log(`[TRACE:${traceId}] Searching all counties for parcel ID...`);
       const countyOrder = ['harris', 'fortbend', 'montgomery', 'travis', 'dallas', 'tarrant', 'bexar', 'williamson', 'brazoria', 'collin'];
       for (const countyKey of countyOrder) {
         const config = COUNTY_CONFIG[countyKey];
-        const result = await fetchFromCounty(config, countyKey, { parcelId });
+        const result = await fetchFromCounty(config, countyKey, { parcelId }, traceId);
         if (result.features.length > 0) {
           return new Response(JSON.stringify(result), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -542,7 +789,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log('[fetch-parcels] Parcel ID not found in any county');
+      console.log(`[TRACE:${traceId}] Parcel ID not found in any county`);
       return new Response(JSON.stringify({ type: 'FeatureCollection', features: [] }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -551,7 +798,7 @@ Deno.serve(async (req) => {
     // Point-in-parcel query
     if (lat !== undefined && lng !== undefined) {
       if (!targetCounty || !COUNTY_CONFIG[targetCounty]) {
-        console.log(`[fetch-parcels] Could not determine county for point (${lat}, ${lng})`);
+        console.log(`[TRACE:${traceId}] Could not determine county for point (${lat}, ${lng})`);
         return new Response(
           JSON.stringify({ 
             error: `Could not determine county for coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
@@ -563,7 +810,7 @@ Deno.serve(async (req) => {
       }
 
       const config = COUNTY_CONFIG[targetCounty];
-      const result = await fetchFromCounty(config, targetCounty, { lat, lng });
+      const result = await fetchFromCounty(config, targetCounty, { lat, lng, inputAddress }, traceId);
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -571,7 +818,7 @@ Deno.serve(async (req) => {
 
     // Bbox query - only at zoom 14+
     if (zoom !== undefined && zoom < 14) {
-      console.log(`[fetch-parcels] Zoom ${zoom} < 14, returning empty (zoom in to see parcels)`);
+      console.log(`[TRACE:${traceId}] Zoom ${zoom} < 14, returning empty (zoom in to see parcels)`);
       return new Response(JSON.stringify({ 
         type: 'FeatureCollection', 
         features: [],
@@ -582,7 +829,7 @@ Deno.serve(async (req) => {
     }
 
     if (!bbox || !validateBbox(bbox)) {
-      console.log('[fetch-parcels] Invalid or missing bbox');
+      console.log(`[TRACE:${traceId}] Invalid or missing bbox`);
       return new Response(
         JSON.stringify({ 
           error: 'Invalid or missing bbox',
@@ -594,19 +841,19 @@ Deno.serve(async (req) => {
     }
 
     if (!targetCounty || !COUNTY_CONFIG[targetCounty]) {
-      console.log('[fetch-parcels] Could not determine county for bbox, trying harris as fallback');
+      console.log(`[TRACE:${traceId}] Could not determine county for bbox, trying harris as fallback`);
       // Last resort fallback for bbox queries
       targetCounty = 'harris';
     }
 
     const config = COUNTY_CONFIG[targetCounty];
-    const result = await fetchFromCounty(config, targetCounty, { bbox });
+    const result = await fetchFromCounty(config, targetCounty, { bbox }, traceId);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('[fetch-parcels] Fatal error:', error);
+    console.error(`[TRACE:${traceId}] Fatal error:`, error);
     return new Response(
       JSON.stringify({ error: error.message, type: 'FeatureCollection', features: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
