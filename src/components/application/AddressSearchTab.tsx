@@ -200,6 +200,8 @@ export function AddressSearchTab({
 
   // Handle suggestion click - this is the ONLY valid path forward
   const handleSuggestionClick = async (suggestion: Suggestion) => {
+    console.debug('[AddressSearchTab] Suggestion clicked:', suggestion);
+    
     setQuery(suggestion.label);
     setShowSuggestions(false);
     setHighlightedIndex(-1);
@@ -208,21 +210,35 @@ export function AddressSearchTab({
 
     // Validate address components
     const components = parseAddressString(suggestion.label);
+    console.debug('[AddressSearchTab] Parsed components:', components);
+    
     const validation = validateAddressComponents(
       components, 
       suggestion.lat, 
       suggestion.lng
     );
+    console.debug('[AddressSearchTab] Validation result:', validation);
 
     if (!validation.valid) {
-      setErrorMessage(validation.message);
-      setSelectionState('error');
-      setHasSelectedSuggestion(false);
-      return;
+      // If we have coordinates, allow proceeding with a warning instead of blocking
+      if (suggestion.lat && suggestion.lng && !validation.missing.includes('coordinates')) {
+        console.debug('[AddressSearchTab] Proceeding despite validation - have coordinates');
+        addWarning(`Address may be incomplete: missing ${validation.missing.join(', ')}`);
+      } else {
+        setErrorMessage(validation.message);
+        setSelectionState('error');
+        setHasSelectedSuggestion(false);
+        return;
+      }
     }
 
-    // Check if in Texas
-    if (!isInTexas(suggestion.label)) {
+    // Check if in Texas - but Nominatim may not include "TX" in address
+    // If we have coordinates in Texas bounding box, allow it
+    const isTexasByCoords = suggestion.lat && suggestion.lng && 
+      suggestion.lat >= 25.8 && suggestion.lat <= 36.5 &&
+      suggestion.lng >= -106.6 && suggestion.lng <= -93.5;
+    
+    if (!isInTexas(suggestion.label) && !isTexasByCoords) {
       setErrorMessage(PARCEL_ERRORS.NOT_IN_TEXAS);
       setSelectionState('error');
       setHasSelectedSuggestion(false);
