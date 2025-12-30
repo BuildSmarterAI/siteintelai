@@ -220,16 +220,12 @@ export function AddressSearchTab({
     console.debug('[AddressSearchTab] Validation result:', validation);
 
     if (!validation.valid) {
-      // If we have coordinates, allow proceeding with a warning instead of blocking
-      if (suggestion.lat && suggestion.lng && !validation.missing.includes('coordinates')) {
-        console.debug('[AddressSearchTab] Proceeding despite validation - have coordinates');
-        addWarning(`Address may be incomplete: missing ${validation.missing.join(', ')}`);
-      } else {
-        setErrorMessage(validation.message);
-        setSelectionState('error');
-        setHasSelectedSuggestion(false);
-        return;
-      }
+      // HARD GATE: Always block invalid addresses - no exceptions
+      setErrorMessage(validation.message);
+      setSelectionState('error');
+      setHasSelectedSuggestion(false);
+      setQuery(''); // Clear input to force re-selection
+      return;
     }
 
     // Check if in Texas - but Nominatim may not include "TX" in address

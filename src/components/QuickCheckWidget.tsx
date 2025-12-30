@@ -26,6 +26,7 @@ export function QuickCheckWidget() {
   const [isLoading, setIsLoading] = useState(false);
   const [quickCheckData, setQuickCheckData] = useState<QuickCheckData | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [isAddressValidated, setIsAddressValidated] = useState(false);
 
   // Removed confetti - replaced with corporate data pulse effect
 
@@ -77,10 +78,16 @@ export function QuickCheckWidget() {
     }
   };
 
-  const handleAddressSelect = (selectedAddress: string, placeDetails: any) => {
+  const handleAddressSelect = (selectedAddress: string, coordinates?: { lat: number; lng: number }, placeDetails?: any) => {
     setAddress(selectedAddress);
     setQuickCheckData(null);
     setShowResults(false);
+    // Address validation is handled by AddressAutocomplete - if we get here, it's valid
+    // But we also track via onValidationChange callback
+  };
+
+  const handleValidationChange = (isValid: boolean) => {
+    setIsAddressValidated(isValid);
   };
 
   return (
@@ -133,6 +140,7 @@ export function QuickCheckWidget() {
         <AddressAutocomplete
           value={address}
           onChange={handleAddressSelect}
+          onValidationChange={handleValidationChange}
           placeholder="123 Main St, Houston, TX"
           className="text-base md:text-lg min-h-[48px]"
         />
@@ -141,7 +149,7 @@ export function QuickCheckWidget() {
           size="lg"
           className="w-full min-h-[48px] md:min-h-[44px] text-base md:text-lg"
           onClick={handleQuickCheck}
-          disabled={isLoading || !address || !intentType}
+          disabled={isLoading || !address || !intentType || !isAddressValidated}
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
