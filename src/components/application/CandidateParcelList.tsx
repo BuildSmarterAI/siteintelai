@@ -19,9 +19,14 @@ interface CandidateParcelListProps {
 export function CandidateParcelList({ candidates, selectedId, onSelect }: CandidateParcelListProps) {
   if (candidates.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        <MapPin className="h-8 w-8 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">Search for a property to see results</p>
+      <div className="text-center py-10 px-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[hsl(var(--data-cyan)/0.1)] mb-3">
+          <MapPin className="h-6 w-6 text-[hsl(var(--data-cyan))]" />
+        </div>
+        <p className="text-sm font-medium text-foreground mb-1">Enter a Texas property address above</p>
+        <p className="text-xs text-muted-foreground">
+          e.g., 1616 Post Oak Blvd, Houston TX
+        </p>
       </div>
     );
   }
