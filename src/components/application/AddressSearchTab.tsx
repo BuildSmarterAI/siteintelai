@@ -15,7 +15,7 @@ import { logger } from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Search, Loader2, MapPin, Crosshair, Check, X } from "lucide-react";
+import { Search, Loader2, MapPin, Crosshair, Check, X, Star, Clock, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { searchResultToCandidate } from "@/lib/parcelLock";
@@ -28,6 +28,7 @@ import {
   isInTexas 
 } from "@/lib/addressValidation";
 import { PARCEL_ERRORS } from "@/lib/parcelErrors";
+import { useSearchHistory, SavedLocation } from "@/hooks/useSearchHistory";
 
 interface AddressSearchTabProps {
   onCandidatesFound: (candidates: CandidateParcel[]) => void;
@@ -64,6 +65,17 @@ export function AddressSearchTab({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
+  
+  // Search history hook
+  const { 
+    recentSearches, 
+    favorites, 
+    addSearch, 
+    toggleFavorite, 
+    clearHistory,
+    isLoading: historyLoading 
+  } = useSearchHistory({ maxRecent: 5, maxFavorites: 10 });
   
   // CRITICAL: Track selection state
   const [hasSelectedSuggestion, setHasSelectedSuggestion] = useState(false);
@@ -75,6 +87,9 @@ export function AddressSearchTab({
   
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Combined items for history dropdown (favorites first, then recent)
+  const historyItems = [...favorites, ...recentSearches];
 
   // Debounced autocomplete - only when NOT selected
   useEffect(() => {
@@ -351,10 +366,26 @@ export function AddressSearchTab({
         setErrorMessage(PARCEL_ERRORS.NOT_FOUND);
         onCandidatesFound([]);
       } else if (candidates.length === 1) {
-        // Single parcel found - no confidence message shown
+        // Single parcel found - save to history
+        addSearch({
+          label: suggestion.label,
+          query: suggestion.label,
+          queryType: 'address',
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          county: suggestion.addressDetails?.county,
+        });
         onCandidatesFound(candidates);
       } else {
-        // Multiple parcels - user must choose
+        // Multiple parcels - still save to history (user will pick one)
+        addSearch({
+          label: suggestion.label,
+          query: suggestion.label,
+          queryType: 'address',
+          lat: suggestion.lat,
+          lng: suggestion.lng,
+          county: suggestion.addressDetails?.county,
+        });
         setErrorMessage(PARCEL_ERRORS.MULTIPLE_PARCELS);
         onCandidatesFound(candidates);
       }
@@ -367,7 +398,7 @@ export function AddressSearchTab({
       setIsSearching(false);
       setLoading(false);
     }
-  }, [onCandidatesFound, setLoading, addWarning]);
+  }, [onCandidatesFound, setLoading, addWarning, addSearch]);
 
   // Wrapper for button click (uses state)
   const handleSearch = useCallback(() => {
@@ -411,6 +442,26 @@ export function AddressSearchTab({
     inputRef.current?.focus();
   };
 
+  // Handle click on history item (recent or favorite)
+  const handleHistoryItemClick = (item: SavedLocation) => {
+    const suggestion: Suggestion = {
+      label: item.label,
+      description: item.county ? `${item.county} County` : 'Texas',
+      lat: item.lat,
+      lng: item.lng,
+    };
+    handleSuggestionClick(suggestion);
+  };
+
+  // Toggle star on history item (prevent propagation)
+  const handleToggleFavorite = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    toggleFavorite(id);
+  };
+
+  // Show history dropdown when focused and query is short
+  const showHistoryDropdown = isFocused && query.length < 3 && !hasSelectedSuggestion && historyItems.length > 0;
+
   // Get input border class based on state
   const getInputBorderClass = () => {
     switch (selectionState) {
@@ -436,13 +487,17 @@ export function AddressSearchTab({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onFocus={() => {
+                setIsFocused(true);
                 if (suggestions.length > 0 && !hasSelectedSuggestion) {
                   setShowSuggestions(true);
                 }
               }}
               onBlur={() => {
-                // Delay to allow click on suggestion
-                setTimeout(() => setShowSuggestions(false), 200);
+                // Delay to allow click on suggestion/history item
+                setTimeout(() => {
+                  setShowSuggestions(false);
+                  setIsFocused(false);
+                }, 200);
               }}
               className={`pr-16 ${getInputBorderClass()}`}
               autoComplete="off"
@@ -475,7 +530,126 @@ export function AddressSearchTab({
           </Button>
         </div>
 
-        {/* Suggestions Dropdown */}
+        {/* History Dropdown (Favorites + Recent) - shown when input focused and query is short */}
+        <AnimatePresence>
+          {showHistoryDropdown && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl z-50 overflow-hidden"
+            >
+              <div className="max-h-[280px] overflow-y-auto">
+                {/* Favorites Section */}
+                {favorites.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 flex items-center gap-2 border-b border-border/50 bg-muted/20">
+                      <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+                      <span className="text-xs font-medium text-muted-foreground">Favorites</span>
+                    </div>
+                    <ul className="py-1">
+                      {favorites.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            title={item.label}
+                            className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/50 group"
+                            onClick={() => handleHistoryItemClick(item)}
+                          >
+                            <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-foreground line-clamp-1">{item.label}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {item.county ? `${item.county} County` : 'Texas'}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => handleToggleFavorite(e, item.id)}
+                              className="p-1 hover:bg-muted rounded shrink-0"
+                              title="Remove from favorites"
+                            >
+                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                            </button>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Recent Searches Section */}
+                {recentSearches.length > 0 && (
+                  <div>
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-border/50 bg-muted/20">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-xs font-medium text-muted-foreground">Recent Searches</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearHistory();
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                        Clear
+                      </button>
+                    </div>
+                    <ul className="py-1">
+                      {recentSearches.map((item) => (
+                        <li key={item.id}>
+                          <button
+                            type="button"
+                            title={item.label}
+                            className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/50 group"
+                            onClick={() => handleHistoryItemClick(item)}
+                          >
+                            <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-foreground line-clamp-1">{item.label}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {item.county ? `${item.county} County` : 'Texas'}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => handleToggleFavorite(e, item.id)}
+                              className="p-1 hover:bg-muted rounded shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Add to favorites"
+                            >
+                              <Star className="h-4 w-4 text-muted-foreground hover:text-yellow-500" />
+                            </button>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {historyItems.length === 0 && !historyLoading && (
+                  <div className="px-3 py-4 text-center">
+                    <p className="text-xs text-muted-foreground">Your recent searches will appear here</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Tip at bottom */}
+              <div className="px-3 py-1.5 border-t border-border/50 bg-muted/30">
+                <p className="text-[10px] text-muted-foreground text-center">
+                  <Star className="h-3 w-3 inline mr-1" />
+                  Star addresses to keep them pinned
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Suggestions Dropdown (from API) */}
         <AnimatePresence>
           {showSuggestions && suggestions.length > 0 && (
             <motion.div
