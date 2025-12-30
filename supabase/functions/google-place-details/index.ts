@@ -46,11 +46,12 @@ serve(async (req) => {
       )
     }
 
-    // Build the Google Place Details API URL
+    // Build the Google Place Details API URL with expanded fields
     const params = new URLSearchParams({
       place_id: placeId,
       key: apiKey,
-      fields: 'formatted_address,geometry,address_components,types,name'
+      // Request all useful fields for address validation and parcel matching
+      fields: 'formatted_address,geometry,address_components,types,name,plus_code,url,utc_offset,business_status'
     })
 
     if (sessionToken) {
@@ -123,8 +124,11 @@ serve(async (req) => {
       console.log('[google-place-details] Result details:', {
         formatted_address: data.result.formatted_address,
         location: data.result.geometry?.location,
+        location_type: data.result.geometry?.location_type,
         types: data.result.types,
-        components_count: data.result.address_components?.length || 0
+        components_count: data.result.address_components?.length || 0,
+        plus_code: data.result.plus_code,
+        url: data.result.url ? 'present' : 'none'
       });
     }
 
