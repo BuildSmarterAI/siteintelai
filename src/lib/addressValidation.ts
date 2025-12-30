@@ -123,12 +123,17 @@ export function validateAddressComponents(
 
 /**
  * Check if a suggestion looks like a valid street address vs POI/business.
+ * Relaxed to handle Nominatim formats (e.g., "1616, Post Oak Blvd")
  */
 export function isValidStreetAddress(description: string): boolean {
   if (!description) return false;
   
-  // Must start with a number (street number)
-  const startsWithNumber = /^\d+/.test(description.trim());
+  // Clean the description - remove leading commas/spaces that Nominatim sometimes adds
+  const cleaned = description.replace(/^[,\s]+/, '').trim();
+  
+  // Check for a number anywhere in first 20 chars (street number)
+  // This handles formats like "1616, Post Oak" or "1616 Post Oak Blvd"
+  const hasStreetNumber = /\d+/.test(cleaned.substring(0, 20));
   
   // Reject obvious non-addresses
   const invalidPatterns = [
@@ -136,12 +141,21 @@ export function isValidStreetAddress(description: string): boolean {
     /\b(inc|llc|ltd|corp)\b/i,    // Business suffixes
     /\b(restaurant|hotel|shop|store|mall|center|plaza)\b/i,
     /\b(airport|station|terminal)\b/i,
-    /^[A-Z][a-z]+\s+[A-Z][a-z]+$/,  // Just two proper nouns (likely a business)
   ];
   
-  const hasInvalidPattern = invalidPatterns.some(pattern => pattern.test(description));
+  const hasInvalidPattern = invalidPatterns.some(pattern => pattern.test(cleaned));
   
-  return startsWithNumber && !hasInvalidPattern;
+  // Log for debugging
+  if (!hasStreetNumber || hasInvalidPattern) {
+    console.debug('[isValidStreetAddress] Filtered out:', { 
+      original: description, 
+      cleaned, 
+      hasStreetNumber, 
+      hasInvalidPattern 
+    });
+  }
+  
+  return hasStreetNumber && !hasInvalidPattern;
 }
 
 /**

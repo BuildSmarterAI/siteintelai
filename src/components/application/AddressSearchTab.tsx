@@ -86,21 +86,42 @@ export function AddressSearchTab({
             body: { query: query.trim(), type: 'address' }
           });
 
+          console.debug('[AddressSearchTab] API response:', { 
+            query: query.trim(), 
+            resultsCount: data?.results?.length || 0,
+            results: data?.results?.slice(0, 3)
+          });
+
           if (!error && data?.results?.length > 0) {
             // Filter to only valid street addresses
-            const addressSuggestions = data.results
-              .slice(0, 5)
+            const allResults = data.results.slice(0, 8);
+            const addressSuggestions = allResults
               .filter((r: any) => isValidStreetAddress(r.formatted_address))
+              .slice(0, 5)
               .map((r: any) => ({
-                label: r.formatted_address,
+                label: r.formatted_address?.replace(/^[,\s]+/, '').trim() || r.formatted_address,
                 description: r.county ? `${r.county} County` : 'Texas',
                 lat: r.lat,
                 lng: r.lng,
               }));
             
+            console.debug('[AddressSearchTab] Filtered suggestions:', {
+              beforeFilter: allResults.length,
+              afterFilter: addressSuggestions.length,
+              suggestions: addressSuggestions
+            });
+            
             setSuggestions(addressSuggestions);
-            setShowSuggestions(addressSuggestions.length > 0);
+            setShowSuggestions(true);
             setHighlightedIndex(-1);
+            
+            // Show feedback if all results were filtered out
+            if (addressSuggestions.length === 0 && allResults.length > 0) {
+              setErrorMessage("No valid street addresses found. Try entering a complete address with street number.");
+            }
+          } else if (!error && data?.results?.length === 0) {
+            setSuggestions([]);
+            setShowSuggestions(false);
           }
         } catch (err) {
           logger.error('[AddressSearchTab] Autocomplete error:', err);
@@ -109,6 +130,7 @@ export function AddressSearchTab({
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
+      setErrorMessage(null);
     }
 
     return () => {
