@@ -10,6 +10,119 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ============ Address Matching Helpers ============
+
+/**
+ * Extract street number from an address string
+ * Returns null if no number found
+ */
+function extractStreetNumber(address: string): string | null {
+  if (!address) return null;
+  const match = address.match(/^(\d+)/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Extract and normalize street name from address
+ * Handles common abbreviations and strips city/state/zip
+ */
+function extractStreetName(address: string): string | null {
+  if (!address) return null;
+  
+  // Remove leading number
+  let street = address.replace(/^\d+\s*/, '');
+  
+  // Remove city, state, zip (everything after first comma or common city names)
+  street = street.split(',')[0];
+  
+  // Normalize common abbreviations
+  const abbreviations: Record<string, string> = {
+    'street': 'st', 'st': 'st',
+    'avenue': 'ave', 'ave': 'ave',
+    'boulevard': 'blvd', 'blvd': 'blvd',
+    'drive': 'dr', 'dr': 'dr',
+    'road': 'rd', 'rd': 'rd',
+    'lane': 'ln', 'ln': 'ln',
+    'court': 'ct', 'ct': 'ct',
+    'circle': 'cir', 'cir': 'cir',
+    'highway': 'hwy', 'hwy': 'hwy',
+    'parkway': 'pkwy', 'pkwy': 'pkwy',
+    'place': 'pl', 'pl': 'pl',
+    'way': 'way',
+    'north': 'n', 'n': 'n',
+    'south': 's', 's': 's',
+    'east': 'e', 'e': 'e',
+    'west': 'w', 'w': 'w',
+  };
+  
+  // Normalize to lowercase and split into words
+  const words = street.toLowerCase().trim().split(/\s+/);
+  const normalized = words.map(w => abbreviations[w] || w);
+  
+  return normalized.join(' ');
+}
+
+/**
+ * Calculate address match score between input address and parcel situs
+ * Returns: { score: 0-1, reason: string }
+ */
+function calculateAddressMatchScore(inputAddress: string, situsAddress: string | null): { score: number; reason: string } {
+  if (!situsAddress) {
+    return { score: 0.3, reason: 'no_situs' };
+  }
+  
+  const inputNum = extractStreetNumber(inputAddress);
+  const situsNum = extractStreetNumber(situsAddress);
+  const inputStreet = extractStreetName(inputAddress);
+  const situsStreet = extractStreetName(situsAddress);
+  
+  // If we have street numbers and they don't match, strong penalty
+  if (inputNum && situsNum && inputNum !== situsNum) {
+    return { score: 0.1, reason: `number_mismatch:${inputNum}≠${situsNum}` };
+  }
+  
+  // Street number matches
+  const numberMatch = inputNum && situsNum && inputNum === situsNum;
+  
+  // Check street name similarity
+  let streetScore = 0;
+  let streetReason = 'no_street';
+  
+  if (inputStreet && situsStreet) {
+    // Check for exact match
+    if (inputStreet === situsStreet) {
+      streetScore = 1.0;
+      streetReason = 'exact_street';
+    } 
+    // Check if one contains the other
+    else if (inputStreet.includes(situsStreet) || situsStreet.includes(inputStreet)) {
+      streetScore = 0.8;
+      streetReason = 'partial_street';
+    }
+    // Check for similar words
+    else {
+      const inputWords = new Set(inputStreet.split(' '));
+      const situsWords = new Set(situsStreet.split(' '));
+      const intersection = [...inputWords].filter(w => situsWords.has(w));
+      const union = new Set([...inputWords, ...situsWords]);
+      const jaccard = intersection.length / union.size;
+      streetScore = jaccard * 0.7;
+      streetReason = `word_match:${jaccard.toFixed(2)}`;
+    }
+  }
+  
+  // Compute final score
+  if (numberMatch && streetScore >= 0.8) {
+    return { score: 1.0, reason: `perfect:${numberMatch ? 'num' : ''}+${streetReason}` };
+  } else if (numberMatch) {
+    return { score: 0.85 + streetScore * 0.15, reason: `num_match+${streetReason}` };
+  } else if (streetScore >= 0.8) {
+    return { score: 0.6 + streetScore * 0.2, reason: streetReason };
+  } else {
+    return { score: 0.3 + streetScore * 0.2, reason: `weak:${streetReason}` };
+  }
+}
+
 type SearchType = 'address' | 'cad' | 'intersection' | 'point' | 'auto';
 
 interface SearchResult {
@@ -166,8 +279,8 @@ async function searchByAddress(
         const nominatimData = await nominatimResponse.json();
         console.log(`[search-parcels] Nominatim data:`, JSON.stringify(nominatimData).substring(0, 200));
         if (nominatimData.predictions?.length > 0) {
-          // Nominatim results already have coordinates - process directly
-          const results: SearchResult[] = [];
+          // Nominatim results already have coordinates - process with address validation
+          const rawResults: Array<SearchResult & { matchScore: number; matchReason: string }> = [];
           for (const pred of nominatimData.predictions.slice(0, 3)) {
             const lat = parseFloat(pred.lat);
             const lng = parseFloat(pred.lng);
@@ -175,6 +288,9 @@ async function searchByAddress(
             
             // Try to fetch parcel at this location
             let parcel = null;
+            let matchScore = 0.5;
+            let matchReason = 'no_parcel';
+            
             if (county) {
               try {
               const parcelResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-parcels`, {
@@ -198,6 +314,21 @@ async function searchByAddress(
                       market_value: feature.properties.market_value,
                       geometry: feature.geometry,
                     };
+                    
+                    // Validate address match
+                    const addressMatch = calculateAddressMatchScore(pred.description, parcel.situs_address);
+                    matchScore = addressMatch.score;
+                    matchReason = addressMatch.reason;
+                    
+                    console.log(`[search-parcels] Nominatim address match: "${pred.description}" vs "${parcel.situs_address}" => score=${matchScore.toFixed(2)}`);
+                    
+                    // Reject mismatched parcels
+                    if (matchScore < 0.5) {
+                      console.log(`[search-parcels] Rejecting Nominatim parcel ${parcel.parcel_id} due to low match`);
+                      parcel = null;
+                      matchScore = 0.3;
+                      matchReason = 'rejected_mismatch';
+                    }
                   }
                 }
               } catch (err) {
@@ -213,18 +344,25 @@ async function searchByAddress(
               cleanAddress = secondary ? `${main}, ${secondary}` : main;
             }
             
-            results.push({
+            rawResults.push({
               type: 'address',
-              confidence: 0.85 - (results.length * 0.1),
+              confidence: parcel ? matchScore : 0.5,
               lat,
               lng,
               formatted_address: cleanAddress,
               county,
               parcel: parcel || undefined,
+              matchScore,
+              matchReason,
             });
           }
-          console.log(`[search-parcels] Nominatim returned ${results.length} results`);
-          return results;
+          
+          // Filter and sort by match score
+          const validResults = rawResults.filter(r => !r.parcel || r.matchScore >= 0.5);
+          validResults.sort((a, b) => b.matchScore - a.matchScore);
+          
+          console.log(`[search-parcels] Nominatim returned ${validResults.length} valid results`);
+          return validResults.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => rest);
         }
       }
     } catch (err) {
@@ -237,8 +375,8 @@ async function searchByAddress(
     }
   }
 
-  // Process Google Places results (original logic)
-  const results: SearchResult[] = [];
+  // Process Google Places results with address validation
+  const rawResults: Array<SearchResult & { matchScore: number; matchReason: string }> = [];
   
   // Get details for top 3 predictions
   for (const prediction of predictions.slice(0, 3)) {
@@ -262,6 +400,9 @@ async function searchByAddress(
         
         // Try to fetch parcel at this location
         let parcel = null;
+        let matchScore = 0.5;
+        let matchReason = 'no_parcel';
+        
         if (county) {
           try {
             const parcelResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-parcels`, {
@@ -285,6 +426,22 @@ async function searchByAddress(
                   market_value: feature.properties.market_value,
                   geometry: feature.geometry,
                 };
+                
+                // Validate that the returned parcel address matches the search input
+                const addressMatch = calculateAddressMatchScore(prediction.description, parcel.situs_address);
+                matchScore = addressMatch.score;
+                matchReason = addressMatch.reason;
+                
+                console.log(`[search-parcels] Address match: "${prediction.description}" vs "${parcel.situs_address}" => score=${matchScore.toFixed(2)}, reason=${matchReason}`);
+                
+                // If the parcel doesn't match the input address, don't include it
+                // This prevents "1616 Post Oak Blvd" returning "5402 Coastal Way"
+                if (matchScore < 0.5) {
+                  console.log(`[search-parcels] Rejecting parcel ${parcel.parcel_id} due to low match score`);
+                  parcel = null;
+                  matchScore = 0.3;
+                  matchReason = 'rejected_mismatch';
+                }
               }
             }
           } catch (err) {
@@ -300,14 +457,16 @@ async function searchByAddress(
           cleanAddress = secondary ? `${main}, ${secondary}` : main;
         }
         
-        results.push({
+        rawResults.push({
           type: 'address',
-          confidence: 0.9 - (results.length * 0.1),
+          confidence: parcel ? matchScore : 0.5,
           lat: location.lat,
           lng: location.lng,
           formatted_address: cleanAddress,
           county: county || undefined,
           parcel: parcel || undefined,
+          matchScore,
+          matchReason,
         });
       }
     } catch (err) {
@@ -315,7 +474,33 @@ async function searchByAddress(
     }
   }
 
-  return results;
+  // Filter and rank results:
+  // 1. Keep only results with parcels that match the address, OR results without parcels
+  // 2. If we have a high-confidence match (>0.85), return only that one
+  // 3. Otherwise return all valid results sorted by match score
+  
+  const validResults = rawResults.filter(r => {
+    // Keep results without parcels (geocode-only)
+    if (!r.parcel) return true;
+    // Keep results with matching parcels (score >= 0.5)
+    return r.matchScore >= 0.5;
+  });
+  
+  // Sort by match score descending
+  validResults.sort((a, b) => b.matchScore - a.matchScore);
+  
+  // If top result has very high confidence and others are significantly lower, return only top
+  if (validResults.length > 1 && validResults[0].parcel && validResults[0].matchScore >= 0.9) {
+    const topScore = validResults[0].matchScore;
+    const filtered = validResults.filter((r, i) => i === 0 || (r.parcel && r.matchScore >= topScore - 0.2));
+    if (filtered.length < validResults.length) {
+      console.log(`[search-parcels] Returning only high-confidence matches: ${filtered.length} of ${validResults.length}`);
+      return filtered.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => rest);
+    }
+  }
+  
+  // Return cleaned results (without internal matchScore/matchReason)
+  return validResults.map(({ matchScore: _ms, matchReason: _mr, ...rest }) => rest);
 }
 
 async function searchByCAD(
