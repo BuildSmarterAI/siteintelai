@@ -84,6 +84,10 @@ function calculateAddressMatchScore(inputAddress: string, situsAddress: string |
   // Street number matches
   const numberMatch = inputNum && situsNum && inputNum === situsNum;
   
+  // Situs has no street number - common in some CAD systems
+  // If street names match well, trust the parcel lookup (it was found via point-in-polygon)
+  const situsNoNumber = inputNum && !situsNum;
+  
   // Check street name similarity
   let streetScore = 0;
   let streetReason = 'no_street';
@@ -113,11 +117,17 @@ function calculateAddressMatchScore(inputAddress: string, situsAddress: string |
   
   // Compute final score
   if (numberMatch && streetScore >= 0.8) {
-    return { score: 1.0, reason: `perfect:${numberMatch ? 'num' : ''}+${streetReason}` };
+    return { score: 1.0, reason: `perfect:num+${streetReason}` };
   } else if (numberMatch) {
     return { score: 0.85 + streetScore * 0.15, reason: `num_match+${streetReason}` };
+  } else if (situsNoNumber && streetScore >= 0.6) {
+    // Situs has no number but street name matches well - trust point-in-polygon result
+    return { score: 0.75 + streetScore * 0.2, reason: `situs_no_num+${streetReason}` };
   } else if (streetScore >= 0.8) {
     return { score: 0.6 + streetScore * 0.2, reason: streetReason };
+  } else if (situsNoNumber && streetScore >= 0.4) {
+    // Situs has no number, partial street match - still accept with moderate confidence
+    return { score: 0.55 + streetScore * 0.2, reason: `situs_no_num_partial+${streetReason}` };
   } else {
     return { score: 0.3 + streetScore * 0.2, reason: `weak:${streetReason}` };
   }
