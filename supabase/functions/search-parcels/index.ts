@@ -174,20 +174,24 @@ interface SearchResponse {
 }
 
 // County boundary boxes for detection (expanded coverage)
+// Order matters for overlapping areas - more specific counties first
 const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: number; maxLat: number }> = {
+  // Fort Bend is west/southwest of Harris - check first for overlapping areas
+  fortbend: { minLng: -96.01, maxLng: -95.53, minLat: 29.35, maxLat: 29.75 },
+  // Brazoria is south of Fort Bend and Harris
+  brazoria: { minLng: -95.85, maxLng: -95.05, minLat: 28.95, maxLat: 29.45 },
+  // Harris is the main Houston metro - large county
   harris: { minLng: -95.91, maxLng: -94.91, minLat: 29.49, maxLat: 30.17 },
   montgomery: { minLng: -95.86, maxLng: -95.07, minLat: 30.07, maxLat: 30.67 },
+  galveston: { minLng: -95.15, maxLng: -94.50, minLat: 29.15, maxLat: 29.55 },
   travis: { minLng: -98.17, maxLng: -97.37, minLat: 30.07, maxLat: 30.63 },
+  williamson: { minLng: -98.05, maxLng: -97.28, minLat: 30.48, maxLat: 30.91 },
+  hays: { minLng: -98.20, maxLng: -97.60, minLat: 29.80, maxLat: 30.20 },
   bexar: { minLng: -98.81, maxLng: -98.09, minLat: 29.17, maxLat: 29.73 },
   dallas: { minLng: -97.05, maxLng: -96.52, minLat: 32.55, maxLat: 33.02 },
   tarrant: { minLng: -97.55, maxLng: -96.98, minLat: 32.55, maxLat: 33.00 },
-  williamson: { minLng: -98.05, maxLng: -97.28, minLat: 30.48, maxLat: 30.91 },
-  fortbend: { minLng: -96.01, maxLng: -95.45, minLat: 29.35, maxLat: 29.82 },
-  galveston: { minLng: -95.15, maxLng: -94.50, minLat: 29.15, maxLat: 29.65 },
-  brazoria: { minLng: -95.85, maxLng: -95.05, minLat: 28.95, maxLat: 29.50 },
   collin: { minLng: -96.85, maxLng: -96.25, minLat: 33.00, maxLat: 33.50 },
   denton: { minLng: -97.35, maxLng: -96.75, minLat: 33.00, maxLat: 33.55 },
-  hays: { minLng: -98.20, maxLng: -97.60, minLat: 29.80, maxLat: 30.20 },
 };
 
 function detectCounty(lat: number, lng: number): string | null {
@@ -363,6 +367,8 @@ async function searchByAddress(
   
   // If caller provided coordinates (e.g., user already selected a specific geocode result),
   // skip autocomplete/geocoding and go straight to parcel lookup.
+  console.log(`[search-parcels] Direct lookup check: lat=${options.lat}, lng=${options.lng}, countyHint=${options.countyHint}`);
+  
   if (
     typeof options.lat === 'number' &&
     typeof options.lng === 'number' &&
@@ -372,6 +378,8 @@ async function searchByAddress(
     const lat = options.lat;
     const lng = options.lng;
     const county = options.countyHint || detectCountySmart(lat, lng, query) || undefined;
+    
+    console.log(`[search-parcels] Direct parcel lookup: lat=${lat}, lng=${lng}, county=${county}`);
 
     if (county) {
       try {
@@ -384,9 +392,13 @@ async function searchByAddress(
           body: JSON.stringify({ lat, lng, county, inputAddress: query }),
         });
 
+        console.log(`[search-parcels] Direct parcel response status: ${parcelResponse.status}`);
+        
         if (parcelResponse.ok) {
           const parcelData = await parcelResponse.json();
           const feature = parcelData?.features?.[0];
+          console.log(`[search-parcels] Direct parcel data: found=${!!feature?.properties?.parcel_id}, features=${parcelData?.features?.length || 0}`);
+          
           if (feature?.properties?.parcel_id) {
             const parcel = {
               parcel_id: feature.properties.parcel_id,
@@ -399,6 +411,7 @@ async function searchByAddress(
 
             // Compute confidence using address match (handles missing situs numbers)
             const addressMatch = calculateAddressMatchScore(query, parcel.situs_address);
+            console.log(`[search-parcels] Direct parcel match: situs="${parcel.situs_address}" score=${addressMatch.score.toFixed(2)} reason=${addressMatch.reason}`);
 
             return [
               {
@@ -416,6 +429,8 @@ async function searchByAddress(
       } catch (err) {
         console.error('[search-parcels] Direct parcel fetch error:', err);
       }
+    } else {
+      console.log(`[search-parcels] Direct lookup skipped: no county detected`);
     }
     // If we couldn't resolve a parcel directly, continue with normal geocoding flow.
   }
