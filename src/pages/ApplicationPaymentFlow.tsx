@@ -30,6 +30,7 @@ export default function ApplicationPaymentFlow() {
     propertyAddress: "",
     geoLat: undefined as number | undefined,
     geoLng: undefined as number | undefined,
+    parcelGeometry: null as GeoJSON.Geometry | null,
     parcelId: "",
     lotSize: "",
     lotSizeUnit: "acres",
@@ -62,6 +63,7 @@ export default function ApplicationPaymentFlow() {
       propertyAddress: parcel.situs_address || prev.propertyAddress,
       geoLat: lat,
       geoLng: lng,
+      parcelGeometry: parcel.geom || null,
       parcelId: parcel.parcel_id || '',
       lotSize: parcel.acreage ? String(parcel.acreage) : prev.lotSize,
       parcelOwner: parcel.owner_name || prev.parcelOwner,
@@ -196,6 +198,7 @@ export default function ApplicationPaymentFlow() {
             lat: formData.geoLat,
             lng: formData.geoLng
           } : undefined}
+          parcelGeometry={formData.parcelGeometry}
           onEmailProvided={handleEmailProvided}
           onPaymentInitiated={() => {
             toast.success("Redirecting to checkout...");
