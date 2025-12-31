@@ -57,7 +57,8 @@ const COUNTY_CONFIG: Record<string, {
   },
   montgomery: {
     name: 'Montgomery County',
-    // Montgomery County GIS Hub - service may be unavailable, marked for monitoring
+    // Montgomery County GIS Hub - SERVICE UNAVAILABLE as of Dec 2024
+    // Endpoint returns 404; marked inactive until new endpoint is identified
     apiUrl: 'https://gis.mctx.org/arcgis/rest/services/Parcels/MapServer/0/query',
     fields: ['OBJECTID', 'PROP_ID', 'OWNER_NAME', 'ACRES', 'SITUS_ADDR', 'MARKET_VAL'],
     idField: 'PROP_ID',
@@ -70,20 +71,21 @@ const COUNTY_CONFIG: Record<string, {
   },
   travis: {
     name: 'Travis County',
-    // Updated: Travis County Tax Maps - verified working 2024
+    // Updated: Travis County Tax Maps - verified Dec 2024
+    // Uses PROP_ID (int), tcad_acres or GIS_acres, situs_address
     apiUrl: 'https://taxmaps.traviscountytx.gov/arcgis/rest/services/Parcels/MapServer/0/query',
-    fields: ['OBJECTID', 'prop_id', 'py_owner_name', 'Acres', 'situs_full_address', 'market_value'],
-    idField: 'prop_id',
+    fields: ['OBJECTID', 'PROP_ID', 'py_owner_name', 'tcad_acres', 'situs_address', 'market_value'],
+    idField: 'PROP_ID',
     ownerField: 'py_owner_name',
-    acreageField: 'Acres',
-    addressField: 'situs_full_address',
+    acreageField: 'tcad_acres',
+    addressField: 'situs_address',
     valueField: 'market_value',
-    maxRecords: 1000,
+    maxRecords: 2000,
     srid: 4326,
   },
   bexar: {
     name: 'Bexar County',
-    // Updated: Bexar County Maps - verified endpoint 2024
+    // Bexar County Maps - endpoint may require verification
     apiUrl: 'https://maps.bexar.org/arcgis/rest/services/Parcels/MapServer/0/query',
     fields: ['OBJECTID', 'PROP_ID', 'OWNER', 'ACRES', 'SITUS', 'MKT_VALUE'],
     idField: 'PROP_ID',
@@ -96,20 +98,21 @@ const COUNTY_CONFIG: Record<string, {
   },
   dallas: {
     name: 'Dallas County',
-    // Updated: City of Dallas GIS - verified working 2024
+    // City of Dallas GIS - verified Dec 2024
+    // Uses TAXPANAME1 for owner, AREA_FEET (no acres), composite address from ST_NUM + ST_NAME + ST_TYPE
     apiUrl: 'https://egis.dallascityhall.com/arcgis/rest/services/Basemap/DallasTaxParcels/MapServer/0/query',
-    fields: ['OBJECTID', 'GIS_ACCT', 'OWNER_NAME', 'ACRES', 'SITUS_ADDR', 'MKT_VALUE'],
+    fields: ['OBJECTID', 'GIS_ACCT', 'TAXPANAME1', 'AREA_FEET', 'ST_NUM', 'ST_NAME', 'ST_TYPE', 'ST_DIR', 'CITY'],
     idField: 'GIS_ACCT',
-    ownerField: 'OWNER_NAME',
-    acreageField: 'ACRES',
-    addressField: 'SITUS_ADDR',
-    valueField: 'MKT_VALUE',
+    ownerField: 'TAXPANAME1',
+    acreageField: '', // Dallas uses AREA_FEET - convert in code
+    addressField: '', // Composite - built from ST_* fields
+    valueField: '',
     maxRecords: 1000,
     srid: 4326,
   },
   tarrant: {
     name: 'Tarrant County',
-    // Updated: Tarrant County MapIt - verified working 2024
+    // Tarrant County MapIt - verified Dec 2024
     apiUrl: 'https://mapit.tarrantcounty.com/arcgis/rest/services/Tax/TCProperty/MapServer/0/query',
     fields: ['OBJECTID', 'ACCOUNT', 'OWNER_NAME', 'LAND_ACRES', 'SITUS_ADDR', 'TOTAL_VALU'],
     idField: 'ACCOUNT',
@@ -122,15 +125,16 @@ const COUNTY_CONFIG: Record<string, {
   },
   williamson: {
     name: 'Williamson County',
-    // Updated: Williamson County GIS public service - verified working 2024
+    // Williamson County GIS - verified Dec 2024
+    // Uses PropertyNumber (not geo_id), PrimaryOwner, Acres (string), SitusAddress, TotalPropMktValue
     apiUrl: 'https://gis.wilco.org/arcgis/rest/services/public/county_wcad_parcels/MapServer/0/query',
-    fields: ['OBJECTID', 'geo_id', 'owner_name', 'acreage', 'situs_addr', 'market_value'],
-    idField: 'geo_id',
-    ownerField: 'owner_name',
-    acreageField: 'acreage',
-    addressField: 'situs_addr',
-    valueField: 'market_value',
-    maxRecords: 1000,
+    fields: ['OBJECTID', 'PropertyNumber', 'PrimaryOwner', 'Acres', 'SitusAddress', 'TotalPropMktValue'],
+    idField: 'PropertyNumber',
+    ownerField: 'PrimaryOwner',
+    acreageField: 'Acres',
+    addressField: 'SitusAddress',
+    valueField: 'TotalPropMktValue',
+    maxRecords: 2000,
     srid: 4326,
   },
   fortbend: {
@@ -160,11 +164,13 @@ const COUNTY_CONFIG: Record<string, {
   },
   collin: {
     name: 'Collin County',
+    // Collin County GIS - verified Dec 2024
+    // Limited fields available: no owner name or acreage in API
     apiUrl: 'https://maps.collincountytx.gov/server/rest/services/InteractiveMap/Appraisal_District/MapServer/1/query',
     fields: ['OBJECTID_1', 'PROP_ID', 'situs_disp', 'cert_asses', 'geo_id'],
     idField: 'PROP_ID',
-    ownerField: '',
-    acreageField: '',
+    ownerField: '', // Not available in this service
+    acreageField: '', // Not available in this service
     addressField: 'situs_disp',
     valueField: 'cert_asses',
     maxRecords: 1000,
