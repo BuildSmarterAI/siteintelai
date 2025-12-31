@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { logger } from "@/lib/logger";
 import { Input } from './input';
 import { Label } from './label';
@@ -6,15 +6,55 @@ import { supabase } from '@/integrations/supabase/client';
 import submarketMapping from '@/data/submarket-mapping.json';
 import { toast } from 'sonner';
 import { useAddressValidation, VALIDATION_ERRORS } from '@/hooks/useAddressValidation';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Star, Clock, MapPin, Hash, Navigation } from 'lucide-react';
+import { useSearchHistory, type SavedLocation, type SearchQueryType } from '@/hooks/useSearchHistory';
 
-// Simple debounce function
+// Faster debounce - reduced from 300ms to 200ms
+const DEBOUNCE_MS = 200;
+
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
   return (...args: Parameters<T>) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func(...args), wait);
   };
+}
+
+// Input type detection
+type InputType = 'address' | 'apn' | 'coordinates' | 'intersection';
+
+function detectInputType(input: string): InputType {
+  const trimmed = input.trim();
+  
+  // APN/CAD number: 10+ digits (with optional dashes/spaces)
+  if (/^\d{10,}$/.test(trimmed.replace(/[-\s]/g, ''))) {
+    return 'apn';
+  }
+  
+  // Coordinates: lat,lng pattern
+  if (/^-?\d+\.?\d*,\s*-?\d+\.?\d*$/.test(trimmed)) {
+    return 'coordinates';
+  }
+  
+  // Intersection: contains & or "and" between words
+  if (/\s+(&|and)\s+/i.test(trimmed)) {
+    return 'intersection';
+  }
+  
+  return 'address';
+}
+
+function getInputHint(type: InputType): string | null {
+  switch (type) {
+    case 'apn':
+      return 'Searching by account number...';
+    case 'coordinates':
+      return 'Detected coordinates';
+    case 'intersection':
+      return 'Searching intersection...';
+    default:
+      return null;
+  }
 }
 
 interface AddressSuggestion {
@@ -24,7 +64,6 @@ interface AddressSuggestion {
     main_text: string;
     secondary_text: string;
   };
-  // Nominatim provides these directly
   lat?: number;
   lng?: number;
   addressDetails?: {
@@ -34,7 +73,7 @@ interface AddressSuggestion {
     zipCode?: string;
     neighborhood?: string;
   };
-  source?: 'google' | 'nominatim';
+  source?: 'google' | 'nominatim' | 'recent' | 'favorite';
 }
 
 interface AddressDetails {
@@ -63,6 +102,24 @@ interface AddressAutocompleteProps {
   onValidationChange?: (isValid: boolean) => void;
 }
 
+// Convert SavedLocation to AddressSuggestion
+function savedLocationToSuggestion(location: SavedLocation, isFavorite: boolean): AddressSuggestion {
+  return {
+    place_id: `saved-${location.id}`,
+    description: location.label,
+    structured_formatting: {
+      main_text: location.label.split(',')[0] || location.label,
+      secondary_text: location.label.split(',').slice(1).join(',').trim() || '',
+    },
+    lat: location.lat,
+    lng: location.lng,
+    addressDetails: {
+      county: location.county,
+    },
+    source: isFavorite ? 'favorite' : 'recent',
+  };
+}
+
 export function AddressAutocomplete({
   value,
   onChange,
@@ -83,16 +140,39 @@ export function AddressAutocomplete({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionRefs = useRef<(HTMLLIElement | null)[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [isFocused, setIsFocused] = useState(false);
   
   // Validation state
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isValidated, setIsValidated] = useState(false);
   const { validateAddress, isValidating, isValidStreetAddress } = useAddressValidation();
 
+  // Search history integration
+  const { recentSearches, favorites, addSearch, isLoading: historyLoading } = useSearchHistory();
+
+  // Input type detection
+  const inputType = useMemo(() => detectInputType(value), [value]);
+  const inputHint = useMemo(() => value.length >= 3 ? getInputHint(inputType) : null, [inputType, value]);
+
   // Notify parent of validation state changes
   useEffect(() => {
     onValidationChange?.(isValidated);
   }, [isValidated, onValidationChange]);
+
+  // Show recent/favorites when focused with empty input
+  const showRecentSearches = useMemo(() => {
+    return isFocused && value.length === 0 && (favorites.length > 0 || recentSearches.length > 0);
+  }, [isFocused, value, favorites.length, recentSearches.length]);
+
+  // Build combined suggestions list
+  const combinedSuggestions = useMemo((): AddressSuggestion[] => {
+    if (showRecentSearches) {
+      const favoriteSuggestions = favorites.slice(0, 5).map(f => savedLocationToSuggestion(f, true));
+      const recentSuggestions = recentSearches.slice(0, 5).map(r => savedLocationToSuggestion(r, false));
+      return [...favoriteSuggestions, ...recentSuggestions];
+    }
+    return suggestions;
+  }, [showRecentSearches, favorites, recentSearches, suggestions]);
 
   const fetchSuggestions = useCallback(debounce(async (input: string) => {
     if (input.length < 3) {
@@ -164,7 +244,7 @@ export function AddressAutocomplete({
     } finally {
       setIsLoading(false);
     }
-  }, 300), [sessionToken, isValidStreetAddress]);
+  }, DEBOUNCE_MS), [sessionToken, isValidStreetAddress]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
@@ -182,8 +262,20 @@ export function AddressAutocomplete({
         placeId: suggestion.place_id
       };
 
+      // If saved search (recent/favorite), use embedded data directly
+      if ((suggestion.source === 'recent' || suggestion.source === 'favorite') && suggestion.lat && suggestion.lng) {
+        coordinates = { lat: suggestion.lat, lng: suggestion.lng };
+        if (suggestion.addressDetails) {
+          addressDetails.county = suggestion.addressDetails.county;
+          addressDetails.city = suggestion.addressDetails.city;
+          addressDetails.state = suggestion.addressDetails.state;
+          addressDetails.zipCode = suggestion.addressDetails.zipCode;
+          addressDetails.neighborhood = suggestion.addressDetails.neighborhood;
+        }
+        logger.log('Using saved search data:', { coordinates, addressDetails });
+      }
       // If Nominatim suggestion, use embedded data directly (no second API call needed!)
-      if (suggestion.source === 'nominatim' && suggestion.lat && suggestion.lng) {
+      else if (suggestion.source === 'nominatim' && suggestion.lat && suggestion.lng) {
         coordinates = { lat: suggestion.lat, lng: suggestion.lng };
         
         // Use pre-extracted address details
@@ -358,6 +450,23 @@ export function AddressAutocomplete({
 
       onChange(finalAddress, coordinates, addressDetails);
 
+      // Save to search history (only for new searches, not re-selecting saved ones)
+      if (suggestion.source !== 'recent' && suggestion.source !== 'favorite') {
+        const queryType: SearchQueryType = inputType === 'apn' ? 'apn' 
+          : inputType === 'coordinates' ? 'coordinates' 
+          : inputType === 'intersection' ? 'intersection' 
+          : 'address';
+        
+        addSearch({
+          label: finalAddress,
+          query: finalAddress,
+          queryType,
+          lat: coordinates?.lat,
+          lng: coordinates?.lng,
+          county: addressDetails.county,
+        });
+      }
+
       // Trigger GIS enrichment (without application_id during form fill)
       setEnrichmentStatus('loading');
       try {
@@ -425,30 +534,51 @@ export function AddressAutocomplete({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showSuggestions || suggestions.length === 0) return;
+    const displayedSuggestions = showRecentSearches ? combinedSuggestions : suggestions;
+    const hasItems = displayedSuggestions.length > 0;
 
     switch (e.key) {
       case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
-        );
+        if (hasItems) {
+          e.preventDefault();
+          setSelectedIndex(prev => 
+            prev < displayedSuggestions.length - 1 ? prev + 1 : prev
+          );
+        }
         break;
       case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        if (hasItems) {
+          e.preventDefault();
+          setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
+        }
         break;
       case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          handleSuggestionClick(suggestions[selectedIndex]);
+        if (hasItems && selectedIndex >= 0 && selectedIndex < displayedSuggestions.length) {
+          e.preventDefault();
+          handleSuggestionClick(displayedSuggestions[selectedIndex]);
+        }
+        break;
+      case 'Tab':
+        // Tab to autocomplete first suggestion
+        if (hasItems && displayedSuggestions.length > 0 && selectedIndex === -1) {
+          e.preventDefault();
+          handleSuggestionClick(displayedSuggestions[0]);
         }
         break;
       case 'Escape':
         setSuggestions([]);
         setShowSuggestions(false);
         setSelectedIndex(-1);
+        setIsFocused(false);
+        inputRef.current?.blur();
         break;
+    }
+  };
+
+  const handleFocus = () => {
+    setIsFocused(true);
+    if (value.length >= 3) {
+      setShowSuggestions(suggestions.length > 0);
     }
   };
 
@@ -457,6 +587,7 @@ export function AddressAutocomplete({
     setTimeout(() => {
       setShowSuggestions(false);
       setSelectedIndex(-1);
+      setIsFocused(false);
     }, 150);
   };
 
@@ -480,6 +611,42 @@ export function AddressAutocomplete({
     return 'border-charcoal/20';
   };
 
+  // Get icon for suggestion source
+  const getSourceIcon = (source?: string) => {
+    switch (source) {
+      case 'favorite':
+        return <Star className="h-3.5 w-3.5 text-amber-500 fill-amber-500" />;
+      case 'recent':
+        return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
+      case 'google':
+      case 'nominatim':
+      default:
+        return <MapPin className="h-3.5 w-3.5 text-muted-foreground" />;
+    }
+  };
+
+  // Highlight matching text in suggestions
+  const highlightMatch = (text: string, query: string) => {
+    if (!query || query.length < 2) return text;
+    
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const index = lowerText.indexOf(lowerQuery);
+    
+    if (index === -1) return text;
+    
+    return (
+      <>
+        {text.slice(0, index)}
+        <span className="font-semibold text-primary">{text.slice(index, index + query.length)}</span>
+        {text.slice(index + query.length)}
+      </>
+    );
+  };
+
+  const displaySuggestions = showRecentSearches ? combinedSuggestions : suggestions;
+  const shouldShowDropdown = (showSuggestions && suggestions.length > 0) || showRecentSearches;
+
   return (
     <div className="relative">
       {label && (
@@ -495,13 +662,14 @@ export function AddressAutocomplete({
           value={value}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
+          onFocus={handleFocus}
           onBlur={handleBlur}
           placeholder={placeholder}
           className={`mt-2 pr-10 ${getInputBorderClass()} ${className}`}
           autoComplete="off"
           aria-autocomplete="list"
-          aria-controls={showSuggestions ? "address-suggestions" : undefined}
-          aria-expanded={showSuggestions}
+          aria-controls={shouldShowDropdown ? "address-suggestions" : undefined}
+          aria-expanded={shouldShowDropdown}
           aria-activedescendant={selectedIndex >= 0 ? `suggestion-${selectedIndex}` : undefined}
           role="combobox"
         />
@@ -519,6 +687,16 @@ export function AddressAutocomplete({
         )}
       </div>
 
+      {/* Input type hint */}
+      {inputHint && !isLoading && (
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+          {inputType === 'apn' && <Hash className="h-3 w-3" />}
+          {inputType === 'coordinates' && <Navigation className="h-3 w-3" />}
+          {inputType === 'intersection' && <MapPin className="h-3 w-3" />}
+          <span>{inputHint}</span>
+        </div>
+      )}
+
       {/* Validation error message */}
       {validationError && (
         <div className="mt-2 flex items-center gap-2 text-sm text-destructive" role="alert">
@@ -527,36 +705,69 @@ export function AddressAutocomplete({
         </div>
       )}
       
-      {showSuggestions && suggestions.length > 0 && (
+      {shouldShowDropdown && displaySuggestions.length > 0 && (
         <ul 
           id="address-suggestions"
-          className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg max-h-60 overflow-y-auto mt-1"
+          className="absolute top-full left-0 right-0 z-50 bg-white border border-charcoal/20 rounded-md shadow-lg max-h-72 overflow-y-auto mt-1"
           role="listbox"
           aria-label="Address suggestions"
         >
-          {suggestions.map((suggestion, index) => (
-            <li
-              key={suggestion.place_id}
-              id={`suggestion-${index}`}
-              ref={el => suggestionRefs.current[index] = el}
-              onMouseDown={(e) => {
-                e.preventDefault(); // Prevent blur from firing
-                handleSuggestionClick(suggestion);
-              }}
-              className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 ${
-                index === selectedIndex ? 'bg-blue-50' : ''
-              }`}
-              role="option"
-              aria-selected={index === selectedIndex}
-            >
-              <div className="font-medium text-charcoal">
-                {suggestion.structured_formatting.main_text}
-              </div>
-              <div className="text-sm text-charcoal/60">
-                {suggestion.structured_formatting.secondary_text}
-              </div>
+          {/* Section headers for recent/favorites */}
+          {showRecentSearches && favorites.length > 0 && (
+            <li className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 sticky top-0">
+              ⭐ Favorites
             </li>
-          ))}
+          )}
+          
+          {displaySuggestions.map((suggestion, index) => {
+            // Add "Recent" header before first recent item
+            const isFirstRecent = showRecentSearches && 
+              suggestion.source === 'recent' && 
+              (index === 0 || displaySuggestions[index - 1]?.source === 'favorite');
+            
+            return (
+              <React.Fragment key={suggestion.place_id}>
+                {isFirstRecent && recentSearches.length > 0 && (
+                  <li className="px-3 py-1.5 text-xs font-medium text-muted-foreground bg-muted/50 sticky top-0">
+                    🕐 Recent
+                  </li>
+                )}
+                <li
+                  id={`suggestion-${index}`}
+                  ref={el => suggestionRefs.current[index] = el}
+                  onMouseDown={(e) => {
+                    e.preventDefault(); // Prevent blur from firing
+                    handleSuggestionClick(suggestion);
+                  }}
+                  className={`px-4 py-3 cursor-pointer hover:bg-gray-50 border-b border-gray-100 last:border-b-0 flex items-start gap-3 ${
+                    index === selectedIndex ? 'bg-blue-50' : ''
+                  }`}
+                  role="option"
+                  aria-selected={index === selectedIndex}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {getSourceIcon(suggestion.source)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-charcoal truncate">
+                      {showRecentSearches 
+                        ? suggestion.structured_formatting.main_text
+                        : highlightMatch(suggestion.structured_formatting.main_text, value)
+                      }
+                    </div>
+                    {suggestion.structured_formatting.secondary_text && (
+                      <div className="text-sm text-charcoal/60 truncate">
+                        {showRecentSearches 
+                          ? suggestion.structured_formatting.secondary_text
+                          : highlightMatch(suggestion.structured_formatting.secondary_text, value)
+                        }
+                      </div>
+                    )}
+                  </div>
+                </li>
+              </React.Fragment>
+            );
+          })}
         </ul>
       )}
       
@@ -566,8 +777,9 @@ export function AddressAutocomplete({
           role="status"
           aria-live="polite"
         >
-          <div className="px-4 py-3 text-center text-charcoal/60">
-            Searching addresses...
+          <div className="px-4 py-3 flex items-center gap-2 text-charcoal/60">
+            <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+            <span>Searching Texas addresses...</span>
           </div>
         </div>
       )}
