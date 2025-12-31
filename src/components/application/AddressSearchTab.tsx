@@ -551,11 +551,13 @@ export function AddressSearchTab({
                     <ul className="py-1">
                       {favorites.map((item) => (
                         <li key={item.id}>
-                          <button
-                            type="button"
+                          <div
+                            role="button"
+                            tabIndex={0}
                             title={item.label}
-                            className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/50 group"
+                            className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/50 group cursor-pointer"
                             onClick={() => handleHistoryItemClick(item)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleHistoryItemClick(item)}
                           >
                             <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
                             <div className="min-w-0 flex-1">
@@ -572,7 +574,7 @@ export function AddressSearchTab({
                             >
                               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                             </button>
-                          </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
@@ -602,11 +604,13 @@ export function AddressSearchTab({
                     <ul className="py-1">
                       {recentSearches.map((item) => (
                         <li key={item.id}>
-                          <button
-                            type="button"
+                          <div
+                            role="button"
+                            tabIndex={0}
                             title={item.label}
-                            className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/50 group"
+                            className="w-full px-3 py-2.5 text-left transition-colors flex items-start gap-3 hover:bg-muted/50 group cursor-pointer"
                             onClick={() => handleHistoryItemClick(item)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleHistoryItemClick(item)}
                           >
                             <MapPin className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
                             <div className="min-w-0 flex-1">
@@ -623,7 +627,7 @@ export function AddressSearchTab({
                             >
                               <Star className="h-4 w-4 text-muted-foreground hover:text-yellow-500" />
                             </button>
-                          </button>
+                          </div>
                         </li>
                       ))}
                     </ul>
