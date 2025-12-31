@@ -1483,6 +1483,45 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_events_log: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          error: string | null
+          event_type: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          received_at: string | null
+          status: string | null
+          stripe_event_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          stripe_event_id: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          error?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          stripe_event_id?: string
+        }
+        Relationships: []
+      }
       broadband_coverage_canonical: {
         Row: {
           accuracy_tier: number
@@ -2986,6 +3025,57 @@ export type Database = {
           utility_abbrev?: string | null
           utility_name?: string
           utility_type?: string
+        }
+        Relationships: []
+      }
+      entitlements: {
+        Row: {
+          account_id: string
+          active_parcel_limit: number | null
+          can_export_csv: boolean | null
+          can_generate_lender_ready: boolean | null
+          can_share_links: boolean | null
+          can_use_api: boolean | null
+          created_at: string | null
+          grace_until: string | null
+          history_retention_days: number | null
+          included_reports_monthly: number | null
+          report_overage_allowed: boolean | null
+          seat_limit: number | null
+          tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          active_parcel_limit?: number | null
+          can_export_csv?: boolean | null
+          can_generate_lender_ready?: boolean | null
+          can_share_links?: boolean | null
+          can_use_api?: boolean | null
+          created_at?: string | null
+          grace_until?: string | null
+          history_retention_days?: number | null
+          included_reports_monthly?: number | null
+          report_overage_allowed?: boolean | null
+          seat_limit?: number | null
+          tier?: string
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          active_parcel_limit?: number | null
+          can_export_csv?: boolean | null
+          can_generate_lender_ready?: boolean | null
+          can_share_links?: boolean | null
+          can_use_api?: boolean | null
+          created_at?: string | null
+          grace_until?: string | null
+          history_retention_days?: number | null
+          included_reports_monthly?: number | null
+          report_overage_allowed?: boolean | null
+          seat_limit?: number | null
+          tier?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -5423,37 +5513,61 @@ export type Database = {
       }
       subscription_tiers: {
         Row: {
+          active_parcel_limit: number | null
           api_access: boolean | null
+          can_export_csv: boolean | null
+          can_generate_lender_ready: boolean | null
+          can_share_links: boolean | null
           created_at: string
           description: string | null
+          history_retention_days: number | null
           id: string
           name: string
           price_monthly: number
           quickchecks_unlimited: boolean | null
           reports_per_month: number | null
+          seat_limit: number | null
           stripe_price_id: string | null
+          stripe_price_id_annual: string | null
+          stripe_product_id: string | null
         }
         Insert: {
+          active_parcel_limit?: number | null
           api_access?: boolean | null
+          can_export_csv?: boolean | null
+          can_generate_lender_ready?: boolean | null
+          can_share_links?: boolean | null
           created_at?: string
           description?: string | null
+          history_retention_days?: number | null
           id?: string
           name: string
           price_monthly: number
           quickchecks_unlimited?: boolean | null
           reports_per_month?: number | null
+          seat_limit?: number | null
           stripe_price_id?: string | null
+          stripe_price_id_annual?: string | null
+          stripe_product_id?: string | null
         }
         Update: {
+          active_parcel_limit?: number | null
           api_access?: boolean | null
+          can_export_csv?: boolean | null
+          can_generate_lender_ready?: boolean | null
+          can_share_links?: boolean | null
           created_at?: string
           description?: string | null
+          history_retention_days?: number | null
           id?: string
           name?: string
           price_monthly?: number
           quickchecks_unlimited?: boolean | null
           reports_per_month?: number | null
+          seat_limit?: number | null
           stripe_price_id?: string | null
+          stripe_price_id_annual?: string | null
+          stripe_product_id?: string | null
         }
         Relationships: []
       }
@@ -6061,6 +6175,39 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_counters_monthly: {
+        Row: {
+          account_id: string
+          active_parcels_peak: number | null
+          created_at: string | null
+          overage_credits_used: number | null
+          period_yyyymm: string
+          reports_generated: number | null
+          seats_active_peak: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id: string
+          active_parcels_peak?: number | null
+          created_at?: string | null
+          overage_credits_used?: number | null
+          period_yyyymm: string
+          reports_generated?: number | null
+          seats_active_peak?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string
+          active_parcels_peak?: number | null
+          created_at?: string | null
+          overage_credits_used?: number | null
+          period_yyyymm?: string
+          reports_generated?: number | null
+          seats_active_peak?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_onboarding: {
         Row: {
           checklist_completed: Json | null
@@ -6165,39 +6312,51 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          active_parcels_used: number | null
           created_at: string
+          credit_expires_at: string | null
           id: string
           period_end: string | null
           period_start: string
+          purchased_credits: number | null
           quickchecks_used: number | null
           reports_used: number | null
           status: string
+          stripe_product_id: string | null
           stripe_subscription_id: string | null
           tier_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          active_parcels_used?: number | null
           created_at?: string
+          credit_expires_at?: string | null
           id?: string
           period_end?: string | null
           period_start?: string
+          purchased_credits?: number | null
           quickchecks_used?: number | null
           reports_used?: number | null
           status?: string
+          stripe_product_id?: string | null
           stripe_subscription_id?: string | null
           tier_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          active_parcels_used?: number | null
           created_at?: string
+          credit_expires_at?: string | null
           id?: string
           period_end?: string | null
           period_start?: string
+          purchased_credits?: number | null
           quickchecks_used?: number | null
           reports_used?: number | null
           status?: string
+          stripe_product_id?: string | null
           stripe_subscription_id?: string | null
           tier_id?: string
           updated_at?: string
