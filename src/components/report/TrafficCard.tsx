@@ -9,6 +9,7 @@ import { TrafficVolumeChart } from "./TrafficVolumeChart";
 import { TruckMixDonut } from "./TruckMixDonut";
 import { PeakHourHeatmap } from "./PeakHourHeatmap";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 interface TrafficCardProps {
   score: number;
   aadt?: number | null;
@@ -350,7 +351,7 @@ export function TrafficCard({
             </div>
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: verdict }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(verdict) }}
             />
           </div>
         )}

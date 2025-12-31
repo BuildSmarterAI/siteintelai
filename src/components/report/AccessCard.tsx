@@ -6,6 +6,7 @@ import { AccessDistanceVisual } from "./AccessDistanceVisual";
 import { RoadClassificationBadge } from "./RoadClassificationBadge";
 import { DriveTimeRings } from "./DriveTimeRings";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 interface AccessCardProps {
   score?: number;
   distanceHighwayFt?: number | null;
@@ -260,7 +261,7 @@ export function AccessCard({
             </div>
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: verdict }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(verdict) }}
             />
           </div>
         )}

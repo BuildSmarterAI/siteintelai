@@ -4,6 +4,7 @@ import { AlertTriangle, Droplets, TrendingUp, Shield, FileText, Activity } from 
 import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface FloodRiskCardProps {
   score: number;
@@ -195,7 +196,7 @@ export function FloodRiskCard({
             </div>
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: verdict }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(verdict) }}
             />
           </div>
         )}

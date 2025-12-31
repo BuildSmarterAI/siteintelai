@@ -4,6 +4,7 @@ import { Leaf, AlertTriangle, MapPin, Mountain, FileText, CheckCircle2, XCircle,
 import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 import {
   Tooltip,
   TooltipContent,
@@ -798,7 +799,7 @@ export function EnvironmentalCard({
             </div>
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: verdict }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(verdict) }}
             />
           </div>
         )}

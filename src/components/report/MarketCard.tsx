@@ -4,6 +4,7 @@ import { Users, TrendingUp, Clock, MapPin, DollarSign, Building2, BarChart3 } fr
 import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface MarketCardProps {
   score: number;
@@ -242,7 +243,7 @@ export function MarketCard({
             </div>
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: verdict }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(verdict) }}
             />
           </div>
         )}
