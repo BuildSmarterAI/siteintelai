@@ -1,15 +1,18 @@
 import { MapPin, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ParcelMapSnapshot } from "@/components/application/ParcelMapSnapshot";
 
 interface AddressLockBadgeProps {
   propertyAddress: string;
   coordinates?: { lat: number; lng: number };
+  geometry?: GeoJSON.Geometry | null;
   onChangeAddress?: () => void;
 }
 
 export const AddressLockBadge = ({
   propertyAddress,
   coordinates,
+  geometry,
   onChangeAddress,
 }: AddressLockBadgeProps) => {
   return (
@@ -24,6 +27,19 @@ export const AddressLockBadge = ({
               Property Verified & Locked
             </span>
           </div>
+          
+          {/* Parcel Map Snapshot */}
+          {geometry && (
+            <div className="mb-3">
+              <ParcelMapSnapshot 
+                geometry={geometry}
+                className="w-full rounded-lg overflow-hidden"
+                width={400}
+                height={140}
+              />
+            </div>
+          )}
+          
           <div className="flex items-start gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" strokeWidth={1.5} />
             <div className="min-w-0">

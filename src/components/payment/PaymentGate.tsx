@@ -16,6 +16,7 @@ interface PaymentGateProps {
   applicationId: string;
   propertyAddress: string;
   coordinates?: { lat: number; lng: number };
+  parcelGeometry?: GeoJSON.Geometry | null;
   onEmailProvided?: (email: string) => void;
   onPaymentInitiated?: () => void;
   onChangeAddress?: () => void;
@@ -25,6 +26,7 @@ export const PaymentGate = ({
   applicationId, 
   propertyAddress, 
   coordinates,
+  parcelGeometry,
   onEmailProvided,
   onPaymentInitiated,
   onChangeAddress,
@@ -132,6 +134,7 @@ export const PaymentGate = ({
           <AddressLockBadge
             propertyAddress={propertyAddress}
             coordinates={coordinates}
+            geometry={parcelGeometry}
             onChangeAddress={onChangeAddress}
           />
 
