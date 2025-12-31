@@ -190,6 +190,60 @@ function detectCounty(lat: number, lng: number): string | null {
   return null;
 }
 
+/**
+ * Extract county name from address string
+ * Handles formats like "Fort Bend County, Texas" or "Harris County"
+ */
+function extractCountyFromAddress(address: string): string | null {
+  if (!address) return null;
+  
+  const normalized = address.toLowerCase();
+  
+  // Map of display names to internal keys
+  const countyMappings: Record<string, string> = {
+    'fort bend': 'fortbend',
+    'harris': 'harris',
+    'montgomery': 'montgomery',
+    'travis': 'travis',
+    'bexar': 'bexar',
+    'dallas': 'dallas',
+    'tarrant': 'tarrant',
+    'williamson': 'williamson',
+    'galveston': 'galveston',
+    'brazoria': 'brazoria',
+    'collin': 'collin',
+    'denton': 'denton',
+    'hays': 'hays',
+  };
+  
+  // Look for "X County" pattern in the address
+  for (const [displayName, key] of Object.entries(countyMappings)) {
+    if (normalized.includes(`${displayName} county`)) {
+      return key;
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Smart county detection: prefers address-based detection, falls back to coordinates
+ * This handles edge cases where coordinates fall in overlapping bounding boxes
+ */
+function detectCountySmart(lat: number, lng: number, addressText?: string): string | null {
+  // First try to extract county from address text (most reliable for edge cases)
+  if (addressText) {
+    const addressCounty = extractCountyFromAddress(addressText);
+    if (addressCounty) {
+      console.log(`[search-parcels] County from address text: ${addressCounty}`);
+      return addressCounty;
+    }
+  }
+  
+  // Fall back to coordinate-based detection
+  return detectCounty(lat, lng);
+}
+
 // APN pattern detection for search routing
 const APN_PATTERNS: Record<string, RegExp> = {
   harris: /^\d{13}$|^\d{3}-\d{3}-\d{3}-\d{4}$/,
@@ -347,7 +401,8 @@ async function searchByAddress(
           for (const pred of nominatimData.predictions.slice(0, 3)) {
             const lat = parseFloat(pred.lat);
             const lng = parseFloat(pred.lng);
-            const county = detectCounty(lat, lng) || pred.addressDetails?.county?.toLowerCase().replace(' county', '') || undefined;
+            // Use smart detection: prefer county name from address, fallback to coordinates
+            const county = detectCountySmart(lat, lng, pred.description) || undefined;
             
             // Try to fetch parcel at this location
             let parcel = null;
@@ -459,7 +514,8 @@ async function searchByAddress(
       const location = detailsData.result?.geometry?.location;
       
       if (location) {
-        const county = detectCounty(location.lat, location.lng);
+        // Use smart detection: prefer county name from address, fallback to coordinates
+        const county = detectCountySmart(location.lat, location.lng, prediction.description);
         
         // Try to fetch parcel at this location
         let parcel = null;
