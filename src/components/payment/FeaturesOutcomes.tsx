@@ -4,22 +4,22 @@ const features = [
   { 
     icon: Building2, 
     label: "Zoning & Buildability Analysis",
-    description: "Full development potential assessment"
+    description: "FAR, setbacks, height limits, permitted uses"
   },
   { 
     icon: Shield, 
     label: "Flood & Environmental Risk",
-    description: "FEMA, wetlands, EPA proximity"
+    description: "Flood zone, base elevation, wetland overlaps"
   },
   { 
     icon: Zap, 
     label: "Utilities Infrastructure Report",
-    description: "Water, sewer, power availability"
+    description: "Connection points, capacity notes, providers"
   },
   { 
     icon: CheckCircle2, 
     label: "Market Demographics Profile",
-    description: "Population, income, growth trends"
+    description: "5-mile demographics, income tiers, 10-yr growth"
   },
 ];
 
