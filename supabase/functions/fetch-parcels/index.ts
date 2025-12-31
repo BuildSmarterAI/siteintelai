@@ -136,11 +136,11 @@ const COUNTY_CONFIG: Record<string, {
   fortbend: {
     name: 'Fort Bend County',
     apiUrl: 'https://gisweb.fbcad.org/arcgis/rest/services/Hosted/FBCAD_Public_Data/FeatureServer/0/query',
-    // FBCAD does NOT expose OBJECTID; it uses `fid` as the object identifier field.
-    fields: ['fid', 'propnumber', 'ownername', 'acres', 'situs', 'totalvalue'],
+    // FBCAD uses `fid` as OID and `landsizeac` for acres (not `acres` which doesn't exist)
+    fields: ['fid', 'propnumber', 'ownername', 'landsizeac', 'situs', 'totalvalue'],
     idField: 'propnumber',
     ownerField: 'ownername',
-    acreageField: 'acres',
+    acreageField: 'landsizeac',
     addressField: 'situs',
     valueField: 'totalvalue',
     maxRecords: 2000,
