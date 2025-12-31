@@ -42,14 +42,6 @@ export const PaymentCTA = ({
         Secure checkout • No recurring fees • 30-day guarantee
       </p>
 
-      {/* Guarantee */}
-      <div className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-primary/5 border border-primary/10">
-        <Shield className="h-4 w-4 text-primary shrink-0" strokeWidth={1.5} />
-        <p className="text-xs text-foreground">
-          <span className="font-semibold">30-day money-back guarantee</span>
-          <span className="text-muted-foreground"> — Secure payment via Stripe</span>
-        </p>
-      </div>
 
       {/* Application ID (if created) */}
       {applicationId && applicationId !== "pending" && (
