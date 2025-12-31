@@ -33,17 +33,17 @@ export function ParcelSelectionTabs({
     <div className="space-y-4">
       <Tabs value={state.inputMode} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="address" className="gap-2">
-            <MapPin className="h-4 w-4" />
-            <span className="hidden sm:inline">Address</span>
+          <TabsTrigger value="address" className="gap-1.5 min-h-[44px] px-3">
+            <MapPin className="h-4 w-4 shrink-0" />
+            <span className="text-xs sm:text-sm">Addr</span>
           </TabsTrigger>
-          <TabsTrigger value="cross_streets" className="gap-2">
-            <Navigation className="h-4 w-4" />
-            <span className="hidden sm:inline">Cross Streets</span>
+          <TabsTrigger value="cross_streets" className="gap-1.5 min-h-[44px] px-3">
+            <Navigation className="h-4 w-4 shrink-0" />
+            <span className="text-xs sm:text-sm">Cross</span>
           </TabsTrigger>
-          <TabsTrigger value="cad" className="gap-2">
-            <Hash className="h-4 w-4" />
-            <span className="hidden sm:inline">CAD / APN</span>
+          <TabsTrigger value="cad" className="gap-1.5 min-h-[44px] px-3">
+            <Hash className="h-4 w-4 shrink-0" />
+            <span className="text-xs sm:text-sm">CAD</span>
           </TabsTrigger>
         </TabsList>
 
