@@ -12,6 +12,7 @@ import { Loader2, CheckCircle } from "lucide-react";
 import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 import { useOAuthErrorHandler } from "@/hooks/useOAuthErrorHandler";
 import { OAuthDebugPanel } from "@/components/OAuthDebugPanel";
+import { logger } from "@/lib/logger";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -86,13 +87,13 @@ export default function Auth() {
     
     const redirectTo = `${window.location.origin}/dashboard`;
     
-    // Log debugging information
-    console.group('🔐 Google OAuth Initiation');
-    console.log('Redirect URL:', redirectTo);
-    console.log('Current Origin:', window.location.origin);
-    console.log('Supabase Project:', 'mcmfwlgovubpdcfiqfvk');
-    console.log('Expected Callback:', 'https://mcmfwlgovubpdcfiqfvk.supabase.co/auth/v1/callback');
-    console.groupEnd();
+    // Log debugging information (dev only)
+    logger.group('🔐 Google OAuth Initiation');
+    logger.log('Redirect URL:', redirectTo);
+    logger.log('Current Origin:', window.location.origin);
+    logger.log('Supabase Project:', 'mcmfwlgovubpdcfiqfvk');
+    logger.log('Expected Callback:', 'https://mcmfwlgovubpdcfiqfvk.supabase.co/auth/v1/callback');
+    logger.groupEnd();
     
     try {
       const { error } = await supabase.auth.signInWithOAuth({

@@ -4,6 +4,7 @@ import { Droplets, Zap, Wifi, Trash2, CheckCircle2, XCircle, AlertCircle, Cable 
 import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
+import DOMPurify from "dompurify";
 
 interface UtilityLine {
   distance_ft?: number;
@@ -264,7 +265,7 @@ export function UtilitiesCard({
             </div>
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: verdict }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(verdict) }}
             />
           </div>
         )}
