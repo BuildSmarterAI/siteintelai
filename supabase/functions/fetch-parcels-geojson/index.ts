@@ -140,39 +140,59 @@ Deno.serve(async (req) => {
     let coverageGap = false;
 
     if (canonicalCount < COVERAGE_THRESHOLD) {
-      console.log(`[fetch-parcels-geojson] Coverage gap detected (${canonicalCount} < ${COVERAGE_THRESHOLD}), fetching from external...`);
+      // Detect which counties are in this bbox
+      const countiesInView = findCountiesInBbox(bbox);
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+      const primaryCounty = detectJurisdiction(centerLat, centerLng);
+      
+      console.log(`[fetch-parcels-geojson] Coverage gap detected (${canonicalCount} < ${COVERAGE_THRESHOLD})`);
+      console.log(`[fetch-parcels-geojson] Counties in view: ${countiesInView.join(', ') || 'none'}`);
+      console.log(`[fetch-parcels-geojson] Primary county (center): ${primaryCounty}`);
+      
       coverageGap = true;
 
-      try {
-        // Call fetch-parcels for external data
-        const { data: externalData, error: externalError } = await supabase.functions.invoke(
-          "fetch-parcels",
-          {
-            body: { bbox, zoom },
-          }
-        );
+      // Only fetch from external if we have a known county
+      if (primaryCounty !== 'unknown' || countiesInView.length > 0) {
+        try {
+          // Call fetch-parcels with explicit county for better routing
+          const targetCounty = primaryCounty !== 'unknown' ? primaryCounty : countiesInView[0];
+          
+          const { data: externalData, error: externalError } = await supabase.functions.invoke(
+            "fetch-parcels",
+            {
+              body: { 
+                bbox, 
+                zoom,
+                county: targetCounty, // Pass explicit county to avoid detection issues
+              },
+            }
+          );
 
-        if (externalError) {
-          console.error("[fetch-parcels-geojson] External fetch error:", externalError.message);
-        } else if (externalData?.features) {
-          externalFeatures = externalData.features.map((f: any) => ({
-            type: "Feature" as const,
-            geometry: f.geometry,
-            properties: {
-              parcel_id: f.properties?.parcel_id || "",
-              owner_name: f.properties?.owner_name || null,
-              situs_address: f.properties?.situs_address || null,
-              acreage: f.properties?.acreage || null,
-              land_use_desc: null,
-              jurisdiction: f.properties?.county || null,
-              source: "external" as const,
-              source_agency: f.properties?.source || "External API",
-            },
-          }));
-          console.log(`[fetch-parcels-geojson] External parcels fetched: ${externalFeatures.length}`);
+          if (externalError) {
+            console.error("[fetch-parcels-geojson] External fetch error:", externalError.message);
+          } else if (externalData?.features) {
+            externalFeatures = externalData.features.map((f: any) => ({
+              type: "Feature" as const,
+              geometry: f.geometry,
+              properties: {
+                parcel_id: f.properties?.parcel_id || "",
+                owner_name: f.properties?.owner_name || null,
+                situs_address: f.properties?.situs_address || null,
+                acreage: f.properties?.acreage || null,
+                land_use_desc: null,
+                jurisdiction: f.properties?.county || targetCounty,
+                source: "external" as const,
+                source_agency: f.properties?.source || "External API",
+              },
+            }));
+            console.log(`[fetch-parcels-geojson] External parcels fetched: ${externalFeatures.length} from ${targetCounty}`);
+          }
+        } catch (err) {
+          console.error("[fetch-parcels-geojson] Failed to fetch external:", err);
         }
-      } catch (err) {
-        console.error("[fetch-parcels-geojson] Failed to fetch external:", err);
+      } else {
+        console.log("[fetch-parcels-geojson] No known county in viewport, skipping external fetch");
       }
 
       // Log coverage gap event for ETL prioritization
@@ -241,25 +261,49 @@ Deno.serve(async (req) => {
 });
 
 /**
- * Simple jurisdiction detection based on coordinates
+ * County bounds for jurisdiction detection - matches fetch-parcels COUNTY_BOUNDS
+ */
+const COUNTY_BOUNDS: Record<string, { minLng: number; maxLng: number; minLat: number; maxLat: number }> = {
+  harris: { minLng: -95.91, maxLng: -94.91, minLat: 29.49, maxLat: 30.17 },
+  montgomery: { minLng: -95.86, maxLng: -95.07, minLat: 30.07, maxLat: 30.67 },
+  travis: { minLng: -98.17, maxLng: -97.37, minLat: 30.07, maxLat: 30.63 },
+  bexar: { minLng: -98.81, maxLng: -98.09, minLat: 29.17, maxLat: 29.73 },
+  dallas: { minLng: -97.05, maxLng: -96.52, minLat: 32.55, maxLat: 33.02 },
+  tarrant: { minLng: -97.55, maxLng: -96.98, minLat: 32.55, maxLat: 33.00 },
+  williamson: { minLng: -98.05, maxLng: -97.28, minLat: 30.48, maxLat: 30.91 },
+  fortbend: { minLng: -96.01, maxLng: -95.45, minLat: 29.35, maxLat: 29.82 },
+  brazoria: { minLng: -95.85, maxLng: -95.05, minLat: 28.85, maxLat: 29.55 },
+  collin: { minLng: -96.90, maxLng: -96.30, minLat: 33.00, maxLat: 33.50 },
+};
+
+/**
+ * Detect jurisdiction from coordinates - checks all configured counties
  */
 function detectJurisdiction(lat: number, lng: number): string {
-  // Harris County approximate bounds
-  if (lng >= -95.91 && lng <= -94.91 && lat >= 29.49 && lat <= 30.17) {
-    return "harris";
+  for (const [county, bounds] of Object.entries(COUNTY_BOUNDS)) {
+    if (lng >= bounds.minLng && lng <= bounds.maxLng && 
+        lat >= bounds.minLat && lat <= bounds.maxLat) {
+      return county;
+    }
   }
-  // Fort Bend County
-  if (lng >= -96.01 && lng <= -95.45 && lat >= 29.35 && lat <= 29.82) {
-    return "fortbend";
-  }
-  // Montgomery County
-  if (lng >= -95.86 && lng <= -95.07 && lat >= 30.07 && lat <= 30.67) {
-    return "montgomery";
-  }
-  // Travis County (Austin)
-  if (lng >= -98.17 && lng <= -97.37 && lat >= 30.07 && lat <= 30.63) {
-    return "travis";
-  }
-  // Default
   return "unknown";
+}
+
+/**
+ * Find all counties that intersect with a bounding box
+ */
+function findCountiesInBbox(bbox: [number, number, number, number]): string[] {
+  const [minLng, minLat, maxLng, maxLat] = bbox;
+  const counties: string[] = [];
+  
+  for (const [county, bounds] of Object.entries(COUNTY_BOUNDS)) {
+    // Check if bboxes overlap
+    const overlaps = !(bounds.maxLng < minLng || bounds.minLng > maxLng || 
+                       bounds.maxLat < minLat || bounds.minLat > maxLat);
+    if (overlaps) {
+      counties.push(county);
+    }
+  }
+  
+  return counties;
 }
