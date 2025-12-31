@@ -217,13 +217,9 @@ function detectCounty(lat: number, lng: number): string | null {
     }
   }
   
-  // Fallback: if in Texas but no specific county match, default to harris
-  if (isInTexas(lat, lng)) {
-    console.log(`[detect-county] No exact match, but in Texas. Defaulting to harris`);
-    return 'harris';
-  }
-  
-  console.log(`[detect-county] ✗ No county matched for coordinates`);
+  // No fallback to Harris - return null if no specific county match
+  // This allows multi-county queries or prevents incorrect data
+  console.log(`[detect-county] ✗ No county matched for coordinates (in Texas: ${isInTexas(lat, lng)})`);
   return null;
 }
 
