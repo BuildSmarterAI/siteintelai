@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Boxes } from "@/components/ui/background-boxes";
+
 import { Database, Clock, Shield, Check } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -113,13 +113,6 @@ export const Hero = () => {
       {/* Solid Midnight Blue Base Background */}
       <div className="absolute inset-0 z-0 bg-[#0A0F2C]" />
 
-      {/* Interactive Background Boxes - Performance guarded */}
-      {!shouldDisableAnimations && !isMobile && (
-        <div className="absolute inset-0 z-[5] overflow-hidden">
-          <div className="absolute inset-0 w-full h-full bg-[#0A0F2C] z-20 [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black_70%)] pointer-events-none" />
-          <Boxes />
-        </div>
-      )}
 
       {/* Mobile fallback gradient */}
       {(shouldDisableAnimations || isMobile) && (
