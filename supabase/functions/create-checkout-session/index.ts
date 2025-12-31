@@ -76,10 +76,28 @@ serve(async (req) => {
       logStep("Found existing Stripe customer", { customerId });
     }
 
-    // Build metadata for the session
-    const metadata: Record<string, string> = {};
+    // Get or lookup account_id from profile if user is authenticated
+    let accountId: string | undefined;
+    if (userId) {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("account_id")
+        .eq("id", userId)
+        .single();
+      accountId = profile?.account_id || userId;
+    }
+
+    // Build metadata for the session per billing spec
+    const metadata: Record<string, string> = {
+      purchase_type: "one_off",
+      report_type: "standard",
+      subscription_creditable: "true",
+    };
     if (application_id) {
       metadata.application_id = application_id;
+    }
+    if (accountId) {
+      metadata.account_id = accountId;
     }
     if (userId) {
       metadata.user_id = userId;
@@ -88,12 +106,10 @@ serve(async (req) => {
     // Determine success URL based on whether user is authenticated
     const origin = req.headers.get("origin") || "https://siteintel.io";
     const successUrl = userId
-      ? `${origin}/thank-you?applicationId=${application_id || ''}&payment=success`
+      ? `${origin}/thank-you?session_id={CHECKOUT_SESSION_ID}&applicationId=${application_id || ''}&payment=success`
       : `${origin}/create-account?session_id={CHECKOUT_SESSION_ID}`;
 
-    const cancelUrl = application_id
-      ? `${origin}/application?payment=canceled&application_id=${application_id}`
-      : `${origin}/application?payment=canceled`;
+    const cancelUrl = `${origin}/checkout?canceled=1${application_id ? `&application_id=${application_id}` : ''}`;
 
     // Generate idempotency key to prevent duplicate charges
     const idempotencyKey = `checkout_${userEmail}_${application_id || 'direct'}_${Date.now()}`;
@@ -131,7 +147,8 @@ serve(async (req) => {
       metadata,
       success_url: successUrl,
       cancel_url: cancelUrl,
-      allow_promotion_codes: true,
+      // One-off purchases should NOT allow promotion codes (per spec)
+      allow_promotion_codes: false,
       // Stripe Tax: automatic tax calculation based on customer location
       automatic_tax: { enabled: true },
       // Collect customer tax IDs for B2B compliance (VAT, GST, etc.)
