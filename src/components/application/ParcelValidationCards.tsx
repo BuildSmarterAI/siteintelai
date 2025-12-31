@@ -156,7 +156,7 @@ export function ParcelValidationCards({
                   County
                 </span>
                 <p className="text-foreground text-sm">
-                  {candidate.county.charAt(0).toUpperCase() + candidate.county.slice(1).toLowerCase()} County
+                  {candidate.county.toUpperCase()} County
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   Last sync: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
@@ -182,7 +182,7 @@ export function ParcelValidationCards({
                   Centroid
                 </span>
                 <p className="font-mono tabular-nums text-foreground text-xs">
-                  {candidate.centroid.lat.toFixed(6)}°, {candidate.centroid.lng.toFixed(6)}°
+                  {candidate.centroid.lat.toFixed(4)}°, {candidate.centroid.lng.toFixed(4)}°
                 </p>
               </div>
             )}

@@ -179,8 +179,8 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                 "p-3 cursor-pointer transition-all duration-[180ms] hover:shadow-md border-l-2",
                 // CYAN for tentative selection (exploration) - NOT orange
                 isSelected 
-                  ? "border-l-[hsl(var(--data-cyan))] bg-[hsl(var(--exploration-cyan-subtle))] shadow-sm ring-1 ring-[hsl(var(--data-cyan)/0.3)]" 
-                  : "border-l-transparent hover:border-l-[hsl(var(--data-cyan)/0.5)] hover:bg-[hsl(var(--exploration-cyan-hover))]",
+                  ? "border-l-[hsl(var(--data-cyan))] bg-[hsl(var(--data-cyan)/0.05)] shadow-sm ring-1 ring-[hsl(var(--data-cyan)/0.3)]" 
+                  : "border-l-transparent hover:border-l-[hsl(var(--data-cyan)/0.5)] hover:bg-[hsl(var(--data-cyan)/0.03)]",
                 selectedId && !isSelected && "opacity-60",
                 !hasGeometry && "opacity-50 cursor-not-allowed"
               )}
@@ -276,7 +276,7 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                     variant="outline" 
                     className="text-[10px] px-1.5 py-0 h-4 bg-[hsl(var(--data-cyan)/0.1)] border-[hsl(var(--data-cyan)/0.3)] text-[hsl(var(--data-cyan))] font-medium"
                   >
-                    {candidate.county.charAt(0).toUpperCase() + candidate.county.slice(1).toLowerCase()}
+                    {candidate.county.toUpperCase()}
                   </Badge>
                 </div>
                 
@@ -289,10 +289,19 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
                     </span>
                   )}
                   {candidate.owner_name && (
-                    <span className="flex items-center gap-1 max-w-[200px]" title={candidate.owner_name}>
-                      <User className="h-3 w-3 shrink-0" />
-                      <span className="line-clamp-2 leading-tight">{candidate.owner_name}</span>
-                    </span>
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="flex items-center gap-1 max-w-[180px]">
+                            <User className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{candidate.owner_name}</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="text-xs max-w-[250px]">
+                          {candidate.owner_name}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   )}
                   {candidate.zoning && (
                     <span className="flex items-center gap-1">
