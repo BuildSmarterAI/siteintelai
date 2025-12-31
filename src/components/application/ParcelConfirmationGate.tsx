@@ -11,14 +11,12 @@ import {
   Lock,
   Loader2,
   AlertTriangle,
-  ArrowLeft,
 } from "lucide-react";
 import type { CandidateParcel } from "@/types/parcelSelection";
 
 interface ParcelConfirmationGateProps {
   candidate: CandidateParcel;
   onConfirm: () => void;
-  onChangeParcel: () => void;
   isLocking: boolean;
   canConfirm: boolean;
   warnings: string[];
@@ -27,7 +25,6 @@ interface ParcelConfirmationGateProps {
 export function ParcelConfirmationGate({
   candidate,
   onConfirm,
-  onChangeParcel,
   isLocking,
   canConfirm,
   warnings,
@@ -72,6 +69,14 @@ export function ParcelConfirmationGate({
             </p>
           </div>
 
+          {/* Irreversibility Warning - Always visible above CTA */}
+          <div className="flex items-start gap-2.5 p-3 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-200 font-medium leading-snug">
+              This parcel boundary will be used for all analysis and cannot be changed after purchase.
+            </p>
+          </div>
+
           {/* Primary CTA - ONLY orange element on screen */}
           <Button 
             onClick={onConfirm}
@@ -82,26 +87,14 @@ export function ParcelConfirmationGate({
             {isLocking ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Locking Parcel...
+                Finalizing...
               </>
             ) : (
-            <>
-              <Lock className="h-4 w-4 mr-2" />
-              Lock <span className="font-mono">#{candidate.parcel_id?.slice(-10) || 'Parcel'}</span>
-            </>
+              <>
+                <Lock className="h-4 w-4 mr-2" />
+                Lock & Finalize Parcel
+              </>
             )}
-          </Button>
-
-          {/* Secondary Escape Action - Ghost button, cyan text */}
-          <Button
-            variant="ghost"
-            onClick={onChangeParcel}
-            disabled={isLocking}
-            className="w-full text-[hsl(var(--data-cyan))] hover:text-[hsl(var(--data-cyan))] hover:bg-[hsl(var(--exploration-cyan-subtle))]"
-            size="sm"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Change Parcel
           </Button>
 
           {/* Cannot proceed message */}

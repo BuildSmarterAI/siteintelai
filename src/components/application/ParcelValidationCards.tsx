@@ -58,19 +58,17 @@ const StatusIcon = ({ status }: { status: ValidationStatus }) => {
   }
 };
 
-const StatusBadge = ({ status, label }: { status: ValidationStatus; label: string }) => {
-  const variants: Record<ValidationStatus, string> = {
-    success: 'bg-[hsl(var(--status-success)/0.1)] text-[hsl(var(--status-success))] border-[hsl(var(--status-success)/0.3)]',
-    warning: 'bg-[hsl(var(--status-warning)/0.1)] text-[hsl(var(--status-warning))] border-[hsl(var(--status-warning)/0.3)]',
-    error: 'bg-[hsl(var(--status-error)/0.1)] text-[hsl(var(--status-error))] border-[hsl(var(--status-error)/0.3)]',
-    pending: 'bg-muted text-muted-foreground border-border',
-  };
-
+const StatusBadge = ({ status }: { status: ValidationStatus }) => {
+  // Simplified: just show status icon, no text label for cleaner UX
   return (
-    <Badge variant="outline" className={`text-xs ${variants[status]}`}>
+    <div className={`flex items-center justify-center w-6 h-6 rounded-full ${
+      status === 'success' ? 'bg-[hsl(var(--status-success)/0.1)]' :
+      status === 'warning' ? 'bg-[hsl(var(--status-warning)/0.1)]' :
+      status === 'error' ? 'bg-[hsl(var(--status-error)/0.1)]' :
+      'bg-muted'
+    }`}>
       <StatusIcon status={status} />
-      <span className="ml-1">{label}</span>
-    </Badge>
+    </div>
   );
 };
 
@@ -89,11 +87,36 @@ export function ParcelValidationCards({
     return labels[candidate.county?.toLowerCase()] || 'Parcel ID';
   }, [candidate.county]);
 
+  // Trust signal labels (user-facing) instead of technical labels
   const validationItems = [
-    { key: 'geometryIntegrity', label: 'Geometry Integrity', icon: ShieldCheck, result: validations.geometryIntegrity },
-    { key: 'addressMatch', label: 'Address Match', icon: Target, result: validations.addressMatch },
-    { key: 'countyAlignment', label: 'County Data', icon: Building2, result: validations.countyAlignment },
-    { key: 'parcelUniqueness', label: 'Parcel Uniqueness', icon: Hash, result: validations.parcelUniqueness },
+    { 
+      key: 'geometryIntegrity', 
+      label: 'Boundary Verified', 
+      icon: ShieldCheck, 
+      result: validations.geometryIntegrity,
+      successMessage: `Official ${candidate.county} CAD geometry`
+    },
+    { 
+      key: 'addressMatch', 
+      label: 'Address Confirmed', 
+      icon: Target, 
+      result: validations.addressMatch,
+      successMessage: 'Matches county property records'
+    },
+    { 
+      key: 'countyAlignment', 
+      label: 'Data Source Validated', 
+      icon: Building2, 
+      result: validations.countyAlignment,
+      successMessage: `${candidate.county} Appraisal District`
+    },
+    { 
+      key: 'parcelUniqueness', 
+      label: 'Exact Match Confirmed', 
+      icon: Hash, 
+      result: validations.parcelUniqueness,
+      successMessage: 'Single parcel found for this address'
+    },
   ];
 
   const hasErrors = Object.values(validations).some(v => v.status === 'error');
@@ -188,21 +211,24 @@ export function ParcelValidationCards({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {validationItems.map(({ key, label, icon: Icon, result }) => (
+          {validationItems.map(({ key, label, icon: Icon, result, successMessage }) => (
             <div 
               key={key}
-              className="flex items-start gap-3 p-2 rounded-md bg-muted/30"
+              className={`flex items-start gap-3 p-2.5 rounded-md ${
+                result.status === 'success' 
+                  ? 'bg-emerald-50/50 dark:bg-emerald-950/20' 
+                  : 'bg-muted/30'
+              }`}
             >
               <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0 space-y-1">
+              <div className="flex-1 min-w-0 space-y-0.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium text-foreground">{label}</span>
-                  <StatusBadge 
-                    status={result.status} 
-                    label={result.status === 'success' ? 'Pass' : result.status === 'pending' ? 'Checking' : result.status}
-                  />
+                  <span className="text-sm font-semibold text-foreground">{label}</span>
+                  <StatusBadge status={result.status} />
                 </div>
-                <p className="text-xs text-muted-foreground">{result.message}</p>
+                <p className="text-xs text-muted-foreground">
+                  {result.status === 'success' ? successMessage : result.message}
+                </p>
                 {result.detail && result.status !== 'success' && (
                   <p className="text-xs text-muted-foreground/70 italic">{result.detail}</p>
                 )}
