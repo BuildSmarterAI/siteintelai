@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounts: {
+        Row: {
+          account_id: string
+          account_name: string
+          created_at: string
+          primary_email: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string
+          account_name: string
+          created_at?: string
+          primary_email: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          account_name?: string
+          created_at?: string
+          primary_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       address_points: {
         Row: {
           address_id: number
@@ -5164,6 +5188,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_id: string | null
           avatar_url: string | null
           company: string | null
           created_at: string
@@ -5175,6 +5200,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_id?: string | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -5186,6 +5212,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_id?: string | null
           avatar_url?: string | null
           company?: string | null
           created_at?: string
@@ -5196,7 +5223,15 @@ export type Database = {
           stripe_customer_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
       }
       reports: {
         Row: {
@@ -5511,6 +5546,35 @@ export type Database = {
           },
         ]
       }
+      stripe_customers: {
+        Row: {
+          account_id: string
+          billing_email: string | null
+          created_at: string
+          stripe_customer_id: string
+        }
+        Insert: {
+          account_id: string
+          billing_email?: string | null
+          created_at?: string
+          stripe_customer_id: string
+        }
+        Update: {
+          account_id?: string
+          billing_email?: string | null
+          created_at?: string
+          stripe_customer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_customers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
       subscription_tiers: {
         Row: {
           active_parcel_limit: number | null
@@ -5570,6 +5634,56 @@ export type Database = {
           stripe_product_id?: string | null
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          account_id: string
+          cancel_at_period_end: boolean | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          metadata: Json | null
+          status: string | null
+          stripe_price_id: string | null
+          subscription_id: string
+          tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          metadata?: Json | null
+          status?: string | null
+          stripe_price_id?: string | null
+          subscription_id: string
+          tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          cancel_at_period_end?: boolean | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          metadata?: Json | null
+          status?: string | null
+          stripe_price_id?: string | null
+          subscription_id?: string
+          tier?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
       }
       system_alerts: {
         Row: {

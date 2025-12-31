@@ -10,6 +10,7 @@ const logStep = (step: string, details?: any) => {
 // Tier configuration mapping Stripe product IDs to tier details
 const TIER_CONFIG: Record<string, {
   name: string;
+  tier: string;
   reports_per_month: number;
   active_parcel_limit: number;
   seat_limit: number;
@@ -21,6 +22,7 @@ const TIER_CONFIG: Record<string, {
 }> = {
   'prod_ThxdnusS5qmyPL': { // Starter
     name: 'Starter',
+    tier: 'starter',
     reports_per_month: 5,
     active_parcel_limit: 10,
     seat_limit: 1,
@@ -32,6 +34,7 @@ const TIER_CONFIG: Record<string, {
   },
   'prod_ThxeNTJf0WkEMY': { // Professional
     name: 'Professional',
+    tier: 'professional',
     reports_per_month: 20,
     active_parcel_limit: 50,
     seat_limit: 2,
@@ -43,6 +46,7 @@ const TIER_CONFIG: Record<string, {
   },
   'prod_Thxe2I0rLintQ5': { // Team
     name: 'Team',
+    tier: 'team',
     reports_per_month: 75,
     active_parcel_limit: 150,
     seat_limit: 5,
@@ -54,6 +58,7 @@ const TIER_CONFIG: Record<string, {
   },
   'prod_ThxgIB1k6aP6XC': { // Enterprise
     name: 'Enterprise',
+    tier: 'enterprise',
     reports_per_month: 250,
     active_parcel_limit: -1, // unlimited
     seat_limit: 25,
@@ -70,6 +75,87 @@ const CREDIT_PACKS: Record<string, number> = {
   'price_1SkXm3AsWVx52wY3JUiL1pPF': 5,  // 5 Report Pack
   'price_1SkXnGAsWVx52wY3Uz6wczPE': 10, // 10 Report Pack
 };
+
+// One-off product price ID ($999)
+const ONE_OFF_PRICE_ID = 'price_1Sj397AsWVx52wY3nQC9A5dZ';
+
+// GHL webhook helper
+async function sendGhlWebhook(eventType: string, payload: Record<string, any>) {
+  const ghlWebhookUrl = Deno.env.get("GHL_WEBHOOK_URL");
+  if (!ghlWebhookUrl) {
+    logStep("GHL webhook URL not configured, skipping");
+    return;
+  }
+
+  try {
+    const response = await fetch(ghlWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: eventType,
+        timestamp: new Date().toISOString(),
+        ...payload,
+      }),
+    });
+    logStep("GHL webhook sent", { eventType, status: response.status });
+  } catch (error) {
+    logStep("GHL webhook failed", { eventType, error: String(error) });
+  }
+}
+
+// Helper to get or create account for a user
+async function getOrCreateAccount(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  userId: string,
+  email: string,
+  stripeCustomerId: string | null,
+  companyName?: string
+): Promise<string> {
+  // Check if user already has an account
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("account_id, company, full_name")
+    .eq("id", userId)
+    .single();
+
+  if (profile?.account_id) {
+    logStep("User already has account", { accountId: profile.account_id });
+    return profile.account_id;
+  }
+
+  // Create new account
+  const accountName = companyName || profile?.company || profile?.full_name || email;
+  const { data: newAccount, error: accountError } = await supabaseAdmin
+    .from("accounts")
+    .insert({
+      account_name: accountName,
+      primary_email: email,
+    })
+    .select()
+    .single();
+
+  if (accountError || !newAccount) {
+    throw new Error(`Failed to create account: ${accountError?.message}`);
+  }
+
+  // Link user to account
+  await supabaseAdmin
+    .from("profiles")
+    .update({ account_id: newAccount.account_id })
+    .eq("id", userId);
+
+  // Create stripe_customer record if we have a customer ID
+  if (stripeCustomerId) {
+    await supabaseAdmin.from("stripe_customers").upsert({
+      stripe_customer_id: stripeCustomerId,
+      account_id: newAccount.account_id,
+      billing_email: email,
+    }, { onConflict: "stripe_customer_id" });
+  }
+
+  logStep("Created new account", { accountId: newAccount.account_id, accountName });
+  return newAccount.account_id;
+}
 
 serve(async (req) => {
   const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -213,6 +299,7 @@ serve(async (req) => {
         const lineItems = session.line_items?.data || [];
         let isCreditPack = false;
         let creditAmount = 0;
+        let isOneOffPurchase = false;
 
         for (const item of lineItems) {
           const priceId = item.price?.id;
@@ -221,12 +308,23 @@ serve(async (req) => {
             creditAmount = CREDIT_PACKS[priceId] * (item.quantity || 1);
             break;
           }
+          if (priceId === ONE_OFF_PRICE_ID) {
+            isOneOffPurchase = true;
+            break;
+          }
         }
 
         if (isCreditPack) {
           // Handle credit pack purchase
           logStep("Credit pack purchase detected", { creditAmount });
           
+          const accountId = await getOrCreateAccount(
+            supabaseAdmin,
+            user.id,
+            user.email!,
+            session.customer as string | null
+          );
+
           const { data: existingSub } = await supabaseAdmin
             .from("user_subscriptions")
             .select("id, purchased_credits, credit_expires_at")
@@ -265,6 +363,37 @@ serve(async (req) => {
           break;
         }
 
+        // Handle $999 one-off purchase - DO NOT create subscription/entitlements
+        if (isOneOffPurchase || (session.mode === "payment" && session.amount_total === 99900)) {
+          logStep("One-off $999 purchase detected - recording payment only, no entitlements");
+          
+          // Record payment
+          await supabaseAdmin.from("payment_history").insert({
+            user_id: user.id,
+            stripe_session_id: session.id,
+            stripe_payment_intent_id: session.payment_intent as string,
+            amount_cents: session.amount_total || 0,
+            tax_amount_cents: taxAmountCents,
+            currency: session.currency || "usd",
+            status: "completed",
+            payment_type: "one_time",
+            product_name: "Site Feasibility Intelligence™ (One-Time)",
+            receipt_url: receiptUrl,
+          });
+
+          // Send GHL event for one-off purchase
+          await sendGhlWebhook("siteintel_one_off_paid", {
+            email: user.email,
+            user_id: user.id,
+            amount_cents: session.amount_total,
+            application_id: applicationId,
+            subscription_creditable: true,
+          });
+
+          logStep("One-off payment recorded, GHL notified");
+          break;
+        }
+
         // Determine payment type and product name
         const paymentType = session.mode === "subscription" ? "subscription" : "one_time";
         let productName = "Site Feasibility Intelligence™";
@@ -273,11 +402,62 @@ serve(async (req) => {
         if (session.mode === "subscription" && session.subscription) {
           const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
           const productId = subscription.items.data[0]?.price?.product as string;
+          const priceId = subscription.items.data[0]?.price?.id as string;
           const tierConfig = TIER_CONFIG[productId];
           
           productName = tierConfig ? `SiteIntel ${tierConfig.name}` : "SiteIntel Subscription";
           
-          // Get tier from database
+          // Create or get account for this user
+          const accountId = await getOrCreateAccount(
+            supabaseAdmin,
+            user.id,
+            user.email!,
+            session.customer as string | null
+          );
+
+          // Create stripe_customer record
+          if (session.customer) {
+            await supabaseAdmin.from("stripe_customers").upsert({
+              stripe_customer_id: session.customer as string,
+              account_id: accountId,
+              billing_email: user.email!,
+            }, { onConflict: "stripe_customer_id" });
+          }
+
+          // Upsert to new account-based subscriptions table
+          await supabaseAdmin.from("subscriptions").upsert({
+            subscription_id: subscription.id,
+            account_id: accountId,
+            stripe_price_id: priceId,
+            tier: tierConfig?.tier || 'starter',
+            status: subscription.status === "active" ? "active" : subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            metadata: {
+              product_id: productId,
+              tier_name: tierConfig?.name,
+            },
+          }, { onConflict: "subscription_id" });
+
+          // Sync entitlements to account
+          if (tierConfig) {
+            await supabaseAdmin.from("entitlements").upsert({
+              account_id: accountId,
+              tier: tierConfig.tier,
+              included_reports_monthly: tierConfig.reports_per_month,
+              active_parcel_limit: tierConfig.active_parcel_limit,
+              seat_limit: tierConfig.seat_limit,
+              history_retention_days: tierConfig.history_retention_days,
+              can_generate_lender_ready: tierConfig.can_generate_lender_ready,
+              can_share_links: tierConfig.can_share_links,
+              can_export_csv: tierConfig.can_export_csv,
+              can_use_api: tierConfig.can_use_api,
+              grace_until: null,
+            }, { onConflict: "account_id" });
+          }
+
+          // Also update legacy user_subscriptions for backwards compatibility
           const { data: tier } = await supabaseAdmin
             .from("subscription_tiers")
             .select("id")
@@ -285,7 +465,6 @@ serve(async (req) => {
             .single();
 
           if (tier) {
-            // Upsert subscription
             await supabaseAdmin.from("user_subscriptions").upsert({
               user_id: user.id,
               tier_id: tier.id,
@@ -298,28 +477,22 @@ serve(async (req) => {
               quickchecks_used: 0,
               active_parcels_used: 0,
             }, { onConflict: "user_id" });
-
-            // Sync entitlements
-            if (tierConfig) {
-              await supabaseAdmin.from("entitlements").upsert({
-                account_id: user.id,
-                tier: tierConfig.name.toLowerCase(),
-                included_reports_monthly: tierConfig.reports_per_month,
-                active_parcel_limit: tierConfig.active_parcel_limit,
-                seat_limit: tierConfig.seat_limit,
-                history_retention_days: tierConfig.history_retention_days,
-                can_generate_lender_ready: tierConfig.can_generate_lender_ready,
-                can_share_links: tierConfig.can_share_links,
-                can_export_csv: tierConfig.can_export_csv,
-                can_use_api: tierConfig.can_use_api,
-                grace_until: null,
-              }, { onConflict: "account_id" });
-            }
-
-            logStep("Subscription and entitlements synced", { productId, tierName: tierConfig?.name });
           }
+
+          // Send GHL event for subscription activation
+          await sendGhlWebhook("siteintel_subscription_active", {
+            email: user.email,
+            user_id: user.id,
+            account_id: accountId,
+            tier: tierConfig?.tier,
+            tier_name: tierConfig?.name,
+            mrr_cents: subscription.items.data[0]?.price?.unit_amount || 0,
+            subscription_id: subscription.id,
+          });
+
+          logStep("Subscription and entitlements synced", { productId, tierName: tierConfig?.name, accountId });
         } else if (session.mode === "payment") {
-          // One-time report purchase - credit user with 1 report
+          // Generic one-time report purchase - credit user with 1 report
           const { data: payPerUseTier } = await supabaseAdmin
             .from("subscription_tiers")
             .select("id")
@@ -383,6 +556,15 @@ serve(async (req) => {
           const user = userData?.users?.find(u => u.email === invoice.customer_email);
 
           if (user) {
+            // Get account for this user
+            const { data: profile } = await supabaseAdmin
+              .from("profiles")
+              .select("account_id")
+              .eq("id", user.id)
+              .single();
+
+            const accountId = profile?.account_id || user.id;
+
             // Get product ID from subscription
             let productName = "SiteIntel Subscription";
             if (invoice.subscription) {
@@ -392,6 +574,18 @@ serve(async (req) => {
               if (tierConfig) {
                 productName = `SiteIntel ${tierConfig.name}`;
               }
+
+              // Update subscription status and clear grace period
+              await supabaseAdmin
+                .from("subscriptions")
+                .update({ status: "active" })
+                .eq("subscription_id", invoice.subscription);
+
+              // Clear grace period on entitlements
+              await supabaseAdmin
+                .from("entitlements")
+                .update({ grace_until: null })
+                .eq("account_id", accountId);
             }
 
             await supabaseAdmin.from("payment_history").insert({
@@ -405,16 +599,17 @@ serve(async (req) => {
               receipt_url: invoice.hosted_invoice_url,
             });
 
-            // Reset monthly usage counters and record new period
+            // Reset monthly usage counters
             await supabaseAdmin
               .from("user_subscriptions")
               .update({ reports_used: 0, quickchecks_used: 0 })
               .eq("user_id", user.id);
 
-            // Record usage in monthly tracking
-            const period = new Date().toISOString().slice(0, 7).replace('-', '');
+            // Record usage in monthly tracking using yyyymm format
+            const now = new Date();
+            const period = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
             await supabaseAdmin.from("usage_counters_monthly").upsert({
-              account_id: user.id,
+              account_id: accountId,
               period_yyyymm: period,
               reports_generated: 0,
               active_parcels_peak: 0,
@@ -422,7 +617,7 @@ serve(async (req) => {
               overage_credits_used: 0,
             }, { onConflict: "account_id,period_yyyymm" });
 
-            logStep("Monthly usage reset for new billing period");
+            logStep("Monthly usage reset for new billing period", { accountId, period });
           }
         }
         break;
@@ -437,54 +632,114 @@ serve(async (req) => {
           const user = userData?.users?.find(u => u.email === invoice.customer_email);
 
           if (user) {
+            // Get account for this user
+            const { data: profile } = await supabaseAdmin
+              .from("profiles")
+              .select("account_id")
+              .eq("id", user.id)
+              .single();
+
+            const accountId = profile?.account_id || user.id;
+
             // Set grace period - 7 days from now
             const graceUntil = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
             
+            // Update legacy user_subscriptions
             await supabaseAdmin
               .from("user_subscriptions")
               .update({ status: "past_due" })
               .eq("user_id", user.id);
 
+            // Update new subscriptions table
+            if (invoice.subscription) {
+              await supabaseAdmin
+                .from("subscriptions")
+                .update({ status: "past_due" })
+                .eq("subscription_id", invoice.subscription);
+            }
+
+            // Set grace period on entitlements
             await supabaseAdmin
               .from("entitlements")
               .update({ grace_until: graceUntil })
-              .eq("account_id", user.id);
+              .eq("account_id", accountId);
 
-            logStep("Set grace period for failed payment", { graceUntil, userId: user.id });
+            // Send GHL event for failed payment
+            await sendGhlWebhook("siteintel_payment_failed", {
+              email: user.email,
+              user_id: user.id,
+              account_id: accountId,
+              grace_until: graceUntil,
+              invoice_id: invoice.id,
+              amount_due_cents: invoice.amount_due,
+            });
+
+            logStep("Set grace period for failed payment", { graceUntil, accountId });
           }
         }
         break;
       }
 
+      case "customer.subscription.created":
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         logStep("Subscription updated", { subscriptionId: subscription.id, status: subscription.status });
 
         const productId = subscription.items.data[0]?.price?.product as string;
+        const priceId = subscription.items.data[0]?.price?.id as string;
         const tierConfig = TIER_CONFIG[productId];
 
-        const { data: subData } = await supabaseAdmin
-          .from("user_subscriptions")
-          .select("user_id")
-          .eq("stripe_subscription_id", subscription.id)
+        // Find account via stripe_customers table
+        const { data: stripeCustomer } = await supabaseAdmin
+          .from("stripe_customers")
+          .select("account_id")
+          .eq("stripe_customer_id", subscription.customer as string)
           .single();
 
-        if (subData) {
-          // Update subscription status
-          await supabaseAdmin
+        let accountId = stripeCustomer?.account_id;
+
+        // Fallback to legacy user_subscriptions lookup
+        if (!accountId) {
+          const { data: subData } = await supabaseAdmin
             .from("user_subscriptions")
-            .update({
-              status: subscription.status === "active" ? "active" : subscription.status === "past_due" ? "past_due" : "inactive",
-              stripe_product_id: productId,
-              period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            })
-            .eq("stripe_subscription_id", subscription.id);
+            .select("user_id")
+            .eq("stripe_subscription_id", subscription.id)
+            .single();
+
+          if (subData) {
+            const { data: profile } = await supabaseAdmin
+              .from("profiles")
+              .select("account_id")
+              .eq("id", subData.user_id)
+              .single();
+            accountId = profile?.account_id || subData.user_id;
+          }
+        }
+
+        if (accountId) {
+          // Update new subscriptions table
+          await supabaseAdmin.from("subscriptions").upsert({
+            subscription_id: subscription.id,
+            account_id: accountId,
+            stripe_price_id: priceId,
+            tier: tierConfig?.tier || 'starter',
+            status: subscription.status === "active" ? "active" : 
+                   subscription.status === "past_due" ? "past_due" : 
+                   subscription.status === "canceled" ? "canceled" : subscription.status,
+            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            cancel_at_period_end: subscription.cancel_at_period_end,
+            metadata: {
+              product_id: productId,
+              tier_name: tierConfig?.name,
+            },
+          }, { onConflict: "subscription_id" });
 
           // Sync entitlements based on subscription status
           if (tierConfig && subscription.status === "active") {
             await supabaseAdmin.from("entitlements").upsert({
-              account_id: subData.user_id,
-              tier: tierConfig.name.toLowerCase(),
+              account_id: accountId,
+              tier: tierConfig.tier,
               included_reports_monthly: tierConfig.reports_per_month,
               active_parcel_limit: tierConfig.active_parcel_limit,
               seat_limit: tierConfig.seat_limit,
@@ -501,10 +756,28 @@ serve(async (req) => {
             await supabaseAdmin
               .from("entitlements")
               .update({ grace_until: graceUntil })
-              .eq("account_id", subData.user_id);
+              .eq("account_id", accountId);
           }
 
-          logStep("Subscription and entitlements updated", { status: subscription.status, tier: tierConfig?.name });
+          // Update legacy user_subscriptions for backwards compatibility
+          const { data: legacySub } = await supabaseAdmin
+            .from("user_subscriptions")
+            .select("id")
+            .eq("stripe_subscription_id", subscription.id)
+            .single();
+
+          if (legacySub) {
+            await supabaseAdmin
+              .from("user_subscriptions")
+              .update({
+                status: subscription.status === "active" ? "active" : subscription.status === "past_due" ? "past_due" : "inactive",
+                stripe_product_id: productId,
+                period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              })
+              .eq("stripe_subscription_id", subscription.id);
+          }
+
+          logStep("Subscription and entitlements updated", { status: subscription.status, tier: tierConfig?.tier, accountId });
         }
         break;
       }
@@ -513,24 +786,53 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         logStep("Subscription deleted", { subscriptionId: subscription.id });
 
-        const { data: subData } = await supabaseAdmin
-          .from("user_subscriptions")
-          .select("user_id")
-          .eq("stripe_subscription_id", subscription.id)
+        // Find account via stripe_customers table
+        const { data: stripeCustomer } = await supabaseAdmin
+          .from("stripe_customers")
+          .select("account_id, billing_email")
+          .eq("stripe_customer_id", subscription.customer as string)
           .single();
 
+        let accountId = stripeCustomer?.account_id;
+        let userEmail = stripeCustomer?.billing_email;
+
+        // Fallback to legacy user_subscriptions lookup
+        if (!accountId) {
+          const { data: subData } = await supabaseAdmin
+            .from("user_subscriptions")
+            .select("user_id")
+            .eq("stripe_subscription_id", subscription.id)
+            .single();
+
+          if (subData) {
+            const { data: profile } = await supabaseAdmin
+              .from("profiles")
+              .select("account_id")
+              .eq("id", subData.user_id)
+              .single();
+            accountId = profile?.account_id || subData.user_id;
+          }
+        }
+
+        // Update legacy user_subscriptions
         await supabaseAdmin
           .from("user_subscriptions")
           .update({ status: "canceled" })
           .eq("stripe_subscription_id", subscription.id);
 
-        // Downgrade entitlements to free tier
-        if (subData) {
+        // Update new subscriptions table
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ status: "canceled" })
+          .eq("subscription_id", subscription.id);
+
+        // Downgrade entitlements to view_only tier
+        if (accountId) {
           await supabaseAdmin.from("entitlements").upsert({
-            account_id: subData.user_id,
-            tier: "free",
+            account_id: accountId,
+            tier: "view_only",
             included_reports_monthly: 0,
-            active_parcel_limit: 5,
+            active_parcel_limit: 0,
             seat_limit: 1,
             history_retention_days: 30,
             can_generate_lender_ready: false,
@@ -540,7 +842,15 @@ serve(async (req) => {
             grace_until: null,
           }, { onConflict: "account_id" });
 
-          logStep("Entitlements downgraded to free tier");
+          // Send GHL event for cancellation
+          await sendGhlWebhook("siteintel_canceled", {
+            email: userEmail,
+            account_id: accountId,
+            subscription_id: subscription.id,
+            canceled_at: new Date().toISOString(),
+          });
+
+          logStep("Entitlements downgraded to view_only tier", { accountId });
         }
         break;
       }
