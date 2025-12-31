@@ -14,7 +14,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle, Loader2, MapPin } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { ParcelMapSnapshot } from "./ParcelMapSnapshot";
 import type { CandidateParcel } from "@/types/parcelSelection";
 
 interface ParcelLockConfirmationModalProps {
@@ -51,15 +52,13 @@ export function ParcelLockConfirmationModal({
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-4">
-              {/* Map Snapshot Placeholder */}
-              <div className="w-full h-[160px] rounded-lg bg-muted/50 border border-border flex items-center justify-center overflow-hidden">
-                <div className="text-center text-muted-foreground">
-                  <MapPin className="h-8 w-8 mx-auto mb-2 text-[hsl(var(--feasibility-orange))]" />
-                  <p className="text-xs font-mono">
-                    {(candidate.geom as any)?.coordinates?.[0]?.length || '?'} vertex boundary
-                  </p>
-                </div>
-              </div>
+              {/* Map Snapshot with parcel boundary */}
+              <ParcelMapSnapshot
+                geometry={candidate.geom as GeoJSON.Geometry}
+                className="w-full"
+                width={400}
+                height={160}
+              />
 
               {/* Parcel Details */}
               <div className="space-y-3">
