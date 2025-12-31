@@ -23,6 +23,7 @@ import { ParcelSelectionTabs } from "./ParcelSelectionTabs";
 import { CandidateParcelList } from "./CandidateParcelList";
 import { ParcelValidationCards } from "./ParcelValidationCards";
 import { ParcelConfirmationGate } from "./ParcelConfirmationGate";
+import { ParcelLockConfirmationModal } from "./ParcelLockConfirmationModal";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { MatchFoundBadge } from "./MatchFoundBadge";
 import { MapPin, Search, Map, CheckCircle, MousePointerClick, RefreshCw } from "lucide-react";
@@ -63,6 +64,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const [isLocking, setIsLocking] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mobileStep, setMobileStep] = useState<MobileStep>('search');
+  const [showLockConfirmation, setShowLockConfirmation] = useState(false);
   
   // Spotlight state for "Match Found" experience
   const [showMatchBadge, setShowMatchBadge] = useState(false);
@@ -236,10 +238,17 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     selectCandidate(candidate);
   }, [state.candidates, setCandidates, selectCandidate]);
 
-  const handleConfirmParcel = useCallback(async () => {
+  // Opens confirmation modal (first step of lock flow)
+  const handleConfirmParcel = useCallback(() => {
+    setShowLockConfirmation(true);
+  }, []);
+
+  // Actually lock the parcel (triggered from modal confirmation)
+  const handleActualLock = useCallback(async () => {
     setIsLocking(true);
     try {
       const lockedParcel = await lockParcel();
+      setShowLockConfirmation(false);
       toast.success("Parcel locked for feasibility analysis");
       onParcelLocked(lockedParcel);
     } catch (err: any) {
@@ -518,10 +527,18 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       <ParcelConfirmationGate
         candidate={state.selectedCandidate}
         onConfirm={handleConfirmParcel}
-        onChangeParcel={handleChangeParcel}
         isLocking={isLocking}
         canConfirm={canConfirm}
         warnings={state.warnings}
+      />
+      
+      {/* Confirmation Modal - UX Gate for irreversible action */}
+      <ParcelLockConfirmationModal
+        open={showLockConfirmation}
+        onOpenChange={setShowLockConfirmation}
+        candidate={state.selectedCandidate}
+        onConfirm={handleActualLock}
+        isConfirming={isLocking}
       />
     </div>
   ) : null;
