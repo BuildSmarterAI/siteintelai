@@ -300,11 +300,19 @@ function detectSearchType(query: string): SearchType {
   return 'address';
 }
 
+type AddressSearchOptions = {
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  countyHint?: string;
+};
+
 async function searchByAddress(
   query: string,
   supabaseUrl: string,
   supabaseKey: string,
-  validateFirst: boolean = false
+  validateFirst: boolean = false,
+  options: AddressSearchOptions = {}
 ): Promise<SearchResult[]> {
   // Optional: Pre-validate address with Google Address Validation for USPS data
   let validationData: ValidationData | undefined;
@@ -351,6 +359,65 @@ async function searchByAddress(
     } catch (err) {
       console.error('[search-parcels] Address validation error (non-fatal):', err);
     }
+  }
+  
+  // If caller provided coordinates (e.g., user already selected a specific geocode result),
+  // skip autocomplete/geocoding and go straight to parcel lookup.
+  if (
+    typeof options.lat === 'number' &&
+    typeof options.lng === 'number' &&
+    !isNaN(options.lat) &&
+    !isNaN(options.lng)
+  ) {
+    const lat = options.lat;
+    const lng = options.lng;
+    const county = options.countyHint || detectCountySmart(lat, lng, query) || undefined;
+
+    if (county) {
+      try {
+        const parcelResponse = await fetch(`${supabaseUrl}/functions/v1/fetch-parcels`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+          body: JSON.stringify({ lat, lng, county, inputAddress: query }),
+        });
+
+        if (parcelResponse.ok) {
+          const parcelData = await parcelResponse.json();
+          const feature = parcelData?.features?.[0];
+          if (feature?.properties?.parcel_id) {
+            const parcel = {
+              parcel_id: feature.properties.parcel_id,
+              owner_name: feature.properties.owner_name,
+              acreage: feature.properties.acreage,
+              situs_address: feature.properties.situs_address,
+              market_value: feature.properties.market_value,
+              geometry: feature.geometry,
+            };
+
+            // Compute confidence using address match (handles missing situs numbers)
+            const addressMatch = calculateAddressMatchScore(query, parcel.situs_address);
+
+            return [
+              {
+                type: 'address',
+                confidence: Math.max(0.6, addressMatch.score),
+                lat,
+                lng,
+                formatted_address: query,
+                county,
+                parcel,
+              },
+            ];
+          }
+        }
+      } catch (err) {
+        console.error('[search-parcels] Direct parcel fetch error:', err);
+      }
+    }
+    // If we couldn't resolve a parcel directly, continue with normal geocoding flow.
   }
   
   let predictions: Array<{ place_id: string; description: string; lat?: number; lng?: number; addressDetails?: Record<string, string> }> = [];
@@ -834,7 +901,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { query, type: requestedType, county } = body;
+    const { query, type: requestedType, county, lat, lng, radius } = body;
     
     if (!query || typeof query !== 'string' || query.trim().length < 2) {
       return new Response(
@@ -842,6 +909,10 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const parsedLat = typeof lat === 'number' ? lat : undefined;
+    const parsedLng = typeof lng === 'number' ? lng : undefined;
+    const parsedRadius = typeof radius === 'number' ? radius : undefined;
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -856,7 +927,12 @@ Deno.serve(async (req) => {
 
     switch (searchType) {
       case 'address':
-        results = await searchByAddress(query.trim(), supabaseUrl, supabaseKey);
+        results = await searchByAddress(query.trim(), supabaseUrl, supabaseKey, false, {
+          lat: parsedLat,
+          lng: parsedLng,
+          radius: parsedRadius,
+          countyHint: typeof county === 'string' ? county : undefined,
+        });
         break;
       case 'cad':
         results = await searchByCAD(query.trim(), supabaseUrl, supabaseKey, supabase);
