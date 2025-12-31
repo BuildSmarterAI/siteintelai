@@ -309,3 +309,15 @@ verify_jwt = false
 
 [functions.purchase-credits]
 verify_jwt = true
+
+[functions.create-subscription-checkout]
+verify_jwt = true
+
+[functions.confirm-session]
+verify_jwt = false
+
+[functions.admin-billing-summary]
+verify_jwt = true
+
+[functions.admin-usage-timeseries]
+verify_jwt = true
