@@ -321,3 +321,7 @@ verify_jwt = true
 
 [functions.admin-usage-timeseries]
 verify_jwt = true
+
+[functions.billing-reconcile]
+verify_jwt = true
+max_execution_time = 300

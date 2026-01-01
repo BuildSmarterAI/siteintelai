@@ -49,9 +49,16 @@ serve(async (req) => {
     logStep("Found Stripe customer", { customerId });
 
     const origin = req.headers.get("origin") || "https://mcmfwlgovubpdcfiqfvk.lovableproject.com";
+    
+    // Portal configuration ID - configure in Stripe Dashboard to:
+    // - Allow upgrades only (no downgrades)
+    // - Hide one-off products and credit packs
+    // - Disallow cancellation (handled in-app)
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/dashboard`,
+      // TODO: Replace with your portal configuration ID from Stripe Dashboard
+      // configuration: "bpc_XXXXXXXXX",
+      return_url: `${origin}/settings/billing`,
     });
     logStep("Customer portal session created", { url: portalSession.url });
 
