@@ -7,8 +7,9 @@ const logStep = (step: string, details?: any) => {
   console.log(`[STRIPE-WEBHOOK] ${step}${detailsStr}`);
 };
 
-// Tier configuration mapping Stripe product IDs to tier details
-const TIER_CONFIG: Record<string, {
+// Fallback tier configuration - used only if price metadata is missing
+// Source of truth is now Stripe Price metadata
+const FALLBACK_TIER_CONFIG: Record<string, {
   name: string;
   tier: string;
   reports_per_month: number;
@@ -19,6 +20,7 @@ const TIER_CONFIG: Record<string, {
   can_share_links: boolean;
   can_export_csv: boolean;
   can_use_api: boolean;
+  overage_allowed: boolean;
 }> = {
   'prod_ThxdnusS5qmyPL': { // Starter
     name: 'Starter',
@@ -31,6 +33,7 @@ const TIER_CONFIG: Record<string, {
     can_share_links: false,
     can_export_csv: false,
     can_use_api: false,
+    overage_allowed: false,
   },
   'prod_ThxeNTJf0WkEMY': { // Professional
     name: 'Professional',
@@ -43,6 +46,7 @@ const TIER_CONFIG: Record<string, {
     can_share_links: true,
     can_export_csv: false,
     can_use_api: false,
+    overage_allowed: true,
   },
   'prod_Thxe2I0rLintQ5': { // Team
     name: 'Team',
@@ -50,25 +54,112 @@ const TIER_CONFIG: Record<string, {
     reports_per_month: 75,
     active_parcel_limit: 150,
     seat_limit: 5,
-    history_retention_days: -1, // unlimited
+    history_retention_days: 9999,
     can_generate_lender_ready: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: false,
+    overage_allowed: true,
   },
   'prod_ThxgIB1k6aP6XC': { // Enterprise
     name: 'Enterprise',
     tier: 'enterprise',
     reports_per_month: 250,
-    active_parcel_limit: -1, // unlimited
-    seat_limit: 25,
-    history_retention_days: -1, // unlimited
+    active_parcel_limit: 999999,
+    seat_limit: 10,
+    history_retention_days: 9999,
     can_generate_lender_ready: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: true,
+    overage_allowed: true,
   },
 };
+
+// Parse entitlements from Stripe price metadata (source of truth)
+// Falls back to FALLBACK_TIER_CONFIG if metadata is missing
+function parseEntitlementsFromMetadata(
+  priceMetadata: Record<string, string>,
+  subscriptionMetadata?: Record<string, string>,
+  productId?: string
+): {
+  tier: string;
+  name: string;
+  included_reports_monthly: number;
+  active_parcel_limit: number;
+  seat_limit: number;
+  history_retention_days: number;
+  can_generate_lender_ready: boolean;
+  can_share_links: boolean;
+  can_export_csv: boolean;
+  can_use_api: boolean;
+  overage_allowed: boolean;
+} {
+  // Check if price has metadata - if tier is set, we use metadata as source of truth
+  const hasMetadata = priceMetadata && priceMetadata.tier;
+  
+  if (hasMetadata) {
+    // Merge subscription metadata for Enterprise overrides (subscription takes precedence)
+    const metadata = { ...priceMetadata, ...subscriptionMetadata };
+    
+    const tier = metadata.tier || 'starter';
+    const tierNameMap: Record<string, string> = {
+      'starter': 'Starter',
+      'professional': 'Professional',
+      'team': 'Team',
+      'enterprise': 'Enterprise',
+    };
+    
+    return {
+      tier,
+      name: tierNameMap[tier] || tier,
+      included_reports_monthly: parseInt(metadata.included_reports_monthly || '5', 10),
+      active_parcel_limit: parseInt(metadata.active_parcel_limit || '10', 10),
+      seat_limit: parseInt(metadata.seat_limit || '1', 10),
+      history_retention_days: parseInt(metadata.history_retention_days || '90', 10),
+      can_generate_lender_ready: metadata.can_generate_lender_ready === 'true',
+      can_share_links: metadata.can_share_links === 'true',
+      can_export_csv: metadata.can_export_csv === 'true',
+      can_use_api: metadata.can_use_api === 'true',
+      overage_allowed: metadata.overage_allowed === 'true',
+    };
+  }
+  
+  // Fallback to hardcoded config if no metadata
+  if (productId && FALLBACK_TIER_CONFIG[productId]) {
+    const fallback = FALLBACK_TIER_CONFIG[productId];
+    logStep("Using fallback tier config - add metadata to Stripe Price", { productId });
+    return {
+      tier: fallback.tier,
+      name: fallback.name,
+      included_reports_monthly: fallback.reports_per_month,
+      active_parcel_limit: fallback.active_parcel_limit,
+      seat_limit: fallback.seat_limit,
+      history_retention_days: fallback.history_retention_days,
+      can_generate_lender_ready: fallback.can_generate_lender_ready,
+      can_share_links: fallback.can_share_links,
+      can_export_csv: fallback.can_export_csv,
+      can_use_api: fallback.can_use_api,
+      overage_allowed: fallback.overage_allowed,
+    };
+  }
+  
+  // Ultimate fallback - starter tier
+  logStep("No metadata or fallback config found - defaulting to starter", { productId });
+  return {
+    tier: 'starter',
+    name: 'Starter',
+    included_reports_monthly: 5,
+    active_parcel_limit: 10,
+    seat_limit: 1,
+    history_retention_days: 90,
+    can_generate_lender_ready: false,
+    can_share_links: false,
+    can_export_csv: false,
+    can_use_api: false,
+    overage_allowed: false,
+  };
+}
 
 // Credit pack configuration
 const CREDIT_PACKS: Record<string, number> = {
