@@ -103,6 +103,70 @@ async function sendGhlWebhook(eventType: string, payload: Record<string, any>) {
   }
 }
 
+// MRR calculation helper based on price interval
+function calculateMrr(priceAmount: number, interval: string): number {
+  if (interval === 'year') {
+    return priceAmount / 12;
+  }
+  return priceAmount; // monthly is the base
+}
+
+// Record MRR event for analytics
+async function recordMrrEvent(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  accountId: string,
+  eventType: 'new' | 'upgrade' | 'downgrade' | 'churn' | 'reactivation',
+  deltaMrr: number,
+  fromTier: string | null,
+  toTier: string | null,
+  stripeEventId: string
+) {
+  try {
+    await supabaseAdmin.from("mrr_events").insert({
+      account_id: accountId,
+      event_type: eventType,
+      delta_mrr: deltaMrr,
+      from_tier: fromTier,
+      to_tier: toTier,
+      stripe_event_id: stripeEventId,
+    });
+    logStep("MRR event recorded", { eventType, deltaMrr, fromTier, toTier });
+  } catch (error) {
+    logStep("Failed to record MRR event", { error: String(error) });
+  }
+}
+
+// Ensure account is in cohorts table
+async function ensureCohort(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  accountId: string,
+  tier: string,
+  mrr: number
+) {
+  try {
+    const now = new Date();
+    const cohortMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    const { data: existing } = await supabaseAdmin
+      .from("cohorts")
+      .select("account_id")
+      .eq("account_id", accountId)
+      .single();
+    
+    if (!existing) {
+      await supabaseAdmin.from("cohorts").insert({
+        account_id: accountId,
+        cohort_month_yyyymm: cohortMonth,
+        initial_tier: tier,
+        initial_mrr: mrr,
+      });
+      logStep("Cohort assigned", { accountId, cohortMonth, tier });
+    }
+  } catch (error) {
+    logStep("Failed to ensure cohort", { error: String(error) });
+  }
+}
+
 // Helper to get or create account for a user
 async function getOrCreateAccount(
   supabaseAdmin: ReturnType<typeof createClient>,
@@ -490,7 +554,28 @@ serve(async (req) => {
             subscription_id: subscription.id,
           });
 
-          logStep("Subscription and entitlements synced", { productId, tierName: tierConfig?.name, accountId });
+          // === MRR ANALYTICS ===
+          // Calculate MRR from subscription price
+          const priceData = subscription.items.data[0]?.price;
+          const priceAmount = (priceData?.unit_amount || 0) / 100; // Convert cents to dollars
+          const interval = priceData?.recurring?.interval || 'month';
+          const mrr = calculateMrr(priceAmount, interval);
+
+          // Record new subscription MRR event
+          await recordMrrEvent(
+            supabaseAdmin,
+            accountId,
+            'new',
+            mrr,
+            null,
+            tierConfig?.tier || 'starter',
+            event.id
+          );
+
+          // Ensure account is in cohorts
+          await ensureCohort(supabaseAdmin, accountId, tierConfig?.tier || 'starter', mrr);
+
+          logStep("Subscription and entitlements synced", { productId, tierName: tierConfig?.name, accountId, mrr });
         } else if (session.mode === "payment") {
           // Generic one-time report purchase - credit user with 1 report
           const { data: payPerUseTier } = await supabaseAdmin
@@ -850,7 +935,33 @@ serve(async (req) => {
             canceled_at: new Date().toISOString(),
           });
 
-          logStep("Entitlements downgraded to view_only tier", { accountId });
+          // === MRR ANALYTICS: Record churn event ===
+          // Get the previous subscription MRR to record churn amount
+          const { data: prevSub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("tier, metadata")
+            .eq("subscription_id", subscription.id)
+            .single();
+          
+          const prevTier = prevSub?.tier || 'unknown';
+          
+          // Get previous MRR from subscription price
+          const priceData = subscription.items.data[0]?.price;
+          const priceAmount = (priceData?.unit_amount || 0) / 100;
+          const interval = priceData?.recurring?.interval || 'month';
+          const churndMrr = calculateMrr(priceAmount, interval);
+
+          await recordMrrEvent(
+            supabaseAdmin,
+            accountId,
+            'churn',
+            -churndMrr, // Negative delta for churn
+            prevTier,
+            null,
+            event.id
+          );
+
+          logStep("Entitlements downgraded to view_only tier", { accountId, churnedMrr: churndMrr });
         }
         break;
       }
