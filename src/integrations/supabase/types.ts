@@ -1546,6 +1546,47 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_reconcile_log: {
+        Row: {
+          account_id: string | null
+          action: string
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string | null
+          id: string
+          run_id: string
+          stripe_customer_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          action: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string | null
+          id?: string
+          run_id: string
+          stripe_customer_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          action?: string
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string | null
+          id?: string
+          run_id?: string
+          stripe_customer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_reconcile_log_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
       broadband_coverage_canonical: {
         Row: {
           accuracy_tier: number
@@ -3096,6 +3137,7 @@ export type Database = {
           grace_until: string | null
           history_retention_days: number | null
           included_reports_monthly: number | null
+          overage_allowed: boolean | null
           report_overage_allowed: boolean | null
           seat_limit: number | null
           tier: string
@@ -3112,6 +3154,7 @@ export type Database = {
           grace_until?: string | null
           history_retention_days?: number | null
           included_reports_monthly?: number | null
+          overage_allowed?: boolean | null
           report_overage_allowed?: boolean | null
           seat_limit?: number | null
           tier?: string
@@ -3128,6 +3171,7 @@ export type Database = {
           grace_until?: string | null
           history_retention_days?: number | null
           included_reports_monthly?: number | null
+          overage_allowed?: boolean | null
           report_overage_allowed?: boolean | null
           seat_limit?: number | null
           tier?: string
