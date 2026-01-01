@@ -2201,6 +2201,38 @@ export type Database = {
         }
         Relationships: []
       }
+      cohorts: {
+        Row: {
+          account_id: string
+          cohort_month_yyyymm: string
+          created_at: string | null
+          initial_mrr: number | null
+          initial_tier: string | null
+        }
+        Insert: {
+          account_id: string
+          cohort_month_yyyymm: string
+          created_at?: string | null
+          initial_mrr?: number | null
+          initial_tier?: string | null
+        }
+        Update: {
+          account_id?: string
+          cohort_month_yyyymm?: string
+          created_at?: string | null
+          initial_mrr?: number | null
+          initial_tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohorts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
       cost_schedule_data: {
         Row: {
           complexity_factor: number | null
@@ -4285,6 +4317,91 @@ export type Database = {
           primary_city?: string
         }
         Relationships: []
+      }
+      mrr_events: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          delta_mrr: number | null
+          event_time: string | null
+          event_type: string
+          from_tier: string | null
+          id: string
+          stripe_event_id: string | null
+          to_tier: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          delta_mrr?: number | null
+          event_time?: string | null
+          event_type: string
+          from_tier?: string | null
+          id?: string
+          stripe_event_id?: string | null
+          to_tier?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          delta_mrr?: number | null
+          event_time?: string | null
+          event_type?: string
+          from_tier?: string | null
+          id?: string
+          stripe_event_id?: string | null
+          to_tier?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mrr_events_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
+      mrr_snapshots_monthly: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          id: string
+          is_churned: boolean | null
+          mrr: number
+          status: string | null
+          tier: string | null
+          yyyymm: string
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_churned?: boolean | null
+          mrr?: number
+          status?: string | null
+          tier?: string | null
+          yyyymm: string
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_churned?: boolean | null
+          mrr?: number
+          status?: string | null
+          tier?: string | null
+          yyyymm?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mrr_snapshots_monthly_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
       }
       parcel_index: {
         Row: {
@@ -8095,6 +8212,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_account_admin: { Args: { a: string }; Returns: boolean }
+      is_account_member: { Args: { a: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
       normalize_parcel_identifier: {
         Args: { identifier: string }
