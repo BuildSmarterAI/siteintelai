@@ -555,12 +555,19 @@ serve(async (req) => {
 
         // Handle subscription creation/update
         if (session.mode === "subscription" && session.subscription) {
-          const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+          const subscription = await stripe.subscriptions.retrieve(session.subscription as string, {
+            expand: ['items.data.price.product'],
+          });
           const productId = subscription.items.data[0]?.price?.product as string;
           const priceId = subscription.items.data[0]?.price?.id as string;
-          const tierConfig = TIER_CONFIG[productId];
           
-          productName = tierConfig ? `SiteIntel ${tierConfig.name}` : "SiteIntel Subscription";
+          // Get price metadata for entitlements (source of truth)
+          const priceData = subscription.items.data[0]?.price;
+          const priceMetadata = (priceData?.metadata || {}) as Record<string, string>;
+          const subMetadata = (subscription.metadata || {}) as Record<string, string>;
+          const tierConfig = parseEntitlementsFromMetadata(priceMetadata, subMetadata, productId);
+          
+          productName = `SiteIntel ${tierConfig.name}`;
           
           // Create or get account for this user
           const accountId = await getOrCreateAccount(
@@ -584,33 +591,32 @@ serve(async (req) => {
             subscription_id: subscription.id,
             account_id: accountId,
             stripe_price_id: priceId,
-            tier: tierConfig?.tier || 'starter',
+            tier: tierConfig.tier,
             status: subscription.status === "active" ? "active" : subscription.status,
             current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
             current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
             cancel_at_period_end: subscription.cancel_at_period_end,
             metadata: {
               product_id: productId,
-              tier_name: tierConfig?.name,
+              tier_name: tierConfig.name,
             },
           }, { onConflict: "subscription_id" });
 
-          // Sync entitlements to account
-          if (tierConfig) {
-            await supabaseAdmin.from("entitlements").upsert({
-              account_id: accountId,
-              tier: tierConfig.tier,
-              included_reports_monthly: tierConfig.reports_per_month,
-              active_parcel_limit: tierConfig.active_parcel_limit,
-              seat_limit: tierConfig.seat_limit,
-              history_retention_days: tierConfig.history_retention_days,
-              can_generate_lender_ready: tierConfig.can_generate_lender_ready,
-              can_share_links: tierConfig.can_share_links,
-              can_export_csv: tierConfig.can_export_csv,
-              can_use_api: tierConfig.can_use_api,
-              grace_until: null,
-            }, { onConflict: "account_id" });
-          }
+          // Sync entitlements to account using metadata-derived values
+          await supabaseAdmin.from("entitlements").upsert({
+            account_id: accountId,
+            tier: tierConfig.tier,
+            included_reports_monthly: tierConfig.included_reports_monthly,
+            active_parcel_limit: tierConfig.active_parcel_limit,
+            seat_limit: tierConfig.seat_limit,
+            history_retention_days: tierConfig.history_retention_days,
+            can_generate_lender_ready: tierConfig.can_generate_lender_ready,
+            can_share_links: tierConfig.can_share_links,
+            can_export_csv: tierConfig.can_export_csv,
+            can_use_api: tierConfig.can_use_api,
+            overage_allowed: tierConfig.overage_allowed,
+            grace_until: null,
+          }, { onConflict: "account_id" });
 
           // Also update legacy user_subscriptions for backwards compatibility
           const { data: tier } = await supabaseAdmin
@@ -639,15 +645,14 @@ serve(async (req) => {
             email: user.email,
             user_id: user.id,
             account_id: accountId,
-            tier: tierConfig?.tier,
-            tier_name: tierConfig?.name,
-            mrr_cents: subscription.items.data[0]?.price?.unit_amount || 0,
+            tier: tierConfig.tier,
+            tier_name: tierConfig.name,
+            mrr_cents: priceData?.unit_amount || 0,
             subscription_id: subscription.id,
           });
 
           // === MRR ANALYTICS ===
           // Calculate MRR from subscription price
-          const priceData = subscription.items.data[0]?.price;
           const priceAmount = (priceData?.unit_amount || 0) / 100; // Convert cents to dollars
           const interval = priceData?.recurring?.interval || 'month';
           const mrr = calculateMrr(priceAmount, interval);
@@ -659,14 +664,14 @@ serve(async (req) => {
             'new',
             mrr,
             null,
-            tierConfig?.tier || 'starter',
+            tierConfig.tier,
             event.id
           );
 
           // Ensure account is in cohorts
-          await ensureCohort(supabaseAdmin, accountId, tierConfig?.tier || 'starter', mrr);
+          await ensureCohort(supabaseAdmin, accountId, tierConfig.tier, mrr);
 
-          logStep("Subscription and entitlements synced", { productId, tierName: tierConfig?.name, accountId, mrr });
+          logStep("Subscription and entitlements synced", { productId, tierName: tierConfig.name, accountId, mrr });
         } else if (session.mode === "payment") {
           // Generic one-time report purchase - credit user with 1 report
           const { data: payPerUseTier } = await supabaseAdmin
@@ -744,12 +749,13 @@ serve(async (req) => {
             // Get product ID from subscription
             let productName = "SiteIntel Subscription";
             if (invoice.subscription) {
-              const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+              const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string, {
+                expand: ['items.data.price.product'],
+              });
               const productId = subscription.items.data[0]?.price?.product as string;
-              const tierConfig = TIER_CONFIG[productId];
-              if (tierConfig) {
-                productName = `SiteIntel ${tierConfig.name}`;
-              }
+              const priceMetadata = (subscription.items.data[0]?.price?.metadata || {}) as Record<string, string>;
+              const tierConfig = parseEntitlementsFromMetadata(priceMetadata, undefined, productId);
+              productName = `SiteIntel ${tierConfig.name}`;
 
               // Update subscription status and clear grace period
               await supabaseAdmin
@@ -863,7 +869,12 @@ serve(async (req) => {
 
         const productId = subscription.items.data[0]?.price?.product as string;
         const priceId = subscription.items.data[0]?.price?.id as string;
-        const tierConfig = TIER_CONFIG[productId];
+        
+        // Need to fetch price with metadata since webhook payload may not include it
+        const price = await stripe.prices.retrieve(priceId);
+        const priceMetadata = (price.metadata || {}) as Record<string, string>;
+        const subMetadata = (subscription.metadata || {}) as Record<string, string>;
+        const tierConfig = parseEntitlementsFromMetadata(priceMetadata, subMetadata, productId);
 
         // Find account via stripe_customers table
         const { data: stripeCustomer } = await supabaseAdmin
@@ -898,7 +909,7 @@ serve(async (req) => {
             subscription_id: subscription.id,
             account_id: accountId,
             stripe_price_id: priceId,
-            tier: tierConfig?.tier || 'starter',
+            tier: tierConfig.tier,
             status: subscription.status === "active" ? "active" : 
                    subscription.status === "past_due" ? "past_due" : 
                    subscription.status === "canceled" ? "canceled" : subscription.status,
@@ -907,16 +918,16 @@ serve(async (req) => {
             cancel_at_period_end: subscription.cancel_at_period_end,
             metadata: {
               product_id: productId,
-              tier_name: tierConfig?.name,
+              tier_name: tierConfig.name,
             },
           }, { onConflict: "subscription_id" });
 
           // Sync entitlements based on subscription status
-          if (tierConfig && subscription.status === "active") {
+          if (subscription.status === "active") {
             await supabaseAdmin.from("entitlements").upsert({
               account_id: accountId,
               tier: tierConfig.tier,
-              included_reports_monthly: tierConfig.reports_per_month,
+              included_reports_monthly: tierConfig.included_reports_monthly,
               active_parcel_limit: tierConfig.active_parcel_limit,
               seat_limit: tierConfig.seat_limit,
               history_retention_days: tierConfig.history_retention_days,
@@ -924,6 +935,7 @@ serve(async (req) => {
               can_share_links: tierConfig.can_share_links,
               can_export_csv: tierConfig.can_export_csv,
               can_use_api: tierConfig.can_use_api,
+              overage_allowed: tierConfig.overage_allowed,
               grace_until: null,
             }, { onConflict: "account_id" });
           } else if (subscription.status === "past_due") {
@@ -953,7 +965,7 @@ serve(async (req) => {
               .eq("stripe_subscription_id", subscription.id);
           }
 
-          logStep("Subscription and entitlements updated", { status: subscription.status, tier: tierConfig?.tier, accountId });
+          logStep("Subscription and entitlements updated", { status: subscription.status, tier: tierConfig.tier, accountId });
         }
         break;
       }
