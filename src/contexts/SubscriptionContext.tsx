@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './AuthContext';
 
 interface CreditsInfo {
   tier: string;
@@ -31,6 +32,7 @@ export const useSubscription = () => {
 };
 
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, session } = useAuth();
   const [subscribed, setSubscribed] = useState(false);
   const [productId, setProductId] = useState<string | null>(null);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
@@ -38,17 +40,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [loading, setLoading] = useState(true);
 
   const refreshSubscription = async () => {
+    if (!session?.access_token) {
+      setSubscribed(false);
+      setProductId(null);
+      setSubscriptionEnd(null);
+      setCredits(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        setSubscribed(false);
-        setProductId(null);
-        setSubscriptionEnd(null);
-        setCredits(null);
-        return;
-      }
 
       // Fetch subscription status
       const { data, error } = await supabase.functions.invoke('check-subscription', {
@@ -110,28 +112,26 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  // Refresh subscription when user changes
   useEffect(() => {
-    refreshSubscription();
+    if (user) {
+      refreshSubscription();
+    } else {
+      setSubscribed(false);
+      setProductId(null);
+      setSubscriptionEnd(null);
+      setCredits(null);
+      setLoading(false);
+    }
+  }, [user, session]);
 
-    // Check subscription status periodically (every 60 seconds)
+  // Check subscription status periodically (every 60 seconds) when user is logged in
+  useEffect(() => {
+    if (!user) return;
+    
     const interval = setInterval(refreshSubscription, 60000);
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        refreshSubscription();
-      } else if (event === 'SIGNED_OUT') {
-        setSubscribed(false);
-        setProductId(null);
-        setSubscriptionEnd(null);
-      }
-    });
-
-    return () => {
-      interval && clearInterval(interval);
-      subscription.unsubscribe();
-    };
-  }, []);
+    return () => clearInterval(interval);
+  }, [user]);
 
   return (
     <SubscriptionContext.Provider
