@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-route
 import { Header } from "./components/navigation/Header";
 import { Footer } from "./components/navigation/Footer";
 import { SkipLinks } from "./components/SkipLinks";
+import { AuthProvider } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import { KeyboardShortcuts } from "./components/KeyboardShortcuts";
 import { GlobalBuildBadge } from "./components/GlobalBuildBadge";
@@ -106,12 +107,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <SubscriptionProvider>
-        <Toaster />
-        <Sonner />
-        <GlobalBuildBadge />
-        <BrowserRouter>
-          <Layout>
+      <AuthProvider>
+        <SubscriptionProvider>
+          <Toaster />
+          <Sonner />
+          <GlobalBuildBadge />
+          <BrowserRouter>
+            <Layout>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/get-started" element={<ApplicationPaymentFlow />} />
@@ -188,10 +190,11 @@ const App = () => (
               <Route path="/docs/canonical-schema" element={<CanonicalSchema />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Layout>
-        </BrowserRouter>
-      </SubscriptionProvider>
+              </Routes>
+            </Layout>
+          </BrowserRouter>
+        </SubscriptionProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

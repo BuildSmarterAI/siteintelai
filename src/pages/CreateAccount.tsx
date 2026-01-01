@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, Mail, Lock, User, AlertCircle } from "lucide-react";
 import { Helmet } from "react-helmet";
@@ -12,6 +13,7 @@ import { Helmet } from "react-helmet";
 const CreateAccount = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user, session, loading: authLoading } = useAuth();
   const sessionId = searchParams.get("session_id");
 
   const [loading, setLoading] = useState(true);
@@ -67,19 +69,25 @@ const CreateAccount = () => {
     fetchSession();
   }, [sessionId]);
 
-  // Check if user is already logged in
+  // Check if user is already logged in via AuthContext
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        // User already logged in, try to link and redirect
-        await linkApplicationAndRedirect(session.access_token);
-      }
-    };
-    
-    if (sessionData) {
-      checkAuth();
+    if (!authLoading && user && session && sessionData) {
+      // User already logged in, try to link and redirect
+      linkApplicationAndRedirect(session.access_token);
     }
+  }, [user, session, authLoading, sessionData]);
+
+  // Listen for OAuth redirect completion
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session && sessionData) {
+          await linkApplicationAndRedirect(session.access_token);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
   }, [sessionData]);
 
   const linkApplicationAndRedirect = async (accessToken: string) => {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +43,7 @@ interface Report {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState<Report[]>([]);
   const [sortedReports, setSortedReports] = useState<Report[]>([]);
@@ -55,9 +57,19 @@ export default function Dashboard() {
   // OAuth error handler for detecting redirect errors
   const { error: oauthError, showDebugPanel, setShowDebugPanel, copyDebugInfo } = useOAuthErrorHandler();
 
+  // Redirect to auth if not logged in
   useEffect(() => {
-    checkAuth();
-    fetchReports();
+    if (!authLoading && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
+  // Fetch reports and profile when user is available
+  useEffect(() => {
+    if (user) {
+      fetchReports();
+      fetchProfile();
+    }
     
     // Handle payment success/cancel messages
     const payment = searchParams.get('payment');
@@ -74,7 +86,22 @@ export default function Dashboard() {
     } else if (subscription === 'canceled') {
       toast.error('Subscription was canceled.');
     }
-  }, [searchParams]);
+  }, [user, searchParams]);
+
+  // Fetch user profile (deferred with setTimeout to prevent deadlock)
+  const fetchProfile = () => {
+    if (!user) return;
+    
+    setTimeout(async () => {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      setProfile(profileData);
+    }, 0);
+  };
 
   // Poll for generating reports every 3 seconds
   useEffect(() => {
@@ -302,32 +329,10 @@ export default function Dashboard() {
     );
   };
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate("/auth");
-      return;
-    }
-
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', session.user.id)
-      .single();
-
-    setProfile(profileData);
-  };
-
   const fetchReports = async () => {
+    if (!user) return;
+    
     try {
-      // Get current session to filter by user
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        navigate('/auth');
-        return;
-      }
-
       const { data, error } = await supabase
         .from('reports')
         .select(`
@@ -338,7 +343,7 @@ export default function Dashboard() {
             intent_type
           )
         `)
-        .eq('user_id', session.user.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -359,7 +364,8 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  // Show loading while checking auth or fetching data
+  if (authLoading || loading) {
     return (
       <SidebarProvider>
         <div className="min-h-screen flex w-full bg-gradient-to-br from-charcoal/5 to-navy/5">
