@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, User, Lock } from 'lucide-react';
+import { AvatarUpload } from '@/components/profile/AvatarUpload';
+import { EmailPreferences } from '@/components/profile/EmailPreferences';
 
 const ProfileSettings = () => {
   const navigate = useNavigate();
@@ -19,6 +21,9 @@ const ProfileSettings = () => {
   const [fullName, setFullName] = useState('');
   const [company, setCompany] = useState('');
   const [phone, setPhone] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [emailReportNotifications, setEmailReportNotifications] = useState(true);
+  const [emailMarketing, setEmailMarketing] = useState(false);
   const [profileLoading, setProfileLoading] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
   
@@ -44,7 +49,7 @@ const ProfileSettings = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('full_name, company, phone')
+          .select('full_name, company, phone, avatar_url, email_report_notifications, email_marketing')
           .eq('id', user.id)
           .single();
 
@@ -56,6 +61,9 @@ const ProfileSettings = () => {
           setFullName(data.full_name || '');
           setCompany(data.company || '');
           setPhone(data.phone || '');
+          setAvatarUrl(data.avatar_url || null);
+          setEmailReportNotifications(data.email_report_notifications ?? true);
+          setEmailMarketing(data.email_marketing ?? false);
         }
       } catch (err) {
         console.error('Error fetching profile:', err);
@@ -123,6 +131,14 @@ const ProfileSettings = () => {
     }
   };
 
+  const handleEmailPreferenceUpdate = (field: string, value: boolean) => {
+    if (field === 'email_report_notifications') {
+      setEmailReportNotifications(value);
+    } else if (field === 'email_marketing') {
+      setEmailMarketing(value);
+    }
+  };
+
   if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -155,7 +171,15 @@ const ProfileSettings = () => {
                 </div>
                 <CardDescription>Update your personal details</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                {/* Avatar Upload */}
+                <AvatarUpload
+                  userId={user.id}
+                  currentAvatarUrl={avatarUrl}
+                  fullName={fullName || user.email || 'User'}
+                  onAvatarUpdate={setAvatarUrl}
+                />
+
                 <form onSubmit={handleProfileUpdate} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -209,6 +233,14 @@ const ProfileSettings = () => {
                 </form>
               </CardContent>
             </Card>
+
+            {/* Email Preferences */}
+            <EmailPreferences
+              userId={user.id}
+              reportNotifications={emailReportNotifications}
+              marketingEmails={emailMarketing}
+              onUpdate={handleEmailPreferenceUpdate}
+            />
 
             {/* Change Password */}
             <Card>
