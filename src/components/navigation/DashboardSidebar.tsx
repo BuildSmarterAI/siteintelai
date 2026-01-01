@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, FileText, PlusCircle, LayoutDashboard, TrendingUp, Globe2 } from "lucide-react";
+import { Home, FileText, PlusCircle, LayoutDashboard, TrendingUp, Globe2, Settings } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -94,6 +94,14 @@ export function DashboardSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild className={isActive("/settings") ? "bg-[#06B6D4]/10 text-[#06B6D4] font-semibold hover:bg-[#06B6D4]/20" : "text-charcoal/70 hover:bg-charcoal/5 hover:text-charcoal"}>
+                  <NavLink to="/settings">
+                    <Settings className={`${collapsed ? "" : "mr-3"} h-5 w-5`} />
+                    {!collapsed && <span>Settings</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <NavLink to="/" className="text-charcoal/70 hover:bg-charcoal/5 hover:text-charcoal">
