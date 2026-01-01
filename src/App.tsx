@@ -75,6 +75,7 @@ import AdminReports from "./pages/admin/AdminReports";
 import MarketIntelligence from "./pages/MarketIntelligence";
 import CreateAccount from "./pages/CreateAccount";
 import ApplicationPaymentFlow from "./pages/ApplicationPaymentFlow";
+import ProfileSettings from "./pages/ProfileSettings";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -123,6 +124,7 @@ const App = () => (
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/create-account" element={<CreateAccount />} />
               <Route path="/payment-history" element={<PaymentHistory />} />
+              <Route path="/settings" element={<ProfileSettings />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/report/:reportId" element={<ReportLayout />}>
                 <Route index element={<PropertyInfoPage />} />
