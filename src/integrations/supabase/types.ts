@@ -5354,6 +5354,8 @@ export type Database = {
           company: string | null
           created_at: string
           email: string | null
+          email_marketing: boolean | null
+          email_report_notifications: boolean | null
           full_name: string | null
           id: string
           phone: string | null
@@ -5366,6 +5368,8 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          email_marketing?: boolean | null
+          email_report_notifications?: boolean | null
           full_name?: string | null
           id: string
           phone?: string | null
@@ -5378,6 +5382,8 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          email_marketing?: boolean | null
+          email_report_notifications?: boolean | null
           full_name?: string | null
           id?: string
           phone?: string | null
