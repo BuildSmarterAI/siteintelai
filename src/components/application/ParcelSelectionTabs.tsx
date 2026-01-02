@@ -14,6 +14,7 @@ import { CADSearchTab } from "./CADSearchTab";
 import { SurveyUploadTab } from "./SurveyUploadTab";
 import type { ParcelSelectionInputMode, CandidateParcel } from "@/types/parcelSelection";
 import type { SurveyUploadMetadata } from "@/services/surveyUploadApi";
+import type { ParcelMatch, AffineTransform, TransformedBounds } from "@/types/surveyCalibration";
 
 interface ParcelSelectionTabsProps {
   onCandidatesFound: (candidates: CandidateParcel[]) => void;
@@ -21,6 +22,12 @@ interface ParcelSelectionTabsProps {
   mapCenter: [number, number];
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
   onSurveyDeleted?: (surveyId: string) => void;
+  onParcelSelected?: (parcel: ParcelMatch) => void;
+  onCalibrationComplete?: (result: {
+    transform: AffineTransform;
+    bounds: TransformedBounds;
+    matchedParcels: ParcelMatch[];
+  }) => void;
   draftId?: string;
   // Survey overlay controls
   surveyOverlayOpacity?: number;
@@ -36,6 +43,8 @@ export function ParcelSelectionTabs({
   mapCenter,
   onSurveyUploaded,
   onSurveyDeleted,
+  onParcelSelected,
+  onCalibrationComplete,
   draftId,
   surveyOverlayOpacity,
   onSurveyOpacityChange,
@@ -104,6 +113,8 @@ export function ParcelSelectionTabs({
           <SurveyUploadTab
             onSurveyUploaded={onSurveyUploaded}
             onSurveyDeleted={onSurveyDeleted}
+            onParcelSelected={onParcelSelected}
+            onCalibrationComplete={onCalibrationComplete}
             draftId={draftId}
             surveyOverlayOpacity={surveyOverlayOpacity}
             onSurveyOpacityChange={onSurveyOpacityChange}

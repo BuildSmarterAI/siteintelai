@@ -1,6 +1,6 @@
 /**
  * Survey Upload Tab for Parcel Selection
- * Phase 1: Read-only overlay mode - upload shows as visual reference only
+ * Phase 2: Includes calibration wizard for georeferencing surveys
  * 
  * Key constraints:
  * - Survey is NOT authoritative parcel selection
@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2, EyeOff } from 'lucide-react';
+import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2, EyeOff, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,17 +18,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { SurveyCalibrationWizard } from './SurveyCalibrationWizard';
 import { 
   uploadSurvey, 
   getSurveyUrl, 
   deleteSurvey,
   type SurveyUploadMetadata 
 } from '@/services/surveyUploadApi';
+import type { ParcelMatch, AffineTransform, TransformedBounds } from '@/types/surveyCalibration';
 import { toast } from 'sonner';
 
 interface SurveyUploadTabProps {
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
   onSurveyDeleted?: (surveyId: string) => void;
+  onParcelSelected?: (parcel: ParcelMatch) => void;
+  onCalibrationComplete?: (result: {
+    transform: AffineTransform;
+    bounds: TransformedBounds;
+    matchedParcels: ParcelMatch[];
+  }) => void;
   draftId?: string;
   // Overlay controls
   surveyOverlayOpacity?: number;
@@ -44,6 +52,8 @@ const MAX_SIZE_MB = 50;
 export function SurveyUploadTab({ 
   onSurveyUploaded,
   onSurveyDeleted,
+  onParcelSelected,
+  onCalibrationComplete,
   draftId,
   surveyOverlayOpacity = 0.5,
   onSurveyOpacityChange,
@@ -56,6 +66,8 @@ export function SurveyUploadTab({
   const [dragActive, setDragActive] = useState(false);
   const [surveyTitle, setSurveyTitle] = useState('');
   const [surveyCounty, setSurveyCounty] = useState('');
+  const [showCalibrationWizard, setShowCalibrationWizard] = useState(false);
+  const [surveyImageUrl, setSurveyImageUrl] = useState<string | null>(null);
 
   // Use external state if provided, otherwise use internal
   const uploadedSurvey = externalUploadedSurvey ?? internalUploadedSurvey;
@@ -134,6 +146,20 @@ export function SurveyUploadTab({
       toast.error('Failed to delete survey');
     }
   }, [uploadedSurvey, onSurveyDeleted]);
+
+  // Open calibration wizard
+  const handleOpenCalibration = useCallback(async () => {
+    if (!uploadedSurvey) return;
+    
+    // Get signed URL for the survey image
+    const url = await getSurveyUrl(uploadedSurvey.storage_path);
+    if (url) {
+      setSurveyImageUrl(url);
+      setShowCalibrationWizard(true);
+    } else {
+      toast.error('Failed to load survey for calibration');
+    }
+  }, [uploadedSurvey]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -271,6 +297,37 @@ export function SurveyUploadTab({
               </div>
             </div>
 
+            {/* Calibration Section */}
+            <div className="border-t pt-3">
+              {uploadedSurvey.calibration_status === 'uncalibrated' ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleOpenCalibration}
+                >
+                  <Target className="h-4 w-4 mr-2" />
+                  Calibrate Survey for Parcel Matching
+                </Button>
+              ) : uploadedSurvey.calibration_status === 'calibrated' ? (
+                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                  <Target className="h-4 w-4" />
+                  <span>Calibrated - Ready for parcel matching</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Calibration failed</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleOpenCalibration}
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
+            </div>
+
             {/* Overlay Controls */}
             <div className="border-t pt-3 space-y-3">
               <div className="flex items-center justify-between">
@@ -317,15 +374,37 @@ export function SurveyUploadTab({
       {/* Instructions */}
       <div className="text-xs text-muted-foreground space-y-1">
         <p>
-          <strong>Next step:</strong> After uploading, the survey will display as a 
-          semi-transparent overlay on the map. Use it to visually confirm you're 
-          selecting the correct parcel.
+          <strong>Next step:</strong> After uploading, click "Calibrate Survey" to mark 
+          control points and automatically match CAD parcels.
         </p>
         <p>
           <strong>Note:</strong> Parcel selection for feasibility analysis requires 
           matching an authoritative county appraisal district record.
         </p>
       </div>
+
+      {/* Calibration Wizard */}
+      {uploadedSurvey && surveyImageUrl && (
+        <SurveyCalibrationWizard
+          open={showCalibrationWizard}
+          onOpenChange={setShowCalibrationWizard}
+          surveyId={uploadedSurvey.id}
+          surveyImageUrl={surveyImageUrl}
+          onCalibrationComplete={(result) => {
+            onCalibrationComplete?.(result);
+            // Update internal survey status
+            setInternalUploadedSurvey(prev => prev ? {
+              ...prev,
+              calibration_status: 'calibrated',
+              geometry_confidence: result.transform.confidence,
+            } : null);
+          }}
+          onParcelSelected={(parcel) => {
+            onParcelSelected?.(parcel);
+            setShowCalibrationWizard(false);
+          }}
+        />
+      )}
     </div>
   );
 }
