@@ -5,6 +5,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { ProcessingTimeline } from "@/components/report/ProcessingTimeline";
 
 
 export default function ThankYou() {
@@ -298,34 +299,39 @@ export default function ThankYou() {
                 </Button>
               </CardContent>
             </Card>
-          ) : (
+          ) : !reportError && (
             <Card className="border-2 border-primary shadow-xl mb-8">
-              <CardContent className="p-8 text-center">
-                <Loader2 className="w-12 h-12 text-primary mx-auto mb-4 animate-spin" />
-                <h3 className="font-headline text-2xl font-bold text-charcoal mb-4">
+              <CardContent className="p-8">
+                <h3 className="font-headline text-2xl font-bold text-charcoal mb-6 text-center">
                   Generating Your Report
                 </h3>
-                <p className="font-body text-charcoal/70 mb-4">
-                  This typically takes 30-60 seconds. You'll be redirected automatically.
-                </p>
-                <Button 
-                  onClick={checkForReport} 
-                  variant="outline"
-                  disabled={checking}
-                  className="touch-target"
-                >
-                  {checking ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Checking...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Check Now
-                    </>
-                  )}
-                </Button>
+                
+                {/* Enhanced Processing Timeline */}
+                <ProcessingTimeline 
+                  currentStatus={applicationData?.status || 'queued'} 
+                  statusPercent={applicationData?.status_percent || 5}
+                />
+                
+                <div className="mt-6 text-center">
+                  <Button 
+                    onClick={checkForReport} 
+                    variant="outline"
+                    disabled={checking}
+                    className="touch-target"
+                  >
+                    {checking ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Checking...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Check Now
+                      </>
+                    )}
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}

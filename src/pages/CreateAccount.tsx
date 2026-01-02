@@ -91,27 +91,74 @@ const CreateAccount = () => {
   }, [sessionData]);
 
   const linkApplicationAndRedirect = async (accessToken: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("link-application-to-user", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+    const MAX_LINK_RETRIES = 3;
+    let lastError: Error | null = null;
 
-      if (error) {
-        console.error("Link error:", error);
-        toast.error("Failed to link your report. Please contact support.");
-        return;
-      }
+    for (let attempt = 0; attempt < MAX_LINK_RETRIES; attempt++) {
+      try {
+        console.log(`[CreateAccount] Link attempt ${attempt + 1}/${MAX_LINK_RETRIES}`);
+        
+        const { data, error } = await supabase.functions.invoke("link-application-to-user", {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
 
-      if (data.linked && data.application_ids?.length > 0) {
-        toast.success("Your report is being generated!");
-        navigate(`/thank-you?applicationId=${data.application_ids[0]}`);
-      } else {
+        if (error) {
+          console.error(`[CreateAccount] Link error (attempt ${attempt + 1}):`, error);
+          lastError = new Error(error.message || "Link failed");
+          
+          // Wait before retry with exponential backoff: 1s, 2s, 4s
+          if (attempt < MAX_LINK_RETRIES - 1) {
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+            continue;
+          }
+        }
+
+        if (data?.linked && data.application_ids?.length > 0) {
+          toast.success("Your report is being generated!");
+          navigate(`/thank-you?applicationId=${data.application_ids[0]}`);
+          return;
+        } else if (data && !data.linked) {
+          // No applications to link - user might have used a different email
+          console.log("[CreateAccount] No applications to link, redirecting to dashboard");
+          
+          // Store email for dashboard recovery attempt
+          if (sessionData?.customer_email) {
+            localStorage.setItem("pending_link_email", sessionData.customer_email);
+          }
+          
+          navigate("/dashboard");
+          return;
+        }
+        
+        // Success case - go to dashboard
         navigate("/dashboard");
+        return;
+        
+      } catch (err) {
+        console.error(`[CreateAccount] Exception (attempt ${attempt + 1}):`, err);
+        lastError = err instanceof Error ? err : new Error(String(err));
+        
+        if (attempt < MAX_LINK_RETRIES - 1) {
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        }
       }
-    } catch (err) {
-      console.error("Error linking application:", err);
-      navigate("/dashboard");
     }
+
+    // All retries failed
+    console.error("[CreateAccount] All link attempts failed:", lastError);
+    
+    // Store email for manual recovery
+    if (sessionData?.customer_email) {
+      localStorage.setItem("pending_link_email", sessionData.customer_email);
+    }
+    
+    toast.error(
+      "Failed to link your report. Don't worry - your payment is confirmed. Please visit your dashboard or contact support.",
+      { duration: 10000 }
+    );
+    
+    // Still redirect to dashboard - the dashboard will attempt recovery
+    navigate("/dashboard");
   };
 
   const handleGoogleSignIn = async () => {

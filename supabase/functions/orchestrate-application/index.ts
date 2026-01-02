@@ -1059,6 +1059,63 @@ Deno.serve(async (req: Request) => {
     console.log(`📥 [TRACE:${traceId}] [orchestrate-application] Starting orchestration for ${appId}`);
     console.log(`📥 [TRACE:${traceId}] [orchestrate-application] Timestamp: ${new Date().toISOString()}`);
     
+    // ===== IDEMPOTENCY CHECK: Verify application is not already being processed =====
+    const { data: appCheck, error: checkError } = await sbAdmin
+      .from('applications')
+      .select('status, orchestration_lock_at, status_rev')
+      .eq('id', appId)
+      .single();
+    
+    if (checkError || !appCheck) {
+      console.error(`❌ [TRACE:${traceId}] [orchestrate-application] Application not found: ${appId}`);
+      return new Response(JSON.stringify({ error: 'Application not found', trace_id: traceId }), {
+        status: 404,
+        headers: { ...corsHeaders, 'content-type': 'application/json' }
+      });
+    }
+    
+    // Check if already in a terminal or advanced state (skip if not queued/pending)
+    const processingStates = ['enriching', 'ai', 'rendering'];
+    const terminalStates = ['complete', 'error', 'error_permanent'];
+    
+    if (terminalStates.includes(appCheck.status)) {
+      console.log(`⏭️ [TRACE:${traceId}] [orchestrate-application] App already in terminal state: ${appCheck.status}, skipping`);
+      return new Response(JSON.stringify({ 
+        skipped: true, 
+        reason: `Already in terminal state: ${appCheck.status}`,
+        trace_id: traceId 
+      }), {
+        headers: { ...corsHeaders, 'content-type': 'application/json' }
+      });
+    }
+    
+    // Check orchestration lock - if locked within last 5 minutes by another process, skip
+    if (appCheck.orchestration_lock_at && !forceRetry) {
+      const lockAge = Date.now() - new Date(appCheck.orchestration_lock_at).getTime();
+      const lockAgeMinutes = lockAge / 1000 / 60;
+      
+      if (lockAgeMinutes < 5 && processingStates.includes(appCheck.status)) {
+        console.log(`🔒 [TRACE:${traceId}] [orchestrate-application] App locked ${lockAgeMinutes.toFixed(1)} min ago and in ${appCheck.status}, skipping duplicate`);
+        return new Response(JSON.stringify({ 
+          skipped: true, 
+          reason: `Orchestration in progress (locked ${lockAgeMinutes.toFixed(1)} min ago)`,
+          trace_id: traceId 
+        }), {
+          headers: { ...corsHeaders, 'content-type': 'application/json' }
+        });
+      }
+    }
+    
+    // Acquire/refresh the orchestration lock
+    const { error: lockError } = await sbAdmin
+      .from('applications')
+      .update({ orchestration_lock_at: new Date().toISOString() })
+      .eq('id', appId);
+    
+    if (lockError) {
+      console.warn(`⚠️ [TRACE:${traceId}] [orchestrate-application] Failed to acquire lock, proceeding anyway`);
+    }
+    
     const result = await orchestrate(appId, traceId);
     
     console.log(`📤 [TRACE:${traceId}] [orchestrate-application] ================== REQUEST COMPLETE ==================`);
