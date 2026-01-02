@@ -7,6 +7,37 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate a deterministic signature hash for map parameters
+async function generateMapSignature(params: {
+  center: { lat: number; lng: number };
+  zoom: number;
+  size: string;
+  parcel_geometry?: any;
+  flood_geometry?: any;
+}): Promise<string> {
+  const signatureData = JSON.stringify({
+    lat: Math.round(params.center.lat * 1000000) / 1000000, // 6 decimal precision
+    lng: Math.round(params.center.lng * 1000000) / 1000000,
+    zoom: params.zoom,
+    size: params.size,
+    parcel: params.parcel_geometry ? JSON.stringify(params.parcel_geometry) : null,
+    flood: params.flood_geometry ? JSON.stringify(params.flood_geometry) : null,
+  });
+  
+  const encoder = new TextEncoder();
+  const data = encoder.encode(signatureData);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Generate SHA-256 hash for image content
+async function generateImageHash(buffer: Uint8Array): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -32,6 +63,62 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     });
 
+    // Generate signature for deduplication
+    const mapSignature = await generateMapSignature({ center, zoom, size, parcel_geometry, flood_geometry });
+    console.log(`[render-static-map] Map signature: ${mapSignature.substring(0, 16)}...`);
+
+    // Check for existing cached asset with this signature
+    const { data: existingAsset } = await supabase
+      .from('google_static_maps_assets')
+      .select('*')
+      .eq('map_signature_hash', mapSignature)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (existingAsset) {
+      console.log(`[render-static-map] Cache HIT - returning existing asset from ${existingAsset.fetched_at}`);
+      
+      // Generate fresh signed URL from storage path
+      const { data: signedUrlData } = await supabase.storage
+        .from('reports')
+        .createSignedUrl(existingAsset.storage_path, 259200);
+
+      if (signedUrlData?.signedUrl) {
+        // Update report_assets with cached URL
+        const { data: report } = await supabase
+          .from('reports')
+          .select('report_assets')
+          .eq('application_id', application_id)
+          .single();
+
+        const updatedAssets = {
+          ...(report?.report_assets || {}),
+          static_map_url: signedUrlData.signedUrl,
+          static_map_generated_at: existingAsset.fetched_at,
+          static_map_center: center,
+          static_map_zoom: zoom,
+          has_flood_overlay: !!flood_geometry,
+          cache_hit: true,
+        };
+
+        await supabase
+          .from('reports')
+          .update({ report_assets: updatedAssets })
+          .eq('application_id', application_id);
+
+        return new Response(
+          JSON.stringify({
+            static_map_url: signedUrlData.signedUrl,
+            generated_at: existingAsset.fetched_at,
+            cache_hit: true,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    console.log('[render-static-map] Cache MISS - fetching from Google API');
+
     const googleApiKey = Deno.env.get('GOOGLE_MAPS_API_KEY');
     if (!googleApiKey) {
       throw new Error('GOOGLE_MAPS_API_KEY not configured');
@@ -42,11 +129,11 @@ serve(async (req) => {
     baseUrl.searchParams.set('center', `${center.lat},${center.lng}`);
     baseUrl.searchParams.set('zoom', zoom.toString());
     baseUrl.searchParams.set('size', size);
-    baseUrl.searchParams.set('scale', '2'); // High-DPI support for retina displays
+    baseUrl.searchParams.set('scale', '2');
     baseUrl.searchParams.set('maptype', 'hybrid');
     baseUrl.searchParams.set('key', googleApiKey);
 
-    // Add custom styling to simplify the map (hide POIs and transit)
+    // Add custom styling to simplify the map
     baseUrl.searchParams.append('style', 'feature:poi|visibility:off');
     baseUrl.searchParams.append('style', 'feature:transit|visibility:off');
 
@@ -61,7 +148,6 @@ serve(async (req) => {
           .map((coord: number[]) => `${coord[1]},${coord[0]}`)
           .join('|');
         
-        // Blue fill with 20% opacity (0x33 = ~20%), cyan border
         baseUrl.searchParams.append('path', `fillcolor:0x330000FF|color:0x00FFFFFF|weight:2|${floodPath}`);
         console.log('[render-static-map] Added flood zone overlay with', floodCoords.length, 'points');
       } catch (error) {
@@ -69,20 +155,17 @@ serve(async (req) => {
       }
     }
 
-    // Add parcel boundary path if geometry is available (renders on top of flood zone)
+    // Add parcel boundary path if geometry is available
     if (parcel_geometry && parcel_geometry.coordinates && parcel_geometry.coordinates.length > 0) {
       try {
-        // Handle Polygon geometry type (coordinates[0] is the outer ring)
         const coords = parcel_geometry.type === 'Polygon' 
           ? parcel_geometry.coordinates[0] 
           : parcel_geometry.coordinates;
         
-        // Convert coordinates to lat,lng format and close the polygon
         const pathCoords = coords
           .map((coord: number[]) => `${coord[1]},${coord[0]}`)
           .join('|');
         
-        // Add the path overlay with high visibility (red color, 3px weight, full opacity)
         baseUrl.searchParams.append('path', `color:0xff0000ff|weight:3|${pathCoords}`);
         console.log('[render-static-map] Added parcel boundary path with', coords.length, 'points');
       } catch (error) {
@@ -90,7 +173,7 @@ serve(async (req) => {
       }
     }
 
-    // Add center marker (property location)
+    // Add center marker
     baseUrl.searchParams.set('markers', `color:red|${center.lat},${center.lng}`);
 
     console.log('[render-static-map] Fetching from Google Static Maps API...');
@@ -137,12 +220,17 @@ serve(async (req) => {
     const mapArrayBuffer = await mapBlob.arrayBuffer();
     const mapBuffer = new Uint8Array(mapArrayBuffer);
 
-    // Generate different file names based on overlays present
+    // Generate image hash for provenance
+    const imageHash = await generateImageHash(mapBuffer);
+
+    // Parse size for storage
+    const [width, height] = size.split('x').map(Number);
     const hasFloodOverlay = !!flood_geometry;
-    const fileName = `reports/${application_id}/static_map${hasFloodOverlay ? '_flood' : ''}.png`;
+    const fileName = `reports/${application_id}/static_map_${mapSignature.substring(0, 12)}.png`;
+    
     console.log(`[render-static-map] Uploading to Supabase Storage: ${fileName}`);
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('reports')
       .upload(fileName, mapBuffer, {
         contentType: 'image/png',
@@ -157,11 +245,27 @@ serve(async (req) => {
     // Generate signed URL (valid for 72 hours)
     const { data: signedUrlData } = await supabase.storage
       .from('reports')
-      .createSignedUrl(fileName, 259200); // 72 hours
+      .createSignedUrl(fileName, 259200);
 
     if (!signedUrlData?.signedUrl) {
       throw new Error('Failed to generate signed URL');
     }
+
+    // Store asset in google_static_maps_assets for future deduplication
+    await supabase
+      .from('google_static_maps_assets')
+      .upsert({
+        application_id,
+        map_signature_hash: mapSignature,
+        params_json: { center, zoom, size, has_parcel: !!parcel_geometry, has_flood: hasFloodOverlay },
+        storage_path: fileName,
+        sha256: imageHash,
+        width,
+        height,
+        map_type: 'hybrid',
+        fetched_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days
+      }, { onConflict: 'map_signature_hash' });
 
     // Update report_assets in reports table
     const { data: report } = await supabase
@@ -177,7 +281,8 @@ serve(async (req) => {
       static_map_center: center,
       static_map_zoom: zoom,
       has_flood_overlay: hasFloodOverlay,
-      flood_geometry_included: hasFloodOverlay
+      flood_geometry_included: hasFloodOverlay,
+      cache_hit: false,
     };
 
     await supabase
@@ -191,6 +296,7 @@ serve(async (req) => {
       JSON.stringify({
         static_map_url: signedUrlData.signedUrl,
         generated_at: new Date().toISOString(),
+        cache_hit: false,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
