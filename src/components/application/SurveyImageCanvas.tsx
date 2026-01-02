@@ -1,11 +1,20 @@
 /**
  * Survey Image Canvas
- * Allows users to mark control points on a survey image
+ * Allows users to mark control points on a survey image or PDF
  * with pan/zoom capabilities.
  */
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
 import type { ControlPointPair } from '@/types/surveyCalibration';
+import { Button } from '@/components/ui/button';
+import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+
+// Configure PDF.js worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 interface SurveyImageCanvasProps {
   imageUrl: string;
@@ -41,70 +50,199 @@ export function SurveyImageCanvas({
   const [scale, setScale] = useState(1);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  
+  // PDF-specific state
+  const [isPdf, setIsPdf] = useState(false);
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoadingPage, setIsLoadingPage] = useState(false);
 
-  // Load image via fetch to avoid CORS issues with signed URLs
+  // Detect file type and load accordingly
   useEffect(() => {
     let cancelled = false;
     setLoadError(null);
     setImageLoaded(false);
+    setIsPdf(false);
+    setPdfDoc(null);
     
-    const loadImage = async () => {
+    const loadFile = async () => {
       try {
-        // Fetch the image as a blob to bypass CORS restrictions
+        console.log('[SurveyImageCanvas] Loading file:', imageUrl.slice(0, 100) + '...');
+        
+        // Fetch the file
         const response = await fetch(imageUrl);
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
         
         const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
+        const contentType = response.headers.get('content-type') || blob.type || '';
+        const isPdfFile = contentType.includes('pdf') || 
+                          imageUrl.toLowerCase().includes('.pdf') ||
+                          blob.type === 'application/pdf';
         
-        const img = new Image();
-        img.onload = () => {
-          if (cancelled) {
+        console.log('[SurveyImageCanvas] Content type:', contentType, 'isPDF:', isPdfFile);
+        
+        if (cancelled) return;
+        
+        if (isPdfFile) {
+          // Handle PDF
+          setIsPdf(true);
+          const arrayBuffer = await blob.arrayBuffer();
+          
+          console.log('[SurveyImageCanvas] Loading PDF document...');
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          
+          if (cancelled) return;
+          
+          console.log('[SurveyImageCanvas] PDF loaded, pages:', pdf.numPages);
+          setPdfDoc(pdf);
+          setTotalPages(pdf.numPages);
+          setCurrentPage(1);
+          
+          // Render first page
+          await renderPdfPage(pdf, 1, cancelled);
+        } else {
+          // Handle image
+          const blobUrl = URL.createObjectURL(blob);
+          
+          const img = new Image();
+          img.onload = () => {
+            if (cancelled) {
+              URL.revokeObjectURL(blobUrl);
+              return;
+            }
+            
+            console.log('[SurveyImageCanvas] Image loaded:', img.width, 'x', img.height);
+            imageRef.current = img;
+            setImageLoaded(true);
+            onImageLoad?.(img.width, img.height);
+            
+            // Center and fit image
+            if (containerRef.current) {
+              const containerWidth = containerRef.current.clientWidth;
+              const containerHeight = containerRef.current.clientHeight;
+              const scaleX = containerWidth / img.width;
+              const scaleY = containerHeight / img.height;
+              const fitScale = Math.min(scaleX, scaleY, 1) * 0.9;
+              setScale(fitScale);
+              setOffset({
+                x: (containerWidth - img.width * fitScale) / 2,
+                y: (containerHeight - img.height * fitScale) / 2,
+              });
+            }
+          };
+          img.onerror = () => {
+            if (!cancelled) {
+              console.error('[SurveyImageCanvas] Failed to decode image');
+              setLoadError('Failed to decode image. If this is a PDF, ensure it uploaded correctly.');
+            }
             URL.revokeObjectURL(blobUrl);
-            return;
-          }
-          
-          imageRef.current = img;
-          setImageLoaded(true);
-          onImageLoad?.(img.width, img.height);
-          
-          // Center and fit image
-          if (containerRef.current) {
-            const containerWidth = containerRef.current.clientWidth;
-            const containerHeight = containerRef.current.clientHeight;
-            const scaleX = containerWidth / img.width;
-            const scaleY = containerHeight / img.height;
-            const fitScale = Math.min(scaleX, scaleY, 1) * 0.9;
-            setScale(fitScale);
-            setOffset({
-              x: (containerWidth - img.width * fitScale) / 2,
-              y: (containerHeight - img.height * fitScale) / 2,
-            });
-          }
-        };
-        img.onerror = () => {
-          if (!cancelled) {
-            setLoadError('Failed to decode image');
-          }
-          URL.revokeObjectURL(blobUrl);
-        };
-        img.src = blobUrl;
+          };
+          img.src = blobUrl;
+        }
       } catch (err) {
         if (!cancelled) {
-          console.error('Failed to load survey image:', err);
-          setLoadError('Failed to load survey image. Please try re-uploading.');
+          console.error('[SurveyImageCanvas] Failed to load file:', err);
+          setLoadError(`Failed to load survey: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
       }
     };
     
-    loadImage();
+    loadFile();
     
     return () => {
       cancelled = true;
     };
-  }, [imageUrl, onImageLoad]);
+  }, [imageUrl]); // Note: removed onImageLoad from deps to avoid re-renders
+
+  // Render a PDF page to an image
+  const renderPdfPage = async (
+    pdf: pdfjsLib.PDFDocumentProxy, 
+    pageNum: number, 
+    cancelled: boolean
+  ) => {
+    setIsLoadingPage(true);
+    
+    try {
+      const page = await pdf.getPage(pageNum);
+      
+      // Scale for good resolution (2x for retina-like quality)
+      const pdfScale = 2;
+      const viewport = page.getViewport({ scale: pdfScale });
+      
+      // Create offscreen canvas to render PDF
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = viewport.width;
+      offscreenCanvas.height = viewport.height;
+      const ctx = offscreenCanvas.getContext('2d');
+      
+      if (!ctx) throw new Error('Could not get canvas context');
+      
+      await page.render({
+        canvasContext: ctx,
+        viewport,
+      }).promise;
+      
+      if (cancelled) return;
+      
+      // Convert to image
+      const dataUrl = offscreenCanvas.toDataURL('image/png');
+      const img = new Image();
+      
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to convert PDF page to image'));
+        img.src = dataUrl;
+      });
+      
+      if (cancelled) return;
+      
+      // Use the original PDF dimensions (not scaled)
+      const originalViewport = page.getViewport({ scale: 1 });
+      
+      console.log('[SurveyImageCanvas] PDF page rendered:', originalViewport.width, 'x', originalViewport.height);
+      
+      imageRef.current = img;
+      setImageLoaded(true);
+      onImageLoad?.(originalViewport.width, originalViewport.height);
+      
+      // Center and fit
+      if (containerRef.current) {
+        const containerWidth = containerRef.current.clientWidth;
+        const containerHeight = containerRef.current.clientHeight;
+        // Note: img dimensions are scaled, so we use original viewport for fitting
+        const scaleX = containerWidth / originalViewport.width;
+        const scaleY = containerHeight / originalViewport.height;
+        const fitScale = Math.min(scaleX, scaleY, 1) * 0.9;
+        setScale(fitScale);
+        setOffset({
+          x: (containerWidth - originalViewport.width * fitScale) / 2,
+          y: (containerHeight - originalViewport.height * fitScale) / 2,
+        });
+      }
+    } catch (err) {
+      if (!cancelled) {
+        console.error('[SurveyImageCanvas] Failed to render PDF page:', err);
+        setLoadError(`Failed to render PDF page ${pageNum}: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    } finally {
+      setIsLoadingPage(false);
+    }
+  };
+
+  // Handle page change for PDFs
+  const handlePageChange = useCallback(async (delta: number) => {
+    if (!pdfDoc || isLoadingPage) return;
+    
+    const newPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+    if (newPage === currentPage) return;
+    
+    setCurrentPage(newPage);
+    setImageLoaded(false);
+    await renderPdfPage(pdfDoc, newPage, false);
+  }, [pdfDoc, currentPage, totalPages, isLoadingPage]);
 
   // Render canvas
   const render = useCallback(() => {
@@ -118,10 +256,13 @@ export function SurveyImageCanvas({
     ctx.fillStyle = '#1f2937'; // dark background
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
+    // For PDF, the image is 2x scaled, so we need to draw it at half size
+    const drawScale = isPdf ? scale / 2 : scale;
+    
     // Draw image with transform
     ctx.save();
     ctx.translate(offset.x, offset.y);
-    ctx.scale(scale, scale);
+    ctx.scale(drawScale, drawScale);
     ctx.drawImage(img, 0, 0);
     ctx.restore();
     
@@ -158,7 +299,7 @@ export function SurveyImageCanvas({
       ctx.font = '12px sans-serif';
       ctx.fillText(`Click to place point ${activePointLabel}`, 10, canvas.height - 10);
     }
-  }, [points, scale, offset, imageLoaded, activePointLabel]);
+  }, [points, scale, offset, imageLoaded, activePointLabel, isPdf]);
 
   // Resize canvas to container
   useEffect(() => {
@@ -200,12 +341,16 @@ export function SurveyImageCanvas({
     
     // Check if click is within image bounds
     if (imageRef.current) {
-      if (imageX >= 0 && imageX <= imageRef.current.width &&
-          imageY >= 0 && imageY <= imageRef.current.height) {
+      // For PDF, the actual image dimensions are the original PDF page size
+      // The imageRef contains a 2x scaled image, but onImageLoad reported original size
+      const maxX = isPdf ? imageRef.current.width / 2 : imageRef.current.width;
+      const maxY = isPdf ? imageRef.current.height / 2 : imageRef.current.height;
+      
+      if (imageX >= 0 && imageX <= maxX && imageY >= 0 && imageY <= maxY) {
         onPointAdded(imageX, imageY);
       }
     }
-  }, [activePointLabel, isPanning, screenToImage, onPointAdded]);
+  }, [activePointLabel, isPanning, screenToImage, onPointAdded, isPdf]);
 
   // Handle right-click to remove point
   const handleContextMenu = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -309,15 +454,52 @@ export function SurveyImageCanvas({
         </span>
       </div>
       
-      {loadError && (
-        <div className="absolute inset-0 flex items-center justify-center bg-destructive/10">
-          <div className="text-destructive text-sm text-center px-4">{loadError}</div>
+      {/* PDF indicator and page controls */}
+      {isPdf && (
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <div className="flex items-center gap-1 px-2 h-7 bg-background/80 rounded text-xs">
+            <FileText className="h-3 w-3" />
+            PDF
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => handlePageChange(-1)}
+                disabled={currentPage <= 1 || isLoadingPage}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="px-2 h-7 bg-background/80 rounded text-xs flex items-center min-w-[60px] justify-center">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage >= totalPages || isLoadingPage}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       )}
       
-      {!imageLoaded && !loadError && (
+      {loadError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-destructive/10">
+          <div className="text-destructive text-sm text-center px-4 max-w-sm">{loadError}</div>
+        </div>
+      )}
+      
+      {(!imageLoaded && !loadError) && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-muted-foreground">Loading survey...</div>
+          <div className="text-muted-foreground">
+            {isLoadingPage ? `Loading page ${currentPage}...` : 'Loading survey...'}
+          </div>
         </div>
       )}
     </div>
