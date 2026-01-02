@@ -186,15 +186,31 @@ export function SurveyCalibrationWizard({
           matchedParcels: sortedParcels,
         });
         
+        console.log('[CalibrationWizard] matchedParcels count:', sortedParcels.length);
+        
         // Always auto-select best match if any parcels found
         if (sortedParcels.length > 0) {
           const bestMatch = sortedParcels[0];
-          console.log('[CalibrationWizard] Auto-selecting best match:', bestMatch.source_parcel_id, 
-                      'overlap:', bestMatch.overlapPercentage.toFixed(1), '%', 
-                      'confidence:', bestMatch.confidence);
-          handleSelectParcel(bestMatch, true);
+          console.log('[CalibrationWizard] Auto-selecting best match:', {
+            parcel_id: bestMatch.parcel_id,
+            source_parcel_id: bestMatch.source_parcel_id,
+            overlap: bestMatch.overlapPercentage?.toFixed(1) + '%',
+            confidence: bestMatch.confidence,
+            hasGeometry: !!bestMatch.geometry
+          });
+          
+          // Guard: ensure geometry exists before auto-selecting
+          if (!bestMatch.geometry) {
+            console.warn('[CalibrationWizard] Best match has no geometry, showing review step');
+            setError('Best match has no geometry data. Please select manually.');
+            setStep('review-transform');
+          } else {
+            handleSelectParcel(bestMatch, true);
+          }
         } else {
-          // No matches found - show review step
+          // No matches found - show review step with clear message
+          console.log('[CalibrationWizard] No parcels matched, showing review step');
+          setError('No parcels found matching the calibrated survey bounds.');
           setStep('review-transform');
         }
       } else {

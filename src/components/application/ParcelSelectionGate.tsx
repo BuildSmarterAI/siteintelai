@@ -357,7 +357,19 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
 
   // Handle parcel selected from calibration wizard
   const handleSurveyParcelSelected = useCallback((parcel: ParcelMatch) => {
-    console.log('[ParcelSelectionGate] Parcel selected from survey:', parcel);
+    console.log('[ParcelSelectionGate] Parcel selected from survey:', {
+      parcel_id: parcel.parcel_id,
+      overlap: parcel.overlapPercentage,
+      confidence: parcel.confidence,
+      hasGeometry: !!parcel.geometry
+    });
+    
+    // Guard: ensure geometry exists
+    if (!parcel.geometry) {
+      console.error('[ParcelSelectionGate] Cannot select parcel without geometry');
+      toast.error('Selected parcel has no geometry data');
+      return;
+    }
     
     // Convert ParcelMatch to CandidateParcel format
     const candidate: CandidateParcel = {
@@ -377,6 +389,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     // Set as candidates and select
     setCandidates([candidate]);
     selectCandidate(candidate);
+    
+    console.log('[ParcelSelectionGate] Candidate selected:', candidate.parcel_id);
     
     // Navigate to the parcel
     if (parcel.geometry) {
