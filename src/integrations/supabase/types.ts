@@ -2348,6 +2348,53 @@ export type Database = {
           },
         ]
       }
+      compliance_results: {
+        Row: {
+          check_type: string
+          checked_at: string | null
+          current_value: number | null
+          geometry_highlight: unknown
+          id: string
+          limit_value: number | null
+          message: string | null
+          status: string
+          unit: string | null
+          variant_id: string
+        }
+        Insert: {
+          check_type: string
+          checked_at?: string | null
+          current_value?: number | null
+          geometry_highlight?: unknown
+          id?: string
+          limit_value?: number | null
+          message?: string | null
+          status: string
+          unit?: string | null
+          variant_id: string
+        }
+        Update: {
+          check_type?: string
+          checked_at?: string | null
+          current_value?: number | null
+          geometry_highlight?: unknown
+          id?: string
+          limit_value?: number | null
+          message?: string | null
+          status?: string
+          unit?: string | null
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_results_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "design_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_schedule_data: {
         Row: {
           complexity_factor: number | null
@@ -3075,6 +3122,160 @@ export type Database = {
           rent_cagr?: number | null
         }
         Relationships: []
+      }
+      design_presets: {
+        Row: {
+          category: string
+          coverage_target_pct: number | null
+          created_at: string | null
+          default_floors: number | null
+          default_height_ft: number | null
+          description: string | null
+          far_target_pct: number | null
+          icon: string | null
+          id: string
+          is_system: boolean | null
+          name: string
+          preset_key: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          coverage_target_pct?: number | null
+          created_at?: string | null
+          default_floors?: number | null
+          default_height_ft?: number | null
+          description?: string | null
+          far_target_pct?: number | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name: string
+          preset_key: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          coverage_target_pct?: number | null
+          created_at?: string | null
+          default_floors?: number | null
+          default_height_ft?: number | null
+          description?: string | null
+          far_target_pct?: number | null
+          icon?: string | null
+          id?: string
+          is_system?: boolean | null
+          name?: string
+          preset_key?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      design_sessions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          envelope_id: string
+          id: string
+          is_active: boolean | null
+          is_shared: boolean | null
+          name: string
+          shared_with: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          envelope_id: string
+          id?: string
+          is_active?: boolean | null
+          is_shared?: boolean | null
+          name?: string
+          shared_with?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          envelope_id?: string
+          id?: string
+          is_active?: boolean | null
+          is_shared?: boolean | null
+          name?: string
+          shared_with?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_sessions_envelope_id_fkey"
+            columns: ["envelope_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_envelopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      design_variants: {
+        Row: {
+          compliance_status: string | null
+          created_at: string | null
+          floors: number | null
+          footprint: unknown
+          height_ft: number | null
+          id: string
+          is_baseline: boolean | null
+          metrics: Json | null
+          name: string
+          notes: string | null
+          preset_type: string | null
+          session_id: string
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          compliance_status?: string | null
+          created_at?: string | null
+          floors?: number | null
+          footprint?: unknown
+          height_ft?: number | null
+          id?: string
+          is_baseline?: boolean | null
+          metrics?: Json | null
+          name?: string
+          notes?: string | null
+          preset_type?: string | null
+          session_id: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          compliance_status?: string | null
+          created_at?: string | null
+          floors?: number | null
+          footprint?: unknown
+          height_ft?: number | null
+          id?: string
+          is_baseline?: boolean | null
+          metrics?: Json | null
+          name?: string
+          notes?: string | null
+          preset_type?: string | null
+          session_id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_variants_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "design_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       drawn_parcels: {
         Row: {
@@ -5657,6 +5858,75 @@ export type Database = {
           },
         ]
       }
+      regulatory_envelopes: {
+        Row: {
+          application_id: string
+          buffer_zones: Json | null
+          buildable_footprint_2d: unknown
+          computed_at: string | null
+          constraints_source: Json | null
+          constraints_version: string | null
+          coverage_cap_pct: number | null
+          created_at: string | null
+          envelope_3d_volume: Json | null
+          exclusion_zones: Json | null
+          far_cap: number | null
+          height_cap_ft: number | null
+          id: string
+          parcel_geometry: unknown
+          setbacks: Json | null
+        }
+        Insert: {
+          application_id: string
+          buffer_zones?: Json | null
+          buildable_footprint_2d: unknown
+          computed_at?: string | null
+          constraints_source?: Json | null
+          constraints_version?: string | null
+          coverage_cap_pct?: number | null
+          created_at?: string | null
+          envelope_3d_volume?: Json | null
+          exclusion_zones?: Json | null
+          far_cap?: number | null
+          height_cap_ft?: number | null
+          id?: string
+          parcel_geometry: unknown
+          setbacks?: Json | null
+        }
+        Update: {
+          application_id?: string
+          buffer_zones?: Json | null
+          buildable_footprint_2d?: unknown
+          computed_at?: string | null
+          constraints_source?: Json | null
+          constraints_version?: string | null
+          coverage_cap_pct?: number | null
+          created_at?: string | null
+          envelope_3d_volume?: Json | null
+          exclusion_zones?: Json | null
+          far_cap?: number | null
+          height_cap_ft?: number | null
+          id?: string
+          parcel_geometry?: unknown
+          setbacks?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_envelopes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_envelopes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           ai_completion_tokens: number | null
@@ -7986,7 +8256,28 @@ export type Database = {
             Returns: string
           }
       calculate_acreage: { Args: { geom: unknown }; Returns: number }
+      calculate_coverage_pct: {
+        Args: { design_geom: unknown; parcel_geom: unknown }
+        Returns: number
+      }
+      calculate_gfa_sqft: {
+        Args: { floors: number; footprint_geom: unknown }
+        Returns: number
+      }
+      check_geometry_containment: {
+        Args: { design_geom: unknown; envelope_geom: unknown }
+        Returns: boolean
+      }
       cleanup_expired_api_cache: { Args: never; Returns: number }
+      compute_buildable_footprint: {
+        Args: {
+          parcel_geom: unknown
+          setback_front_ft?: number
+          setback_rear_ft?: number
+          setback_side_ft?: number
+        }
+        Returns: unknown
+      }
       compute_transport_metrics: {
         Args: { p_lat: number; p_lng: number; p_parcel_id: number }
         Returns: Json

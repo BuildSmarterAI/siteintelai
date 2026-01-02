@@ -77,6 +77,7 @@ import CreateAccount from "./pages/CreateAccount";
 import ApplicationPaymentFlow from "./pages/ApplicationPaymentFlow";
 import ProfileSettings from "./pages/ProfileSettings";
 import SubscriptionPricing from "./pages/SubscriptionPricing";
+import DesignMode from "./pages/DesignMode";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -87,9 +88,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isReportPage = location.pathname.startsWith('/report/');
   const isMarketIntelPage = location.pathname === '/market-intelligence';
   const isPaymentFlowPage = location.pathname === '/get-started';
+  const isDesignModePage = location.pathname.startsWith('/design/');
 
-  // Fullscreen pages, docs, reports, market intelligence, and payment flow render without any layout wrapper
-  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage || isPaymentFlowPage) {
+  // Fullscreen pages, docs, reports, market intelligence, payment flow, and design mode render without any layout wrapper
+  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage || isPaymentFlowPage || isDesignModePage) {
     return <>{children}</>;
   }
 
@@ -179,6 +181,7 @@ const App = () => (
               <Route path="/admin/reports" element={<AdminReports />} />
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/market-intelligence" element={<MarketIntelligence />} />
+              <Route path="/design/:applicationId" element={<DesignMode />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
               <Route path="/beta-thank-you" element={<BetaThankYou />} />
