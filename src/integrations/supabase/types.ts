@@ -3614,6 +3614,95 @@ export type Database = {
           },
         ]
       }
+      feasibility_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error: string | null
+          id: string
+          snapshot_id: string
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          snapshot_id: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error?: string | null
+          id?: string
+          snapshot_id?: string
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feasibility_jobs_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "feasibility_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feasibility_snapshots: {
+        Row: {
+          application_id: string | null
+          approx_sqft: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          intended_use: string
+          locked: boolean | null
+          parcel_id: string
+          project_type: string
+        }
+        Insert: {
+          application_id?: string | null
+          approx_sqft?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          intended_use: string
+          locked?: boolean | null
+          parcel_id: string
+          project_type: string
+        }
+        Update: {
+          application_id?: string | null
+          approx_sqft?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          intended_use?: string
+          locked?: boolean | null
+          parcel_id?: string
+          project_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feasibility_snapshots_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feasibility_snapshots_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
       feature_flags: {
         Row: {
           created_at: string
