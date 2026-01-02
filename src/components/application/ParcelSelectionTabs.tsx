@@ -14,7 +14,7 @@ import { CADSearchTab } from "./CADSearchTab";
 import { SurveyUploadTab } from "./SurveyUploadTab";
 import type { ParcelSelectionInputMode, CandidateParcel } from "@/types/parcelSelection";
 import type { SurveyUploadMetadata } from "@/services/surveyUploadApi";
-import type { ParcelMatch, AffineTransform, TransformedBounds } from "@/types/surveyCalibration";
+import type { SurveyMatchCandidate } from "@/types/surveyAutoMatch";
 
 interface ParcelSelectionTabsProps {
   onCandidatesFound: (candidates: CandidateParcel[]) => void;
@@ -22,18 +22,9 @@ interface ParcelSelectionTabsProps {
   mapCenter: [number, number];
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
   onSurveyDeleted?: (surveyId: string) => void;
-  onParcelSelected?: (parcel: ParcelMatch) => void;
-  onCalibrationComplete?: (result: {
-    transform: AffineTransform;
-    bounds: TransformedBounds;
-    matchedParcels: ParcelMatch[];
-  }) => void;
+  onParcelSelected?: (parcel: SurveyMatchCandidate) => void;
+  onUseManualSearch?: () => void;
   draftId?: string;
-  // Survey overlay controls
-  surveyOverlayOpacity?: number;
-  onSurveyOpacityChange?: (opacity: number) => void;
-  showSurveyOverlay?: boolean;
-  onSurveyVisibilityToggle?: (visible: boolean) => void;
   uploadedSurvey?: SurveyUploadMetadata | null;
 }
 
@@ -44,12 +35,8 @@ export function ParcelSelectionTabs({
   onSurveyUploaded,
   onSurveyDeleted,
   onParcelSelected,
-  onCalibrationComplete,
+  onUseManualSearch,
   draftId,
-  surveyOverlayOpacity,
-  onSurveyOpacityChange,
-  showSurveyOverlay,
-  onSurveyVisibilityToggle,
   uploadedSurvey,
 }: ParcelSelectionTabsProps) {
   const { state, setInputMode } = useParcelSelection();
@@ -114,12 +101,8 @@ export function ParcelSelectionTabs({
             onSurveyUploaded={onSurveyUploaded}
             onSurveyDeleted={onSurveyDeleted}
             onParcelSelected={onParcelSelected}
-            onCalibrationComplete={onCalibrationComplete}
+            onUseManualSearch={onUseManualSearch}
             draftId={draftId}
-            surveyOverlayOpacity={surveyOverlayOpacity}
-            onSurveyOpacityChange={onSurveyOpacityChange}
-            showSurveyOverlay={showSurveyOverlay}
-            onSurveyVisibilityToggle={onSurveyVisibilityToggle}
             uploadedSurvey={uploadedSurvey}
           />
         </TabsContent>

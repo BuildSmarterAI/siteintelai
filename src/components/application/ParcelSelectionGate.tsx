@@ -33,7 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
-import type { ParcelMatch, AffineTransform, TransformedBounds } from "@/types/surveyCalibration";
+import type { SurveyMatchCandidate } from "@/types/surveyAutoMatch";
 import { getSurveyUrl, type SurveyUploadMetadata } from "@/services/surveyUploadApi";
 import { hasValidGeometry, isValidParcelGeometry } from "@/lib/geometryValidation";
 
@@ -343,51 +343,35 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     setShowSurveyOverlay(visible);
   }, []);
 
-  // Handle calibration complete - store the results
-  const handleCalibrationComplete = useCallback((result: {
-    transform: AffineTransform;
-    bounds: TransformedBounds;
-    matchedParcels: ParcelMatch[];
-  }) => {
-    console.log('[ParcelSelectionGate] Calibration complete:', result);
-    // If we have matched parcels, we can convert them to candidates
-    if (result.matchedParcels.length > 0) {
-      toast.success(`Found ${result.matchedParcels.length} matching parcel(s)`);
-    }
-  }, []);
-
-  // Handle parcel selected from calibration wizard
-  const handleSurveyParcelSelected = useCallback((parcel: ParcelMatch) => {
-    const geometryValidation = isValidParcelGeometry(parcel.geometry);
+  // Handle parcel selected from survey auto-match
+  const handleSurveyParcelSelected = useCallback((parcel: SurveyMatchCandidate) => {
+    const geometryValidation = parcel.geometry ? isValidParcelGeometry(parcel.geometry) : { valid: false, reason: 'No geometry' };
     
     console.log('[ParcelSelectionGate] Parcel selected from survey:', {
       parcel_id: parcel.parcel_id,
-      overlap: parcel.overlapPercentage,
       confidence: parcel.confidence,
       geometryValid: geometryValidation.valid,
       geometryReason: geometryValidation.reason
     });
     
-    // Guard: ensure geometry is valid (not just exists)
-    if (!geometryValidation.valid) {
-      console.error('[ParcelSelectionGate] Cannot select parcel with invalid geometry:', geometryValidation.reason);
-      toast.error(`Selected parcel has invalid geometry: ${geometryValidation.reason}`);
-      return;
-    }
+    // Convert SurveyMatchCandidate to CandidateParcel format
+    // Map numeric confidence to ConfidenceLevel
+    const confidenceLevel = parcel.confidence >= 0.85 ? 'high' 
+      : parcel.confidence >= 0.6 ? 'medium' 
+      : 'low';
     
-    // Convert ParcelMatch to CandidateParcel format
     const candidate: CandidateParcel = {
       parcel_id: parcel.parcel_id,
       situs_address: parcel.situs_address,
       owner_name: parcel.owner_name,
       acreage: parcel.acreage,
       county: parcel.county,
-      confidence: parcel.confidence,
+      confidence: confidenceLevel as 'high' | 'medium' | 'low',
       geom: parcel.geometry as any,
       source: 'canonical',
       zoning: null,
       market_value: null,
-      overlap_percentage: parcel.overlapPercentage,
+      overlap_percentage: undefined,
     };
     
     // Set as candidates and select
@@ -409,8 +393,14 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     }
     
     setMobileStep('verify');
-    toast.success('Parcel selected from survey calibration');
+    toast.success('Parcel selected from survey');
   }, [setCandidates, selectCandidate, handleNavigateToLocation]);
+
+  // Handle using manual search from survey tab
+  const handleUseManualSearch = useCallback(() => {
+    // Switch to address tab for manual search
+    toast.info('Switch to Address or CAD tab to search manually');
+  }, []);
 
   const handleUnlockParcel = useCallback(() => {
     unlockParcel();
@@ -551,11 +541,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         onSurveyUploaded={handleSurveyUploaded}
         onSurveyDeleted={handleSurveyDeleted}
         onParcelSelected={handleSurveyParcelSelected}
-        onCalibrationComplete={handleCalibrationComplete}
-        surveyOverlayOpacity={surveyOverlayOpacity}
-        onSurveyOpacityChange={handleSurveyOpacityChange}
-        showSurveyOverlay={showSurveyOverlay}
-        onSurveyVisibilityToggle={handleSurveyVisibilityToggle}
+        onUseManualSearch={handleUseManualSearch}
         uploadedSurvey={uploadedSurvey}
       />
       <div className="mt-6">

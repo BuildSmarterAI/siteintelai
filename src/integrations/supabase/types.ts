@@ -6477,13 +6477,19 @@ export type Database = {
           county: string | null
           created_at: string | null
           draft_id: string | null
+          extraction_json: Json | null
           file_size: number
           filename: string
           geometry_confidence: string | null
           id: string
+          match_candidates: Json | null
+          match_confidence: number | null
+          match_reason_codes: string[] | null
+          match_status: string | null
           mime_type: string
           recording_info: string | null
           residual_error_meters: number | null
+          selected_parcel_id: string | null
           storage_path: string
           survey_date: string | null
           surveyor_name: string | null
@@ -6501,13 +6507,19 @@ export type Database = {
           county?: string | null
           created_at?: string | null
           draft_id?: string | null
+          extraction_json?: Json | null
           file_size: number
           filename: string
           geometry_confidence?: string | null
           id?: string
+          match_candidates?: Json | null
+          match_confidence?: number | null
+          match_reason_codes?: string[] | null
+          match_status?: string | null
           mime_type: string
           recording_info?: string | null
           residual_error_meters?: number | null
+          selected_parcel_id?: string | null
           storage_path: string
           survey_date?: string | null
           surveyor_name?: string | null
@@ -6525,13 +6537,19 @@ export type Database = {
           county?: string | null
           created_at?: string | null
           draft_id?: string | null
+          extraction_json?: Json | null
           file_size?: number
           filename?: string
           geometry_confidence?: string | null
           id?: string
+          match_candidates?: Json | null
+          match_confidence?: number | null
+          match_reason_codes?: string[] | null
+          match_status?: string | null
           mime_type?: string
           recording_info?: string | null
           residual_error_meters?: number | null
+          selected_parcel_id?: string | null
           storage_path?: string
           survey_date?: string | null
           surveyor_name?: string | null
@@ -8514,6 +8532,26 @@ export type Database = {
           road_class: string
           road_name: string
           speed_limit: number
+        }[]
+      }
+      find_parcel_candidates: {
+        Args: {
+          p_address_point?: unknown
+          p_apn?: string
+          p_county?: string
+          p_limit?: number
+          p_search_bbox?: unknown
+        }
+        Returns: {
+          acreage: number
+          county: string
+          geometry: Json
+          match_score: number
+          match_type: string
+          owner_name: string
+          parcel_uuid: string
+          situs_address: string
+          source_parcel_id: string
         }[]
       }
       find_parcels_in_bbox: {
