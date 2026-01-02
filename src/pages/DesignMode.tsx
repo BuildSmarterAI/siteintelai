@@ -17,6 +17,9 @@ import { DesignMetricsBar } from "@/components/design/DesignMetricsBar";
 import { CompliancePanel } from "@/components/design/CompliancePanel";
 import { DesignVariantList } from "@/components/design/DesignVariantList";
 import { DesignToolbar } from "@/components/design/DesignToolbar";
+import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
+import { CompareMode } from "@/components/design/CompareMode";
+import { ExportPanel } from "@/components/design/ExportPanel";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -322,83 +325,76 @@ export default function DesignMode() {
       </header>
 
       {/* Main content */}
-      <ResizablePanelGroup direction="horizontal" className="flex-1">
-        {/* Left sidebar - Variants */}
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-          <DesignVariantList sessionId={session?.id} />
-        </ResizablePanel>
+      {currentView === "design" ? (
+        <ResizablePanelGroup direction="horizontal" className="flex-1">
+          {/* Left sidebar - Variants */}
+          <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+            <DesignVariantList sessionId={session?.id} />
+          </ResizablePanel>
 
-        <ResizableHandle />
+          <ResizableHandle />
 
-        {/* Center - Map canvas */}
-        <ResizablePanel defaultSize={55}>
-          <div className="h-full flex flex-col">
-            {/* Toolbar */}
-            <div className="p-3 border-b">
-              <DesignToolbar
-                onStartDrawing={handleStartDrawing}
-                onClearDrawing={handleClearDrawing}
-                onResetToEnvelope={handleResetToEnvelope}
-                onHeightChange={handleHeightChange}
-                onFloorsChange={handleFloorsChange}
-              />
-            </div>
-
-            {/* Map placeholder */}
-            <div className="flex-1 relative bg-muted/30">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center space-y-3">
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto">
-                    <Maximize2 className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  <p className="text-muted-foreground">
-                    Map canvas will render here
-                  </p>
-                  <p className="text-xs text-muted-foreground max-w-sm">
-                    The regulatory envelope and design footprint will be
-                    displayed on an interactive map.
-                  </p>
-                </div>
+          {/* Center - Map canvas */}
+          <ResizablePanel defaultSize={55}>
+            <div className="h-full flex flex-col">
+              {/* Toolbar */}
+              <div className="p-3 border-b">
+                <DesignToolbar
+                  onStartDrawing={handleStartDrawing}
+                  onClearDrawing={handleClearDrawing}
+                  onResetToEnvelope={handleResetToEnvelope}
+                  onHeightChange={handleHeightChange}
+                  onFloorsChange={handleFloorsChange}
+                />
               </div>
 
-              {/* Envelope info overlay */}
-              {envelope && (
-                <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border rounded-lg p-3 text-sm max-w-xs">
-                  <h4 className="font-medium mb-2">Regulatory Envelope</h4>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <div className="flex justify-between">
-                      <span>FAR Cap:</span>
-                      <span className="font-medium text-foreground">{envelope.farCap}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Height Cap:</span>
-                      <span className="font-medium text-foreground">{envelope.heightCapFt}'</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Coverage Cap:</span>
-                      <span className="font-medium text-foreground">{envelope.coverageCapPct}%</span>
+              {/* Map canvas */}
+              <div id="design-canvas" className="flex-1 relative">
+                <DesignModeCanvas />
+
+                {/* Envelope info overlay */}
+                {envelope && (
+                  <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border rounded-lg p-3 text-sm max-w-xs z-10">
+                    <h4 className="font-medium mb-2">Regulatory Envelope</h4>
+                    <div className="space-y-1 text-xs text-muted-foreground">
+                      <div className="flex justify-between">
+                        <span>FAR Cap:</span>
+                        <span className="font-medium text-foreground">{envelope.farCap}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Height Cap:</span>
+                        <span className="font-medium text-foreground">{envelope.heightCapFt}'</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Coverage Cap:</span>
+                        <span className="font-medium text-foreground">{envelope.coverageCapPct}%</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+
+              {/* Metrics bar */}
+              <div className="p-3 border-t">
+                <DesignMetricsBar />
+              </div>
             </div>
+          </ResizablePanel>
 
-            {/* Metrics bar */}
-            <div className="p-3 border-t">
-              <DesignMetricsBar />
+          <ResizableHandle />
+
+          {/* Right sidebar - Compliance */}
+          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+            <div className="h-full p-4 overflow-y-auto">
+              <CompliancePanel />
             </div>
-          </div>
-        </ResizablePanel>
-
-        <ResizableHandle />
-
-        {/* Right sidebar - Compliance */}
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
-          <div className="h-full p-4 overflow-y-auto">
-            <CompliancePanel />
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : currentView === "compare" ? (
+        <CompareMode className="flex-1" />
+      ) : (
+        <ExportPanel className="flex-1 max-w-2xl mx-auto" />
+      )}
     </div>
   );
 }
