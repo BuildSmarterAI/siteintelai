@@ -343,3 +343,15 @@ verify_jwt = false
 
 [functions.batch-geocode]
 verify_jwt = false
+
+[functions.validate-address-usps]
+verify_jwt = false
+
+[functions.search-parcels-by-owner]
+verify_jwt = false
+
+[functions.nearby-parcels]
+verify_jwt = false
+
+[functions.refresh-parcel-data]
+verify_jwt = false
