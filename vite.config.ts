@@ -12,7 +12,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 // @ts-ignore - no types available
-import obfuscatorPlugin from "vite-plugin-obfuscator";
+import { viteObfuscateFile } from "vite-plugin-obfuscator";
 import type { Plugin } from "vite";
 
 // Custom plugin to make CSS non-blocking
@@ -39,21 +39,19 @@ export default defineConfig(({ mode }) => ({
     react(), 
     mode === "development" && componentTagger(),
     mode === "production" && deferCSS(),
-    mode === "production" && obfuscatorPlugin({
-      options: {
-        compact: true,
-        controlFlowFlattening: false,
-        deadCodeInjection: false,
-        debugProtection: false,
-        disableConsoleOutput: true,
-        identifierNamesGenerator: 'hexadecimal',
-        renameGlobals: false,
-        rotateStringArray: true,
-        selfDefending: false,
-        stringArray: true,
-        stringArrayThreshold: 0.75,
-        unicodeEscapeSequence: false
-      }
+    mode === "production" && viteObfuscateFile({
+      compact: true,
+      controlFlowFlattening: false,
+      deadCodeInjection: false,
+      debugProtection: false,
+      disableConsoleOutput: true,
+      identifierNamesGenerator: 'hexadecimal',
+      renameGlobals: false,
+      rotateStringArray: true,
+      selfDefending: false,
+      stringArray: true,
+      stringArrayThreshold: 0.75,
+      unicodeEscapeSequence: false
     })
   ].filter(Boolean),
   resolve: {
