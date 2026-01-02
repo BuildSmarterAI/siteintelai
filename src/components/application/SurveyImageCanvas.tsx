@@ -40,34 +40,70 @@ export function SurveyImageCanvas({
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Load image
+  // Load image via fetch to avoid CORS issues with signed URLs
   useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      imageRef.current = img;
-      setImageLoaded(true);
-      onImageLoad?.(img.width, img.height);
-      
-      // Center and fit image
-      if (containerRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const containerHeight = containerRef.current.clientHeight;
-        const scaleX = containerWidth / img.width;
-        const scaleY = containerHeight / img.height;
-        const fitScale = Math.min(scaleX, scaleY, 1) * 0.9;
-        setScale(fitScale);
-        setOffset({
-          x: (containerWidth - img.width * fitScale) / 2,
-          y: (containerHeight - img.height * fitScale) / 2,
-        });
+    let cancelled = false;
+    setLoadError(null);
+    setImageLoaded(false);
+    
+    const loadImage = async () => {
+      try {
+        // Fetch the image as a blob to bypass CORS restrictions
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const img = new Image();
+        img.onload = () => {
+          if (cancelled) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+          
+          imageRef.current = img;
+          setImageLoaded(true);
+          onImageLoad?.(img.width, img.height);
+          
+          // Center and fit image
+          if (containerRef.current) {
+            const containerWidth = containerRef.current.clientWidth;
+            const containerHeight = containerRef.current.clientHeight;
+            const scaleX = containerWidth / img.width;
+            const scaleY = containerHeight / img.height;
+            const fitScale = Math.min(scaleX, scaleY, 1) * 0.9;
+            setScale(fitScale);
+            setOffset({
+              x: (containerWidth - img.width * fitScale) / 2,
+              y: (containerHeight - img.height * fitScale) / 2,
+            });
+          }
+        };
+        img.onerror = () => {
+          if (!cancelled) {
+            setLoadError('Failed to decode image');
+          }
+          URL.revokeObjectURL(blobUrl);
+        };
+        img.src = blobUrl;
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Failed to load survey image:', err);
+          setLoadError('Failed to load survey image. Please try re-uploading.');
+        }
       }
     };
-    img.onerror = () => {
-      console.error('Failed to load survey image');
+    
+    loadImage();
+    
+    return () => {
+      cancelled = true;
     };
-    img.src = imageUrl;
   }, [imageUrl, onImageLoad]);
 
   // Render canvas
@@ -273,7 +309,13 @@ export function SurveyImageCanvas({
         </span>
       </div>
       
-      {!imageLoaded && (
+      {loadError && (
+        <div className="absolute inset-0 flex items-center justify-center bg-destructive/10">
+          <div className="text-destructive text-sm text-center px-4">{loadError}</div>
+        </div>
+      )}
+      
+      {!imageLoaded && !loadError && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-muted-foreground">Loading survey...</div>
         </div>
