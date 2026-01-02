@@ -139,6 +139,30 @@ export type Database = {
         }
         Relationships: []
       }
+      api_cache: {
+        Row: {
+          cache_key: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          response: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          response: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          response?: Json
+        }
+        Relationships: []
+      }
       api_cache_universal: {
         Row: {
           cache_key: string
@@ -496,6 +520,7 @@ export type Database = {
           college_attainment_pct: number | null
           company: string
           conclusion_output: string | null
+          confidence_score: number | null
           congestion_level: string | null
           consent_contact: boolean
           consent_terms_privacy: boolean
@@ -621,6 +646,7 @@ export type Database = {
           nfip_claims_total_paid: number | null
           num_stories: number | null
           opportunity_zone: boolean | null
+          orchestration_lock_at: string | null
           over_65_pct: number | null
           overlay_district: string | null
           override_stats: Json | null
@@ -785,6 +811,7 @@ export type Database = {
           college_attainment_pct?: number | null
           company: string
           conclusion_output?: string | null
+          confidence_score?: number | null
           congestion_level?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
@@ -910,6 +937,7 @@ export type Database = {
           nfip_claims_total_paid?: number | null
           num_stories?: number | null
           opportunity_zone?: boolean | null
+          orchestration_lock_at?: string | null
           over_65_pct?: number | null
           overlay_district?: string | null
           override_stats?: Json | null
@@ -1074,6 +1102,7 @@ export type Database = {
           college_attainment_pct?: number | null
           company?: string
           conclusion_output?: string | null
+          confidence_score?: number | null
           congestion_level?: string | null
           consent_contact?: boolean
           consent_terms_privacy?: boolean
@@ -1199,6 +1228,7 @@ export type Database = {
           nfip_claims_total_paid?: number | null
           num_stories?: number | null
           opportunity_zone?: boolean | null
+          orchestration_lock_at?: string | null
           over_65_pct?: number | null
           overlay_district?: string | null
           override_stats?: Json | null

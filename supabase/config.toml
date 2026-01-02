@@ -325,3 +325,9 @@ verify_jwt = true
 [functions.billing-reconcile]
 verify_jwt = true
 max_execution_time = 300
+
+[functions.cleanup-orphaned-apps]
+verify_jwt = true
+
+[functions.recover-stalled-apps]
+verify_jwt = true

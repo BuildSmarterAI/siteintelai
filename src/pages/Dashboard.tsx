@@ -86,7 +86,52 @@ export default function Dashboard() {
     } else if (subscription === 'canceled') {
       toast.error('Subscription was canceled.');
     }
+    
+    // Attempt to recover any pending linked applications
+    attemptPendingLinkRecovery();
   }, [user, searchParams]);
+
+  // Try to link applications that may have failed during account creation
+  const attemptPendingLinkRecovery = async () => {
+    if (!user) return;
+    
+    const pendingEmail = localStorage.getItem("pending_link_email");
+    if (!pendingEmail) return;
+    
+    // Only attempt if the pending email matches the logged-in user
+    if (user.email !== pendingEmail) {
+      localStorage.removeItem("pending_link_email");
+      return;
+    }
+    
+    console.log("[Dashboard] Attempting pending link recovery for:", pendingEmail);
+    
+    try {
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) return;
+      
+      const { data, error } = await supabase.functions.invoke("link-application-to-user", {
+        headers: { Authorization: `Bearer ${session.data.session.access_token}` },
+      });
+      
+      if (error) {
+        console.error("[Dashboard] Recovery link error:", error);
+        return;
+      }
+      
+      if (data?.linked && data.application_ids?.length > 0) {
+        toast.success("Found your pending report! It's being generated now.");
+        localStorage.removeItem("pending_link_email");
+        // Refresh reports list
+        setTimeout(() => fetchReports(), 2000);
+      } else {
+        // No apps to link, clear the flag
+        localStorage.removeItem("pending_link_email");
+      }
+    } catch (err) {
+      console.error("[Dashboard] Recovery error:", err);
+    }
+  };
 
   // Fetch user profile (deferred with setTimeout to prevent deadlock)
   const fetchProfile = () => {
