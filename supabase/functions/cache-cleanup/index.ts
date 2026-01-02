@@ -7,8 +7,11 @@ const corsHeaders = {
 
 interface CleanupResult {
   geocoder_cache_deleted: number;
+  api_cache_universal_deleted: number;
   api_logs_deleted: number;
   old_jobs_deleted: number;
+  rate_limits_deleted: number;
+  by_provider: Record<string, number>;
 }
 
 Deno.serve(async (req) => {
@@ -41,8 +44,11 @@ Deno.serve(async (req) => {
 
     const result: CleanupResult = {
       geocoder_cache_deleted: 0,
+      api_cache_universal_deleted: 0,
       api_logs_deleted: 0,
       old_jobs_deleted: 0,
+      rate_limits_deleted: 0,
+      by_provider: {},
     };
 
     // 1. Clean expired geocoder_cache entries (30-day TTL)
@@ -62,7 +68,46 @@ Deno.serve(async (req) => {
       console.log(`[${jobName}] Deleted ${result.geocoder_cache_deleted} expired geocoder cache entries`);
     }
 
-    // 2. Clean old api_logs (90-day retention)
+    // 2. Clean expired api_cache_universal entries
+    const { data: expiredUniversal, error: universalError } = await supabase
+      .from('api_cache_universal')
+      .delete()
+      .lt('expires_at', new Date().toISOString())
+      .select('provider');
+
+    if (universalError) {
+      console.error(`[${jobName}] Error cleaning api_cache_universal:`, universalError);
+    } else {
+      result.api_cache_universal_deleted = expiredUniversal?.length || 0;
+      
+      // Count by provider
+      for (const entry of expiredUniversal || []) {
+        const provider = entry.provider || 'unknown';
+        result.by_provider[provider] = (result.by_provider[provider] || 0) + 1;
+      }
+      
+      console.log(`[${jobName}] Deleted ${result.api_cache_universal_deleted} expired universal cache entries`);
+    }
+
+    // 3. Clean rate limit counters (older than 5 minutes)
+    const fiveMinutesAgo = new Date();
+    fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+
+    const { data: expiredRateLimits, error: rateLimitError } = await supabase
+      .from('api_cache_universal')
+      .delete()
+      .eq('provider', 'rate_limit')
+      .lt('expires_at', new Date().toISOString())
+      .select('id');
+
+    if (rateLimitError) {
+      console.error(`[${jobName}] Error cleaning rate limits:`, rateLimitError);
+    } else {
+      result.rate_limits_deleted = expiredRateLimits?.length || 0;
+      console.log(`[${jobName}] Deleted ${result.rate_limits_deleted} expired rate limit counters`);
+    }
+
+    // 4. Clean old api_logs (90-day retention)
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
@@ -119,7 +164,11 @@ Deno.serve(async (req) => {
     }
 
     const executionTime = Date.now() - startTime;
-    const totalDeleted = result.geocoder_cache_deleted + result.api_logs_deleted + result.old_jobs_deleted;
+    const totalDeleted = result.geocoder_cache_deleted + 
+      result.api_cache_universal_deleted + 
+      result.api_logs_deleted + 
+      result.old_jobs_deleted +
+      result.rate_limits_deleted;
 
     // Record job completion
     if (jobId) {

@@ -382,3 +382,12 @@ verify_jwt = false
 
 [functions.detect-kill-factors]
 verify_jwt = false
+
+[functions.cache-stats]
+verify_jwt = true
+
+[functions.batch-reports]
+verify_jwt = true
+
+[functions.batch-status]
+verify_jwt = false
