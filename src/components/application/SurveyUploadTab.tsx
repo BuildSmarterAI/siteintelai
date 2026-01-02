@@ -9,13 +9,15 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2 } from 'lucide-react';
+import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { 
   uploadSurvey, 
   getSurveyUrl, 
@@ -28,6 +30,12 @@ interface SurveyUploadTabProps {
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
   onSurveyDeleted?: (surveyId: string) => void;
   draftId?: string;
+  // Overlay controls
+  surveyOverlayOpacity?: number;
+  onSurveyOpacityChange?: (opacity: number) => void;
+  showSurveyOverlay?: boolean;
+  onSurveyVisibilityToggle?: (visible: boolean) => void;
+  uploadedSurvey?: SurveyUploadMetadata | null;
 }
 
 const ACCEPTED_TYPES = '.pdf,.jpg,.jpeg,.png,.tiff,.tif';
@@ -36,14 +44,21 @@ const MAX_SIZE_MB = 50;
 export function SurveyUploadTab({ 
   onSurveyUploaded,
   onSurveyDeleted,
-  draftId 
+  draftId,
+  surveyOverlayOpacity = 0.5,
+  onSurveyOpacityChange,
+  showSurveyOverlay = true,
+  onSurveyVisibilityToggle,
+  uploadedSurvey: externalUploadedSurvey,
 }: SurveyUploadTabProps) {
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedSurvey, setUploadedSurvey] = useState<SurveyUploadMetadata | null>(null);
+  const [internalUploadedSurvey, setInternalUploadedSurvey] = useState<SurveyUploadMetadata | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [surveyTitle, setSurveyTitle] = useState('');
   const [surveyCounty, setSurveyCounty] = useState('');
 
+  // Use external state if provided, otherwise use internal
+  const uploadedSurvey = externalUploadedSurvey ?? internalUploadedSurvey;
   const handleFile = useCallback(async (file: File) => {
     // Validate file size
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -62,7 +77,7 @@ export function SurveyUploadTab({
     setIsUploading(false);
 
     if (result.success && result.survey) {
-      setUploadedSurvey(result.survey);
+      setInternalUploadedSurvey(result.survey);
       toast.success('Survey uploaded successfully');
       onSurveyUploaded?.(result.survey);
     } else {
@@ -113,7 +128,7 @@ export function SurveyUploadTab({
     const success = await deleteSurvey(uploadedSurvey.id);
     if (success) {
       onSurveyDeleted?.(uploadedSurvey.id);
-      setUploadedSurvey(null);
+      setInternalUploadedSurvey(null);
       toast.success('Survey deleted');
     } else {
       toast.error('Failed to delete survey');
@@ -217,7 +232,7 @@ export function SurveyUploadTab({
       ) : (
         /* Uploaded survey display */
         <Card className="border-green-500/30 bg-green-50/30 dark:bg-green-950/10">
-          <CardContent className="py-4">
+          <CardContent className="py-4 space-y-4">
             <div className="flex items-start gap-3">
               <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
                 <FileText className="h-6 w-6 text-green-700 dark:text-green-400" />
@@ -254,6 +269,46 @@ export function SurveyUploadTab({
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+
+            {/* Overlay Controls */}
+            <div className="border-t pt-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {showSurveyOverlay ? (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <Label htmlFor="survey-visibility" className="text-sm font-medium">
+                    Show on Map
+                  </Label>
+                </div>
+                <Switch
+                  id="survey-visibility"
+                  checked={showSurveyOverlay}
+                  onCheckedChange={onSurveyVisibilityToggle}
+                />
+              </div>
+              
+              {showSurveyOverlay && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Opacity</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round(surveyOverlayOpacity * 100)}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[surveyOverlayOpacity]}
+                    onValueChange={([val]) => onSurveyOpacityChange?.(val)}
+                    min={0.1}
+                    max={1}
+                    step={0.05}
+                    className="w-full"
+                  />
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -22,6 +22,12 @@ interface ParcelSelectionTabsProps {
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
   onSurveyDeleted?: (surveyId: string) => void;
   draftId?: string;
+  // Survey overlay controls
+  surveyOverlayOpacity?: number;
+  onSurveyOpacityChange?: (opacity: number) => void;
+  showSurveyOverlay?: boolean;
+  onSurveyVisibilityToggle?: (visible: boolean) => void;
+  uploadedSurvey?: SurveyUploadMetadata | null;
 }
 
 export function ParcelSelectionTabs({
@@ -31,6 +37,11 @@ export function ParcelSelectionTabs({
   onSurveyUploaded,
   onSurveyDeleted,
   draftId,
+  surveyOverlayOpacity,
+  onSurveyOpacityChange,
+  showSurveyOverlay,
+  onSurveyVisibilityToggle,
+  uploadedSurvey,
 }: ParcelSelectionTabsProps) {
   const { state, setInputMode } = useParcelSelection();
 
@@ -94,6 +105,11 @@ export function ParcelSelectionTabs({
             onSurveyUploaded={onSurveyUploaded}
             onSurveyDeleted={onSurveyDeleted}
             draftId={draftId}
+            surveyOverlayOpacity={surveyOverlayOpacity}
+            onSurveyOpacityChange={onSurveyOpacityChange}
+            showSurveyOverlay={showSurveyOverlay}
+            onSurveyVisibilityToggle={onSurveyVisibilityToggle}
+            uploadedSurvey={uploadedSurvey}
           />
         </TabsContent>
       </Tabs>

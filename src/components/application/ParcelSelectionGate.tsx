@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
+import { getSurveyUrl, type SurveyUploadMetadata } from "@/services/surveyUploadApi";
 
 interface ParcelSelectionGateProps {
   onParcelLocked: (parcel: SelectedParcel) => void;
@@ -65,6 +66,12 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mobileStep, setMobileStep] = useState<MobileStep>('search');
   const [showLockConfirmation, setShowLockConfirmation] = useState(false);
+  
+  // Survey overlay state
+  const [uploadedSurvey, setUploadedSurvey] = useState<SurveyUploadMetadata | null>(null);
+  const [surveyOverlayUrl, setSurveyOverlayUrl] = useState<string | null>(null);
+  const [surveyOverlayOpacity, setSurveyOverlayOpacity] = useState(0.5);
+  const [showSurveyOverlay, setShowSurveyOverlay] = useState(true);
   
   // Spotlight state for "Match Found" experience
   const [showMatchBadge, setShowMatchBadge] = useState(false);
@@ -308,6 +315,32 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   }, [state.selectedCandidate]);
 
   // Handle unlock (change parcel) from verified state
+  // Survey upload handlers
+  const handleSurveyUploaded = useCallback(async (survey: SurveyUploadMetadata) => {
+    setUploadedSurvey(survey);
+    // Fetch signed URL for overlay display
+    const url = await getSurveyUrl(survey.storage_path);
+    if (url) {
+      setSurveyOverlayUrl(url);
+      setShowSurveyOverlay(true);
+      toast.success('Survey will display as overlay on the map');
+    }
+  }, []);
+
+  const handleSurveyDeleted = useCallback(() => {
+    setUploadedSurvey(null);
+    setSurveyOverlayUrl(null);
+    setShowSurveyOverlay(false);
+  }, []);
+
+  const handleSurveyOpacityChange = useCallback((opacity: number) => {
+    setSurveyOverlayOpacity(opacity);
+  }, []);
+
+  const handleSurveyVisibilityToggle = useCallback((visible: boolean) => {
+    setShowSurveyOverlay(visible);
+  }, []);
+
   const handleUnlockParcel = useCallback(() => {
     unlockParcel();
     clearSelection();
@@ -444,6 +477,13 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         onCandidatesFound={(candidates) => handleCandidatesFound(candidates)}
         onNavigateToLocation={handleNavigateToLocation}
         mapCenter={mapCenter}
+        onSurveyUploaded={handleSurveyUploaded}
+        onSurveyDeleted={handleSurveyDeleted}
+        surveyOverlayOpacity={surveyOverlayOpacity}
+        onSurveyOpacityChange={handleSurveyOpacityChange}
+        showSurveyOverlay={showSurveyOverlay}
+        onSurveyVisibilityToggle={handleSurveyVisibilityToggle}
+        uploadedSurvey={uploadedSurvey}
       />
       <div className="mt-6">
         <CandidateParcelList
@@ -513,6 +553,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         showZoomHint={false}
         showDataSourceBadge={false}
         className="w-full h-full"
+        surveyOverlayUrl={showSurveyOverlay ? surveyOverlayUrl : null}
+        surveyOverlayOpacity={surveyOverlayOpacity}
       />
     </>
   );
