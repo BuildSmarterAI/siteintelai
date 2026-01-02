@@ -168,20 +168,42 @@ export function SurveyCalibrationWizard({
 
       if (calibResult.success) {
         const parcels = calibResult.matchedParcels || [];
-        setMatchedParcels(parcels);
+        
+        // Sort matches: highest overlap first, then by distance (ascending)
+        const sortedParcels = [...parcels].sort((a, b) => {
+          // Primary: overlap percentage (descending)
+          if (b.overlapPercentage !== a.overlapPercentage) {
+            return b.overlapPercentage - a.overlapPercentage;
+          }
+          // Secondary: centroid distance (ascending)
+          return a.centroidDistance - b.centroidDistance;
+        });
+        
+        setMatchedParcels(sortedParcels);
         onCalibrationComplete({
           transform: result,
           bounds,
-          matchedParcels: parcels,
+          matchedParcels: sortedParcels,
         });
         
-        // Auto-select best match if confidence is high and overlap >= 85%
-        const bestMatch = parcels[0];
-        if (bestMatch && 
-            bestMatch.overlapPercentage >= 85 && 
-            (bestMatch.confidence === 'high' || bestMatch.confidence === 'medium')) {
+        const bestMatch = sortedParcels[0];
+        const secondBest = sortedParcels[1];
+        
+        // Auto-select conditions:
+        // 1) Primary rule: overlap >= 85% AND confidence is high/medium
+        // 2) Dominant match: overlap >= 75% AND leads second-best by >= 20%
+        const meetsPrimaryRule = bestMatch && 
+          bestMatch.overlapPercentage >= 85 && 
+          (bestMatch.confidence === 'high' || bestMatch.confidence === 'medium');
+        
+        const meetsDominantRule = bestMatch && 
+          bestMatch.overlapPercentage >= 75 && 
+          (!secondBest || bestMatch.overlapPercentage - secondBest.overlapPercentage >= 20);
+        
+        if (meetsPrimaryRule || meetsDominantRule) {
           console.log('[CalibrationWizard] Auto-selecting best match:', bestMatch.source_parcel_id, 
-                      'overlap:', bestMatch.overlapPercentage, 'confidence:', bestMatch.confidence);
+                      'overlap:', bestMatch.overlapPercentage, 'confidence:', bestMatch.confidence,
+                      'rule:', meetsPrimaryRule ? 'primary' : 'dominant');
           handleSelectParcel(bestMatch, true);
         } else {
           // Show review step for manual selection
@@ -384,12 +406,20 @@ export function SurveyCalibrationWizard({
               </Alert>
             )}
 
+            {/* Why auto-select didn't trigger */}
+            {matchedParcels.length > 0 && (
+              <div className="text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                <strong>Manual selection required:</strong> Best match has {matchedParcels[0].overlapPercentage.toFixed(0)}% overlap ({matchedParcels[0].confidence} confidence).
+                Auto-select requires ≥85% overlap with high/medium confidence, or ≥75% with a 20%+ lead over other matches.
+              </div>
+            )}
+
             {/* Matched parcels */}
             <div className="space-y-2">
-              <div className="text-sm font-medium">Matched Parcels</div>
+              <div className="text-sm font-medium">Matched Parcels ({matchedParcels.length})</div>
               {matchedParcels.length === 0 ? (
                 <div className="text-sm text-muted-foreground py-4 text-center">
-                  No matching parcels found. Try adjusting the control points.
+                  No matching parcels found. Try adjusting the control points or verify the map locations are accurate.
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
