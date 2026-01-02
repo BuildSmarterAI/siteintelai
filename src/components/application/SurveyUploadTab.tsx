@@ -1,6 +1,6 @@
 /**
  * Survey Upload Tab for Parcel Selection
- * Phase 2: Includes calibration wizard for georeferencing surveys
+ * Zero-click automatic parcel matching pipeline
  * 
  * Key constraints:
  * - Survey is NOT authoritative parcel selection
@@ -8,41 +8,36 @@
  * - Mandatory disclaimers about survey limitations
  */
 
-import { useState, useCallback } from 'react';
-import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2, EyeOff, Target } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Switch } from '@/components/ui/switch';
-import { SurveyCalibrationWizard } from './SurveyCalibrationWizard';
+import { SurveyAutoMatchStatus } from './SurveyAutoMatchStatus';
+import { SurveyMatchReviewPanel } from './SurveyMatchReviewPanel';
 import { 
   uploadSurvey, 
   getSurveyUrl, 
   deleteSurvey,
   type SurveyUploadMetadata 
 } from '@/services/surveyUploadApi';
-import type { ParcelMatch, AffineTransform, TransformedBounds } from '@/types/surveyCalibration';
+import { 
+  triggerAutoMatch, 
+  selectMatchedParcel,
+  getMatchStatus 
+} from '@/services/surveyAutoMatchApi';
+import type { SurveyMatchStatus as MatchStatus, SurveyMatchCandidate } from '@/types/surveyAutoMatch';
 import { toast } from 'sonner';
 
 interface SurveyUploadTabProps {
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
   onSurveyDeleted?: (surveyId: string) => void;
-  onParcelSelected?: (parcel: ParcelMatch) => void;
-  onCalibrationComplete?: (result: {
-    transform: AffineTransform;
-    bounds: TransformedBounds;
-    matchedParcels: ParcelMatch[];
-  }) => void;
+  onParcelSelected?: (parcel: SurveyMatchCandidate) => void;
+  onUseManualSearch?: () => void;
   draftId?: string;
-  // Overlay controls
-  surveyOverlayOpacity?: number;
-  onSurveyOpacityChange?: (opacity: number) => void;
-  showSurveyOverlay?: boolean;
-  onSurveyVisibilityToggle?: (visible: boolean) => void;
   uploadedSurvey?: SurveyUploadMetadata | null;
 }
 
@@ -53,12 +48,8 @@ export function SurveyUploadTab({
   onSurveyUploaded,
   onSurveyDeleted,
   onParcelSelected,
-  onCalibrationComplete,
+  onUseManualSearch,
   draftId,
-  surveyOverlayOpacity = 0.5,
-  onSurveyOpacityChange,
-  showSurveyOverlay = true,
-  onSurveyVisibilityToggle,
   uploadedSurvey: externalUploadedSurvey,
 }: SurveyUploadTabProps) {
   const [isUploading, setIsUploading] = useState(false);
@@ -66,11 +57,45 @@ export function SurveyUploadTab({
   const [dragActive, setDragActive] = useState(false);
   const [surveyTitle, setSurveyTitle] = useState('');
   const [surveyCounty, setSurveyCounty] = useState('');
-  const [showCalibrationWizard, setShowCalibrationWizard] = useState(false);
-  const [surveyImageUrl, setSurveyImageUrl] = useState<string | null>(null);
+  
+  // Auto-match state
+  const [matchStatus, setMatchStatus] = useState<MatchStatus>('pending');
+  const [matchConfidence, setMatchConfidence] = useState<number>(0);
+  const [matchCandidates, setMatchCandidates] = useState<SurveyMatchCandidate[]>([]);
+  const [selectedParcel, setSelectedParcel] = useState<SurveyMatchCandidate | null>(null);
+  const [extraction, setExtraction] = useState<{
+    apn_extracted: string | null;
+    address_extracted: string | null;
+    county_extracted: string | null;
+  } | null>(null);
+  const [isSelectingParcel, setIsSelectingParcel] = useState(false);
 
   // Use external state if provided, otherwise use internal
   const uploadedSurvey = externalUploadedSurvey ?? internalUploadedSurvey;
+
+  // Poll for match status updates
+  useEffect(() => {
+    if (!uploadedSurvey || matchStatus === 'matched' || matchStatus === 'no_match' || matchStatus === 'error') {
+      return;
+    }
+
+    const pollInterval = setInterval(async () => {
+      const result = await getMatchStatus(uploadedSurvey.id);
+      if (result.success && result.status) {
+        setMatchStatus(result.status);
+        setMatchConfidence(result.confidence || 0);
+        if (result.candidates) setMatchCandidates(result.candidates);
+        
+        // Stop polling when complete
+        if (result.status === 'matched' || result.status === 'no_match' || result.status === 'error' || result.status === 'needs_review') {
+          clearInterval(pollInterval);
+        }
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [uploadedSurvey, matchStatus]);
+
   const handleFile = useCallback(async (file: File) => {
     // Validate file size
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
@@ -79,6 +104,7 @@ export function SurveyUploadTab({
     }
 
     setIsUploading(true);
+    setMatchStatus('pending');
     
     const result = await uploadSurvey(file, {
       title: surveyTitle || undefined,
@@ -86,16 +112,43 @@ export function SurveyUploadTab({
       draftId,
     });
 
-    setIsUploading(false);
-
     if (result.success && result.survey) {
       setInternalUploadedSurvey(result.survey);
-      toast.success('Survey uploaded successfully');
+      toast.success('Survey uploaded - analyzing...');
       onSurveyUploaded?.(result.survey);
+
+      // Trigger auto-match immediately
+      setMatchStatus('analyzing');
+      const matchResult = await triggerAutoMatch(result.survey.id);
+      
+      setIsUploading(false);
+      
+      if (matchResult.success) {
+        setMatchConfidence(matchResult.confidence);
+        setMatchCandidates(matchResult.candidates);
+        setExtraction(matchResult.extraction);
+        
+        if (matchResult.status === 'AUTO_SELECTED' && matchResult.candidates[0]) {
+          setMatchStatus('matched');
+          setSelectedParcel(matchResult.candidates[0]);
+          toast.success('Parcel matched automatically!');
+          onParcelSelected?.(matchResult.candidates[0]);
+        } else if (matchResult.status === 'NEEDS_REVIEW') {
+          setMatchStatus('needs_review');
+          toast.info('Please review and select the correct parcel');
+        } else {
+          setMatchStatus('no_match');
+          toast.warning('No matching parcels found');
+        }
+      } else {
+        setMatchStatus('error');
+        toast.error(matchResult.error || 'Failed to match parcel');
+      }
     } else {
+      setIsUploading(false);
       toast.error(result.error || 'Upload failed');
     }
-  }, [surveyTitle, surveyCounty, draftId, onSurveyUploaded]);
+  }, [surveyTitle, surveyCounty, draftId, onSurveyUploaded, onParcelSelected]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -141,25 +194,35 @@ export function SurveyUploadTab({
     if (success) {
       onSurveyDeleted?.(uploadedSurvey.id);
       setInternalUploadedSurvey(null);
+      setMatchStatus('pending');
+      setMatchCandidates([]);
+      setSelectedParcel(null);
       toast.success('Survey deleted');
     } else {
       toast.error('Failed to delete survey');
     }
   }, [uploadedSurvey, onSurveyDeleted]);
 
-  // Open calibration wizard
-  const handleOpenCalibration = useCallback(async () => {
+  const handleSelectCandidate = useCallback(async (candidate: SurveyMatchCandidate) => {
     if (!uploadedSurvey) return;
     
-    // Get signed URL for the survey image
-    const url = await getSurveyUrl(uploadedSurvey.storage_path);
-    if (url) {
-      setSurveyImageUrl(url);
-      setShowCalibrationWizard(true);
+    setIsSelectingParcel(true);
+    const result = await selectMatchedParcel(uploadedSurvey.id, candidate.parcel_id);
+    setIsSelectingParcel(false);
+    
+    if (result.success) {
+      setMatchStatus('matched');
+      setSelectedParcel(candidate);
+      toast.success('Parcel selected');
+      onParcelSelected?.(candidate);
     } else {
-      toast.error('Failed to load survey for calibration');
+      toast.error(result.error || 'Failed to select parcel');
     }
-  }, [uploadedSurvey]);
+  }, [uploadedSurvey, onParcelSelected]);
+
+  const handleUseManualSearch = useCallback(() => {
+    onUseManualSearch?.();
+  }, [onUseManualSearch]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -178,7 +241,7 @@ export function SurveyUploadTab({
         <AlertDescription className="text-amber-700 dark:text-amber-300 text-sm">
           Survey uploads are <strong>user-supplied</strong> and may not reflect the county 
           appraisal district parcel boundary. The uploaded survey is for{' '}
-          <strong>visual reference only</strong>. You must still select an authoritative 
+          <strong>visual reference only</strong>. You must still confirm an authoritative 
           parcel from the map to proceed with feasibility analysis.
         </AlertDescription>
       </Alert>
@@ -228,7 +291,7 @@ export function SurveyUploadTab({
               {isUploading ? (
                 <>
                   <Loader2 className="h-10 w-10 text-primary animate-spin mb-3" />
-                  <p className="text-sm text-muted-foreground">Uploading survey...</p>
+                  <p className="text-sm text-muted-foreground">Uploading and analyzing...</p>
                 </>
               ) : (
                 <>
@@ -256,155 +319,94 @@ export function SurveyUploadTab({
           </Card>
         </>
       ) : (
-        /* Uploaded survey display */
-        <Card className="border-green-500/30 bg-green-50/30 dark:bg-green-950/10">
-          <CardContent className="py-4 space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-                <FileText className="h-6 w-6 text-green-700 dark:text-green-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="text-sm font-medium truncate">
-                    {uploadedSurvey.title || uploadedSurvey.filename}
+        /* Uploaded survey display with auto-match status */
+        <div className="space-y-4">
+          {/* File Info Card */}
+          <Card className="border-green-500/30 bg-green-50/30 dark:bg-green-950/10">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                  <FileText className="h-6 w-6 text-green-700 dark:text-green-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-medium truncate">
+                      {uploadedSurvey.title || uploadedSurvey.filename}
+                    </p>
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      Uploaded
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(uploadedSurvey.file_size)}
+                    {uploadedSurvey.county && ` • ${uploadedSurvey.county} County`}
                   </p>
-                  <Badge variant="outline" className="text-xs shrink-0">
-                    {uploadedSurvey.calibration_status}
-                  </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {formatFileSize(uploadedSurvey.file_size)}
-                  {uploadedSurvey.county && ` • ${uploadedSurvey.county} County`}
-                </p>
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8"
-                  onClick={handleViewSurvey}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 text-destructive hover:text-destructive"
-                  onClick={handleDeleteSurvey}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Calibration Section */}
-            <div className="border-t pt-3">
-              {uploadedSurvey.calibration_status === 'uncalibrated' ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={handleOpenCalibration}
-                >
-                  <Target className="h-4 w-4 mr-2" />
-                  Calibrate Survey for Parcel Matching
-                </Button>
-              ) : uploadedSurvey.calibration_status === 'calibrated' ? (
-                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                  <Target className="h-4 w-4" />
-                  <span>Calibrated - Ready for parcel matching</span>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Calibration failed</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleOpenCalibration}
+                <div className="flex gap-1 shrink-0">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8"
+                    onClick={handleViewSurvey}
                   >
-                    Retry
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-destructive hover:text-destructive"
+                    onClick={handleDeleteSurvey}
+                  >
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              )}
-            </div>
-
-            {/* Overlay Controls */}
-            <div className="border-t pt-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {showSurveyOverlay ? (
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <EyeOff className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <Label htmlFor="survey-visibility" className="text-sm font-medium">
-                    Show on Map
-                  </Label>
-                </div>
-                <Switch
-                  id="survey-visibility"
-                  checked={showSurveyOverlay}
-                  onCheckedChange={onSurveyVisibilityToggle}
-                />
               </div>
-              
-              {showSurveyOverlay && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">Opacity</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round(surveyOverlayOpacity * 100)}%
-                    </span>
-                  </div>
-                  <Slider
-                    value={[surveyOverlayOpacity]}
-                    onValueChange={([val]) => onSurveyOpacityChange?.(val)}
-                    min={0.1}
-                    max={1}
-                    step={0.05}
-                    className="w-full"
-                  />
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* Auto-Match Status */}
+          <SurveyAutoMatchStatus
+            status={matchStatus}
+            confidence={matchConfidence}
+            selectedParcel={selectedParcel}
+            extraction={extraction}
+          />
+
+          {/* Review Panel (shown when needs_review) */}
+          {matchStatus === 'needs_review' && (
+            <SurveyMatchReviewPanel
+              candidates={matchCandidates}
+              onSelectParcel={handleSelectCandidate}
+              onUseManualSearch={handleUseManualSearch}
+              isSelecting={isSelectingParcel}
+            />
+          )}
+
+          {/* No Match - Manual Search Link */}
+          {matchStatus === 'no_match' && (
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={handleUseManualSearch}
+            >
+              <ChevronRight className="h-4 w-4 mr-2" />
+              Continue with Manual Parcel Search
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Instructions */}
       <div className="text-xs text-muted-foreground space-y-1">
         <p>
-          <strong>Next step:</strong> After uploading, click "Calibrate Survey" to mark 
-          control points and automatically match CAD parcels.
+          <strong>How it works:</strong> Upload your survey and we'll automatically 
+          extract parcel identifiers to find matching CAD records.
         </p>
         <p>
           <strong>Note:</strong> Parcel selection for feasibility analysis requires 
           matching an authoritative county appraisal district record.
         </p>
       </div>
-
-      {/* Calibration Wizard */}
-      {uploadedSurvey && surveyImageUrl && (
-        <SurveyCalibrationWizard
-          open={showCalibrationWizard}
-          onOpenChange={setShowCalibrationWizard}
-          surveyId={uploadedSurvey.id}
-          surveyImageUrl={surveyImageUrl}
-          onCalibrationComplete={(result) => {
-            onCalibrationComplete?.(result);
-            // Update internal survey status
-            setInternalUploadedSurvey(prev => prev ? {
-              ...prev,
-              calibration_status: 'calibrated',
-              geometry_confidence: result.transform.confidence,
-            } : null);
-          }}
-          onParcelSelected={(parcel) => {
-            onParcelSelected?.(parcel);
-            setShowCalibrationWizard(false);
-          }}
-        />
-      )}
     </div>
   );
 }

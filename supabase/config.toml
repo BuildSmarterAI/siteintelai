@@ -406,3 +406,6 @@ verify_jwt = true
 
 [functions.match-survey-parcels]
 verify_jwt = false
+
+[functions.auto-match-survey-parcel]
+verify_jwt = false
