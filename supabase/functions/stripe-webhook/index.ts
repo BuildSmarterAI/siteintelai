@@ -333,7 +333,16 @@ serve(async (req) => {
 
   try {
     const body = await req.text();
-    const event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    
+    // Use constructEventAsync with SubtleCryptoProvider for Deno/Edge runtime compatibility
+    const cryptoProvider = Stripe.createSubtleCryptoProvider();
+    const event = await stripe.webhooks.constructEventAsync(
+      body,
+      signature,
+      webhookSecret,
+      undefined, // use default tolerance
+      cryptoProvider
+    );
     logStep("Event received", { type: event.type, id: event.id });
 
     // Idempotency check - log event and skip if already processed
