@@ -220,12 +220,12 @@ export async function performFullCalibration(
   // Find matching parcels
   const matchResult = await findMatchingParcels(surveyId, bounds);
   if (!matchResult.success) {
-    // Calibration succeeded but matching failed - still return partial success
+    // Matching failed - return failure so UI can show error clearly
     return {
-      success: true,
+      success: false,
       transform,
       matchedParcels: [],
-      error: `Calibration complete, but parcel matching failed: ${matchResult.error}`,
+      error: `Parcel matching failed: ${matchResult.error}`,
     };
   }
 

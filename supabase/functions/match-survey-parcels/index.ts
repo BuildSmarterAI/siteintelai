@@ -115,16 +115,27 @@ serve(async (req) => {
       );
     }
 
-    // Format RPC results
-    const matches: ParcelMatch[] = (parcels || []).map((p: any) => {
-      const overlap = p.overlap_pct || 0;
+    // Format RPC results - normalize overlap to percentage (0-100)
+    const matches: ParcelMatch[] = (parcels || []).map((p: any, idx: number) => {
+      const rawOverlap = p.overlap_pct || 0;
+      // If overlap is <= 1, treat as fraction and convert to percentage
+      const normalizedOverlap = rawOverlap <= 1 ? rawOverlap * 100 : rawOverlap;
+      // Clamp to 0-100
+      const overlapPct = Math.min(100, Math.max(0, normalizedOverlap));
+      // Recompute confidence based on normalized percentage
+      const confidence = overlapPct >= 80 ? 'high' : overlapPct >= 50 ? 'medium' : 'low';
+      
+      if (idx < 3) {
+        console.log(`[match-survey-parcels] Match #${idx + 1}: raw=${rawOverlap}, normalized=${overlapPct.toFixed(1)}%, confidence=${confidence}`);
+      }
+      
       return {
         parcel_id: String(p.id),
         source_parcel_id: p.source_parcel_id || '',
         county: p.jurisdiction || 'Unknown',
-        overlapPercentage: overlap,
+        overlapPercentage: overlapPct,
         centroidDistance: p.centroid_distance_m || 0,
-        confidence: overlap >= 80 ? 'high' : overlap >= 50 ? 'medium' : 'low',
+        confidence: confidence as 'high' | 'medium' | 'low',
         geometry: p.geom_json ? JSON.parse(p.geom_json) : null,
         situs_address: p.situs_address,
         owner_name: p.owner_name,

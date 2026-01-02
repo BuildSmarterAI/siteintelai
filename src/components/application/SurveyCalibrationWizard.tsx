@@ -186,31 +186,21 @@ export function SurveyCalibrationWizard({
           matchedParcels: sortedParcels,
         });
         
-        const bestMatch = sortedParcels[0];
-        const secondBest = sortedParcels[1];
-        
-        // Auto-select conditions:
-        // 1) Primary rule: overlap >= 85% AND confidence is high/medium
-        // 2) Dominant match: overlap >= 75% AND leads second-best by >= 20%
-        const meetsPrimaryRule = bestMatch && 
-          bestMatch.overlapPercentage >= 85 && 
-          (bestMatch.confidence === 'high' || bestMatch.confidence === 'medium');
-        
-        const meetsDominantRule = bestMatch && 
-          bestMatch.overlapPercentage >= 75 && 
-          (!secondBest || bestMatch.overlapPercentage - secondBest.overlapPercentage >= 20);
-        
-        if (meetsPrimaryRule || meetsDominantRule) {
+        // Always auto-select best match if any parcels found
+        if (sortedParcels.length > 0) {
+          const bestMatch = sortedParcels[0];
           console.log('[CalibrationWizard] Auto-selecting best match:', bestMatch.source_parcel_id, 
-                      'overlap:', bestMatch.overlapPercentage, 'confidence:', bestMatch.confidence,
-                      'rule:', meetsPrimaryRule ? 'primary' : 'dominant');
+                      'overlap:', bestMatch.overlapPercentage.toFixed(1), '%', 
+                      'confidence:', bestMatch.confidence);
           handleSelectParcel(bestMatch, true);
         } else {
-          // Show review step for manual selection
+          // No matches found - show review step
           setStep('review-transform');
         }
       } else {
+        // Matching failed - show clear error
         setError(calibResult.error || 'Calibration failed');
+        setStep('review-transform');
       }
     } catch (err) {
       console.error('Compute transform error:', err);
