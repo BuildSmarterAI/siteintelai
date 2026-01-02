@@ -6468,6 +6468,100 @@ export type Database = {
           },
         ]
       }
+      survey_uploads: {
+        Row: {
+          application_id: string | null
+          calibration_status: string | null
+          control_points: Json | null
+          county: string | null
+          created_at: string | null
+          draft_id: string | null
+          file_size: number
+          filename: string
+          geometry_confidence: string | null
+          id: string
+          mime_type: string
+          recording_info: string | null
+          residual_error_meters: number | null
+          storage_path: string
+          survey_date: string | null
+          surveyor_name: string | null
+          title: string | null
+          transform_matrix: Json | null
+          updated_at: string | null
+          uploaded_at: string | null
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          calibration_status?: string | null
+          control_points?: Json | null
+          county?: string | null
+          created_at?: string | null
+          draft_id?: string | null
+          file_size: number
+          filename: string
+          geometry_confidence?: string | null
+          id?: string
+          mime_type: string
+          recording_info?: string | null
+          residual_error_meters?: number | null
+          storage_path: string
+          survey_date?: string | null
+          surveyor_name?: string | null
+          title?: string | null
+          transform_matrix?: Json | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          calibration_status?: string | null
+          control_points?: Json | null
+          county?: string | null
+          created_at?: string | null
+          draft_id?: string | null
+          file_size?: number
+          filename?: string
+          geometry_confidence?: string | null
+          id?: string
+          mime_type?: string
+          recording_info?: string | null
+          residual_error_meters?: number | null
+          storage_path?: string
+          survey_date?: string | null
+          surveyor_name?: string | null
+          title?: string | null
+          transform_matrix?: Json | null
+          updated_at?: string | null
+          uploaded_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_uploads_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_uploads_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "survey_uploads_draft_id_fkey"
+            columns: ["draft_id"]
+            isOneToOne: false
+            referencedRelation: "applications_draft"
+            referencedColumns: ["draft_id"]
+          },
+        ]
+      }
       system_alerts: {
         Row: {
           acknowledged: boolean | null
