@@ -9,7 +9,7 @@ export const TIER_ENTITLEMENTS: Record<string, {
   active_parcel_limit: number;
   seat_limit: number;
   history_retention_days: number;
-  can_generate_lender_ready: boolean;
+  can_generate_full_report: boolean; // Renamed from can_generate_lender_ready
   can_share_links: boolean;
   can_export_csv: boolean;
   can_use_api: boolean;
@@ -20,7 +20,7 @@ export const TIER_ENTITLEMENTS: Record<string, {
     active_parcel_limit: 10,
     seat_limit: 1,
     history_retention_days: 90,
-    can_generate_lender_ready: false,
+    can_generate_full_report: false,
     can_share_links: false,
     can_export_csv: false,
     can_use_api: false,
@@ -31,7 +31,7 @@ export const TIER_ENTITLEMENTS: Record<string, {
     active_parcel_limit: 50,
     seat_limit: 2,
     history_retention_days: 365,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: false,
     can_use_api: false,
@@ -42,7 +42,7 @@ export const TIER_ENTITLEMENTS: Record<string, {
     active_parcel_limit: 150,
     seat_limit: 5,
     history_retention_days: 9999,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: false,
@@ -53,7 +53,7 @@ export const TIER_ENTITLEMENTS: Record<string, {
     active_parcel_limit: 999999,
     seat_limit: 10,
     history_retention_days: 9999,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: true,
@@ -84,12 +84,14 @@ export const PRODUCT_TO_TIER: Record<string, string> = {
   'prod_ThxgIB1k6aP6XC': 'enterprise',
 };
 
-// Credit pack pricing
-export const CREDIT_PACK_PRICES: Record<string, { credits: number; amount_cents: number }> = {
-  'price_1SkXm3AsWVx52wY3JUiL1pPF': { credits: 5, amount_cents: 39900 },   // 5 Reports - $399
-  'price_1SkXnGAsWVx52wY3Uz6wczPE': { credits: 10, amount_cents: 69900 },  // 10 Reports - $699
+// DEPRECATED: Credit packs sunset 2025-01-02
+// Credit packs undermine $1,495 anchor pricing and have been retired.
+// Keeping for historical reference and webhook processing of existing purchases.
+export const CREDIT_PACK_PRICES_DEPRECATED: Record<string, { credits: number; amount_cents: number }> = {
+  'price_1SkXm3AsWVx52wY3JUiL1pPF': { credits: 5, amount_cents: 39900 },   // 5 Reports - $399 (RETIRED)
+  'price_1SkXnGAsWVx52wY3Uz6wczPE': { credits: 10, amount_cents: 69900 },  // 10 Reports - $699 (RETIRED)
 };
 
-// One-off product
+// Development Feasibility Report - One-off product (renamed from Lender-Ready Report)
 export const ONE_OFF_PRICE_ID = 'price_1SkXlrAsWVx52wY3RZ1WS6a7';
 export const ONE_OFF_AMOUNT_CENTS = 149500; // $1,495

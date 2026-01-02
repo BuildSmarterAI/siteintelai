@@ -20,7 +20,7 @@ serve(async (req) => {
     logStep("Function started");
 
     const { credit_type, application_id, check_only } = await req.json();
-    if (!credit_type) throw new Error("credit_type is required (report, quickcheck, parcel, share_link, csv_export)");
+    if (!credit_type) throw new Error("credit_type is required (report, quickcheck, parcel, share_link, csv_export, full_report)");
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -121,7 +121,7 @@ serve(async (req) => {
           logStep("Report credits exhausted", { reportsUsed, reportsLimit, validPurchasedCredits });
           return new Response(JSON.stringify({
             success: false,
-            error: "No report credits available. Please purchase a credit pack or upgrade your subscription.",
+            error: "No report credits available. Please upgrade your subscription.",
             can_use: false,
             reports_used: Math.max(0, reportsUsed),
             reports_limit: reportsLimit,
@@ -330,14 +330,20 @@ serve(async (req) => {
         });
       }
 
-      case "lender_ready": {
-        const canGenerateLenderReady = tier?.can_generate_lender_ready || entitlements?.can_generate_lender_ready || false;
+      // Renamed from lender_ready to full_report
+      case "full_report":
+      case "lender_ready": { // Support legacy credit_type for backwards compatibility
+        const canGenerateFullReport = tier?.can_generate_full_report || 
+                                       tier?.can_generate_lender_ready || // Legacy support
+                                       entitlements?.can_generate_full_report || 
+                                       entitlements?.can_generate_lender_ready || // Legacy support
+                                       false;
 
-        if (!canGenerateLenderReady) {
-          logStep("Lender-ready reports not available for tier", { tier: tier?.name });
+        if (!canGenerateFullReport) {
+          logStep("Development Feasibility Reports not available for tier", { tier: tier?.name });
           return new Response(JSON.stringify({
             success: false,
-            error: "Lender-ready reports are not available on your current plan. Please upgrade to Professional or higher.",
+            error: "Development Feasibility Reports are not available on your current plan. Please upgrade to Professional or higher.",
             can_use: false,
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -383,7 +389,7 @@ serve(async (req) => {
       }
 
       default:
-        throw new Error(`Invalid credit_type: ${credit_type}. Must be 'report', 'quickcheck', 'parcel', 'share_link', 'csv_export', or 'lender_ready'`);
+        throw new Error(`Invalid credit_type: ${credit_type}. Must be 'report', 'quickcheck', 'parcel', 'share_link', 'csv_export', or 'full_report'`);
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

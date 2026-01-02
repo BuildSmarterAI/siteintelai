@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -12,11 +11,19 @@ const logStep = (step: string, details?: any) => {
   console.log(`[PURCHASE-CREDITS] ${step}${detailsStr}`);
 };
 
-// Credit pack price IDs
-const CREDIT_PACK_PRICES = {
-  '5': 'price_1SkXm3AsWVx52wY3JUiL1pPF',  // 5 reports for $399
-  '10': 'price_1SkXnGAsWVx52wY3Uz6wczPE', // 10 reports for $699
-};
+/**
+ * DEPRECATED: Credit packs have been sunset as of 2025-01-02
+ * 
+ * Credit packs ($399 for 5, $699 for 10) undermine the $1,495 Development Feasibility Report
+ * anchor price and have been retired from the product catalog.
+ * 
+ * This function now returns an error directing users to upgrade their subscription instead.
+ * 
+ * For users who need additional report capacity, the recommended path is:
+ * - Upgrade to Professional ($749/mo) for 20 reports/month
+ * - Upgrade to Team ($1,950/mo) for 75 reports/month
+ * - Contact sales for Enterprise pricing (250+ reports/month)
+ */
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,82 +36,34 @@ serve(async (req) => {
   );
 
   try {
-    logStep("Function started");
+    logStep("Function called - credit packs are DEPRECATED");
 
-    const { pack_size } = await req.json();
-    if (!pack_size || !['5', '10'].includes(String(pack_size))) {
-      throw new Error("Invalid pack_size. Must be '5' or '10'");
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("No authorization header provided");
     }
 
-    const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { email: user.email });
-
-    // Check if user has an active subscription (required for credit packs)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    const { data: subscription } = await supabaseAdmin
-      .from("user_subscriptions")
-      .select("id, status")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .single();
-
-    if (!subscription) {
-      logStep("No active subscription - credit packs require subscription");
-      return new Response(JSON.stringify({ 
-        error: "Credit packs require an active subscription. Please subscribe first." 
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 403,
-      });
+    if (!user?.email) {
+      throw new Error("User not authenticated or email not available");
     }
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
+    logStep("User attempted to purchase deprecated credit pack", { 
+      email: user.email,
+      userId: user.id 
     });
 
-    // Check for existing Stripe customer
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-    }
-    logStep("Stripe customer lookup", { customerId: customerId || "new" });
-
-    const priceId = CREDIT_PACK_PRICES[String(pack_size) as keyof typeof CREDIT_PACK_PRICES];
-    
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: "payment",
-      success_url: `${req.headers.get("origin")}/dashboard?credits=success`,
-      cancel_url: `${req.headers.get("origin")}/dashboard?credits=canceled`,
-      metadata: {
-        user_id: user.id,
-        pack_size: String(pack_size),
-        type: "credit_pack",
-      },
-    });
-
-    logStep("Checkout session created", { sessionId: session.id, packSize: pack_size });
-
-    return new Response(JSON.stringify({ url: session.url }), {
+    // Return deprecation message
+    return new Response(JSON.stringify({
+      error: "Credit packs are no longer available.",
+      message: "Credit packs have been retired from the SiteIntel product catalog. For additional report capacity, please upgrade your subscription to Professional ($749/mo for 20 reports) or Team ($1,950/mo for 75 reports).",
+      action: "upgrade",
+      upgrade_url: "/pricing",
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+      status: 410, // HTTP 410 Gone - resource no longer available
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

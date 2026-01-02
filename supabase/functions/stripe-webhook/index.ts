@@ -16,7 +16,7 @@ const FALLBACK_TIER_CONFIG: Record<string, {
   active_parcel_limit: number;
   seat_limit: number;
   history_retention_days: number;
-  can_generate_lender_ready: boolean;
+  can_generate_full_report: boolean; // Renamed from can_generate_lender_ready
   can_share_links: boolean;
   can_export_csv: boolean;
   can_use_api: boolean;
@@ -29,7 +29,7 @@ const FALLBACK_TIER_CONFIG: Record<string, {
     active_parcel_limit: 10,
     seat_limit: 1,
     history_retention_days: 90,
-    can_generate_lender_ready: false,
+    can_generate_full_report: false,
     can_share_links: false,
     can_export_csv: false,
     can_use_api: false,
@@ -42,7 +42,7 @@ const FALLBACK_TIER_CONFIG: Record<string, {
     active_parcel_limit: 50,
     seat_limit: 2,
     history_retention_days: 365,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: false,
     can_use_api: false,
@@ -55,7 +55,7 @@ const FALLBACK_TIER_CONFIG: Record<string, {
     active_parcel_limit: 150,
     seat_limit: 5,
     history_retention_days: 9999,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: false,
@@ -68,7 +68,7 @@ const FALLBACK_TIER_CONFIG: Record<string, {
     active_parcel_limit: 999999,
     seat_limit: 10,
     history_retention_days: 9999,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: true,
@@ -89,7 +89,7 @@ function parseEntitlementsFromMetadata(
   active_parcel_limit: number;
   seat_limit: number;
   history_retention_days: number;
-  can_generate_lender_ready: boolean;
+  can_generate_full_report: boolean;
   can_share_links: boolean;
   can_export_csv: boolean;
   can_use_api: boolean;
@@ -110,6 +110,10 @@ function parseEntitlementsFromMetadata(
       'enterprise': 'Enterprise',
     };
     
+    // Support both old and new field names for backwards compatibility
+    const canGenerateFullReport = metadata.can_generate_full_report === 'true' || 
+                                   metadata.can_generate_lender_ready === 'true';
+    
     return {
       tier,
       name: tierNameMap[tier] || tier,
@@ -117,7 +121,7 @@ function parseEntitlementsFromMetadata(
       active_parcel_limit: parseInt(metadata.active_parcel_limit || '10', 10),
       seat_limit: parseInt(metadata.seat_limit || '1', 10),
       history_retention_days: parseInt(metadata.history_retention_days || '90', 10),
-      can_generate_lender_ready: metadata.can_generate_lender_ready === 'true',
+      can_generate_full_report: canGenerateFullReport,
       can_share_links: metadata.can_share_links === 'true',
       can_export_csv: metadata.can_export_csv === 'true',
       can_use_api: metadata.can_use_api === 'true',
@@ -136,7 +140,7 @@ function parseEntitlementsFromMetadata(
       active_parcel_limit: fallback.active_parcel_limit,
       seat_limit: fallback.seat_limit,
       history_retention_days: fallback.history_retention_days,
-      can_generate_lender_ready: fallback.can_generate_lender_ready,
+      can_generate_full_report: fallback.can_generate_full_report,
       can_share_links: fallback.can_share_links,
       can_export_csv: fallback.can_export_csv,
       can_use_api: fallback.can_use_api,
@@ -153,7 +157,7 @@ function parseEntitlementsFromMetadata(
     active_parcel_limit: 10,
     seat_limit: 1,
     history_retention_days: 90,
-    can_generate_lender_ready: false,
+    can_generate_full_report: false,
     can_share_links: false,
     can_export_csv: false,
     can_use_api: false,
@@ -161,14 +165,15 @@ function parseEntitlementsFromMetadata(
   };
 }
 
-// Credit pack configuration (updated 2025-01-02)
-const CREDIT_PACKS: Record<string, number> = {
-  'price_1SkXm3AsWVx52wY3JUiL1pPF': 5,  // 5 Report Pack - $399
-  'price_1SkXnGAsWVx52wY3Uz6wczPE': 10, // 10 Report Pack - $699
+// DEPRECATED: Credit packs sunset 2025-01-02
+// Keeping for processing historical purchases only
+const CREDIT_PACKS_DEPRECATED: Record<string, number> = {
+  'price_1SkXm3AsWVx52wY3JUiL1pPF': 5,  // 5 Report Pack - $399 (RETIRED)
+  'price_1SkXnGAsWVx52wY3Uz6wczPE': 10, // 10 Report Pack - $699 (RETIRED)
 };
 
-// One-off product price ID ($1,495 Lender-Ready Report)
-// Updated from $999 to $1,495 (price_1SkXlrAsWVx52wY3RZ1WS6a7)
+// Development Feasibility Report - One-off product ($1,495)
+// Renamed from "Lender-Ready Report" to "Development Feasibility Report"
 const ONE_OFF_PRICE_ID = 'price_1SkXlrAsWVx52wY3RZ1WS6a7';
 
 // GHL webhook helper
@@ -460,7 +465,7 @@ serve(async (req) => {
 
         const taxAmountCents = session.total_details?.amount_tax || null;
 
-        // Check if this is a credit pack purchase
+        // Check if this is a DEPRECATED credit pack purchase (process for existing customers only)
         const lineItems = session.line_items?.data || [];
         let isCreditPack = false;
         let creditAmount = 0;
@@ -468,9 +473,10 @@ serve(async (req) => {
 
         for (const item of lineItems) {
           const priceId = item.price?.id;
-          if (priceId && CREDIT_PACKS[priceId]) {
+          if (priceId && CREDIT_PACKS_DEPRECATED[priceId]) {
             isCreditPack = true;
-            creditAmount = CREDIT_PACKS[priceId] * (item.quantity || 1);
+            creditAmount = CREDIT_PACKS_DEPRECATED[priceId] * (item.quantity || 1);
+            logStep("DEPRECATED: Credit pack purchase detected - processing for backwards compatibility", { priceId });
             break;
           }
           if (priceId === ONE_OFF_PRICE_ID) {
@@ -480,8 +486,8 @@ serve(async (req) => {
         }
 
         if (isCreditPack) {
-          // Handle credit pack purchase
-          logStep("Credit pack purchase detected", { creditAmount });
+          // Handle DEPRECATED credit pack purchase (for existing customers only)
+          logStep("Processing deprecated credit pack purchase", { creditAmount });
           
           const accountId = await getOrCreateAccount(
             supabaseAdmin,
@@ -522,16 +528,16 @@ serve(async (req) => {
             currency: session.currency || "usd",
             status: "completed",
             payment_type: "credit_pack",
-            product_name: `SiteIntel Credit Pack (${creditAmount} Reports)`,
+            product_name: `SiteIntel Credit Pack (${creditAmount} Reports) - DEPRECATED`,
             receipt_url: receiptUrl,
           });
           break;
         }
 
-        // Handle $1,495 one-off purchase - DO NOT create subscription/entitlements
+        // Handle $1,495 Development Feasibility Report one-off purchase
         // Also handle legacy $999 for backwards compatibility
         if (isOneOffPurchase || (session.mode === "payment" && (session.amount_total === 149500 || session.amount_total === 99900))) {
-          logStep("One-off purchase detected - recording payment only, no entitlements", { amount: session.amount_total });
+          logStep("Development Feasibility Report one-off purchase - recording payment only, no entitlements", { amount: session.amount_total });
           
           // Record payment
           await supabaseAdmin.from("payment_history").insert({
@@ -543,7 +549,7 @@ serve(async (req) => {
             currency: session.currency || "usd",
             status: "completed",
             payment_type: "one_time",
-            product_name: "Site Feasibility Intelligence™ (One-Time)",
+            product_name: "Development Feasibility Report (One-Time)",
             receipt_url: receiptUrl,
           });
 
@@ -556,13 +562,13 @@ serve(async (req) => {
             subscription_creditable: true,
           });
 
-          logStep("One-off payment recorded, GHL notified");
+          logStep("Development Feasibility Report payment recorded, GHL notified");
           break;
         }
 
         // Determine payment type and product name
         const paymentType = session.mode === "subscription" ? "subscription" : "one_time";
-        let productName = "Site Feasibility Intelligence™";
+        let productName = "Development Feasibility Report";
 
         // Handle subscription creation/update
         if (session.mode === "subscription" && session.subscription) {
@@ -621,7 +627,7 @@ serve(async (req) => {
             active_parcel_limit: tierConfig.active_parcel_limit,
             seat_limit: tierConfig.seat_limit,
             history_retention_days: tierConfig.history_retention_days,
-            can_generate_lender_ready: tierConfig.can_generate_lender_ready,
+            can_generate_full_report: tierConfig.can_generate_full_report,
             can_share_links: tierConfig.can_share_links,
             can_export_csv: tierConfig.can_export_csv,
             can_use_api: tierConfig.can_use_api,
@@ -942,7 +948,7 @@ serve(async (req) => {
               active_parcel_limit: tierConfig.active_parcel_limit,
               seat_limit: tierConfig.seat_limit,
               history_retention_days: tierConfig.history_retention_days,
-              can_generate_lender_ready: tierConfig.can_generate_lender_ready,
+              can_generate_full_report: tierConfig.can_generate_full_report,
               can_share_links: tierConfig.can_share_links,
               can_export_csv: tierConfig.can_export_csv,
               can_use_api: tierConfig.can_use_api,
@@ -1034,7 +1040,7 @@ serve(async (req) => {
             active_parcel_limit: 0,
             seat_limit: 1,
             history_retention_days: 30,
-            can_generate_lender_ready: false,
+            can_generate_full_report: false,
             can_share_links: false,
             can_export_csv: false,
             can_use_api: false,

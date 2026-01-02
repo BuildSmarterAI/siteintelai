@@ -19,7 +19,7 @@ const TIER_CONFIG: Record<string, {
   active_parcel_limit: number;
   seat_limit: number;
   history_retention_days: number;
-  can_generate_lender_ready: boolean;
+  can_generate_full_report: boolean; // Renamed from can_generate_lender_ready
   can_share_links: boolean;
   can_export_csv: boolean;
   can_use_api: boolean;
@@ -30,7 +30,7 @@ const TIER_CONFIG: Record<string, {
     active_parcel_limit: 10,
     seat_limit: 1,
     history_retention_days: 90,
-    can_generate_lender_ready: false,
+    can_generate_full_report: false,
     can_share_links: false,
     can_export_csv: false,
     can_use_api: false,
@@ -41,7 +41,7 @@ const TIER_CONFIG: Record<string, {
     active_parcel_limit: 50,
     seat_limit: 2,
     history_retention_days: 365,
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: false,
     can_use_api: false,
@@ -52,7 +52,7 @@ const TIER_CONFIG: Record<string, {
     active_parcel_limit: 150,
     seat_limit: 5,
     history_retention_days: -1, // unlimited
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: false,
@@ -63,7 +63,7 @@ const TIER_CONFIG: Record<string, {
     active_parcel_limit: -1, // unlimited
     seat_limit: 25,
     history_retention_days: -1, // unlimited
-    can_generate_lender_ready: true,
+    can_generate_full_report: true,
     can_share_links: true,
     can_export_csv: true,
     can_use_api: true,
@@ -130,7 +130,7 @@ serve(async (req) => {
           active_parcel_limit: 5,
           active_parcels_used: 0,
           seat_limit: 1,
-          can_generate_lender_ready: false,
+          can_generate_full_report: false,
           can_share_links: false,
           can_export_csv: false,
           can_use_api: false,
@@ -197,7 +197,7 @@ serve(async (req) => {
         active_parcel_limit: tierConfig?.active_parcel_limit || entitlements?.active_parcel_limit || 5,
         active_parcels_used: activeParcelsUsed,
         seat_limit: tierConfig?.seat_limit || entitlements?.seat_limit || 1,
-        can_generate_lender_ready: tierConfig?.can_generate_lender_ready || entitlements?.can_generate_lender_ready || false,
+        can_generate_full_report: tierConfig?.can_generate_full_report || entitlements?.can_generate_full_report || false,
         can_share_links: tierConfig?.can_share_links || entitlements?.can_share_links || false,
         can_export_csv: tierConfig?.can_export_csv || entitlements?.can_export_csv || false,
         can_use_api: tierConfig?.can_use_api || entitlements?.can_use_api || false,
