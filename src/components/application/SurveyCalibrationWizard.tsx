@@ -35,6 +35,7 @@ import type {
 } from '@/types/surveyCalibration';
 import { buildAffineTransform, transformImageCorners } from '@/lib/affineTransform';
 import { performFullCalibration } from '@/services/surveyCalibrationApi';
+import { hasValidGeometry, isValidParcelGeometry } from '@/lib/geometryValidation';
 import { toast } from 'sonner';
 
 interface SurveyCalibrationWizardProps {
@@ -191,18 +192,21 @@ export function SurveyCalibrationWizard({
         // Always auto-select best match if any parcels found
         if (sortedParcels.length > 0) {
           const bestMatch = sortedParcels[0];
+          const geometryValidation = isValidParcelGeometry(bestMatch.geometry);
+          
           console.log('[CalibrationWizard] Auto-selecting best match:', {
             parcel_id: bestMatch.parcel_id,
             source_parcel_id: bestMatch.source_parcel_id,
             overlap: bestMatch.overlapPercentage?.toFixed(1) + '%',
             confidence: bestMatch.confidence,
-            hasGeometry: !!bestMatch.geometry
+            geometryValid: geometryValidation.valid,
+            geometryReason: geometryValidation.reason
           });
           
-          // Guard: ensure geometry exists before auto-selecting
-          if (!bestMatch.geometry) {
-            console.warn('[CalibrationWizard] Best match has no geometry, showing review step');
-            setError('Best match has no geometry data. Please select manually.');
+          // Guard: ensure geometry is valid before auto-selecting
+          if (!geometryValidation.valid) {
+            console.warn('[CalibrationWizard] Best match geometry invalid:', geometryValidation.reason);
+            setError(`Best match geometry invalid: ${geometryValidation.reason}. Please select manually.`);
             setStep('review-transform');
           } else {
             handleSelectParcel(bestMatch, true);

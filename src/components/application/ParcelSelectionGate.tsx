@@ -35,6 +35,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
 import type { ParcelMatch, AffineTransform, TransformedBounds } from "@/types/surveyCalibration";
 import { getSurveyUrl, type SurveyUploadMetadata } from "@/services/surveyUploadApi";
+import { hasValidGeometry, isValidParcelGeometry } from "@/lib/geometryValidation";
 
 interface ParcelSelectionGateProps {
   onParcelLocked: (parcel: SelectedParcel) => void;
@@ -357,17 +358,20 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
 
   // Handle parcel selected from calibration wizard
   const handleSurveyParcelSelected = useCallback((parcel: ParcelMatch) => {
+    const geometryValidation = isValidParcelGeometry(parcel.geometry);
+    
     console.log('[ParcelSelectionGate] Parcel selected from survey:', {
       parcel_id: parcel.parcel_id,
       overlap: parcel.overlapPercentage,
       confidence: parcel.confidence,
-      hasGeometry: !!parcel.geometry
+      geometryValid: geometryValidation.valid,
+      geometryReason: geometryValidation.reason
     });
     
-    // Guard: ensure geometry exists
-    if (!parcel.geometry) {
-      console.error('[ParcelSelectionGate] Cannot select parcel without geometry');
-      toast.error('Selected parcel has no geometry data');
+    // Guard: ensure geometry is valid (not just exists)
+    if (!geometryValidation.valid) {
+      console.error('[ParcelSelectionGate] Cannot select parcel with invalid geometry:', geometryValidation.reason);
+      toast.error(`Selected parcel has invalid geometry: ${geometryValidation.reason}`);
       return;
     }
     

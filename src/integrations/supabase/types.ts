@@ -9037,6 +9037,20 @@ export type Database = {
       is_account_admin: { Args: { a: string }; Returns: boolean }
       is_account_member: { Args: { a: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      match_parcels_to_survey: {
+        Args: { limit_count?: number; survey_wkt: string }
+        Returns: {
+          acreage: number
+          centroid_distance_m: number
+          geom_json: string
+          id: number
+          jurisdiction: string
+          overlap_pct: number
+          owner_name: string
+          situs_address: string
+          source_parcel_id: string
+        }[]
+      }
       normalize_parcel_identifier: {
         Args: { identifier: string }
         Returns: string
