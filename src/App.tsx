@@ -76,6 +76,7 @@ import MarketIntelligence from "./pages/MarketIntelligence";
 import CreateAccount from "./pages/CreateAccount";
 import ApplicationPaymentFlow from "./pages/ApplicationPaymentFlow";
 import ProfileSettings from "./pages/ProfileSettings";
+import SubscriptionPricing from "./pages/SubscriptionPricing";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -149,6 +150,7 @@ const App = () => (
               <Route path="/feasibility/:parcelId/hospitality" element={<HospitalityIntelligence />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/plans" element={<SubscriptionPricing />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/industries/developers" element={<Developers />} />
