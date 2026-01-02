@@ -4,7 +4,23 @@
  * This is the truth gate - no feasibility runs before lock.
  */
 
-export type ParcelSelectionInputMode = 'address' | 'cross_streets' | 'cad';
+export type ParcelSelectionInputMode = 'address' | 'cross_streets' | 'cad' | 'survey_upload';
+
+export interface SurveyUpload {
+  id: string;
+  filename: string;
+  storage_path: string;
+  calibration_status: 'uncalibrated' | 'calibrated' | 'failed';
+  control_points?: ControlPoint[];
+  geometry_confidence: ConfidenceLevel;
+}
+
+export interface ControlPoint {
+  image_x: number;
+  image_y: number;
+  map_lat: number;
+  map_lng: number;
+}
 
 export type ParcelSource = 'canonical' | 'external' | 'mixed';
 

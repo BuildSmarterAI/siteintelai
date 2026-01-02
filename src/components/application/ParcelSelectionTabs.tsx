@@ -1,27 +1,36 @@
 /**
  * Parcel Selection Tabs
- * Three-tab interface for Address, Cross Streets, and CAD/APN search.
+ * Four-tab interface for Address, Cross Streets, CAD/APN, and Survey upload.
  * All modes converge into the same candidate resolution pipeline.
  */
 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MapPin, Navigation, Hash } from "lucide-react";
+import { MapPin, Navigation, Hash, FileText } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { AddressSearchTab } from "./AddressSearchTab";
 import { CrossStreetSearchTab } from "./CrossStreetSearchTab";
 import { CADSearchTab } from "./CADSearchTab";
+import { SurveyUploadTab } from "./SurveyUploadTab";
 import type { ParcelSelectionInputMode, CandidateParcel } from "@/types/parcelSelection";
+import type { SurveyUploadMetadata } from "@/services/surveyUploadApi";
 
 interface ParcelSelectionTabsProps {
   onCandidatesFound: (candidates: CandidateParcel[]) => void;
   onNavigateToLocation: (lat: number, lng: number, zoom?: number) => void;
   mapCenter: [number, number];
+  onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
+  onSurveyDeleted?: (surveyId: string) => void;
+  draftId?: string;
 }
 
 export function ParcelSelectionTabs({
   onCandidatesFound,
   onNavigateToLocation,
   mapCenter,
+  onSurveyUploaded,
+  onSurveyDeleted,
+  draftId,
 }: ParcelSelectionTabsProps) {
   const { state, setInputMode } = useParcelSelection();
 
@@ -32,18 +41,28 @@ export function ParcelSelectionTabs({
   return (
     <div className="space-y-4">
       <Tabs value={state.inputMode} onValueChange={handleTabChange}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="address" className="gap-1.5 min-h-[44px] px-3">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="address" className="gap-1 min-h-[44px] px-2">
             <MapPin className="h-4 w-4 shrink-0" />
-            <span className="text-xs sm:text-sm">Addr</span>
+            <span className="text-xs">Addr</span>
           </TabsTrigger>
-          <TabsTrigger value="cross_streets" className="gap-1.5 min-h-[44px] px-3">
+          <TabsTrigger value="cross_streets" className="gap-1 min-h-[44px] px-2">
             <Navigation className="h-4 w-4 shrink-0" />
-            <span className="text-xs sm:text-sm">Cross</span>
+            <span className="text-xs">Cross</span>
           </TabsTrigger>
-          <TabsTrigger value="cad" className="gap-1.5 min-h-[44px] px-3">
+          <TabsTrigger value="cad" className="gap-1 min-h-[44px] px-2">
             <Hash className="h-4 w-4 shrink-0" />
-            <span className="text-xs sm:text-sm">CAD</span>
+            <span className="text-xs">CAD</span>
+          </TabsTrigger>
+          <TabsTrigger value="survey_upload" className="gap-1 min-h-[44px] px-2 relative">
+            <FileText className="h-4 w-4 shrink-0" />
+            <span className="text-xs">Survey</span>
+            <Badge 
+              variant="outline" 
+              className="absolute -top-1 -right-1 text-[8px] px-1 py-0 h-4 bg-background"
+            >
+              Adv
+            </Badge>
           </TabsTrigger>
         </TabsList>
 
@@ -67,6 +86,14 @@ export function ParcelSelectionTabs({
           <CADSearchTab
             onCandidatesFound={onCandidatesFound}
             onNavigateToLocation={onNavigateToLocation}
+          />
+        </TabsContent>
+
+        <TabsContent value="survey_upload" className="mt-4">
+          <SurveyUploadTab
+            onSurveyUploaded={onSurveyUploaded}
+            onSurveyDeleted={onSurveyDeleted}
+            draftId={draftId}
           />
         </TabsContent>
       </Tabs>
