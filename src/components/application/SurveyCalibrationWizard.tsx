@@ -134,6 +134,12 @@ export function SurveyCalibrationWizard({
 
   // Compute transform
   const handleComputeTransform = useCallback(async () => {
+    console.log('[CalibrationWizard] handleComputeTransform START', { 
+      pointsCount: points.length, 
+      imageSize,
+      surveyId 
+    });
+    
     if (points.length < 3 || !imageSize) {
       setError('Need at least 3 control points');
       return;
@@ -141,10 +147,12 @@ export function SurveyCalibrationWizard({
 
     setIsComputing(true);
     setError(null);
+    toast.info('Computing transform...');
 
     try {
       // Compute affine transform locally
       const result = buildAffineTransform(points);
+      console.log('[CalibrationWizard] Transform computed:', result);
       
       if (!result) {
         setError('Failed to compute transform. Points may be collinear.');
@@ -157,8 +165,12 @@ export function SurveyCalibrationWizard({
       // Calculate transformed bounds
       const bounds = transformImageCorners(result.matrix, imageSize.width, imageSize.height);
       setTransformedBounds(bounds);
+      console.log('[CalibrationWizard] Bounds calculated:', bounds);
+      
+      toast.info('Saving calibration & finding parcels...');
 
       // Now perform full calibration including parcel matching
+      console.log('[CalibrationWizard] Calling performFullCalibration...');
       const calibResult = await performFullCalibration(
         surveyId,
         points,
@@ -166,6 +178,12 @@ export function SurveyCalibrationWizard({
         imageSize.width,
         imageSize.height
       );
+      
+      console.log('[CalibrationWizard] performFullCalibration result:', {
+        success: calibResult.success,
+        error: calibResult.error,
+        matchedParcelsCount: calibResult.matchedParcels?.length || 0
+      });
 
       if (calibResult.success) {
         const parcels = calibResult.matchedParcels || [];
@@ -188,17 +206,19 @@ export function SurveyCalibrationWizard({
         });
         
         console.log('[CalibrationWizard] matchedParcels count:', sortedParcels.length);
+        toast.success(`Found ${sortedParcels.length} matching parcels`);
         
         // Always auto-select best match if any parcels found
         if (sortedParcels.length > 0) {
           const bestMatch = sortedParcels[0];
           const geometryValidation = isValidParcelGeometry(bestMatch.geometry);
           
-          console.log('[CalibrationWizard] Auto-selecting best match:', {
+          console.log('[CalibrationWizard] Best match details:', {
             parcel_id: bestMatch.parcel_id,
             source_parcel_id: bestMatch.source_parcel_id,
             overlap: bestMatch.overlapPercentage?.toFixed(1) + '%',
             confidence: bestMatch.confidence,
+            geometryType: bestMatch.geometry?.type,
             geometryValid: geometryValidation.valid,
             geometryReason: geometryValidation.reason
           });
@@ -206,24 +226,30 @@ export function SurveyCalibrationWizard({
           // Guard: ensure geometry is valid before auto-selecting
           if (!geometryValidation.valid) {
             console.warn('[CalibrationWizard] Best match geometry invalid:', geometryValidation.reason);
+            toast.error(`Geometry invalid: ${geometryValidation.reason}`);
             setError(`Best match geometry invalid: ${geometryValidation.reason}. Please select manually.`);
             setStep('review-transform');
           } else {
+            console.log('[CalibrationWizard] AUTO-SELECTING parcel:', bestMatch.parcel_id);
             handleSelectParcel(bestMatch, true);
           }
         } else {
           // No matches found - show review step with clear message
           console.log('[CalibrationWizard] No parcels matched, showing review step');
+          toast.warning('No parcels found');
           setError('No parcels found matching the calibrated survey bounds.');
           setStep('review-transform');
         }
       } else {
         // Matching failed - show clear error
+        console.error('[CalibrationWizard] Calibration failed:', calibResult.error);
+        toast.error(`Calibration failed: ${calibResult.error}`);
         setError(calibResult.error || 'Calibration failed');
         setStep('review-transform');
       }
     } catch (err) {
-      console.error('Compute transform error:', err);
+      console.error('[CalibrationWizard] Compute transform error:', err);
+      toast.error('Unexpected error during calibration');
       setError('Unexpected error during calibration');
     } finally {
       setIsComputing(false);
