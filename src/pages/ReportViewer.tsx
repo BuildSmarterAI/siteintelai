@@ -35,6 +35,7 @@ import { TrafficCard } from "@/components/report/TrafficCard";
 import { MarketCard } from "@/components/report/MarketCard";
 import { AccessCard } from "@/components/report/AccessCard";
 import { TopographyCard } from "@/components/report/TopographyCard";
+import { ElevationProfileCard } from "@/components/report/ElevationProfileCard";
 import { ZoningCard } from "@/components/report/ZoningCard";
 import { SectionNav } from "@/components/report/SectionNav";
 import { TaxJurisdictionCard } from "@/components/report/TaxJurisdictionCard";
@@ -1455,6 +1456,16 @@ export default function ReportViewer() {
           />
         )}
 
+        {/* Elevation Profile - Cross-section terrain visualization */}
+        {mapLayers?.parcel?.geometry?.coordinates?.[0] && (
+          <ElevationProfileCard
+            applicationId={report.application_id}
+            coordinates={mapLayers.parcel.geometry.coordinates[0]}
+            baseFloodElevation={report.applications?.base_flood_elevation}
+            className="mb-8"
+          />
+        )}
+
 
         {/* ⭐ NEW: Property Valuation Card */}
         {false && (report.applications?.tot_appr_val || report.applications?.bldg_sqft) && <Card className="mb-8">
@@ -2052,6 +2063,7 @@ export default function ReportViewer() {
               historicalEvents={report.applications?.historical_flood_events}
               nfipClaims={report.applications?.nfip_claims_count}
               verdict={flood.verdict}
+              siteElevation={report.applications?.elevation}
             />
           </section>
 

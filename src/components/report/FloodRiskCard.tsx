@@ -5,6 +5,7 @@ import { DataGauge } from "./DataGauge";
 import { ShowSourceButton } from "./ShowSourceButton";
 import { cn } from "@/lib/utils";
 import DOMPurify from "dompurify";
+import { BfeDeltaIndicator } from "./BfeDeltaIndicator";
 
 interface FloodRiskCardProps {
   score: number;
@@ -17,6 +18,7 @@ interface FloodRiskCardProps {
   verdict?: string | null;
   className?: string;
   updatedAt?: string | null;
+  siteElevation?: number | null;
 }
 
 export function FloodRiskCard({
@@ -29,7 +31,8 @@ export function FloodRiskCard({
   nfipClaims,
   verdict,
   className,
-  updatedAt
+  updatedAt,
+  siteElevation
 }: FloodRiskCardProps) {
   const getRiskLevel = (zone?: string | null) => {
     if (!zone) return { level: 'Unknown', color: 'text-muted-foreground', bg: 'bg-muted' };
@@ -134,6 +137,14 @@ export function FloodRiskCard({
             </div>
           )}
         </div>
+
+        {/* BFE Delta Indicator - NEW */}
+        {siteElevation && baseFloodElevation && (
+          <BfeDeltaIndicator
+            siteElevation={siteElevation}
+            baseFloodElevation={baseFloodElevation}
+          />
+        )}
 
         {/* Insurance Impact Alert */}
         {floodZone && floodZone.toUpperCase() !== 'X' && (

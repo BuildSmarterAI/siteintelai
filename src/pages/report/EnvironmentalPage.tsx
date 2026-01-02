@@ -2,13 +2,17 @@ import { useReportContext } from "@/contexts/ReportContext";
 import { EnvironmentalCard } from "@/components/report/EnvironmentalCard";
 import { TopographyCard } from "@/components/report/TopographyCard";
 import { ElevationMapCard } from "@/components/report/ElevationMapCard";
+import { ElevationProfileCard } from "@/components/report/ElevationProfileCard";
+import { useMapLayers } from "@/hooks/useMapLayers";
 
 export default function EnvironmentalPage() {
   const { report, environmental } = useReportContext();
+  const { data: mapLayers } = useMapLayers(report?.application_id || '');
 
   if (!report) return null;
 
   const hasCoordinates = report.applications?.geo_lat && report.applications?.geo_lng;
+  const parcelCoords = mapLayers?.parcel?.geometry?.coordinates?.[0];
   
   // Type assertion for enhanced SSURGO fields (added via migration, types will update on next sync)
   const app = report.applications as Record<string, any> | undefined;
@@ -83,6 +87,15 @@ export default function EnvironmentalPage() {
           slopePercent={app?.soil_slope_percent}
           latitude={app?.geo_lat}
           longitude={app?.geo_lng}
+        />
+      )}
+
+      {/* Elevation Profile - Cross-section terrain visualization */}
+      {parcelCoords && (
+        <ElevationProfileCard
+          applicationId={report.application_id}
+          coordinates={parcelCoords}
+          baseFloodElevation={app?.base_flood_elevation}
         />
       )}
     </div>

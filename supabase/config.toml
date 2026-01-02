@@ -114,6 +114,9 @@ verify_jwt = true
 [functions.fetch-elevation]
 verify_jwt = true
 
+[functions.fetch-elevation-profile]
+verify_jwt = true
+
 [functions.fetch-drivetimes]
 verify_jwt = true
 

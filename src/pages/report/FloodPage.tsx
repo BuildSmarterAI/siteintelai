@@ -17,6 +17,7 @@ export default function FloodPage() {
         nfipClaims={report.applications?.nfip_claims_count}
         historicalEvents={report.applications?.historical_flood_events}
         verdict={flood?.verdict}
+        siteElevation={report.applications?.elevation}
       />
     </div>
   );
