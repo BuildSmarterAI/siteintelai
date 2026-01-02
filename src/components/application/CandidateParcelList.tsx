@@ -119,7 +119,7 @@ const EmptyState = () => (
     {/* What's included */}
     <div className="space-y-2.5">
       <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider text-center">
-        Your $999 report includes
+        Your $1,495 report includes
       </p>
       
       <div className="grid grid-cols-2 gap-1.5">
@@ -128,7 +128,7 @@ const EmptyState = () => (
         <FeatureItem icon={Zap} label="Utility Infrastructure" />
         <FeatureItem icon={Leaf} label="Environmental Data" />
         <FeatureItem icon={Car} label="Traffic & Access" />
-        <FeatureItem icon={FileText} label="Lender-Ready PDF" />
+        <FeatureItem icon={FileText} label="Professional PDF" />
       </div>
     </div>
     

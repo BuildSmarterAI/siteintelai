@@ -96,7 +96,7 @@ const Lenders = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* SEO Meta Tags */}
-      <title>Lender-Ready Feasibility | SiteIntel™ for Underwriters</title>
+      <title>Professional Feasibility | SiteIntel™ for Underwriters</title>
 
       {/* Hero Section */}
       <section ref={heroRef} className="relative min-h-[90vh] overflow-hidden bg-gradient-to-br from-navy via-midnight-blue to-charcoal">
@@ -185,7 +185,7 @@ const Lenders = () => {
               variants={itemVariants}
               className="font-body text-xl md:text-2xl text-white/90 mb-8 leading-relaxed max-w-3xl mx-auto"
             >
-              Replace incomplete borrower data with standardized, lender-ready feasibility intelligence you can verify.
+              Replace incomplete borrower data with standardized, professional feasibility intelligence you can verify.
             </motion.p>
 
             {/* Body Copy */}
@@ -242,7 +242,7 @@ const Lenders = () => {
                   className="text-lg px-10 py-6 h-auto font-cta font-bold relative overflow-hidden group"
                   onClick={() => window.location.href = '/application'}
                 >
-                  <span className="relative z-10">Get Report - $999</span>
+                  <span className="relative z-10">Get Report - $1,495</span>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                     animate={prefersReducedMotion ? {} : {
@@ -829,7 +829,7 @@ const Lenders = () => {
                     </td>
                     <td className="font-body p-6 font-semibold text-status-success">Audit-Ready</td>
                     <td className="font-body p-6 font-bold text-navy">
-                      $999
+                      $1,495
                       <div className="mt-2 bg-gray-200 h-2 rounded-full overflow-hidden">
                         <motion.div 
                           className="h-full bg-feasibility-orange"
@@ -863,7 +863,7 @@ const Lenders = () => {
                 size="lg"
                 onClick={() => window.location.href = '/application'}
               >
-                Get Your Report - $999
+                  Get Your Report - $1,495
               </Button>
             </motion.div>
           </div>
@@ -1039,7 +1039,7 @@ const Lenders = () => {
                   className="text-lg px-10 py-6 h-auto font-cta font-bold"
                   onClick={() => window.location.href = '/application'}
                 >
-                  Get Your Report - $999
+                  Get Your Report - $1,495
                 </Button>
                 <Button 
                   variant="outline"

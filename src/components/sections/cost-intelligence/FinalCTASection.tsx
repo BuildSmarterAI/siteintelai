@@ -96,7 +96,7 @@ export const FinalCTASection = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-white/60" />
-              <span>Lender-ready format</span>
+              <span>Professional format</span>
             </div>
           </div>
 

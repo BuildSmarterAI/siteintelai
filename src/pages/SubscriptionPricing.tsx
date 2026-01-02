@@ -127,7 +127,7 @@ export default function SubscriptionPricing() {
                 <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
                   <FileCheck className="h-7 w-7 text-primary" />
                 </div>
-                <h3 className="font-semibold">Lender-Ready Reports</h3>
+                <h3 className="font-semibold">Professional Reports</h3>
                 <p className="text-sm text-muted-foreground">
                   Every report meets institutional underwriting standards
                 </p>

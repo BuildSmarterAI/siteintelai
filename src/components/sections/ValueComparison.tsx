@@ -9,7 +9,7 @@ export const ValueComparison = () => {
 
   const withItems = [
     "$10K feasibility prevents $250K+ losses",
-    "3-week turnaround, lender-ready clarity",
+    "3-week turnaround, professional clarity",
     "Confident green light from LPs and banks"
   ];
 

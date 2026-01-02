@@ -115,7 +115,7 @@ export function ReportHeader({
             <img src={siteintelLogo} alt="SiteIntel" className="h-8 md:h-10 drop-shadow-[0_0_10px_hsl(var(--feasibility-orange)/0.4)]" />
             <Badge className="bg-[hsl(var(--feasibility-orange))] text-white border-0 font-mono text-xs uppercase tracking-wider">
               <Shield className="h-3 w-3 mr-1" />
-              Lender-Ready Report
+              Development Feasibility Report
             </Badge>
           </div>
           

@@ -70,7 +70,7 @@ const TexasDevelopers = () => {
     ],
     siteintel: [
       "60 seconds to full report",
-      "$999 per Feasibility Report™",
+      "$1,495 per Feasibility Report™",
       "15+ live data sources",
       "Current FEMA + local flood data",
       "AI-detected constraints",
@@ -541,7 +541,7 @@ const TexasDevelopers = () => {
                     size="lg"
                     className="border-white/30 text-white hover:bg-white/10 px-8 py-6 text-lg w-full sm:w-auto"
                   >
-                    Get Your Report - $999
+                    Get Your Report - $1,495
                   </Button>
                 </Link>
               </div>

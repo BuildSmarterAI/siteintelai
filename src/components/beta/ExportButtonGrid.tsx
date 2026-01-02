@@ -18,7 +18,7 @@ const formats: ExportFormat[] = [
     icon: FileText,
     color: "text-red-500",
     size: "2.4 MB",
-    description: "Lender-Ready Report"
+    description: "Professional Feasibility Report"
   },
   {
     id: "json",

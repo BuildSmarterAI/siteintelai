@@ -58,10 +58,10 @@ export const KeyAdvantages = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-base sm:text-lg md:text-xl font-heading text-feasibility-orange mb-2">
-                    Lender-Ready Reports
+                    Professional Reports
                   </h3>
                   <p className="text-sm sm:text-[15px] text-cloud-white/90 leading-[1.7]">
-                    Every report includes complete citations from FEMA, ArcGIS, TxDOT, and EPA datasets—formatted for immediate lender submission.
+                    Every report includes complete citations from FEMA, ArcGIS, TxDOT, and EPA datasets—formatted for immediate professional use.
                   </p>
                 </div>
               </div>
