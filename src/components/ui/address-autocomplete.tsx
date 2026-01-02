@@ -9,8 +9,8 @@ import { useAddressValidation, VALIDATION_ERRORS } from '@/hooks/useAddressValid
 import { Check, AlertCircle, Star, Clock, MapPin, Hash, Navigation } from 'lucide-react';
 import { useSearchHistory, type SavedLocation, type SearchQueryType } from '@/hooks/useSearchHistory';
 
-// Faster debounce - reduced from 300ms to 200ms
-const DEBOUNCE_MS = 200;
+// Debounce - increased to 400ms to reduce API calls
+const DEBOUNCE_MS = 400;
 
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: NodeJS.Timeout;
@@ -183,7 +183,27 @@ export function AddressAutocomplete({
 
     setIsLoading(true);
     try {
-      // Try Google first
+      // NOMINATIM-FIRST STRATEGY: Try free Nominatim first to reduce Google costs
+      const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
+        body: { input }
+      });
+
+      if (!nominatimError && nominatimData?.predictions && nominatimData.predictions.length > 0) {
+        // Filter to only valid street addresses
+        const validPredictions = nominatimData.predictions
+          .filter((p: any) => isValidStreetAddress(p.description));
+        
+        if (validPredictions.length > 0) {
+          logger.log('Nominatim returned results, skipping Google API');
+          setSuggestions(validPredictions);
+          setShowSuggestions(true);
+          setSelectedIndex(-1);
+          return;
+        }
+      }
+
+      // Fallback to Google only if Nominatim returned no valid results
+      logger.log('Nominatim returned no results, falling back to Google');
       const { data, error } = await supabase.functions.invoke('google-places', {
         body: { input, sessionToken }
       });
@@ -203,42 +223,11 @@ export function AddressAutocomplete({
         }
       }
 
-      // Fallback to Nominatim
-      logger.log('Google Places unavailable or no valid addresses, trying Nominatim fallback');
-      const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
-        body: { input }
-      });
-
-      if (!nominatimError && nominatimData?.predictions) {
-        // Filter to only valid street addresses
-        const validPredictions = nominatimData.predictions
-          .filter((p: any) => isValidStreetAddress(p.description));
-        
-        setSuggestions(validPredictions);
-        setShowSuggestions(validPredictions.length > 0);
-        setSelectedIndex(-1);
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
+      // Both failed or no valid results
+      setSuggestions([]);
+      setShowSuggestions(false);
     } catch (error) {
       logger.error('Error fetching address suggestions:', error);
-      // Last resort: try Nominatim on any error
-      try {
-        const { data: fallbackData } = await supabase.functions.invoke('nominatim-autocomplete', {
-          body: { input }
-        });
-        if (fallbackData?.predictions) {
-          const validPredictions = fallbackData.predictions
-            .filter((p: any) => isValidStreetAddress(p.description));
-          setSuggestions(validPredictions);
-          setShowSuggestions(validPredictions.length > 0);
-          setSelectedIndex(-1);
-          return;
-        }
-      } catch {
-        // Both failed
-      }
       setSuggestions([]);
       setShowSuggestions(false);
     } finally {

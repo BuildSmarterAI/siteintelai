@@ -76,7 +76,25 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
     setIsLoading(true);
     
     try {
-      // Try Google first
+      // NOMINATIM-FIRST STRATEGY: Try free Nominatim first to reduce Google costs
+      const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
+        body: { input: value }
+      });
+
+      if (!nominatimError && nominatimData?.predictions && nominatimData.predictions.length > 0) {
+        setIsOfflineMode(false);
+        setSuggestions(nominatimData.predictions.map((p: any) => ({
+          place_id: p.place_id,
+          description: p.description,
+          lat: p.lat,
+          lng: p.lng,
+        })));
+        logger.log('Nominatim returned results, skipping Google API');
+        return;
+      }
+
+      // Fallback to Google only if Nominatim returned no results
+      logger.log('Nominatim returned no results, falling back to Google');
       const { data, error } = await supabase.functions.invoke('google-places', {
         body: { input: value }
       });
@@ -90,25 +108,8 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
         return;
       }
 
-      // Fallback to Nominatim
-      logger.log('Google Places unavailable, trying Nominatim fallback');
-      const { data: nominatimData, error: nominatimError } = await supabase.functions.invoke('nominatim-autocomplete', {
-        body: { input: value }
-      });
-
-      if (!nominatimError && nominatimData?.predictions && nominatimData.predictions.length > 0) {
-        setIsOfflineMode(false);
-        setSuggestions(nominatimData.predictions.map((p: any) => ({
-          place_id: p.place_id,
-          description: p.description,
-          lat: p.lat,
-          lng: p.lng,
-        })));
-        return;
-      }
-
-      // Both APIs failed - use defaults
-      logger.warn('Both Google and Nominatim unavailable, using defaults');
+      // Both APIs returned no results - use defaults
+      logger.warn('Both Nominatim and Google returned no results, using defaults');
       setIsOfflineMode(true);
       const filtered = DEFAULT_SUGGESTIONS.filter(s => 
         s.description.toLowerCase().includes(value.toLowerCase())
@@ -126,9 +127,9 @@ export function AddressSearchInput({ onSelect, className }: AddressSearchInputPr
     }
   }, []);
 
-  // Debounced search
+  // Debounced search - 400ms to reduce API calls
   const debouncedSearch = useCallback(
-    debounce((value: string) => fetchSuggestions(value), 300),
+    debounce((value: string) => fetchSuggestions(value), 400),
     [fetchSuggestions]
   );
 
