@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_members: {
+        Row: {
+          account_id: string
+          created_at: string
+          id: string
+          invited_at: string | null
+          invited_by: string | null
+          joined_at: string | null
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          joined_at?: string | null
+          role?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          id?: string
+          invited_at?: string | null
+          invited_by?: string | null
+          joined_at?: string | null
+          role?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_members_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           account_id: string
@@ -6701,6 +6745,44 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      usage_monthly: {
+        Row: {
+          account_id: string
+          active_parcels_peak: number
+          overage_credits_used: number
+          reports_generated: number
+          seats_peak: number
+          updated_at: string
+          yyyymm: string
+        }
+        Insert: {
+          account_id: string
+          active_parcels_peak?: number
+          overage_credits_used?: number
+          reports_generated?: number
+          seats_peak?: number
+          updated_at?: string
+          yyyymm: string
+        }
+        Update: {
+          account_id?: string
+          active_parcels_peak?: number
+          overage_credits_used?: number
+          reports_generated?: number
+          seats_peak?: number
+          updated_at?: string
+          yyyymm?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_monthly_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["account_id"]
+          },
+        ]
       }
       user_onboarding: {
         Row: {
