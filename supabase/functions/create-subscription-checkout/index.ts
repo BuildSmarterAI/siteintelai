@@ -14,13 +14,19 @@ const logStep = (step: string, details?: any) => {
 };
 
 // Price IDs for subscription tiers (test mode / live mode)
+// Updated 2025-01-02 to match current Stripe products
 const PRICE_IDS: Record<string, { test: string; live: string }> = {
-  starter_monthly: { test: "price_1SkGR5AsWVx52wY3xkptFAMn", live: "price_1SkGR5AsWVx52wY3xkptFAMn" },
-  starter_annual: { test: "price_1SkGRDAsWVx52wY3Q8pBQ4hT", live: "price_1SkGRDAsWVx52wY3Q8pBQ4hT" },
-  professional_monthly: { test: "price_1SkGSRAsWVx52wY3mFTAWK3W", live: "price_1SkGSRAsWVx52wY3mFTAWK3W" },
-  professional_annual: { test: "price_1SkGScAsWVx52wY3WUDkdXLK", live: "price_1SkGScAsWVx52wY3WUDkdXLK" },
-  team_monthly: { test: "price_1SkGTpAsWVx52wY3yyxLb1hh", live: "price_1SkGTpAsWVx52wY3yyxLb1hh" },
-  team_annual: { test: "price_1SkGTzAsWVx52wY3I1ULhfuT", live: "price_1SkGTzAsWVx52wY3I1ULhfuT" },
+  // Starter - $299/mo, $2,990/yr
+  starter_monthly: { test: "price_1SkXihAsWVx52wY3Cvrbylf4", live: "price_1SkXihAsWVx52wY3Cvrbylf4" },
+  starter_annual: { test: "price_1SkXivAsWVx52wY3fjI3Rd4N", live: "price_1SkXivAsWVx52wY3fjI3Rd4N" },
+  // Professional - $749/mo, $7,490/yr
+  professional_monthly: { test: "price_1SkXj9AsWVx52wY3cwZQSDzC", live: "price_1SkXj9AsWVx52wY3cwZQSDzC" },
+  professional_annual: { test: "price_1SkXjJAsWVx52wY3sP3suBw5", live: "price_1SkXjJAsWVx52wY3sP3suBw5" },
+  // Team - $1,950/mo, $19,500/yr
+  team_monthly: { test: "price_1SkXjXAsWVx52wY34Gdq3o2T", live: "price_1SkXjXAsWVx52wY34Gdq3o2T" },
+  team_annual: { test: "price_1SkXjlAsWVx52wY3q07DyaWp", live: "price_1SkXjlAsWVx52wY3q07DyaWp" },
+  // Enterprise - $4,500/mo (custom)
+  enterprise_monthly: { test: "price_1SkXkxAsWVx52wY3ZfO3V03r", live: "price_1SkXkxAsWVx52wY3ZfO3V03r" },
 };
 
 serve(async (req) => {
