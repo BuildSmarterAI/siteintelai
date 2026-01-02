@@ -55,9 +55,16 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Convert GeoJSON to WKT for PostGIS
+    // Convert GeoJSON to WKT for PostGIS - ensure ring is closed
     const coords = survey_polygon.coordinates[0];
-    const wktRing = coords.map(c => `${c[0]} ${c[1]}`).join(', ');
+    const ring = [...coords];
+    const first = ring[0];
+    const last = ring[ring.length - 1];
+    // Ensure polygon ring is closed (first point == last point)
+    if (first[0] !== last[0] || first[1] !== last[1]) {
+      ring.push(first);
+    }
+    const wktRing = ring.map(c => `${c[0]} ${c[1]}`).join(', ');
     const surveyWkt = `POLYGON((${wktRing}))`;
 
     console.log('[match-survey-parcels] Survey WKT:', surveyWkt.substring(0, 100) + '...');
@@ -69,8 +76,10 @@ serve(async (req) => {
       limit_count: 5
     });
 
+    console.log('[match-survey-parcels] RPC returned rows:', (parcels || []).length);
+
     if (queryError) {
-      console.error('[match-survey-parcels] Query error:', queryError);
+      console.error('[match-survey-parcels] RPC error:', queryError.message || queryError);
       
       // Fallback: Try direct query if RPC doesn't exist
       console.log('[match-survey-parcels] Attempting fallback query...');
@@ -79,12 +88,14 @@ serve(async (req) => {
       const centerLng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
       const centerLat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
       
-      // Simple proximity search as fallback
+      // Simple proximity search as fallback - don't require situs_address
       const { data: nearbyParcels, error: fallbackError } = await supabase
         .from('canonical_parcels')
-        .select('id, source_parcel_id, jurisdiction, situs_address, owner_name, acreage')
-        .not('situs_address', 'is', null)
+        .select('id, source_parcel_id, jurisdiction, situs_address, owner_name, acreage, geom')
+        .not('geom', 'is', null)
         .limit(5);
+      
+      console.log('[match-survey-parcels] Fallback query returned:', nearbyParcels?.length || 0, 'parcels');
 
       if (fallbackError || !nearbyParcels || nearbyParcels.length === 0) {
         console.log('[match-survey-parcels] No parcels found in fallback');
