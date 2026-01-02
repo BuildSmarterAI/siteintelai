@@ -201,6 +201,10 @@ interface MapLibreCanvasProps {
   spotlightParcel?: any;
   /** Whether parcel is in verified state - enhances spotlight styling */
   isVerified?: boolean;
+  /** Survey overlay image URL (signed URL from storage) */
+  surveyOverlayUrl?: string | null;
+  /** Opacity for survey overlay (0-1) */
+  surveyOverlayOpacity?: number;
 }
 
 /**
@@ -250,6 +254,8 @@ export function MapLibreCanvas({
   showDataSourceBadge = true,
   spotlightParcel,
   isVerified = false,
+  surveyOverlayUrl,
+  surveyOverlayOpacity = 0.5,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -751,6 +757,99 @@ export function MapLibreCanvas({
       duration: 1000,
     });
   }, [center, zoom, mapLoaded]);
+
+  // Survey overlay effect - render uploaded survey as image layer
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    
+    const surveySourceId = 'survey-overlay-source';
+    const surveyLayerId = 'survey-overlay-layer';
+    
+    // Remove existing survey overlay
+    if (map.current.getLayer(surveyLayerId)) {
+      map.current.removeLayer(surveyLayerId);
+    }
+    if (map.current.getSource(surveySourceId)) {
+      map.current.removeSource(surveySourceId);
+    }
+    
+    // If no URL, we're done (cleanup only)
+    if (!surveyOverlayUrl) return;
+    
+    // Get current map bounds for uncalibrated overlay positioning
+    // The survey will be centered on the current view (Phase 1 - uncalibrated mode)
+    const bounds = map.current.getBounds();
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    
+    // Use map extent as overlay bounds (uncalibrated - user adjusts by panning/zooming)
+    // Coordinates format: [lng, lat] for each corner: NW, NE, SE, SW
+    const coordinates: [[number, number], [number, number], [number, number], [number, number]] = [
+      [sw.lng, ne.lat], // NW
+      [ne.lng, ne.lat], // NE  
+      [ne.lng, sw.lat], // SE
+      [sw.lng, sw.lat], // SW
+    ];
+    
+    try {
+      map.current.addSource(surveySourceId, {
+        type: 'image',
+        url: surveyOverlayUrl,
+        coordinates,
+      });
+      
+      map.current.addLayer(
+        {
+          id: surveyLayerId,
+          type: 'raster',
+          source: surveySourceId,
+          paint: {
+            'raster-opacity': surveyOverlayOpacity,
+            'raster-fade-duration': 0,
+          },
+        },
+        // Insert below parcel layers so parcels are on top
+        'fallback-parcels-fill' 
+      );
+      
+      logger.map('Survey overlay added to map');
+    } catch (err) {
+      logger.warn('Failed to add survey overlay:', err);
+      // Try adding layer without specifying insertion position
+      try {
+        if (!map.current.getSource(surveySourceId)) {
+          map.current.addSource(surveySourceId, {
+            type: 'image',
+            url: surveyOverlayUrl,
+            coordinates,
+          });
+        }
+        if (!map.current.getLayer(surveyLayerId)) {
+          map.current.addLayer({
+            id: surveyLayerId,
+            type: 'raster',
+            source: surveySourceId,
+            paint: {
+              'raster-opacity': surveyOverlayOpacity,
+              'raster-fade-duration': 0,
+            },
+          });
+        }
+      } catch (retryErr) {
+        logger.error('Failed to add survey overlay on retry:', retryErr);
+      }
+    }
+  }, [surveyOverlayUrl, mapLoaded]);
+
+  // Update survey overlay opacity
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    
+    const surveyLayerId = 'survey-overlay-layer';
+    if (map.current.getLayer(surveyLayerId)) {
+      map.current.setPaintProperty(surveyLayerId, 'raster-opacity', surveyOverlayOpacity);
+    }
+  }, [surveyOverlayOpacity, mapLoaded]);
 
   // Spotlight parcel effect - fly to bounds with pulse animation
   useEffect(() => {
