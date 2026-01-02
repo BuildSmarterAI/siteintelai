@@ -391,3 +391,15 @@ verify_jwt = true
 
 [functions.batch-status]
 verify_jwt = false
+
+[functions.admin-cost-dashboard]
+verify_jwt = true
+
+[functions.gis-source-versions]
+verify_jwt = true
+
+[functions.admin-config]
+verify_jwt = true
+
+[functions.data-quality-report]
+verify_jwt = true

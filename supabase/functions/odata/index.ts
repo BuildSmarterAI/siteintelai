@@ -184,10 +184,49 @@ function parseOrderBy(orderby: string | null): { field: string; ascending: boole
   };
 }
 
-// Authenticate request - supports JWT and API key
+// SHA-256 hash for API key lookup
+async function sha256(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Check OData rate limit per API key (G-03)
+async function checkODataRateLimit(
+  supabase: ReturnType<typeof createClient>,
+  keyHash: string,
+  limitPerHour: number
+): Promise<{ allowed: boolean; remaining: number; retryAfter?: number }> {
+  const hour = new Date().toISOString().slice(0, 13);
+  const key = `odata:${keyHash.slice(0, 16)}:${hour}`;
+
+  const { data, error } = await supabase
+    .from('api_rate_limits')
+    .select('count')
+    .eq('key', key)
+    .single();
+
+  const currentCount = error ? 0 : (data?.count || 0);
+  
+  if (currentCount >= limitPerHour) {
+    const minutesToNextHour = 60 - new Date().getMinutes();
+    return { allowed: false, remaining: 0, retryAfter: minutesToNextHour * 60 };
+  }
+
+  // Increment counter
+  await supabase.from('api_rate_limits').upsert({
+    key,
+    count: currentCount + 1,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'key' });
+
+  return { allowed: true, remaining: limitPerHour - currentCount - 1 };
+}
+
+// Authenticate request - supports JWT and API key (G-02 enhanced)
 async function authenticate(
   req: Request
-): Promise<{ userId: string | null; isApiKey: boolean; error?: string }> {
+): Promise<{ userId: string | null; isApiKey: boolean; scopes?: string[]; rateLimitPerHour?: number; keyHash?: string; error?: string }> {
   const authHeader = req.headers.get("authorization");
   const apiKey = req.headers.get("x-api-key");
 
@@ -195,8 +234,8 @@ async function authenticate(
   if (apiKey) {
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    // Hash the API key for lookup (in production, use proper hashing)
-    const keyHash = btoa(apiKey);
+    // Use SHA-256 for API key lookup
+    const keyHash = await sha256(apiKey);
     
     const { data: keyData, error } = await supabase
       .from("api_keys")
@@ -224,7 +263,13 @@ async function authenticate(
       .update({ last_used_at: new Date().toISOString() })
       .eq("key_hash", keyHash);
 
-    return { userId: keyData.user_id, isApiKey: true };
+    return { 
+      userId: keyData.user_id, 
+      isApiKey: true, 
+      scopes: keyData.scopes,
+      rateLimitPerHour: keyData.rate_limit_per_hour || 1000,
+      keyHash,
+    };
   }
 
   // Try JWT token
