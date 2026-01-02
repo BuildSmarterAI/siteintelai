@@ -14,7 +14,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY')!;
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -70,28 +70,37 @@ serve(async (req) => {
     const systemPrompt = buildSystemPrompt(report_type, intentType);
     const userPrompt = buildUserPrompt(application, report_type, geospatialData, intentType, constructionParams, existingCostEstimate);
 
-    console.log('[generate-ai-report] Calling Lovable AI...');
+    console.log('[generate-ai-report] Calling OpenAI...');
 
-    // Call Lovable AI
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    // Call OpenAI
+    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
+        max_tokens: 4000,
         temperature: 0.7,
       }),
     });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('[generate-ai-report] AI API error:', aiResponse.status, errorText);
+      console.error('[generate-ai-report] OpenAI API error:', aiResponse.status, errorText);
+      
+      if (aiResponse.status === 429) {
+        throw new Error('OpenAI rate limit exceeded. Please try again in a moment.');
+      }
+      if (aiResponse.status === 401) {
+        throw new Error('Invalid OpenAI API key configured.');
+      }
+      
       throw new Error(`AI generation failed: ${aiResponse.status}`);
     }
 
