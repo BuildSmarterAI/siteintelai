@@ -245,6 +245,9 @@ export function SurveyImageCanvas({
   }, [pdfDoc, currentPage, totalPages, isLoadingPage]);
 
   // Render canvas
+  // PDF rendering at 2x: We store original page dimensions via onImageLoad.
+  // The img is 2x the logical size. We draw it scaled down by 2, 
+  // then apply our user-scale on top. Result: 1 logical pixel = scale screen pixels.
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -256,17 +259,22 @@ export function SurveyImageCanvas({
     ctx.fillStyle = '#1f2937'; // dark background
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // For PDF, the image is 2x scaled, so we need to draw it at half size
-    const drawScale = isPdf ? scale / 2 : scale;
+    // For PDFs: the image was rendered at 2x, so we draw it at half its natural size
+    // then multiply by our user `scale`. 
+    // Effectively: drawWidth = (img.width / pdfRenderScale) * scale = img.width * (scale / 2)
+    // For images: no adjustment needed.
+    const pdfRenderScale = 2;
+    const effectiveScale = isPdf ? scale / pdfRenderScale : scale;
     
-    // Draw image with transform
+    // Draw image
     ctx.save();
     ctx.translate(offset.x, offset.y);
-    ctx.scale(drawScale, drawScale);
+    ctx.scale(effectiveScale, effectiveScale);
     ctx.drawImage(img, 0, 0);
     ctx.restore();
     
-    // Draw control points
+    // Draw control points - all image coords are in *logical* units (original PDF page size)
+    // So screenX = imageX * scale + offset
     for (const point of points) {
       const screenX = point.image_x * scale + offset.x;
       const screenY = point.image_y * scale + offset.y;
@@ -329,6 +337,9 @@ export function SurveyImageCanvas({
   }, [scale, offset]);
 
   // Handle click to add point
+  // screenToImage uses `scale` which is the logical scale.
+  // For PDFs, imageRef contains 2x image but we reported original (logical) dimensions.
+  // So bounds check should use img.width/2 for PDF.
   const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!activePointLabel || isPanning) return;
     
@@ -339,14 +350,14 @@ export function SurveyImageCanvas({
     const screenY = e.clientY - rect.top;
     const { imageX, imageY } = screenToImage(screenX, screenY);
     
-    // Check if click is within image bounds
+    // Check if click is within image bounds (logical dimensions)
     if (imageRef.current) {
-      // For PDF, the actual image dimensions are the original PDF page size
-      // The imageRef contains a 2x scaled image, but onImageLoad reported original size
-      const maxX = isPdf ? imageRef.current.width / 2 : imageRef.current.width;
-      const maxY = isPdf ? imageRef.current.height / 2 : imageRef.current.height;
+      const pdfRenderScale = 2;
+      const logicalWidth = isPdf ? imageRef.current.width / pdfRenderScale : imageRef.current.width;
+      const logicalHeight = isPdf ? imageRef.current.height / pdfRenderScale : imageRef.current.height;
       
-      if (imageX >= 0 && imageX <= maxX && imageY >= 0 && imageY <= maxY) {
+      if (imageX >= 0 && imageX <= logicalWidth && imageY >= 0 && imageY <= logicalHeight) {
+        console.log('[SurveyImageCanvas] Point added at logical coords:', imageX.toFixed(1), imageY.toFixed(1));
         onPointAdded(imageX, imageY);
       }
     }
