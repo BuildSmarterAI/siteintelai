@@ -161,14 +161,15 @@ function parseEntitlementsFromMetadata(
   };
 }
 
-// Credit pack configuration
+// Credit pack configuration (updated 2025-01-02)
 const CREDIT_PACKS: Record<string, number> = {
-  'price_1SkXm3AsWVx52wY3JUiL1pPF': 5,  // 5 Report Pack
-  'price_1SkXnGAsWVx52wY3Uz6wczPE': 10, // 10 Report Pack
+  'price_1SkXm3AsWVx52wY3JUiL1pPF': 5,  // 5 Report Pack - $399
+  'price_1SkXnGAsWVx52wY3Uz6wczPE': 10, // 10 Report Pack - $699
 };
 
-// One-off product price ID ($999)
-const ONE_OFF_PRICE_ID = 'price_1Sj397AsWVx52wY3nQC9A5dZ';
+// One-off product price ID ($1,495 Lender-Ready Report)
+// Updated from $999 to $1,495 (price_1SkXlrAsWVx52wY3RZ1WS6a7)
+const ONE_OFF_PRICE_ID = 'price_1SkXlrAsWVx52wY3RZ1WS6a7';
 
 // GHL webhook helper
 async function sendGhlWebhook(eventType: string, payload: Record<string, any>) {
@@ -527,9 +528,10 @@ serve(async (req) => {
           break;
         }
 
-        // Handle $999 one-off purchase - DO NOT create subscription/entitlements
-        if (isOneOffPurchase || (session.mode === "payment" && session.amount_total === 99900)) {
-          logStep("One-off $999 purchase detected - recording payment only, no entitlements");
+        // Handle $1,495 one-off purchase - DO NOT create subscription/entitlements
+        // Also handle legacy $999 for backwards compatibility
+        if (isOneOffPurchase || (session.mode === "payment" && (session.amount_total === 149500 || session.amount_total === 99900))) {
+          logStep("One-off purchase detected - recording payment only, no entitlements", { amount: session.amount_total });
           
           // Record payment
           await supabaseAdmin.from("payment_history").insert({
