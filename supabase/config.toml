@@ -403,3 +403,6 @@ verify_jwt = true
 
 [functions.data-quality-report]
 verify_jwt = true
+
+[functions.match-survey-parcels]
+verify_jwt = false

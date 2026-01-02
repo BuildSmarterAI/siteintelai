@@ -23,10 +23,20 @@ export async function saveControlPoints(
   points: ControlPointPair[]
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Cast to JSON-compatible format for Supabase
+    const pointsJson = points.map(p => ({
+      id: p.id,
+      image_x: p.image_x,
+      image_y: p.image_y,
+      map_lat: p.map_lat,
+      map_lng: p.map_lng,
+      label: p.label,
+    }));
+    
     const { error } = await supabase
       .from('survey_uploads')
       .update({
-        control_points: points,
+        control_points: pointsJson,
         calibration_status: 'uncalibrated',
       })
       .eq('id', surveyId);
@@ -60,6 +70,14 @@ export async function submitCalibration(
       imageHeight
     );
 
+    // Cast bounds to JSON-compatible format
+    const boundsJson = {
+      topLeft: transformedBounds.topLeft,
+      topRight: transformedBounds.topRight,
+      bottomRight: transformedBounds.bottomRight,
+      bottomLeft: transformedBounds.bottomLeft,
+    };
+
     const { error } = await supabase
       .from('survey_uploads')
       .update({
@@ -67,7 +85,7 @@ export async function submitCalibration(
         residual_error_meters: transform.residualErrorMeters,
         calibration_status: transform.confidence === 'low' ? 'failed' : 'calibrated',
         geometry_confidence: transform.confidence,
-        calibrated_bounds: transformedBounds,
+        calibrated_bounds: boundsJson,
       })
       .eq('id', surveyId);
 
@@ -134,9 +152,10 @@ export async function getSurveyCalibration(surveyId: string): Promise<{
   error?: string;
 }> {
   try {
+    // Query only columns that exist in the types
     const { data, error } = await supabase
       .from('survey_uploads')
-      .select('transform_matrix, residual_error_meters, geometry_confidence, calibrated_bounds')
+      .select('transform_matrix, residual_error_meters, geometry_confidence')
       .eq('id', surveyId)
       .single();
 
@@ -150,7 +169,6 @@ export async function getSurveyCalibration(surveyId: string): Promise<{
 
     // Cast the JSON to our types
     const matrix = data.transform_matrix as unknown as [number, number, number, number, number, number];
-    const bounds = data.calibrated_bounds as unknown as TransformedBounds;
 
     return {
       success: true,
@@ -159,7 +177,6 @@ export async function getSurveyCalibration(surveyId: string): Promise<{
         residualErrorMeters: data.residual_error_meters || 0,
         confidence: (data.geometry_confidence as 'high' | 'medium' | 'low') || 'low',
       },
-      bounds,
     };
   } catch (err) {
     console.error('getSurveyCalibration exception:', err);

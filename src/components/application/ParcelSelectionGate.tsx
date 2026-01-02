@@ -33,6 +33,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
+import type { ParcelMatch, AffineTransform, TransformedBounds } from "@/types/surveyCalibration";
 import { getSurveyUrl, type SurveyUploadMetadata } from "@/services/surveyUploadApi";
 
 interface ParcelSelectionGateProps {
@@ -341,6 +342,58 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     setShowSurveyOverlay(visible);
   }, []);
 
+  // Handle calibration complete - store the results
+  const handleCalibrationComplete = useCallback((result: {
+    transform: AffineTransform;
+    bounds: TransformedBounds;
+    matchedParcels: ParcelMatch[];
+  }) => {
+    console.log('[ParcelSelectionGate] Calibration complete:', result);
+    // If we have matched parcels, we can convert them to candidates
+    if (result.matchedParcels.length > 0) {
+      toast.success(`Found ${result.matchedParcels.length} matching parcel(s)`);
+    }
+  }, []);
+
+  // Handle parcel selected from calibration wizard
+  const handleSurveyParcelSelected = useCallback((parcel: ParcelMatch) => {
+    console.log('[ParcelSelectionGate] Parcel selected from survey:', parcel);
+    
+    // Convert ParcelMatch to CandidateParcel format
+    const candidate: CandidateParcel = {
+      parcel_id: parcel.parcel_id,
+      situs_address: parcel.situs_address,
+      owner_name: parcel.owner_name,
+      acreage: parcel.acreage,
+      county: parcel.county,
+      confidence: parcel.confidence,
+      geom: parcel.geometry as any,
+      source: 'canonical',
+      zoning: null,
+      market_value: null,
+      overlap_percentage: parcel.overlapPercentage,
+    };
+    
+    // Set as candidates and select
+    setCandidates([candidate]);
+    selectCandidate(candidate);
+    
+    // Navigate to the parcel
+    if (parcel.geometry) {
+      const coords = parcel.geometry.type === 'Polygon' 
+        ? parcel.geometry.coordinates[0]
+        : parcel.geometry.coordinates[0][0];
+      if (coords && coords.length > 0) {
+        const centerLng = coords.reduce((sum: number, c: number[]) => sum + c[0], 0) / coords.length;
+        const centerLat = coords.reduce((sum: number, c: number[]) => sum + c[1], 0) / coords.length;
+        handleNavigateToLocation(centerLat, centerLng, 17);
+      }
+    }
+    
+    setMobileStep('verify');
+    toast.success('Parcel selected from survey calibration');
+  }, [setCandidates, selectCandidate, handleNavigateToLocation]);
+
   const handleUnlockParcel = useCallback(() => {
     unlockParcel();
     clearSelection();
@@ -479,6 +532,8 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         mapCenter={mapCenter}
         onSurveyUploaded={handleSurveyUploaded}
         onSurveyDeleted={handleSurveyDeleted}
+        onParcelSelected={handleSurveyParcelSelected}
+        onCalibrationComplete={handleCalibrationComplete}
         surveyOverlayOpacity={surveyOverlayOpacity}
         onSurveyOpacityChange={handleSurveyOpacityChange}
         showSurveyOverlay={showSurveyOverlay}

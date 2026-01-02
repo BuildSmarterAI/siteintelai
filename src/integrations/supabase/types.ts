@@ -6471,6 +6471,7 @@ export type Database = {
       survey_uploads: {
         Row: {
           application_id: string | null
+          calibrated_bounds: Json | null
           calibration_status: string | null
           control_points: Json | null
           county: string | null
@@ -6494,6 +6495,7 @@ export type Database = {
         }
         Insert: {
           application_id?: string | null
+          calibrated_bounds?: Json | null
           calibration_status?: string | null
           control_points?: Json | null
           county?: string | null
@@ -6517,6 +6519,7 @@ export type Database = {
         }
         Update: {
           application_id?: string | null
+          calibrated_bounds?: Json | null
           calibration_status?: string | null
           control_points?: Json | null
           county?: string | null
