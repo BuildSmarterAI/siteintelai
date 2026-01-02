@@ -3860,6 +3860,189 @@ export type Database = {
           },
         ]
       }
+      google_places_cache: {
+        Row: {
+          confidence_score: number | null
+          cost_units: number | null
+          display_name: string | null
+          expires_at: string
+          fetched_at: string | null
+          fields_mask_hash: string
+          formatted_address: string | null
+          id: string
+          location_lat: number | null
+          location_lng: number | null
+          payload: Json
+          place_id: string
+          primary_type: string | null
+          source_version: string | null
+          types: string[] | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          cost_units?: number | null
+          display_name?: string | null
+          expires_at: string
+          fetched_at?: string | null
+          fields_mask_hash: string
+          formatted_address?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          payload: Json
+          place_id: string
+          primary_type?: string | null
+          source_version?: string | null
+          types?: string[] | null
+        }
+        Update: {
+          confidence_score?: number | null
+          cost_units?: number | null
+          display_name?: string | null
+          expires_at?: string
+          fetched_at?: string | null
+          fields_mask_hash?: string
+          formatted_address?: string | null
+          id?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          payload?: Json
+          place_id?: string
+          primary_type?: string | null
+          source_version?: string | null
+          types?: string[] | null
+        }
+        Relationships: []
+      }
+      google_static_maps_assets: {
+        Row: {
+          application_id: string | null
+          expires_at: string
+          fetched_at: string | null
+          height: number | null
+          id: string
+          map_signature_hash: string
+          map_type: string | null
+          params_json: Json
+          sha256: string | null
+          storage_path: string
+          width: number | null
+        }
+        Insert: {
+          application_id?: string | null
+          expires_at?: string
+          fetched_at?: string | null
+          height?: number | null
+          id?: string
+          map_signature_hash: string
+          map_type?: string | null
+          params_json: Json
+          sha256?: string | null
+          storage_path: string
+          width?: number | null
+        }
+        Update: {
+          application_id?: string | null
+          expires_at?: string
+          fetched_at?: string | null
+          height?: number | null
+          id?: string
+          map_signature_hash?: string
+          map_type?: string | null
+          params_json?: Json
+          sha256?: string | null
+          storage_path?: string
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_static_maps_assets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_static_maps_assets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
+      google_streetview_assets: {
+        Row: {
+          application_id: string | null
+          error_message: string | null
+          fetched_at: string | null
+          fov: number | null
+          heading: number | null
+          id: string
+          lat: number
+          lng: number
+          pano_id: string | null
+          params_json: Json
+          pitch: number | null
+          retry_count: number | null
+          sha256: string | null
+          status: string | null
+          storage_path: string | null
+          sv_signature_hash: string
+        }
+        Insert: {
+          application_id?: string | null
+          error_message?: string | null
+          fetched_at?: string | null
+          fov?: number | null
+          heading?: number | null
+          id?: string
+          lat: number
+          lng: number
+          pano_id?: string | null
+          params_json: Json
+          pitch?: number | null
+          retry_count?: number | null
+          sha256?: string | null
+          status?: string | null
+          storage_path?: string | null
+          sv_signature_hash: string
+        }
+        Update: {
+          application_id?: string | null
+          error_message?: string | null
+          fetched_at?: string | null
+          fov?: number | null
+          heading?: number | null
+          id?: string
+          lat?: number
+          lng?: number
+          pano_id?: string | null
+          params_json?: Json
+          pitch?: number | null
+          retry_count?: number | null
+          sha256?: string | null
+          status?: string | null
+          storage_path?: string | null
+          sv_signature_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_streetview_assets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "google_streetview_assets_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
+      }
       ingestion_runs: {
         Row: {
           created_at: string

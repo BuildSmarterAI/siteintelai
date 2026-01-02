@@ -7,6 +7,36 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generate a deterministic signature hash for street view parameters
+async function generateSVSignature(params: {
+  lat: number;
+  lng: number;
+  heading: number;
+  pitch?: number;
+  fov?: number;
+}): Promise<string> {
+  const signatureData = JSON.stringify({
+    lat: Math.round(params.lat * 100000) / 100000, // 5 decimal precision (~1m accuracy)
+    lng: Math.round(params.lng * 100000) / 100000,
+    heading: params.heading,
+    pitch: params.pitch || 0,
+    fov: params.fov || 90,
+  });
+  
+  const encoder = new TextEncoder();
+  const data = encoder.encode(signatureData);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Generate SHA-256 hash for image content
+async function generateImageHash(buffer: Uint8Array): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -35,31 +65,82 @@ serve(async (req) => {
       throw new Error('GOOGLE_MAPS_API_KEY not configured');
     }
 
-    // Fetch with retry logic
-    async function fetchWithRetry(url: string, maxRetries = 3) {
+    // Fetch with retry logic (limited retries)
+    async function fetchWithRetry(url: string, maxRetries = 2) {
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           const response = await fetch(url);
-          if (response.ok) return response;
-          
-          if (attempt < maxRetries - 1) {
-            const delay = Math.pow(2, attempt) * 500;
-            console.log(`[render-streetview] Retry ${attempt + 1} after ${delay}ms`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-          }
+          return response; // Return even if not ok - we'll check status separately
         } catch (error) {
           if (attempt === maxRetries - 1) throw error;
+          const delay = Math.pow(2, attempt) * 500;
+          console.log(`[render-streetview] Retry ${attempt + 1} after ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
       throw new Error('Max retries exceeded');
     }
 
     const directionLabels = ['N', 'E', 'S', 'W'];
-    const streetviewImages: Array<{ direction: string; heading: number; url: string }> = [];
+    const streetviewImages: Array<{ direction: string; heading: number; url: string; pano_id?: string }> = [];
+    const assetsToUpsert: any[] = [];
 
     for (let i = 0; i < headings.length; i++) {
       const heading = headings[i];
       const direction = directionLabels[i];
+
+      // Generate signature for this specific view
+      const svSignature = await generateSVSignature({
+        lat: location.lat,
+        lng: location.lng,
+        heading,
+        pitch: 0,
+        fov: 90,
+      });
+
+      // Check for existing cached asset with this signature
+      const { data: existingAsset } = await supabase
+        .from('google_streetview_assets')
+        .select('*')
+        .eq('sv_signature_hash', svSignature)
+        .single();
+
+      // FALLBACK LADDER: Check existing asset status
+      if (existingAsset) {
+        // If marked as not_available, skip immediately (don't retry endlessly)
+        if (existingAsset.status === 'not_available') {
+          console.log(`[render-streetview] ${direction}: SKIP - previously marked not_available`);
+          continue;
+        }
+
+        // If we have a valid asset with storage path, reuse it
+        if (existingAsset.status === 'available' && existingAsset.storage_path) {
+          console.log(`[render-streetview] ${direction}: Cache HIT - reusing ${existingAsset.storage_path}`);
+          
+          const { data: signedUrlData } = await supabase.storage
+            .from('reports')
+            .createSignedUrl(existingAsset.storage_path, 259200);
+
+          if (signedUrlData?.signedUrl) {
+            streetviewImages.push({
+              direction,
+              heading,
+              url: signedUrlData.signedUrl,
+              pano_id: existingAsset.pano_id,
+            });
+            continue;
+          }
+        }
+
+        // If in error state with too many retries, skip
+        if (existingAsset.status === 'error' && existingAsset.retry_count >= 3) {
+          console.log(`[render-streetview] ${direction}: SKIP - max retries exceeded (${existingAsset.retry_count})`);
+          continue;
+        }
+      }
+
+      // Cache MISS or need to retry - fetch from Google
+      console.log(`[render-streetview] ${direction}: Cache MISS - fetching from Google API`);
 
       const streetViewUrl = new URL('https://maps.googleapis.com/maps/api/streetview');
       streetViewUrl.searchParams.set('size', size);
@@ -68,60 +149,138 @@ serve(async (req) => {
       streetViewUrl.searchParams.set('pitch', '0');
       streetViewUrl.searchParams.set('key', googleApiKey);
 
-      console.log(`[render-streetview] Fetching ${direction} view (heading ${heading})`);
       const viewStartTime = Date.now();
       
-      const response = await fetchWithRetry(streetViewUrl.toString());
-      await logExternalCall(
-        supabase,
-        'google_street_view',
-        streetViewUrl.toString(),
-        Date.now() - viewStartTime,
-        response.ok,
-        application_id
-      );
+      try {
+        const response = await fetchWithRetry(streetViewUrl.toString());
+        const apiDuration = Date.now() - viewStartTime;
+        
+        await logExternalCall(
+          supabase,
+          'google_street_view',
+          streetViewUrl.toString(),
+          apiDuration,
+          response.ok,
+          application_id
+        );
 
-      if (!response.ok) {
-        console.warn(`[render-streetview] Failed to fetch ${direction} view:`, response.status);
-        continue; // Skip this view if unavailable
-      }
+        // Check if Street View is available
+        const contentType = response.headers.get('content-type');
+        const isImage = contentType?.includes('image');
+        
+        if (!response.ok || !isImage) {
+          // Mark as not_available to prevent future retries
+          console.log(`[render-streetview] ${direction}: No imagery available - marking not_available`);
+          
+          assetsToUpsert.push({
+            application_id,
+            sv_signature_hash: svSignature,
+            lat: location.lat,
+            lng: location.lng,
+            heading,
+            pitch: 0,
+            fov: 90,
+            params_json: { size, direction },
+            status: 'not_available',
+            error_message: !response.ok ? `HTTP ${response.status}` : 'No Street View imagery at this location',
+            retry_count: (existingAsset?.retry_count || 0) + 1,
+            fetched_at: new Date().toISOString(),
+          });
+          continue;
+        }
 
-      // Check if Street View is available (Google returns a 200 even when no imagery)
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.includes('image')) {
-        console.warn(`[render-streetview] No Street View imagery available for ${direction}`);
-        continue;
-      }
+        // Success - upload and store
+        const imageBlob = await response.blob();
+        const imageArrayBuffer = await imageBlob.arrayBuffer();
+        const imageBuffer = new Uint8Array(imageArrayBuffer);
+        const imageHash = await generateImageHash(imageBuffer);
 
-      // Upload to Supabase Storage
-      const imageBlob = await response.blob();
-      const imageArrayBuffer = await imageBlob.arrayBuffer();
-      const imageBuffer = new Uint8Array(imageArrayBuffer);
+        const fileName = `reports/${application_id}/streetview_${direction}_${svSignature.substring(0, 8)}.jpg`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('reports')
+          .upload(fileName, imageBuffer, {
+            contentType: 'image/jpeg',
+            upsert: true,
+          });
 
-      const fileName = `reports/${application_id}/streetview_${direction}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from('reports')
-        .upload(fileName, imageBuffer, {
-          contentType: 'image/jpeg',
-          upsert: true,
-        });
+        if (uploadError) {
+          console.error(`[render-streetview] Upload error for ${direction}:`, uploadError);
+          
+          assetsToUpsert.push({
+            application_id,
+            sv_signature_hash: svSignature,
+            lat: location.lat,
+            lng: location.lng,
+            heading,
+            pitch: 0,
+            fov: 90,
+            params_json: { size, direction },
+            status: 'error',
+            error_message: uploadError.message,
+            retry_count: (existingAsset?.retry_count || 0) + 1,
+            fetched_at: new Date().toISOString(),
+          });
+          continue;
+        }
 
-      if (uploadError) {
-        console.error(`[render-streetview] Upload error for ${direction}:`, uploadError);
-        continue;
-      }
+        // Generate signed URL
+        const { data: signedUrlData } = await supabase.storage
+          .from('reports')
+          .createSignedUrl(fileName, 259200);
 
-      // Generate signed URL
-      const { data: signedUrlData } = await supabase.storage
-        .from('reports')
-        .createSignedUrl(fileName, 259200); // 72 hours
+        if (signedUrlData?.signedUrl) {
+          streetviewImages.push({
+            direction,
+            heading,
+            url: signedUrlData.signedUrl,
+          });
 
-      if (signedUrlData?.signedUrl) {
-        streetviewImages.push({
-          direction,
+          // Store successful asset for future deduplication
+          assetsToUpsert.push({
+            application_id,
+            sv_signature_hash: svSignature,
+            lat: location.lat,
+            lng: location.lng,
+            heading,
+            pitch: 0,
+            fov: 90,
+            params_json: { size, direction },
+            status: 'available',
+            storage_path: fileName,
+            sha256: imageHash,
+            retry_count: 0,
+            fetched_at: new Date().toISOString(),
+          });
+        }
+      } catch (fetchError) {
+        console.error(`[render-streetview] Fetch error for ${direction}:`, fetchError);
+        
+        assetsToUpsert.push({
+          application_id,
+          sv_signature_hash: svSignature,
+          lat: location.lat,
+          lng: location.lng,
           heading,
-          url: signedUrlData.signedUrl,
+          pitch: 0,
+          fov: 90,
+          params_json: { size, direction },
+          status: 'error',
+          error_message: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+          retry_count: (existingAsset?.retry_count || 0) + 1,
+          fetched_at: new Date().toISOString(),
         });
+      }
+    }
+
+    // Batch upsert all asset records
+    if (assetsToUpsert.length > 0) {
+      const { error: upsertError } = await supabase
+        .from('google_streetview_assets')
+        .upsert(assetsToUpsert, { onConflict: 'sv_signature_hash' });
+      
+      if (upsertError) {
+        console.warn('[render-streetview] Asset upsert warning:', upsertError);
       }
     }
 
@@ -137,6 +296,7 @@ serve(async (req) => {
       streetview: streetviewImages,
       streetview_available: streetviewImages.length > 0,
       streetview_generated_at: new Date().toISOString(),
+      streetview_directions_available: streetviewImages.map(img => img.direction),
     };
 
     await supabase
