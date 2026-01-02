@@ -78,6 +78,8 @@ import ApplicationPaymentFlow from "./pages/ApplicationPaymentFlow";
 import ProfileSettings from "./pages/ProfileSettings";
 import SubscriptionPricing from "./pages/SubscriptionPricing";
 import DesignMode from "./pages/DesignMode";
+import FeasibilityIntake from "./pages/FeasibilityIntake";
+import FeasibilityProcessing from "./pages/FeasibilityProcessing";
 const queryClient = new QueryClient();
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -89,9 +91,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   const isMarketIntelPage = location.pathname === '/market-intelligence';
   const isPaymentFlowPage = location.pathname === '/get-started';
   const isDesignModePage = location.pathname.startsWith('/design/');
+  const isFeasibilityAppPage = location.pathname.startsWith('/app/feasibility');
 
-  // Fullscreen pages, docs, reports, market intelligence, payment flow, and design mode render without any layout wrapper
-  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage || isPaymentFlowPage || isDesignModePage) {
+  // Fullscreen pages, docs, reports, market intelligence, payment flow, design mode, and feasibility app render without any layout wrapper
+  if (isFullscreenPage || isDocsPage || isReportPage || isMarketIntelPage || isPaymentFlowPage || isDesignModePage || isFeasibilityAppPage) {
     return <>{children}</>;
   }
 
@@ -182,6 +185,9 @@ const App = () => (
               <Route path="/parcel-explorer" element={<ParcelExplorer />} />
               <Route path="/market-intelligence" element={<MarketIntelligence />} />
               <Route path="/design/:applicationId" element={<DesignMode />} />
+              {/* Feasibility App Routes */}
+              <Route path="/app/feasibility/intake" element={<FeasibilityIntake />} />
+              <Route path="/app/feasibility/run" element={<FeasibilityProcessing />} />
               <Route path="/beta" element={<Beta />} />
               <Route path="/beta-signup" element={<BetaSignup />} />
               <Route path="/beta-thank-you" element={<BetaThankYou />} />
