@@ -136,8 +136,26 @@ serve(async (req) => {
       // Recompute confidence based on normalized percentage
       const confidence = overlapPct >= 80 ? 'high' : overlapPct >= 50 ? 'medium' : 'low';
       
+      // Parse geometry from geom_json string
+      let geometry = null;
+      if (p.geom_json) {
+        try {
+          geometry = JSON.parse(p.geom_json);
+        } catch (e) {
+          console.error(`[match-survey-parcels] Failed to parse geom_json for parcel ${p.id}:`, e);
+        }
+      }
+      
       if (idx < 3) {
-        console.log(`[match-survey-parcels] Match #${idx + 1}: raw=${rawOverlap}, normalized=${overlapPct.toFixed(1)}%, confidence=${confidence}`);
+        console.log(`[match-survey-parcels] Match #${idx + 1}:`, {
+          id: p.id,
+          rawOverlap,
+          normalizedPct: overlapPct.toFixed(1),
+          confidence,
+          hasGeomJson: !!p.geom_json,
+          geometryType: geometry?.type || 'none',
+          ringPoints: geometry?.coordinates?.[0]?.length || 0
+        });
       }
       
       return {
@@ -147,7 +165,7 @@ serve(async (req) => {
         overlapPercentage: overlapPct,
         centroidDistance: p.centroid_distance_m || 0,
         confidence: confidence as 'high' | 'medium' | 'low',
-        geometry: p.geom_json ? JSON.parse(p.geom_json) : null,
+        geometry,
         situs_address: p.situs_address,
         owner_name: p.owner_name,
         acreage: p.acreage,
