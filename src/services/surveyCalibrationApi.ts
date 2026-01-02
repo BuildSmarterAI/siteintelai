@@ -202,23 +202,41 @@ export async function performFullCalibration(
   imageWidth: number,
   imageHeight: number
 ): Promise<CalibrationResult> {
+  console.log('[surveyCalibrationApi] performFullCalibration START', { surveyId, pointsCount: points.length });
+  
   // Save control points
+  console.log('[surveyCalibrationApi] Saving control points...');
   const saveResult = await saveControlPoints(surveyId, points);
+  console.log('[surveyCalibrationApi] saveControlPoints result:', saveResult);
   if (!saveResult.success) {
     return { success: false, error: saveResult.error };
   }
 
   // Submit calibration
+  console.log('[surveyCalibrationApi] Submitting calibration...');
   const calibResult = await submitCalibration(surveyId, transform, imageWidth, imageHeight);
+  console.log('[surveyCalibrationApi] submitCalibration result:', calibResult);
   if (!calibResult.success) {
     return { success: false, error: calibResult.error };
   }
 
   // Calculate transformed bounds
   const bounds = transformImageCorners(transform.matrix, imageWidth, imageHeight);
+  console.log('[surveyCalibrationApi] Transformed bounds:', bounds);
 
   // Find matching parcels
+  console.log('[surveyCalibrationApi] Finding matching parcels...');
   const matchResult = await findMatchingParcels(surveyId, bounds);
+  console.log('[surveyCalibrationApi] findMatchingParcels result:', {
+    success: matchResult.success,
+    error: matchResult.error,
+    parcelsCount: matchResult.parcels?.length || 0,
+    firstParcelGeometry: matchResult.parcels?.[0]?.geometry ? {
+      type: matchResult.parcels[0].geometry.type,
+      coordsLength: matchResult.parcels[0].geometry.coordinates?.length
+    } : null
+  });
+  
   if (!matchResult.success) {
     // Matching failed - return failure so UI can show error clearly
     return {
