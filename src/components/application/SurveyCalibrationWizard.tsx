@@ -113,6 +113,24 @@ export function SurveyCalibrationWizard({
     setTransform(null); // Reset transform if points change
   }, []);
 
+  // Handle parcel selection
+  const handleSelectParcel = useCallback((parcel: ParcelMatch, autoSelected = false) => {
+    onParcelSelected(parcel);
+    const label = parcel.situs_address || parcel.source_parcel_id;
+    if (autoSelected) {
+      toast.success(`Auto-selected best match: ${label}`, {
+        description: `${parcel.overlapPercentage.toFixed(0)}% overlap, ${parcel.confidence} confidence`,
+        action: {
+          label: 'Change',
+          onClick: () => onOpenChange(true), // Re-open wizard to pick another
+        },
+      });
+    } else {
+      toast.success(`Selected parcel: ${label}`);
+    }
+    onOpenChange(false);
+  }, [onParcelSelected, onOpenChange]);
+
   // Compute transform
   const handleComputeTransform = useCallback(async () => {
     if (points.length < 3 || !imageSize) {
@@ -149,13 +167,26 @@ export function SurveyCalibrationWizard({
       );
 
       if (calibResult.success) {
-        setMatchedParcels(calibResult.matchedParcels || []);
+        const parcels = calibResult.matchedParcels || [];
+        setMatchedParcels(parcels);
         onCalibrationComplete({
           transform: result,
           bounds,
-          matchedParcels: calibResult.matchedParcels || [],
+          matchedParcels: parcels,
         });
-        setStep('review-transform');
+        
+        // Auto-select best match if confidence is high and overlap >= 85%
+        const bestMatch = parcels[0];
+        if (bestMatch && 
+            bestMatch.overlapPercentage >= 85 && 
+            (bestMatch.confidence === 'high' || bestMatch.confidence === 'medium')) {
+          console.log('[CalibrationWizard] Auto-selecting best match:', bestMatch.source_parcel_id, 
+                      'overlap:', bestMatch.overlapPercentage, 'confidence:', bestMatch.confidence);
+          handleSelectParcel(bestMatch, true);
+        } else {
+          // Show review step for manual selection
+          setStep('review-transform');
+        }
       } else {
         setError(calibResult.error || 'Calibration failed');
       }
@@ -165,14 +196,7 @@ export function SurveyCalibrationWizard({
     } finally {
       setIsComputing(false);
     }
-  }, [points, imageSize, surveyId, onCalibrationComplete]);
-
-  // Handle parcel selection
-  const handleSelectParcel = useCallback((parcel: ParcelMatch) => {
-    onParcelSelected(parcel);
-    toast.success(`Selected parcel: ${parcel.situs_address || parcel.source_parcel_id}`);
-    onOpenChange(false);
-  }, [onParcelSelected, onOpenChange]);
+  }, [points, imageSize, surveyId, onCalibrationComplete, handleSelectParcel]);
 
   // Reset wizard
   const handleReset = useCallback(() => {

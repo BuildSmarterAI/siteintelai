@@ -111,6 +111,9 @@ export async function findMatchingParcels(
   try {
     const surveyPolygon = boundsToGeoJSON(transformedBounds);
     
+    console.log('[surveyCalibrationApi] Calling match-survey-parcels for survey:', surveyId);
+    console.log('[surveyCalibrationApi] Bounds:', JSON.stringify(transformedBounds));
+    
     const response = await fetch(`${SUPABASE_URL}/functions/v1/match-survey-parcels`, {
       method: 'POST',
       headers: {
@@ -130,6 +133,9 @@ export async function findMatchingParcels(
     }
 
     const result = await response.json();
+    
+    console.log('[surveyCalibrationApi] Match result:', result.success, 
+                'parcels found:', result.parcels?.length || 0);
     
     if (!result.success) {
       return { success: false, error: result.error || 'Matching failed' };
