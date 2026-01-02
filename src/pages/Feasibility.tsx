@@ -48,7 +48,7 @@ const Feasibility = () => {
             AI-Powered Due Diligence Feasibility for <span className="text-[#FF7A00]">Commercial Real Estate</span>
           </h1>
           <p className="text-xl text-white/90 mb-12 leading-relaxed">
-            Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — the only AI platform that delivers cited, lender-ready reports instantly.
+            Accelerate your commercial real estate feasibility and due diligence process with SiteIntel™ — the only AI platform that delivers cited, professional feasibility reports instantly.
           </p>
         </div>
       </div>
@@ -139,7 +139,7 @@ const Feasibility = () => {
                   <div className="text-white/80">Average Turnaround</div>
                 </div>
               <div>
-                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">$999</div>
+                  <div className="text-4xl font-bold text-[#06B6D4] mb-2">$1,495</div>
                   <div className="text-white/80">Access Fee</div>
                 </div>
               </div>
@@ -158,7 +158,7 @@ const Feasibility = () => {
               size="lg"
               className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg"
             >
-              <Link to="/application">Get Your Report - $999</Link>
+              <Link to="/application">Get Your Report - $1,495</Link>
             </Button>
             <p className="mt-4 text-white/60 text-sm">
               60-second turnaround · Powered by proprietary AI

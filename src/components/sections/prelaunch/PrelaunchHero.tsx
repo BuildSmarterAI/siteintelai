@@ -53,7 +53,7 @@ export const PrelaunchHero = () => {
 
           {/* Heading */}
           <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground">
-            Lender-ready feasibility in{" "}
+            Professional feasibility in{" "}
             <span className="text-primary">24 hours</span>, not 30 days.
           </h1>
 

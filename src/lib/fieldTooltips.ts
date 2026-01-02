@@ -4,12 +4,12 @@ export const FIELD_TOOLTIPS = {
   fullName: {
     content: "Enter your full legal name as it appears on contracts and legal documents",
     example: "John Smith",
-    whyWeAsk: "Required for lender-ready reports and legal compliance"
+    whyWeAsk: "Required for professional reports and legal compliance"
   },
   company: {
     content: "Your company or development entity name",
     example: "Acme Development LLC",
-    whyWeAsk: "Required for lender-ready reports and professional correspondence"
+    whyWeAsk: "Required for professional reports and correspondence"
   },
   email: {
     content: "Primary email address for receiving reports and updates",

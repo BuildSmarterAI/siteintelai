@@ -278,7 +278,7 @@ const ProductDemoSlide = () => (
     
     <div className="bg-[#0A0F2C] rounded-xl md:rounded-2xl p-4 md:p-6 mt-4 md:mt-8">
       <p className="text-white/60 text-center text-sm md:text-base">
-        <span className="text-[#FF7A00] font-semibold">Result:</span> Lender-ready feasibility report in under 60 seconds
+        <span className="text-[#FF7A00] font-semibold">Result:</span> Professional feasibility report in under 60 seconds
       </p>
     </div>
   </div>

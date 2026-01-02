@@ -40,7 +40,7 @@ const HowItWorks = () => {
     {
       icon: Brain,
       title: "Report Generation",
-      description: "AI produces lender-ready intelligence with complete source transparency.",
+      description: "AI produces professional intelligence with complete source transparency.",
       color: "#FF9240",
       delay: 0.6,
     },
@@ -125,7 +125,7 @@ const HowItWorks = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              Every report activates SiteIntel's proprietary data fusion engine—powered by Texas-trained AI models that synthesize verified federal and municipal sources in seconds to produce a single, lender-ready source of truth.
+              Every report activates SiteIntel's proprietary data fusion engine—powered by Texas-trained AI models that synthesize verified federal and municipal sources in seconds to produce a single, professional source of truth.
             </motion.p>
 
             <motion.div
@@ -138,7 +138,7 @@ const HowItWorks = () => {
                 size="lg"
                 className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-6"
               >
-                <Link to="/application">Get Your Feasibility Report - $999</Link>
+                <Link to="/application">Get Your Feasibility Report - $1,495</Link>
               </Button>
             </motion.div>
           </div>
@@ -253,7 +253,7 @@ const HowItWorks = () => {
                 }}
               />
               <p className="text-white/80 text-center relative z-10">
-                <span className="font-semibold text-[#06B6D4]">Proprietary data fusion:</span> Our Texas-trained AI models synthesize 20+ verified sources through advanced algorithms, delivering lender-ready intelligence in under 60 seconds.
+                <span className="font-semibold text-[#06B6D4]">Proprietary data fusion:</span> Our Texas-trained AI models synthesize 20+ verified sources through advanced algorithms, delivering professional feasibility intelligence in under 60 seconds.
               </p>
             </motion.div>
           </div>
@@ -488,7 +488,7 @@ const HowItWorks = () => {
                 size="lg"
                 className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] hover:shadow-[0_8px_40px_rgba(255,122,0,0.6)] text-white font-semibold rounded-full px-12 py-8 text-lg w-full md:w-auto"
               >
-                <Link to="/application">Get Your Feasibility Report - $999</Link>
+                <Link to="/application">Get Your Feasibility Report - $1,495</Link>
               </Button>
             </motion.div>
           </div>

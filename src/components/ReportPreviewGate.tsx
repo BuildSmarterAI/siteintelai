@@ -121,7 +121,7 @@ export const ReportPreviewGate = ({ reportId, onAuthSuccess }: ReportPreviewGate
             <div className="flex items-start gap-3">
               <CheckCircle className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-sm">Lender-Ready PDF with Citations</p>
+                <p className="font-semibold text-sm">Professional PDF with Citations</p>
                 <p className="text-xs text-muted-foreground">
                   Professional report format with FEMA, ArcGIS, and local data source citations
                 </p>

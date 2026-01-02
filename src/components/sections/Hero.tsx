@@ -168,7 +168,7 @@ export const Hero = () => {
                   <Button
                     ref={buttonRef}
                     size="lg"
-                    aria-label="Get your feasibility report for $999"
+                    aria-label="Get your feasibility report for $1,495"
                     className="bg-[#FF7A00] hover:bg-[#FF9240] active:bg-[#D96500] text-white font-heading font-semibold rounded-full px-10 py-7 text-xl min-h-[56px] shadow-[0_4px_20px_rgba(255,122,0,0.4)] hover:shadow-[0_6px_30px_rgba(255,122,0,0.6)] transition-all duration-200 group relative overflow-hidden focus-visible:ring-2 focus-visible:ring-[#06B6D4] focus-visible:ring-offset-2 focus-visible:outline-none w-full md:w-auto"
                     onClick={handleCtaClick}
                     onMouseMove={handleMouseMove}
@@ -197,7 +197,7 @@ export const Hero = () => {
                           Loading...
                         </>
                       ) : (
-                        "Get Your Report - $999"
+                        "Get Your Report - $1,495"
                       )}
                     </span>
                     

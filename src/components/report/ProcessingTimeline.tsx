@@ -32,7 +32,7 @@ const STAGES = [
   { 
     key: 'rendering', 
     label: 'Building PDF', 
-    description: 'Generating your lender-ready PDF report',
+    description: 'Generating your professional feasibility PDF report',
     eta: '~1 minute',
     Icon: FileText 
   },

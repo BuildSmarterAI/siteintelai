@@ -3,7 +3,7 @@ import { Quote } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "We used to spend two weeks cobbling together zoning, flood, and utility answers. SiteIntel turns that chaos into a single, lender-ready report.",
+    quote: "We used to spend two weeks cobbling together zoning, flood, and utility answers. SiteIntel turns that chaos into a single, professional feasibility report.",
     name: "Managing Partner",
     company: "Texas CRE Development Firm",
     role: "Developer",

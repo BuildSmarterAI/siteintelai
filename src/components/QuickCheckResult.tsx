@@ -262,7 +262,7 @@ export function QuickCheckResult({ score, band, floodRisk, zoningVerdict, addres
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
               {intentType === 'build'
-                ? 'Get a complete lender-ready report with permit timelines, entitlement risk, utility costs, and construction estimates.'
+                ? 'Get a complete professional report with permit timelines, entitlement risk, utility costs, and construction estimates.'
                 : 'Get a complete investor-grade report with ROI analysis, market demographics, risk factors, and valuation estimates.'}
             </p>
             <div className="flex gap-3">

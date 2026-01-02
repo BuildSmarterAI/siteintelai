@@ -72,10 +72,10 @@ export const PackagesPricing = () => {
                     Site Feasibility Intelligence™
                   </h5>
                   <p className="text-charcoal/70 mb-4">
-                    Complete lender-ready feasibility analysis
+                    Complete professional feasibility analysis
                   </p>
                   <div className="text-4xl md:text-5xl font-bold text-maxx-red mb-1">
-                    $999
+                    $1,495
                   </div>
                   <div className="text-sm text-charcoal/60">
                     per report
@@ -96,7 +96,7 @@ export const PackagesPricing = () => {
                 <div className="mt-8">
                   {isAuthenticated ? (
                     <PaymentButton type="report" className="w-full text-lg py-6">
-                      Get Your Report - $999
+                      Get Your Report - $1,495
                     </PaymentButton>
                   ) : (
                     <Button 

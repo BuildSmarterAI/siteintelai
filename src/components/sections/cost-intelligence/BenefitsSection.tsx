@@ -33,7 +33,7 @@ const benefits = [
   {
     icon: Handshake,
     title: "Build Investor and Lender Confidence",
-    description: "Present data-backed cost projections that stakeholders trust. Every number is cited, every assumption is market-verified, and every report is lender-ready.",
+    description: "Present data-backed cost projections that stakeholders trust. Every number is cited, every assumption is market-verified, and every report is professionally formatted.",
     bullets: [
       "Transparent data sources",
       "Citation-backed reports",

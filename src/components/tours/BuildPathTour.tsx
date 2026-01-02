@@ -20,7 +20,7 @@ const buildSteps: Step[] = [
   },
   {
     target: '[data-tour="unlock-cta"]',
-    content: 'Get a full lender-ready report with permit timelines, entitlement risk, and construction cost estimates.',
+    content: 'Get a full professional report with permit timelines, entitlement risk, and construction cost estimates.',
     placement: 'top',
   },
 ];

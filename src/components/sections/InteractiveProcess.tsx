@@ -50,7 +50,7 @@ export const InteractiveProcess = () => {
     {
       title: "Instant PDF Output",
       duration: "1-2 Minutes",
-      description: "Receive your lender-ready PDF report. Every section cites its data source with API endpoint for verification.",
+      description: "Receive your professional feasibility PDF report. Every section cites its data source with API endpoint for verification.",
       details: [
         "Executive summary with AI score",
         "Detailed findings by category",
@@ -83,7 +83,7 @@ export const InteractiveProcess = () => {
             Inside the AI Pipeline
           </h3>
           <p className="font-body text-lg text-charcoal/80 max-w-3xl mx-auto mb-8">
-            Click through each step to see how we generate lender-ready reports in under 60 seconds
+            Click through each step to see how we generate professional feasibility reports in under 60 seconds
           </p>
         </div>
 

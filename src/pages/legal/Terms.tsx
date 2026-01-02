@@ -215,7 +215,7 @@ export default function Terms() {
                 
                 <div className="bg-muted rounded-lg p-6 mb-4">
                   <ul className="space-y-2">
-                    <li><strong>Site Feasibility Intelligence™:</strong> $999 per asset</li>
+                    <li><strong>Site Feasibility Intelligence™:</strong> $1,495 per asset</li>
                     <li><strong>Pro Subscription:</strong> $1,950/month (includes 10 reports)</li>
                     <li><strong>Enterprise:</strong> Custom plans for lenders or API partners</li>
                   </ul>

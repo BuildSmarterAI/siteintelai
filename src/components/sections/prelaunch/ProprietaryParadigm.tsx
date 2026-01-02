@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 const differentiators = [
   { stat: "90%", label: "faster than consultant workflows" },
-  { stat: "24hr", label: "lender-ready documentation" },
+  { stat: "24hr", label: "professional documentation" },
   { stat: "8", label: "constraint layers analyzed simultaneously" },
   { stat: "100%", label: "deterministic scoring — not AI guesses" },
 ];
