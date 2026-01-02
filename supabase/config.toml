@@ -337,3 +337,9 @@ verify_jwt = true
 
 [functions.recover-stalled-apps]
 verify_jwt = true
+
+[functions.reverse-geocode]
+verify_jwt = false
+
+[functions.batch-geocode]
+verify_jwt = false

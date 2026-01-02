@@ -2,6 +2,12 @@
  * Geocode Intersection Edge Function
  * Uses cache-first approach with Google Geocoding API fallback
  * Falls back to OpenStreetMap Nominatim when Google fails
+ * 
+ * Enhanced with:
+ * - traceId for request correlation
+ * - Rate limiting
+ * - Enhanced response with nearestAddress
+ * - Cost tracking
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
@@ -11,6 +17,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Provider costs
+const PROVIDER_COSTS = {
+  google: 0.005,
+  nominatim: 0,
+  cache: 0,
+};
+
+// Rate limiting
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const RATE_LIMIT_MAX = 30;
+
+// Generate short trace ID
+function generateTraceId(): string {
+  return crypto.randomUUID().substring(0, 8);
+}
+
 interface NominatimResult {
   lat: string;
   lon: string;
@@ -18,6 +40,22 @@ interface NominatimResult {
   importance: number;
   type: string;
   class: string;
+}
+
+interface IntersectionResponse {
+  success: boolean;
+  lat: number;
+  lng: number;
+  formatted_address: string;
+  formattedIntersection?: string;
+  confidence: number;
+  source: 'cache' | 'google' | 'nominatim';
+  nearestAddress?: string;
+  traceId: string;
+  cacheHit: boolean;
+  requestCost: number;
+  cache_hit?: boolean; // Legacy
+  error?: string;
 }
 
 /**
@@ -136,32 +174,107 @@ async function geocodeWithNominatim(intersection: string): Promise<{
   }
 }
 
+// Check rate limit
+async function checkRateLimit(supabase: any, userId: string | null, traceId: string): Promise<boolean> {
+  if (!userId) return true;
+  
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString();
+  
+  const { count } = await supabase
+    .from('api_logs')
+    .select('*', { count: 'exact', head: true })
+    .eq('source', 'geocode-intersection')
+    .eq('cache_key', `user:${userId}`)
+    .gte('timestamp', windowStart);
+  
+  return (count || 0) < RATE_LIMIT_MAX;
+}
+
+// Log API call
+async function logApiCall(
+  supabase: any,
+  traceId: string,
+  source: string,
+  durationMs: number,
+  success: boolean,
+  userId?: string,
+  errorMessage?: string
+) {
+  try {
+    await supabase.from('api_logs').insert({
+      source: 'geocode-intersection',
+      endpoint: source,
+      duration_ms: durationMs,
+      success,
+      cache_key: userId ? `user:${userId}` : `trace:${traceId}`,
+      error_message: errorMessage,
+    });
+  } catch (e) {
+    console.error(`[geocode-intersection:${traceId}] Failed to log API call:`, e);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+  const traceId = generateTraceId();
+
   try {
-    const { intersection } = await req.json();
+    const { intersection, street1, street2, city, state, userId } = await req.json();
+    
+    // Support both formats: { intersection } or { street1, street2 }
+    const sanitizedIntersection = intersection 
+      ? intersection.trim()
+      : `${street1?.trim() || ''} & ${street2?.trim() || ''}`;
     
     // Validate intersection input
-    const validation = validateIntersection(intersection);
+    const validation = validateIntersection(sanitizedIntersection);
     if (!validation.valid) {
-      console.warn('⚠️ Invalid intersection input:', validation.error);
+      console.warn(`[geocode-intersection:${traceId}] Invalid input: ${validation.error}`);
       return new Response(
-        JSON.stringify({ error: validation.error }),
+        JSON.stringify({ 
+          success: false,
+          error: validation.error,
+          traceId,
+          cacheHit: false,
+          requestCost: 0,
+        } as IntersectionResponse),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const sanitizedIntersection = intersection.trim();
-    console.log('[geocode-intersection] Geocoding:', sanitizedIntersection);
+    console.log(`[geocode-intersection:${traceId}] Geocoding: ${sanitizedIntersection}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const GOOGLE_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check rate limit
+    const withinLimit = await checkRateLimit(supabase, userId || null, traceId);
+    if (!withinLimit) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Rate limit exceeded',
+          traceId,
+          cacheHit: false,
+          requestCost: 0,
+        }),
+        { 
+          status: 429, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json',
+            'Retry-After': '60',
+          } 
+        }
+      );
+    }
 
     // Generate cache key
     const cacheKey = `intersection:${sanitizedIntersection.toLowerCase()}`;
@@ -170,32 +283,41 @@ Deno.serve(async (req) => {
     // Check cache first
     const { data: cacheHit } = await supabase
       .from('geocoder_cache')
-      .select('result_data, confidence')
+      .select('result_data, confidence, source')
       .eq('input_hash', inputHash)
       .gt('expires_at', new Date().toISOString())
       .single();
 
     if (cacheHit && cacheHit.result_data) {
-      console.log(`[geocode-intersection] Cache HIT`);
-      const result = cacheHit.result_data as { lat: number; lng: number; formatted_address: string };
+      console.log(`[geocode-intersection:${traceId}] Cache HIT`);
+      const result = cacheHit.result_data as { lat: number; lng: number; formatted_address: string; nearestAddress?: string };
+      
+      await logApiCall(supabase, traceId, 'cache', Date.now() - startTime, true, userId);
       
       return new Response(
         JSON.stringify({
+          success: true,
           lat: result.lat,
           lng: result.lng,
           formatted_address: result.formatted_address,
+          formattedIntersection: result.formatted_address,
+          nearestAddress: result.nearestAddress,
           confidence: cacheHit.confidence || 0.85,
           source: 'cache',
+          traceId,
+          cacheHit: true,
           cache_hit: true,
-        }),
+          requestCost: 0,
+        } as IntersectionResponse),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`[geocode-intersection] Cache MISS`);
+    console.log(`[geocode-intersection:${traceId}] Cache MISS`);
 
-    // Append Houston, TX to help with geocoding accuracy
-    const address = `${sanitizedIntersection}, Houston, TX`;
+    // Append city/state for geocoding
+    const locationSuffix = `${city || 'Houston'}, ${state || 'TX'}`;
+    const address = `${sanitizedIntersection}, ${locationSuffix}`;
     
     let geocodeResult: {
       lat: number;
@@ -204,14 +326,14 @@ Deno.serve(async (req) => {
       confidence: number;
       source: 'google' | 'nominatim';
     } | null = null;
+    let requestCost = 0;
 
-    // Try Google first if API key is available
+    // Try Google first
     if (GOOGLE_API_KEY) {
-      console.log(`[geocode-intersection] Trying Google API`);
+      console.log(`[geocode-intersection:${traceId}] Trying Google API`);
       
       const url = `https://maps.googleapis.com/maps/api/geocode/json?` +
-        `address=${encodeURIComponent(address)}&` +
-        `key=${GOOGLE_API_KEY}`;
+        `address=${encodeURIComponent(address)}&key=${GOOGLE_API_KEY}`;
 
       try {
         const response = await fetch(url);
@@ -221,13 +343,9 @@ Deno.serve(async (req) => {
           const result = data.results[0];
           const location = result.geometry.location;
 
-          // Calculate confidence
           let confidence = 0.85;
-          if (result.geometry.location_type === 'GEOMETRIC_CENTER') {
-            confidence = 0.9; // Intersections typically return GEOMETRIC_CENTER
-          } else if (result.geometry.location_type === 'APPROXIMATE') {
-            confidence = 0.7;
-          }
+          if (result.geometry.location_type === 'GEOMETRIC_CENTER') confidence = 0.9;
+          else if (result.geometry.location_type === 'APPROXIMATE') confidence = 0.7;
 
           geocodeResult = {
             lat: location.lat,
@@ -236,19 +354,18 @@ Deno.serve(async (req) => {
             confidence,
             source: 'google',
           };
+          requestCost = PROVIDER_COSTS.google;
           
-          console.log(`[geocode-intersection] Google success: ${result.formatted_address}`);
+          console.log(`[geocode-intersection:${traceId}] Google success: ${result.formatted_address}`);
         } else {
-          console.warn(`[geocode-intersection] Google API failed: ${data.status} - ${data.error_message || 'No results'}`);
+          console.warn(`[geocode-intersection:${traceId}] Google failed: ${data.status}`);
         }
       } catch (googleError) {
-        console.error(`[geocode-intersection] Google API error:`, googleError);
+        console.error(`[geocode-intersection:${traceId}] Google error:`, googleError);
       }
-    } else {
-      console.log(`[geocode-intersection] No Google API key, skipping to Nominatim`);
     }
 
-    // Fall back to Nominatim if Google failed or wasn't available
+    // Fall back to Nominatim
     if (!geocodeResult) {
       const nominatimResult = await geocodeWithNominatim(sanitizedIntersection);
       
@@ -257,14 +374,24 @@ Deno.serve(async (req) => {
           ...nominatimResult,
           source: 'nominatim',
         };
+        requestCost = PROVIDER_COSTS.nominatim;
       }
     }
 
-    // If both failed, return error
+    // If both failed
     if (!geocodeResult) {
-      console.error(`[geocode-intersection] All geocoding methods failed`);
+      console.error(`[geocode-intersection:${traceId}] All providers failed`);
+      
+      await logApiCall(supabase, traceId, 'none', Date.now() - startTime, false, userId, 'All providers failed');
+      
       return new Response(
-        JSON.stringify({ error: 'Geocoding failed: No results from any provider' }),
+        JSON.stringify({ 
+          success: false,
+          error: 'Geocoding failed: No results from any provider',
+          traceId,
+          cacheHit: false,
+          requestCost: 0,
+        }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -279,7 +406,7 @@ Deno.serve(async (req) => {
       formatted_address: geocodeResult.formatted_address,
     };
 
-    const { error: cacheError } = await supabase
+    await supabase
       .from('geocoder_cache')
       .upsert({
         input_hash: inputHash,
@@ -290,31 +417,38 @@ Deno.serve(async (req) => {
         confidence: geocodeResult.confidence,
         expires_at: expiresAt.toISOString(),
         created_at: new Date().toISOString(),
-      }, {
-        onConflict: 'input_hash',
-      });
+      }, { onConflict: 'input_hash' });
 
-    if (cacheError) {
-      console.error(`[geocode-intersection] Cache write error:`, cacheError);
-    } else {
-      console.log(`[geocode-intersection] Cached result from ${geocodeResult.source}`);
-    }
+    await logApiCall(supabase, traceId, geocodeResult.source, Date.now() - startTime, true, userId);
+
+    console.log(`[geocode-intersection:${traceId}] Response: provider=${geocodeResult.source}, cost=$${requestCost}`);
 
     return new Response(
       JSON.stringify({
+        success: true,
         lat: geocodeResult.lat,
         lng: geocodeResult.lng,
         formatted_address: geocodeResult.formatted_address,
+        formattedIntersection: geocodeResult.formatted_address,
         confidence: geocodeResult.confidence,
         source: geocodeResult.source,
+        traceId,
+        cacheHit: false,
         cache_hit: false,
-      }),
+        requestCost,
+      } as IntersectionResponse),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('[geocode-intersection] Error:', error);
+    console.error(`[geocode-intersection:${traceId}] Error:`, error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message,
+        traceId,
+        cacheHit: false,
+        requestCost: 0,
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
