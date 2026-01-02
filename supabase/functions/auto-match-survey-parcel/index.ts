@@ -41,6 +41,8 @@ const APN_PATTERNS = [
   /(?:TAX\s*(?:ID|PARCEL))[:\s#]*([A-Z0-9\-\.]+)/gi,
   /\b(\d{3,}-\d{3,}-\d{3,})\b/g, // Common APN format: 123-456-789
   /\b(\d{6,12})\b/g, // Numeric APN: 6-12 digits
+  /(?:DOCUMENT|DOC|RECORDING|PLAT|FILE)\s*(?:NO|NUMBER|#)?[:\s]*(\d{5,})/gi, // Recording/plat numbers
+  /(?:HCAD|FBCAD|MCAD)[:\s#]*([A-Z0-9\-]+)/gi, // Texas CAD formats
 ];
 
 // Regex patterns for extracting addresses
@@ -133,28 +135,80 @@ serve(async (req) => {
       );
     }
 
-    // Extract text from PDF/image
-    // For now, use metadata hints (county, title) as extraction source
-    // In production, integrate PDF.js or OCR service
+    // Initialize extracted data
     const extractedData: ExtractedData = {
       apn: null,
       address: null,
       county: survey.county || null,
-      raw_text: survey.title || "",
+      raw_text: "",
     };
 
-    // Try to extract APN from title
-    if (survey.title) {
+    // Step 1: Extract reference number from filename (most reliable for plat files)
+    const filename = survey.filename || "";
+    console.log("[auto-match-survey-parcel] Analyzing filename:", filename);
+    
+    // Match patterns like "(679486)" or "Plat 679486" in filename
+    const filenamePatterns = [
+      /\((\d{5,})\)/,           // (679486)
+      /(?:plat|doc|file)\s*#?\s*(\d{5,})/i,  // Plat 679486
+      /-(\d{6,})-/,            // -679486-
+      /_(\d{6,})_/,            // _679486_
+    ];
+    
+    for (const pattern of filenamePatterns) {
+      const match = filename.match(pattern);
+      if (match && match[1]) {
+        extractedData.apn = match[1];
+        console.log("[auto-match-survey-parcel] Extracted reference from filename:", extractedData.apn);
+        break;
+      }
+    }
+
+    // Step 2: Try to download and extract text from PDF if no APN from filename
+    if (!extractedData.apn && survey.storage_path) {
+      console.log("[auto-match-survey-parcel] Downloading PDF from:", survey.storage_path);
+      
+      try {
+        const { data: fileData, error: fileError } = await supabase.storage
+          .from("survey-uploads")
+          .download(survey.storage_path);
+
+        if (fileError) {
+          console.error("[auto-match-survey-parcel] Failed to download PDF:", fileError.message);
+        } else if (fileData) {
+          // Convert blob to text - works for PDFs with text layer
+          const text = await fileData.text();
+          extractedData.raw_text = text.substring(0, 5000);
+          
+          console.log("[auto-match-survey-parcel] PDF text length:", text.length);
+          
+          // Extract data from PDF text
+          const pdfExtracted = extractTextFromPdf(text);
+          extractedData.apn = extractedData.apn || pdfExtracted.apn;
+          extractedData.address = pdfExtracted.address;
+          extractedData.county = extractedData.county || pdfExtracted.county;
+          
+          console.log("[auto-match-survey-parcel] Extracted from PDF:", pdfExtracted);
+        }
+      } catch (downloadError) {
+        console.error("[auto-match-survey-parcel] PDF download error:", downloadError);
+      }
+    }
+
+    // Step 3: Fallback to title/metadata
+    if (!extractedData.apn && survey.title) {
       const titleUpper = survey.title.toUpperCase();
       for (const pattern of APN_PATTERNS) {
         const matches = [...titleUpper.matchAll(pattern)];
         if (matches.length > 0) {
           extractedData.apn = matches[0][1]?.replace(/[^A-Z0-9]/g, "") || null;
-          break;
+          if (extractedData.apn && extractedData.apn.length >= 5) break;
         }
       }
-      
-      // Also try for address
+    }
+    
+    if (!extractedData.address && survey.title) {
+      const titleUpper = survey.title.toUpperCase();
       for (const pattern of ADDRESS_PATTERNS) {
         const matches = [...titleUpper.matchAll(pattern)];
         if (matches.length > 0) {
@@ -164,7 +218,7 @@ serve(async (req) => {
       }
     }
 
-    console.log("[auto-match-survey-parcel] Extracted data:", extractedData);
+    console.log("[auto-match-survey-parcel] Final extracted data:", extractedData);
 
     // Update status to matching
     await supabase
