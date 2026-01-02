@@ -355,3 +355,30 @@ verify_jwt = false
 
 [functions.refresh-parcel-data]
 verify_jwt = false
+
+[functions.query-traffic]
+verify_jwt = false
+
+[functions.query-epa-echo]
+verify_jwt = false
+
+[functions.query-elevation]
+verify_jwt = false
+
+[functions.query-soil]
+verify_jwt = false
+
+[functions.query-zoning]
+verify_jwt = false
+
+[functions.query-schools]
+verify_jwt = false
+
+[functions.enrich-all-overlays]
+verify_jwt = false
+
+[functions.compute-feasibility-score]
+verify_jwt = false
+
+[functions.detect-kill-factors]
+verify_jwt = false
