@@ -832,6 +832,7 @@ serve(async (req) => {
 
     // ============================================================
     // Strategy E: Area Fallback (search multiple counties if county unknown)
+    // With LIVE COUNTY QUERY fallback when canonical_parcels is empty
     // ============================================================
     if (candidates.length === 0 && extractedData.acreage) {
       // If no county, search all Houston-area counties
@@ -842,6 +843,7 @@ serve(async (req) => {
       console.log("[auto-match] Strategy E: Area fallback for acreage:", extractedData.acreage, "in counties:", countiesToSearch.join(", "));
       
       for (const county of countiesToSearch) {
+        // Step 1: Try canonical_parcels cache first
         const { data: areaMatches, error: areaError } = await supabase.rpc(
           "find_parcels_by_area",
           {
@@ -854,11 +856,10 @@ serve(async (req) => {
 
         if (areaError) {
           console.error("[auto-match] Area search error for", county, ":", areaError);
-          continue;
         }
         
         if (areaMatches?.length > 0) {
-          console.log("[auto-match] Area search in", county, "returned", areaMatches.length, "results");
+          console.log("[Parcel] MatchingStrategy: CANONICAL_CACHE | DataSource: canonical_parcels |", county, "| CandidateCount:", areaMatches.length);
           for (const match of areaMatches) {
             // Lower confidence when county was unknown (searched multiple)
             const countyKnown = extractedData.county !== null;
@@ -877,9 +878,77 @@ serve(async (req) => {
               debug: {
                 apn_extracted: extractedData.apn,
                 address_extracted: extractedData.address,
-                match_type: countyKnown ? "AREA_FALLBACK" : "AREA_MULTI_COUNTY"
+                match_type: countyKnown ? "AREA_FALLBACK" : "AREA_MULTI_COUNTY",
+                data_source: "canonical_parcels"
               }
             });
+          }
+        } else {
+          // Step 2: FALLBACK to live county query
+          console.log("[Parcel] canonical_parcels empty for", county, "— falling back to live query");
+          
+          // Only query supported counties (HARRIS, FORT BEND, MONTGOMERY)
+          const supportedCounties = ["HARRIS", "FORT BEND", "MONTGOMERY"];
+          if (!supportedCounties.includes(county.toUpperCase())) {
+            console.log("[Parcel] Live query not supported for county:", county);
+            continue;
+          }
+          
+          try {
+            const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+            const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+            
+            const acreageMin = extractedData.acreage * 0.75;
+            const acreageMax = extractedData.acreage * 1.25;
+            
+            console.log("[Parcel] QueryParams:", { county, acreage_min: acreageMin, acreage_max: acreageMax, limit: 5 });
+            
+            const liveResponse = await fetch(`${supabaseUrl}/functions/v1/query-county-parcels`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${supabaseKey}`,
+              },
+              body: JSON.stringify({
+                county: county,
+                acreage_min: acreageMin,
+                acreage_max: acreageMax,
+                limit: 5,
+              }),
+            });
+            
+            const liveData = await liveResponse.json();
+            
+            if (liveData.success && liveData.parcels?.length > 0) {
+              console.log("[Parcel] MatchingStrategy: LIVE_QUERY | DataSource:", county, "| CandidateCount:", liveData.parcels.length);
+              
+              const countyKnown = extractedData.county !== null;
+              const baseConfidence = countyKnown ? 0.50 : 0.30; // Slightly lower for live data
+              
+              for (const match of liveData.parcels) {
+                candidates.push({
+                  parcel_id: match.parcel_uuid,
+                  source_parcel_id: match.source_parcel_id,
+                  confidence: Math.min(match.match_score * baseConfidence, countyKnown ? 0.50 : 0.35),
+                  reason_codes: countyKnown ? ["AREA_MATCH", "COUNTY_MATCH", "LIVE_QUERY"] : ["AREA_MATCH", "LIVE_QUERY"],
+                  situs_address: match.situs_address,
+                  owner_name: match.owner_name,
+                  acreage: match.acreage,
+                  county: match.county,
+                  geometry: match.geometry,
+                  debug: {
+                    apn_extracted: extractedData.apn,
+                    address_extracted: extractedData.address,
+                    match_type: "LIVE_COUNTY_QUERY",
+                    data_source: `live_${county.toLowerCase()}_featureserver`
+                  }
+                });
+              }
+            } else {
+              console.log("[Parcel] Live query returned 0 parcels for", county, "| Error:", liveData.error || "none");
+            }
+          } catch (liveError) {
+            console.error("[Parcel] Live query failed for", county, ":", liveError);
           }
         }
         
