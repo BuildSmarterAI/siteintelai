@@ -5,7 +5,6 @@
 
 import { useWizardStore } from '@/stores/useWizardStore';
 import { type SustainabilityLevel } from '@/types/wizard';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -45,8 +44,6 @@ export function SustainabilityStep() {
     setSustainabilityEnabled,
     sustainabilityLevel,
     setSustainabilityLevel,
-    nextStep, 
-    prevStep 
   } = useWizardStore();
   
   return (
@@ -136,15 +133,6 @@ export function SustainabilityStep() {
         </Card>
       )}
       
-      {/* Navigation */}
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" onClick={prevStep} className="flex-1">
-          Back
-        </Button>
-        <Button onClick={nextStep} className="flex-1">
-          Next
-        </Button>
-      </div>
     </div>
   );
 }

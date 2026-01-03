@@ -9,10 +9,8 @@ import { useWizardStore } from '@/stores/useWizardStore';
 import { useDesignTemplates } from '@/hooks/useDesignTemplates';
 import { rankTemplates, createEnvelopeSummary } from '@/lib/templateScoring';
 import { TemplateCard } from '../TemplateCard';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Package, Plus } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
 
 export function TemplateRecommendations() {
   const envelope = useDesignStore((s) => s.envelope);
@@ -23,8 +21,6 @@ export function TemplateRecommendations() {
     addTemplate,
     removeTemplate,
     setHoveredTemplate,
-    nextStep, 
-    prevStep 
   } = useWizardStore();
   
   const { data: templates, isLoading } = useDesignTemplates({ 
@@ -165,15 +161,6 @@ export function TemplateRecommendations() {
         </div>
       </div>
       
-      {/* Navigation */}
-      <div className="flex gap-2 pt-2 flex-shrink-0">
-        <Button variant="outline" onClick={prevStep} className="flex-1">
-          Back
-        </Button>
-        <Button onClick={nextStep} disabled={!canProceed} className="flex-1">
-          Next
-        </Button>
-      </div>
     </div>
   );
 }

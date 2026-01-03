@@ -322,7 +322,7 @@ export function GenerateStep() {
         </div>
       )}
       
-      {/* Navigation */}
+      {/* Generate Button - Fixed at bottom via panel footer */}
       <div className="flex gap-2 pt-2">
         <Button 
           variant="outline" 
@@ -345,7 +345,7 @@ export function GenerateStep() {
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Generate Variants
+              Generate
             </>
           )}
         </Button>

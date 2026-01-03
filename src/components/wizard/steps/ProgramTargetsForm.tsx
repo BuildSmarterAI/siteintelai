@@ -7,7 +7,6 @@ import { useDesignStore } from '@/stores/useDesignStore';
 import { useWizardStore } from '@/stores/useWizardStore';
 import { createEnvelopeSummary } from '@/lib/templateScoring';
 import { USE_TYPE_CONFIG, type UseType, type RiskTolerance } from '@/types/wizard';
-import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -18,7 +17,7 @@ import { cn } from '@/lib/utils';
 
 export function ProgramTargetsForm() {
   const envelope = useDesignStore((s) => s.envelope);
-  const { programBuckets, updateProgramBucket, nextStep, prevStep } = useWizardStore();
+  const { programBuckets, updateProgramBucket } = useWizardStore();
   
   const summary = createEnvelopeSummary(envelope);
   const maxGfa = summary?.maxGfa || 200000;
@@ -144,15 +143,6 @@ export function ProgramTargetsForm() {
         })}
       </div>
       
-      {/* Navigation */}
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" onClick={prevStep} className="flex-1">
-          Back
-        </Button>
-        <Button onClick={nextStep} disabled={!canProceed} className="flex-1">
-          Next
-        </Button>
-      </div>
     </div>
   );
 }
