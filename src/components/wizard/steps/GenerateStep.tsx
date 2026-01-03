@@ -322,34 +322,25 @@ export function GenerateStep() {
         </div>
       )}
       
-      {/* Generate Button - Fixed at bottom via panel footer */}
-      <div className="flex gap-2 pt-2">
-        <Button 
-          variant="outline" 
-          onClick={prevStep} 
-          disabled={isGenerating}
-          className="flex-1"
-        >
-          Back
-        </Button>
-        <Button 
-          onClick={handleGenerate} 
-          disabled={isGenerating || isCreatingSession || selectedTemplates.length === 0}
-          className="flex-1 gap-2"
-        >
-          {isGenerating ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              Generate
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Generate Button */}
+      <Button 
+        onClick={handleGenerate} 
+        disabled={isGenerating || isCreatingSession || selectedTemplates.length === 0}
+        className="w-full gap-2"
+        size="lg"
+      >
+        {isGenerating ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Generating...
+          </>
+        ) : (
+          <>
+            <Sparkles className="h-4 w-4" />
+            Generate Variants
+          </>
+        )}
+      </Button>
       
       {/* Disclaimer */}
       <p className="text-xs text-center text-muted-foreground">

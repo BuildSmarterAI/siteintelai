@@ -82,15 +82,18 @@ export function VariantRail({ sessionId }: VariantRailProps) {
     setVariantSearchQuery,
     getSortedVariants,
     setShareModalOpen,
+    envelope,
   } = useDesignStore();
   
+  // Pass envelopeId to properly fetch session and variants from database
+  const envelopeId = envelope?.id;
   const { 
     createVariant, 
     deleteVariant, 
     duplicateVariant, 
     updateVariant,
     isCreatingVariant 
-  } = useDesignSession(undefined);
+  } = useDesignSession(envelopeId);
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
