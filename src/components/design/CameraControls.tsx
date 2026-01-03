@@ -32,6 +32,7 @@ interface CameraControlsProps {
 }
 
 const CAMERA_PRESETS: { id: CameraPreset; label: string; icon?: React.ReactNode }[] = [
+  { id: "parcel_fit", label: "Fit" },
   { id: "overhead", label: "Top" },
   { id: "perspective_ne", label: "NE" },
   { id: "perspective_sw", label: "SW" },
