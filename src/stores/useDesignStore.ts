@@ -11,6 +11,8 @@ import type { DesignMetrics } from "@/lib/designMetrics";
 
 export type DesignModeView = "design" | "compare" | "export";
 
+export type CameraPreset = "overhead" | "perspective_ne" | "perspective_sw" | "street" | "orbit";
+
 export interface DesignPreset {
   id: string;
   name: string;
@@ -122,6 +124,12 @@ interface DesignState {
   isSaving: boolean;
   setIsSaving: (saving: boolean) => void;
 
+  // 3D Camera state
+  cameraPreset: CameraPreset;
+  setCameraPreset: (preset: CameraPreset) => void;
+  isOrbiting: boolean;
+  setIsOrbiting: (orbiting: boolean) => void;
+
   // Reset
   reset: () => void;
 }
@@ -139,6 +147,8 @@ const initialState = {
   showMetricsPanel: true,
   isLoadingEnvelope: false,
   isSaving: false,
+  cameraPreset: "perspective_ne" as CameraPreset,
+  isOrbiting: false,
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -219,6 +229,10 @@ export const useDesignStore = create<DesignState>()(
       setIsLoadingEnvelope: (loading) => set({ isLoadingEnvelope: loading }),
 
       setIsSaving: (saving) => set({ isSaving: saving }),
+
+      setCameraPreset: (preset) => set({ cameraPreset: preset }),
+
+      setIsOrbiting: (orbiting) => set({ isOrbiting: orbiting }),
 
       reset: () => set(initialState),
     }),
