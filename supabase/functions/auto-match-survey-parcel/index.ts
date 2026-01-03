@@ -222,25 +222,38 @@ function extractAPNWithKeyword(text: string): { apn: string; confidence: number 
 function extractAddress(text: string): string | null {
   const upperText = text.toUpperCase();
   
+  // Legal description terms that should NOT appear in street addresses
+  const legalTerms = [' AC ', ' ACRE', 'TRACT ', 'BLOCK ', 'LOT ', 'SECTION ', 'ABSTRACT '];
+  
   const addressPatterns = [
     // Labeled addresses (highest priority)
     /(?:SITUS|PROPERTY\s*ADDRESS|SITE\s*ADDRESS|LOCATION|STREET\s*ADDRESS)[:\s]*(\d+\s+[A-Z0-9\s]+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY))/gi,
-    // Unlabeled street addresses (less priority)
-    /\b(\d+\s+(?:[NSEW]\s+)?[A-Z][A-Z0-9\s]+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY)(?:\s+(?:SOUTH|NORTH|EAST|WEST|S|N|E|W))?)\b/gi,
+    // Unlabeled street addresses - must have at least 2 alpha chars before street suffix
+    /\b(\d{1,6}\s+(?:[NSEW]\s+)?(?:[A-Z]{2,}\s+)+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY)(?:\s+(?:SOUTH|NORTH|EAST|WEST|S|N|E|W))?)\b/gi,
   ];
   
   for (const pattern of addressPatterns) {
     const matches = [...upperText.matchAll(pattern)];
-    if (matches.length > 0) {
-      let address = matches[0][1]?.trim();
+    for (const match of matches) {
+      let address = match[1]?.trim();
       if (address && address.length > 10) {
         // Clean up the address
         address = address.replace(/\s+/g, " ").trim();
+        
+        // Reject addresses containing legal description terms
+        const hasLegalTerm = legalTerms.some(term => address.includes(term));
+        if (hasLegalTerm) {
+          console.log("[Address] Rejected (contains legal description term):", address);
+          continue;
+        }
+        
+        console.log("[Address] Extracted valid address:", address);
         return address;
       }
     }
   }
   
+  console.log("[Address] No valid address found in text");
   return null;
 }
 
