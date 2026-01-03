@@ -61,6 +61,8 @@ export function LayersPanel({
     shadowsEnabled,
     basemap,
     setBasemap,
+    buildings3dSource,
+    setBuildings3dSource,
   } = useDesignStore();
 
   // Track visible variants (for future multi-variant display)
@@ -88,6 +90,7 @@ export function LayersPanel({
     setVisibleVariants(new Set());
   };
 
+  const isBuildings3dEnabled = buildings3dSource !== "none";
   const isGoogle3D = basemap === "google-3d";
 
   return (
@@ -144,22 +147,27 @@ export function LayersPanel({
                   <div className="flex items-center gap-2.5">
                     <div className={cn(
                       "p-1.5 rounded-md",
-                      isGoogle3D ? "bg-primary/20" : "bg-muted"
+                      isBuildings3dEnabled ? "bg-primary/20" : "bg-muted"
                     )}>
                       <Building2 className={cn(
                         "h-3.5 w-3.5",
-                        isGoogle3D ? "text-primary" : "text-muted-foreground"
+                        isBuildings3dEnabled ? "text-primary" : "text-muted-foreground"
                       )} />
                     </div>
                     <Label htmlFor="3d-buildings" className="text-sm cursor-pointer">
                       3D Buildings
                     </Label>
+                    {isBuildings3dEnabled && (
+                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        {buildings3dSource === "google" ? "Google" : "OSM"}
+                      </span>
+                    )}
                   </div>
                   <Switch
                     id="3d-buildings"
-                    checked={isGoogle3D}
+                    checked={isBuildings3dEnabled}
                     onCheckedChange={(checked) => {
-                      setBasemap(checked ? "google-3d" : "satellite");
+                      setBuildings3dSource(checked ? "osm" : "none");
                       onToggle3DBuildings?.(checked);
                     }}
                   />

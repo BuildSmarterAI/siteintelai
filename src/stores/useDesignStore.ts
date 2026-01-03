@@ -25,6 +25,8 @@ export type CanvasViewMode = "2d" | "3d" | "split";
 
 export type BasemapType = "osm" | "satellite" | "satellite-labels" | "terrain" | "google-3d";
 
+export type Buildings3DSource = "osm" | "google" | "none";
+
 export type DesignMeasurementMode = "distance" | "area" | "height" | null;
 
 // Google Earth-style left panel states
@@ -239,6 +241,10 @@ interface DesignState {
   basemap: BasemapType;
   setBasemap: (basemap: BasemapType) => void;
 
+  // 3D Buildings source
+  buildings3dSource: Buildings3DSource;
+  setBuildings3dSource: (source: Buildings3DSource) => void;
+
   // Shadow analysis
   shadowsEnabled: boolean;
   setShadowsEnabled: (enabled: boolean) => void;
@@ -322,6 +328,7 @@ const initialState = {
   isOrbiting: false,
   canvasViewMode: "3d" as CanvasViewMode,
   basemap: "osm" as BasemapType,
+  buildings3dSource: "osm" as Buildings3DSource,
   shadowsEnabled: false,
   shadowDateTime: (() => {
     const date = new Date();
@@ -634,6 +641,8 @@ export const useDesignStore = create<DesignState>()(
       setCanvasViewMode: (mode) => set({ canvasViewMode: mode }),
 
       setBasemap: (basemap) => set({ basemap }),
+
+      setBuildings3dSource: (source) => set({ buildings3dSource: source }),
 
       setShadowsEnabled: (enabled) => set({ shadowsEnabled: enabled }),
 
