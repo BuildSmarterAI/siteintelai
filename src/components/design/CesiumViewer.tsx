@@ -22,6 +22,7 @@ import {
   HeadingPitchRange,
   BoundingSphere,
   Terrain,
+  EllipsoidTerrainProvider,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
   JulianDate,
@@ -428,7 +429,8 @@ export function CesiumViewerComponent({
         sceneModePicker={false}
         navigationHelpButton={false}
         fullscreenButton={false}
-        terrain={Terrain.fromWorldTerrain()}
+        // Avoid Cesium Ion dependency in browser builds
+        terrain={new Terrain(Promise.resolve(new EllipsoidTerrainProvider()))}
         shadows={shadowsEnabled}
         terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
