@@ -20,6 +20,7 @@ import { DesignToolbar } from "@/components/design/DesignToolbar";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
+import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -293,6 +294,7 @@ export default function DesignMode() {
         </div>
 
         <div className="flex items-center gap-3">
+          <KeyboardShortcutsHelp />
           <DesignDisclaimerBadge />
 
           <div className="flex items-center gap-1 border rounded-lg p-1">

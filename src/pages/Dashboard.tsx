@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp, GripVertical, CheckCircle2 } from "lucide-react";
+import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp, GripVertical, CheckCircle2, PencilRuler } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
@@ -33,11 +33,13 @@ interface Report {
   report_type: string;
   feasibility_score: number | null;
   status: string;
+  application_id: string | null;
   applications: {
+    id: string;
     formatted_address: string;
     property_address: any;
     intent_type: 'build' | 'buy' | null;
-  };
+  } | null;
 }
 
 export default function Dashboard() {
@@ -358,9 +360,22 @@ export default function Dashboard() {
               )}
             </div>
             {report.status === 'completed' && (
-              <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
-                View Report
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/design/${report.application_id}`);
+                  }}
+                  title="Open Design Mode"
+                >
+                  <PencilRuler className="h-4 w-4" />
+                </Button>
+                <Button size="sm" onClick={() => navigate(`/report/${report.id}`)}>
+                  View Report
+                </Button>
+              </div>
             )}
             {report.status === 'failed' && (
               <div className="flex items-center gap-1 text-xs text-destructive">
@@ -383,6 +398,7 @@ export default function Dashboard() {
         .select(`
           *,
           applications!reports_application_id_fkey (
+            id,
             formatted_address,
             property_address,
             intent_type
