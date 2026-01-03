@@ -3218,6 +3218,78 @@ export type Database = {
           },
         ]
       }
+      design_templates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          default_floors: number | null
+          description: string | null
+          floor_to_floor_ft: number | null
+          footprint_area_target_sqft: number | null
+          footprint_shape: string | null
+          id: string
+          is_recommended_default: boolean | null
+          max_floors: number | null
+          max_footprint_sqft: number | null
+          min_floors: number | null
+          min_footprint_sqft: number | null
+          name: string
+          render_icon: string | null
+          sort_order: number | null
+          template_key: string
+          updated_at: string | null
+          use_type: string
+          version: number | null
+          width_depth_ratio: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          default_floors?: number | null
+          description?: string | null
+          floor_to_floor_ft?: number | null
+          footprint_area_target_sqft?: number | null
+          footprint_shape?: string | null
+          id?: string
+          is_recommended_default?: boolean | null
+          max_floors?: number | null
+          max_footprint_sqft?: number | null
+          min_floors?: number | null
+          min_footprint_sqft?: number | null
+          name: string
+          render_icon?: string | null
+          sort_order?: number | null
+          template_key: string
+          updated_at?: string | null
+          use_type: string
+          version?: number | null
+          width_depth_ratio?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          default_floors?: number | null
+          description?: string | null
+          floor_to_floor_ft?: number | null
+          footprint_area_target_sqft?: number | null
+          footprint_shape?: string | null
+          id?: string
+          is_recommended_default?: boolean | null
+          max_floors?: number | null
+          max_footprint_sqft?: number | null
+          min_floors?: number | null
+          min_footprint_sqft?: number | null
+          name?: string
+          render_icon?: string | null
+          sort_order?: number | null
+          template_key?: string
+          updated_at?: string | null
+          use_type?: string
+          version?: number | null
+          width_depth_ratio?: number | null
+        }
+        Relationships: []
+      }
       design_variants: {
         Row: {
           compliance_status: string | null
