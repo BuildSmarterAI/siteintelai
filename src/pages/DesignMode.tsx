@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useCallback, useMemo, lazy, Suspense, useState } from "react";
+import { cn } from "@/lib/utils";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDesignStore } from "@/stores/useDesignStore";
 import { supabase } from "@/integrations/supabase/client";
@@ -434,14 +435,24 @@ export default function DesignMode() {
       {/* Measurement tools - top center */}
       <DesignMeasurementTools className="fixed top-20 left-1/2 -translate-x-1/2 z-30" />
 
-      {/* Measurement results */}
-      <DesignMeasurementResultPanel className="fixed bottom-24 right-20 z-30 w-48" />
+      {/* Measurement results - shifts right when wizard open */}
+      <DesignMeasurementResultPanel 
+        className={cn(
+          "fixed bottom-24 z-30 w-48 transition-all duration-300",
+          isWizardOpen ? "right-[500px]" : "right-20"
+        )} 
+      />
 
       {/* Bottom left - Metrics chips */}
       <MetricsChipsBar className="fixed bottom-4 left-4 z-30" />
 
-      {/* Bottom right - Floating map controls */}
-      <FloatingMapControls className="fixed bottom-4 right-4 z-30" />
+      {/* Bottom right - Floating map controls - shifts left when wizard open */}
+      <FloatingMapControls 
+        className={cn(
+          "fixed bottom-4 z-40 transition-all duration-300",
+          isWizardOpen ? "right-[500px]" : "right-4"
+        )} 
+      />
     </div>
   );
 }
