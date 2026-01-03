@@ -130,6 +130,8 @@ export function MapContentsPanel({
     hoveredVariantId,
     setHoveredVariantId,
     envelope,
+    buildings3dSource,
+    setBuildings3dSource,
   } = useDesignStore();
 
   const { createVariant, deleteVariant, duplicateVariant, isCreatingVariant } =
@@ -149,7 +151,6 @@ export function MapContentsPanel({
     violations: true,
     zoning: false,
     flood: false,
-    buildings3d: true,
     terrain: true,
     shadows: false,
   });
@@ -379,7 +380,6 @@ export function MapContentsPanel({
                       { key: "violations", label: "Violation Zones", icon: AlertTriangle },
                       { key: "zoning", label: "Zoning", icon: Grid3X3 },
                       { key: "flood", label: "Flood Zones", icon: Droplets },
-                      { key: "buildings3d", label: "3D Buildings", icon: Building2 },
                       { key: "shadows", label: "Shadow Analysis", icon: Box },
                     ].map(({ key, label, icon: Icon }) => (
                       <div
@@ -399,6 +399,66 @@ export function MapContentsPanel({
                         />
                       </div>
                     ))}
+                    
+                    {/* 3D Buildings with source selector */}
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">3D Buildings</span>
+                        </div>
+                        <Switch
+                          checked={buildings3dSource !== "none"}
+                          onCheckedChange={(checked) => 
+                            setBuildings3dSource(checked ? "osm" : "none")
+                          }
+                          className="h-5 w-9"
+                        />
+                      </div>
+                      
+                      {/* Source selector - only shown when enabled */}
+                      {buildings3dSource !== "none" && (
+                        <div className="ml-6 space-y-1">
+                          <button
+                            className={cn(
+                              "flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm transition-colors",
+                              buildings3dSource === "osm" 
+                                ? "bg-primary/10 text-primary" 
+                                : "hover:bg-muted/50"
+                            )}
+                            onClick={() => setBuildings3dSource("osm")}
+                          >
+                            <div className={cn(
+                              "w-3 h-3 rounded-full border-2",
+                              buildings3dSource === "osm" 
+                                ? "border-primary bg-primary" 
+                                : "border-muted-foreground"
+                            )} />
+                            <span>Cesium OSM</span>
+                            <Badge variant="secondary" className="ml-auto text-xs">Free</Badge>
+                          </button>
+                          
+                          <button
+                            className={cn(
+                              "flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm transition-colors",
+                              buildings3dSource === "google" 
+                                ? "bg-primary/10 text-primary" 
+                                : "hover:bg-muted/50"
+                            )}
+                            onClick={() => setBuildings3dSource("google")}
+                          >
+                            <div className={cn(
+                              "w-3 h-3 rounded-full border-2",
+                              buildings3dSource === "google" 
+                                ? "border-primary bg-primary" 
+                                : "border-muted-foreground"
+                            )} />
+                            <span>Google 3D</span>
+                            <Badge variant="outline" className="ml-auto text-xs">Premium</Badge>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </CollapsibleContent>
                 </Collapsible>
               </div>
