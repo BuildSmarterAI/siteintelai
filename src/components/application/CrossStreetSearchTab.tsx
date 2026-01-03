@@ -8,9 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Navigation, Loader2, AlertTriangle, Info } from "lucide-react";
+import { Navigation, Loader2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { searchResultToCandidate } from "@/lib/parcelLock";
 import type { CandidateParcel } from "@/types/parcelSelection";
@@ -33,7 +32,6 @@ export function CrossStreetSearchTab({
 
   const handleSearch = useCallback(async () => {
     if (!streetA.trim() || !streetB.trim()) {
-      toast.error("Please enter both street names");
       return;
     }
 
@@ -52,7 +50,8 @@ export function CrossStreetSearchTab({
       });
 
       if (geoError || !geoData?.lat || !geoData?.lng) {
-        toast.error("Could not locate intersection. Check street names.");
+        console.warn('[CrossStreetSearchTab] Intersection not found:', geoError);
+        addWarning("Could not locate intersection. Check street names.");
         return;
       }
 
@@ -108,20 +107,20 @@ export function CrossStreetSearchTab({
       }
 
       if (candidates.length === 0) {
-        toast.error("No parcels found near this intersection.");
+        console.log('[CrossStreetSearchTab] No parcels found');
         addWarning("No parcels found. Try clicking on the map to select a parcel directly.");
       } else if (candidates.length > 1) {
+        console.log('[CrossStreetSearchTab] Multiple parcels found:', candidates.length);
         addWarning("Multiple parcels found near this intersection. Please verify the correct one.");
-        toast.info(`Found ${candidates.length} parcels near intersection`);
       } else {
-        toast.success("Found parcel near intersection");
+        console.log('[CrossStreetSearchTab] Parcel found');
       }
 
       onCandidatesFound(candidates);
 
     } catch (err) {
       console.error('[CrossStreetSearchTab] Search error:', err);
-      toast.error("Search failed. Please try again.");
+      addWarning("Search failed. Please try again.");
     } finally {
       setIsSearching(false);
       setLoading(false);
