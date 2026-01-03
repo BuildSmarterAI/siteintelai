@@ -110,6 +110,12 @@ async function performOCR(imageBase64: string): Promise<string> {
     return "";
   }
 
+  // Log API key info for debugging (first/last 4 chars only)
+  const keyPreview = apiKey.length > 8 
+    ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` 
+    : "***";
+  console.log(`[OCR] Using API key: ${keyPreview} (length: ${apiKey.length})`);
+
   try {
     console.log("[OCR] Calling Google Cloud Vision API with image (" + imageBase64.length + " chars)...");
     const response = await fetch(
