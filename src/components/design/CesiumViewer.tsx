@@ -38,6 +38,7 @@ import {
   Cartographic,
   createWorldTerrainAsync,
   TerrainProvider,
+  sampleTerrainMostDetailed,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType, type Buildings3DSource } from "@/stores/useDesignStore";
@@ -122,44 +123,45 @@ export function CesiumViewerComponent({
   const setStoreGoogle3DAvailable = useDesignStore((state) => state.setGoogle3DAvailable);
   const setStoreGoogle3DError = useDesignStore((state) => state.setGoogle3DError);
 
-  // Sample ground height from rendered Google 3D tiles at parcel centroid
-  const sampleGroundHeightFromScene = useCallback((viewer: CesiumViewer) => {
+  // Sample ground height from Cesium World Terrain (reliable for Google 3D mode)
+  const sampleGroundHeightFromTerrain = useCallback(async () => {
     const envelope = useDesignStore.getState().envelope;
     if (!envelope?.parcelGeometry) {
       console.log("[GroundHeight] No parcel geometry available");
       return;
     }
 
-    const centroid = getPolygonCentroid(envelope.parcelGeometry);
-    const cartographic = Cartographic.fromDegrees(centroid.lng, centroid.lat);
-    
-    // Try to sample height from rendered 3D tiles
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    const tryToSample = () => {
-      attempts++;
+    try {
+      const coords = envelope.parcelGeometry.coordinates[0];
+      const centroid = getPolygonCentroid(envelope.parcelGeometry);
       
-      // Use scene.sampleHeight to get height from rendered primitives
-      const sampledHeight = viewer.scene.sampleHeight(cartographic);
+      // Sample multiple points: centroid + 4 corners for accuracy on sloped terrain
+      const positions = [
+        Cartographic.fromDegrees(centroid.lng, centroid.lat),
+        ...coords.slice(0, 4).map(([lng, lat]: [number, number]) => Cartographic.fromDegrees(lng, lat))
+      ];
       
-      if (sampledHeight !== undefined && !isNaN(sampledHeight)) {
-        console.log(`[GroundHeight] Sampled ground height: ${sampledHeight.toFixed(2)}m`);
-        setGroundHeightMeters(sampledHeight);
-        return;
-      }
+      // Use Cesium World Terrain for accurate ground height
+      const worldTerrain = await createWorldTerrainAsync();
+      const sampledPositions = await sampleTerrainMostDetailed(worldTerrain, positions);
       
-      // Retry if tiles not yet rendered
-      if (attempts < maxAttempts) {
-        setTimeout(tryToSample, 200);
+      // Use minimum height to ensure nothing floats (handles sloped terrain)
+      const heights = sampledPositions
+        .map(p => p.height)
+        .filter((h): h is number => h !== undefined && !isNaN(h));
+      
+      if (heights.length > 0) {
+        const minHeight = Math.min(...heights);
+        console.log(`[GroundHeight] Terrain-sampled min ground height: ${minHeight.toFixed(2)}m (from ${heights.length} points)`);
+        setGroundHeightMeters(minHeight);
       } else {
-        // Fallback: use 0 if sampling fails
-        console.log("[GroundHeight] Could not sample height, using 0");
+        console.log("[GroundHeight] Terrain sampling returned no valid heights, using 0");
         setGroundHeightMeters(0);
       }
-    };
-    
-    tryToSample();
+    } catch (error) {
+      console.error("[GroundHeight] Error sampling terrain:", error);
+      setGroundHeightMeters(0);
+    }
   }, []);
 
   // Apply 2D basemap to viewer (for non-Google-3D modes)
@@ -296,10 +298,8 @@ export function CesiumViewerComponent({
       viewer.scene.fog.density = 0.0002;
       viewer.scene.fog.minimumBrightness = 0.03;
       
-      // Schedule ground height sampling after tiles have time to render
-      setTimeout(() => {
-        sampleGroundHeightFromScene(viewer);
-      }, 500);
+      // Sample ground height from terrain (more reliable than scene sampling)
+      sampleGroundHeightFromTerrain();
       
       console.log("[Google3D] Photorealistic 3D Tiles loaded successfully (with performance optimizations)");
       toast.success("Google 3D Buildings loaded");
