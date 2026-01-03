@@ -418,3 +418,6 @@ verify_jwt = false
 
 [functions.get-google-maps-token]
 verify_jwt = false
+
+[functions.validate-google-maps-key]
+verify_jwt = false

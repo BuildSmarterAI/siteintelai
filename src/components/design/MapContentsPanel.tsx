@@ -8,12 +8,14 @@
 import { useState } from "react";
 import { useDesignStore, type DesignPreset } from "@/stores/useDesignStore";
 import { useDesignSession } from "@/hooks/useDesignSession";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -73,6 +75,8 @@ import {
   Home,
   Factory,
   Stethoscope,
+  TestTube2,
+  Loader2,
 } from "lucide-react";
 
 export type LeftPanelState = "expanded" | "collapsed" | "hidden";
@@ -144,6 +148,41 @@ export function MapContentsPanel({
   const [variantName, setVariantName] = useState("");
   const [layersOpen, setLayersOpen] = useState(true);
   const [designsOpen, setDesignsOpen] = useState(true);
+  const [isValidatingApiKey, setIsValidatingApiKey] = useState(false);
+
+  // Validate Google Maps API Key
+  const validateGoogleApiKey = async () => {
+    setIsValidatingApiKey(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('validate-google-maps-key');
+      if (error) throw error;
+      
+      if (data?.valid) {
+        toast.success("Google Map Tiles API is accessible", {
+          description: "Your API key configuration is correct",
+        });
+      } else {
+        toast.error("Google API Configuration Issue", {
+          description: data?.error || "Unknown error",
+          duration: 10000,
+        });
+        console.error("[Google API Validation] Details:", data);
+        
+        // Show troubleshooting steps if available
+        if (data?.troubleshooting) {
+          console.log("[Google API Validation] Troubleshooting steps:");
+          data.troubleshooting.forEach((step: string) => console.log(step));
+        }
+      }
+    } catch (err) {
+      console.error("[Google API Validation] Failed:", err);
+      toast.error("Validation failed", {
+        description: err instanceof Error ? err.message : "Unknown error",
+      });
+    } finally {
+      setIsValidatingApiKey(false);
+    }
+  };
 
   // Layer visibility state (local for now, could be in store)
   const [layers, setLayers] = useState({
@@ -473,6 +512,20 @@ export function MapContentsPanel({
                               )}
                             </Tooltip>
                           </TooltipProvider>
+                          
+                          {/* Debug: Test API Key button */}
+                          <button
+                            className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted/50 transition-colors mt-1"
+                            onClick={validateGoogleApiKey}
+                            disabled={isValidatingApiKey}
+                          >
+                            {isValidatingApiKey ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <TestTube2 className="h-3 w-3" />
+                            )}
+                            <span>{isValidatingApiKey ? "Testing..." : "Test Google API Key"}</span>
+                          </button>
                         </div>
                       )}
                     </div>

@@ -203,7 +203,10 @@ export function CesiumViewerComponent({
     setBuildings3DLoading(true);
     
     try {
-      console.log("Loading Google Photorealistic 3D Tiles...");
+      console.log("[Google3D] Loading Photorealistic 3D Tiles...");
+      console.log("[Google3D] API Key (first 10 chars):", apiKey.substring(0, 10) + "...");
+      console.log("[Google3D] Current domain:", window.location.hostname);
+      console.log("[Google3D] Current origin:", window.location.origin);
       
       // Remove existing OSM tileset using ref
       if (osmBuildingsTilesetRef.current) {
@@ -214,9 +217,11 @@ export function CesiumViewerComponent({
       
       // Set Google Maps API key for Cesium
       GoogleMaps.defaultApiKey = apiKey;
+      console.log("[Google3D] GoogleMaps.defaultApiKey set");
       
       // Create photorealistic 3D tileset
       const tileset = await createGooglePhotorealistic3DTileset();
+      console.log("[Google3D] Tileset created successfully");
       
       // Add to scene
       viewer.scene.primitives.add(tileset);
@@ -224,14 +229,27 @@ export function CesiumViewerComponent({
       setGoogle3DTileset(tileset);
       setGoogle3DError(null);
       
-      console.log("Google Photorealistic 3D Tiles loaded successfully");
+      console.log("[Google3D] Photorealistic 3D Tiles loaded successfully");
       toast.success("Google 3D Buildings loaded");
       
       // Update store state on success
       setStoreGoogle3DAvailable(true);
       setStoreGoogle3DError(null);
     } catch (error) {
-      console.error("Failed to load Google 3D Tiles:", error);
+      console.error("[Google3D] Failed to load 3D Tiles:", error);
+      
+      // Enhanced error logging
+      if (error instanceof Error) {
+        console.error("[Google3D] Error name:", error.name);
+        console.error("[Google3D] Error message:", error.message);
+        console.error("[Google3D] Error stack:", error.stack);
+      }
+      try {
+        console.error("[Google3D] Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      } catch {
+        console.error("[Google3D] Could not stringify error");
+      }
+      
       const errorMessage = error instanceof Error ? error.message : String(error);
       setGoogle3DError(errorMessage);
       
