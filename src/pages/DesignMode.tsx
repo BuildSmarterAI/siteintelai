@@ -5,7 +5,7 @@
  * Per PRD: "Lets you explore what's legally possible — not how to build it."
  */
 
-import { useEffect, useCallback, useMemo } from "react";
+import { useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useDesignStore } from "@/stores/useDesignStore";
 import { useRegulatoryEnvelope } from "@/hooks/useRegulatoryEnvelope";
@@ -17,9 +17,7 @@ import { DesignMetricsBar } from "@/components/design/DesignMetricsBar";
 import { CompliancePanel } from "@/components/design/CompliancePanel";
 import { DesignVariantList } from "@/components/design/DesignVariantList";
 import { DesignToolbar } from "@/components/design/DesignToolbar";
-import { CesiumViewerComponent } from "@/components/design/CesiumViewer";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
-import { SplitViewCanvas } from "@/components/design/SplitViewCanvas";
 import { ViewModeToggle } from "@/components/design/ViewModeToggle";
 import { BasemapSelector } from "@/components/design/BasemapSelector";
 import { DesignMeasurementTools } from "@/components/design/DesignMeasurementTools";
@@ -27,9 +25,23 @@ import { DesignMeasurementResultPanel } from "@/components/design/DesignMeasurem
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
 import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
+import { CesiumErrorBoundary } from "@/components/design/CesiumErrorBoundary";
+import { CesiumLoadingFallback } from "@/components/design/CesiumLoadingFallback";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+
+// Lazy load Cesium components to isolate HMR issues
+const CesiumViewerLazy = lazy(() =>
+  import("@/components/design/CesiumViewer").then(module => ({
+    default: module.CesiumViewerComponent,
+  }))
+);
+const SplitViewCanvasLazy = lazy(() =>
+  import("@/components/design/SplitViewCanvas").then(module => ({
+    default: module.SplitViewCanvas,
+  }))
+);
 import { 
   ArrowLeft, 
   Maximize2, 
@@ -386,9 +398,17 @@ export default function DesignMode() {
               {/* Canvas - 2D, 3D, or Split based on toggle */}
               <div id="design-canvas" className="flex-1 relative bg-muted">
                 {canvasViewMode === "split" ? (
-                  <SplitViewCanvas className="absolute inset-0" />
+                  <Suspense fallback={<CesiumLoadingFallback />}>
+                    <CesiumErrorBoundary onFallbackTo2D={() => setCanvasViewMode("2d")}>
+                      <SplitViewCanvasLazy className="absolute inset-0" />
+                    </CesiumErrorBoundary>
+                  </Suspense>
                 ) : canvasViewMode === "3d" ? (
-                  <CesiumViewerComponent className="absolute inset-0" />
+                  <Suspense fallback={<CesiumLoadingFallback />}>
+                    <CesiumErrorBoundary onFallbackTo2D={() => setCanvasViewMode("2d")}>
+                      <CesiumViewerLazy className="absolute inset-0" />
+                    </CesiumErrorBoundary>
+                  </Suspense>
                 ) : (
                   <DesignModeCanvas className="absolute inset-0" />
                 )}

@@ -4,9 +4,18 @@
  * Renders 2D MapLibre and 3D Cesium views side-by-side for comparison.
  */
 
+import { Suspense, lazy } from "react";
 import { DesignModeCanvas } from "./DesignModeCanvas";
-import { CesiumViewerComponent } from "./CesiumViewer";
+import { CesiumErrorBoundary } from "./CesiumErrorBoundary";
+import { CesiumLoadingFallback } from "./CesiumLoadingFallback";
 import { cn } from "@/lib/utils";
+
+// Lazy load Cesium to isolate HMR errors
+const CesiumViewerLazy = lazy(() =>
+  import("./CesiumViewer").then(module => ({
+    default: module.CesiumViewerComponent,
+  }))
+);
 
 interface SplitViewCanvasProps {
   className?: string;
@@ -37,10 +46,14 @@ export function SplitViewCanvas({
         <div className="absolute top-3 left-3 z-20 bg-background/90 backdrop-blur-sm px-2.5 py-1 rounded-md border shadow-sm">
           <span className="text-xs font-medium">3D View</span>
         </div>
-        <CesiumViewerComponent 
-          className="h-full w-full" 
-          onFootprintChange={onFootprintChange}
-        />
+        <Suspense fallback={<CesiumLoadingFallback />}>
+          <CesiumErrorBoundary>
+            <CesiumViewerLazy 
+              className="h-full w-full" 
+              onFootprintChange={onFootprintChange}
+            />
+          </CesiumErrorBoundary>
+        </Suspense>
       </div>
     </div>
   );
