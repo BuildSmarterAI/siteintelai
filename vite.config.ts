@@ -63,11 +63,16 @@ export default defineConfig(({ mode }) => ({
       "@siteintel/types": path.resolve(__dirname, "./packages/types/src"),
       "@siteintel/gis-utils": path.resolve(__dirname, "./packages/gis-utils/src"),
     },
-    // Deduplicate react/react-dom to fix resium's createPortal import
-    dedupe: ['react', 'react-dom', 'cesium'],
+    // Deduplicate react/react-dom and radix to fix resium's createPortal import and hook conflicts
+    dedupe: ['react', 'react-dom', 'cesium', 'resium', '@radix-ui/react-tooltip'],
   },
   optimizeDeps: {
     // Include resium for proper pre-bundling with React 18
     include: ['resium', 'cesium'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
 }));
