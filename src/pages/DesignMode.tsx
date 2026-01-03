@@ -22,6 +22,8 @@ import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
 import { SplitViewCanvas } from "@/components/design/SplitViewCanvas";
 import { ViewModeToggle } from "@/components/design/ViewModeToggle";
 import { BasemapSelector } from "@/components/design/BasemapSelector";
+import { DesignMeasurementTools } from "@/components/design/DesignMeasurementTools";
+import { DesignMeasurementResultPanel } from "@/components/design/DesignMeasurementResultPanel";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
 import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
@@ -54,9 +56,13 @@ export default function DesignMode() {
     variants,
     activeVariantId,
     updateVariant,
+    isDrawing,
     setIsDrawing,
     canvasViewMode,
     setCanvasViewMode,
+    measurementMode,
+    setMeasurementMode,
+    clearMeasurement,
     reset,
   } = useDesignStore();
 
@@ -170,8 +176,19 @@ export default function DesignMode() {
           const nextIndex = (currentIndex + 1) % modes.length;
           setCanvasViewMode(modes[nextIndex]);
           break;
+        case "m":
+          // Toggle measurement mode (cycle through distance → area → off)
+          if (!measurementMode) {
+            setMeasurementMode("distance");
+          } else if (measurementMode === "distance") {
+            setMeasurementMode("area");
+          } else {
+            clearMeasurement();
+          }
+          break;
         case "escape":
           setIsDrawing(false);
+          clearMeasurement();
           break;
         case "1":
         case "2":
@@ -192,7 +209,7 @@ export default function DesignMode() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [variants, canvasViewMode, setCanvasViewMode]);
+  }, [variants, canvasViewMode, setCanvasViewMode, measurementMode, setMeasurementMode, clearMeasurement, setIsDrawing]);
 
   // Handlers
   const handleStartDrawing = useCallback(() => {
@@ -396,6 +413,12 @@ export default function DesignMode() {
                     </div>
                   </div>
                 )}
+
+                {/* Measurement Tools */}
+                <DesignMeasurementTools className="absolute top-4 left-1/2 -translate-x-1/2 z-20" />
+
+                {/* Measurement Results */}
+                <DesignMeasurementResultPanel className="absolute bottom-20 right-4 z-10 w-48" />
               </div>
 
               {/* Metrics bar */}
