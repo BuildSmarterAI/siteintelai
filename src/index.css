@@ -538,30 +538,45 @@ All colors MUST be HSL.
 
 /* =========================================================================
  * Selection Tooltip Styles (Map Binding Selector)
+ * Figma-aligned specifications
  * ========================================================================= */
 
 .selection-tooltip-popup .maplibregl-popup-content {
-  background: hsl(var(--background) / 0.95);
+  width: 280px;
+  max-width: 340px;
+  background: rgba(17, 24, 39, 0.92); /* #111827 @ 92% - dark theme */
   backdrop-filter: blur(8px);
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
   padding: 0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+/* Light theme variant */
+.light .selection-tooltip-popup .maplibregl-popup-content,
+:root:not(.dark) .selection-tooltip-popup .maplibregl-popup-content {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid hsl(var(--border));
 }
 
 .selection-tooltip-popup .maplibregl-popup-tip {
-  border-top-color: hsl(var(--background) / 0.95);
+  border-top-color: rgba(17, 24, 39, 0.92);
+}
+
+.light .selection-tooltip-popup .maplibregl-popup-tip,
+:root:not(.dark) .selection-tooltip-popup .maplibregl-popup-tip {
+  border-top-color: rgba(255, 255, 255, 0.96);
 }
 
 .selection-tooltip-content {
   padding: 12px 16px;
-  font-size: 12px;
-  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .selection-tooltip-content.locked {
-  display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   color: hsl(var(--status-success));
@@ -574,22 +589,44 @@ All colors MUST be HSL.
 }
 
 .selection-tooltip-content .tooltip-title {
+  font-size: 14px;
   font-weight: 600;
+  color: white;
+  line-height: 1.4;
+}
+
+.light .selection-tooltip-content .tooltip-title,
+:root:not(.dark) .selection-tooltip-content .tooltip-title {
   color: hsl(var(--foreground));
-  margin-bottom: 4px;
 }
 
 .selection-tooltip-content .tooltip-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+}
+
+.light .selection-tooltip-content .tooltip-subtitle,
+:root:not(.dark) .selection-tooltip-content .tooltip-subtitle {
   color: hsl(var(--muted-foreground));
-  font-size: 11px;
 }
 
 .selection-tooltip-content .tooltip-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
   color: hsl(var(--status-warning));
-  font-size: 11px;
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid hsl(var(--border));
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.light .selection-tooltip-content .tooltip-warning,
+:root:not(.dark) .selection-tooltip-content .tooltip-warning {
+  border-top-color: hsl(var(--border));
 }
 
 /* Selection state visual indicators */
@@ -606,6 +643,38 @@ All colors MUST be HSL.
   }
 }
 
+/* Selection Active badge animation */
+.selection-active-badge {
+  animation: selectionBadgePulse 2s ease-in-out infinite;
+}
+
+@keyframes selectionBadgePulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+/* Dimmed parcel overlay for non-selected parcels */
+.parcel-dimmed-overlay {
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* Change Parcel button styling */
+.change-parcel-button {
+  backdrop-filter: blur(8px);
+  transition: all 0.2s ease-in-out;
+}
+
+.change-parcel-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
 /* Reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   .selection-tooltip-popup {
@@ -613,5 +682,11 @@ All colors MUST be HSL.
   }
   .map-locked-indicator {
     animation: none;
+  }
+  .selection-active-badge {
+    animation: none;
+  }
+  .parcel-dimmed-overlay {
+    transition: none;
   }
 }

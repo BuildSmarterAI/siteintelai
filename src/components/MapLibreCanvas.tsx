@@ -28,7 +28,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { MapSelectionState, MAP_STATE_CONFIG, getSpotlightStyle, SELECTION_TOOLTIP_COPY } from '@/types/mapSelectionState';
+import { MapSelectionState, MAP_STATE_CONFIG, getSpotlightStyle, SELECTION_TOOLTIP_COPY, CAMERA_FIT_CONFIG, PARCEL_STYLE_VARIANTS, GLOW_LAYER_CONFIG } from '@/types/mapSelectionState';
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
@@ -1118,10 +1118,11 @@ export function MapLibreCanvas({
       
       fetchAdjacentParcels();
       
-      // Fly to parcel bounds with smooth animation
+      // Fly to parcel bounds with standardized animation (Figma spec: ~15% padding, 350ms)
       map.current.fitBounds(bounds, { 
-        padding: 80, 
-        duration: 1200,
+        padding: CAMERA_FIT_CONFIG.paddingPx,
+        duration: CAMERA_FIT_CONFIG.durationMs,
+        maxZoom: CAMERA_FIT_CONFIG.maxZoom,
         easing: (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2, // easeInOutCubic
       });
       
