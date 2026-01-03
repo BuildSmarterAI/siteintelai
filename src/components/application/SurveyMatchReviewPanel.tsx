@@ -54,9 +54,29 @@ const REASON_CODE_CONFIG: Record<MatchReasonCode, { label: string; variant: "def
   AREA_SIMILAR: { label: "Similar Area", variant: "outline", priority: 5 },
 };
 
-function ConfidenceBar({ confidence }: { confidence: number }) {
+function ConfidenceTierBadge({ tier, score }: { tier?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE'; score: number }) {
+  const displayTier = tier || (score >= 0.85 ? 'HIGH' : score >= 0.65 ? 'MEDIUM' : 'LOW');
+  const tierConfig = {
+    HIGH: { label: 'HIGH', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 border-green-300' },
+    MEDIUM: { label: 'MEDIUM', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300' },
+    LOW: { label: 'LOW', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 border-red-300' },
+    NONE: { label: 'N/A', className: 'bg-muted text-muted-foreground border-border' },
+  };
+  const config = tierConfig[displayTier];
+  
+  return (
+    <Badge variant="outline" className={`text-xs font-semibold ${config.className}`}>
+      {config.label}
+    </Badge>
+  );
+}
+
+function ConfidenceBar({ confidence, tier }: { confidence: number; tier?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE' }) {
   const percentage = Math.round(confidence * 100);
-  const colorClass = confidence >= 0.8 ? "bg-green-500" : confidence >= 0.6 ? "bg-amber-500" : "bg-red-500";
+  const effectiveTier = tier === 'NONE' ? undefined : tier;
+  const colorClass = effectiveTier === 'HIGH' || confidence >= 0.85 ? "bg-green-500" 
+    : effectiveTier === 'MEDIUM' || confidence >= 0.65 ? "bg-amber-500" 
+    : "bg-red-500";
   
   return (
     <div className="flex items-center gap-2">
@@ -98,9 +118,15 @@ function AddressDisplay({ address }: { address: string | null }) {
 function WhyThisParcel({ candidate, extraction }: { candidate: SurveyMatchCandidate; extraction?: SurveyExtraction | null }) {
   const [isOpen, setIsOpen] = useState(false);
   
-  const acreageDelta = extraction?.acreage_extracted && candidate.acreage
-    ? Math.abs(extraction.acreage_extracted - candidate.acreage)
-    : null;
+  // Use V2 delta if available, otherwise calculate
+  const acreageDelta = candidate.gross_acre_delta 
+    ?? (extraction?.acreage_extracted && candidate.acreage
+      ? Math.abs(extraction.acreage_extracted - candidate.acreage)
+      : null);
+  
+  const overlapPct = candidate.overlap_pct;
+  const score = candidate.match_score || candidate.confidence;
+  const tier = candidate.confidence_tier;
   
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -111,12 +137,17 @@ function WhyThisParcel({ candidate, extraction }: { candidate: SurveyMatchCandid
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2">
         <div className="text-xs space-y-1 bg-muted/50 p-2.5 rounded-md border border-border/50">
+          {overlapPct !== undefined && (
+            <p>• Geometry overlap: <span className="font-mono font-semibold">{(overlapPct * 100).toFixed(1)}%</span></p>
+          )}
           {acreageDelta !== null && (
             <p>• Acreage delta: <span className="font-mono">±{acreageDelta.toFixed(3)} ac</span> from survey</p>
           )}
           <p>• County: Matched ({candidate.county})</p>
           <p>• Match signals: {candidate.reason_codes.length} criteria met</p>
-          <p>• Confidence: {Math.round(candidate.confidence * 100)}%</p>
+          <p>• Composite score: <span className="font-semibold">{Math.round(score * 100)}%</span> 
+            {tier && <span className="ml-1">({tier})</span>}
+          </p>
         </div>
       </CollapsibleContent>
     </Collapsible>
@@ -189,9 +220,10 @@ function RecommendedParcelCard({
             </div>
           </div>
 
-          {/* Confidence */}
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            <ConfidenceBar confidence={candidate.confidence} />
+          {/* Confidence Tier + Bar */}
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <ConfidenceTierBadge tier={candidate.confidence_tier} score={candidate.match_score || candidate.confidence} />
+            <ConfidenceBar confidence={candidate.match_score || candidate.confidence} tier={candidate.confidence_tier} />
           </div>
         </div>
         
@@ -233,7 +265,8 @@ function CompactCandidateCard({
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <ConfidenceBar confidence={candidate.confidence} />
+        <ConfidenceTierBadge tier={candidate.confidence_tier} score={candidate.match_score || candidate.confidence} />
+        <ConfidenceBar confidence={candidate.match_score || candidate.confidence} tier={candidate.confidence_tier} />
         <Button 
           size="sm" 
           variant="outline"

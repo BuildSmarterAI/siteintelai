@@ -6484,14 +6484,20 @@ export type Database = {
           file_size: number
           filename: string
           geometry_confidence: string | null
+          geometry_confidence_level: string | null
+          gross_acreage: number | null
           id: string
           match_candidates: Json | null
           match_confidence: number | null
           match_reason_codes: string[] | null
           match_status: string | null
           mime_type: string
+          net_acreage: number | null
+          parcel_identity_confidence_level: string | null
           recording_info: string | null
+          report_grade: string | null
           residual_error_meters: number | null
+          row_acreage: number | null
           selected_parcel_id: string | null
           storage_path: string
           survey_date: string | null
@@ -6518,14 +6524,20 @@ export type Database = {
           file_size: number
           filename: string
           geometry_confidence?: string | null
+          geometry_confidence_level?: string | null
+          gross_acreage?: number | null
           id?: string
           match_candidates?: Json | null
           match_confidence?: number | null
           match_reason_codes?: string[] | null
           match_status?: string | null
           mime_type: string
+          net_acreage?: number | null
+          parcel_identity_confidence_level?: string | null
           recording_info?: string | null
+          report_grade?: string | null
           residual_error_meters?: number | null
+          row_acreage?: number | null
           selected_parcel_id?: string | null
           storage_path: string
           survey_date?: string | null
@@ -6552,14 +6564,20 @@ export type Database = {
           file_size?: number
           filename?: string
           geometry_confidence?: string | null
+          geometry_confidence_level?: string | null
+          gross_acreage?: number | null
           id?: string
           match_candidates?: Json | null
           match_confidence?: number | null
           match_reason_codes?: string[] | null
           match_status?: string | null
           mime_type?: string
+          net_acreage?: number | null
+          parcel_identity_confidence_level?: string | null
           recording_info?: string | null
+          report_grade?: string | null
           residual_error_meters?: number | null
+          row_acreage?: number | null
           selected_parcel_id?: string | null
           storage_path?: string
           survey_date?: string | null
@@ -8484,6 +8502,23 @@ export type Database = {
         Args: { design_geom: unknown; envelope_geom: unknown }
         Returns: boolean
       }
+      check_survey_auto_select: {
+        Args: {
+          county_filter?: string
+          gross_acres?: number
+          net_acres?: number
+          survey_wkt: string
+        }
+        Returns: {
+          auto_select_ok: boolean
+          best_overlap_pct: number
+          best_parcel_id: number
+          best_score: number
+          reason: string
+          runner_up_score: number
+          score_gap: number
+        }[]
+      }
       cleanup_expired_api_cache: { Args: never; Returns: number }
       compute_buildable_footprint: {
         Args: {
@@ -8534,6 +8569,23 @@ export type Database = {
       execute_canonical_insert: {
         Args: { p_record: Json; p_table_name: string }
         Returns: Json
+      }
+      find_multi_parcel_assembly: {
+        Args: {
+          county_filter?: string
+          gross_acres: number
+          max_parcels?: number
+          survey_wkt: string
+        }
+        Returns: {
+          gross_delta: number
+          match_score: number
+          overlap_acres: number
+          overlap_pct: number
+          parcel_ids: string[]
+          union_acres: number
+          union_geom_json: string
+        }[]
       }
       find_nearest_roads: {
         Args: { p_buffer_ft?: number; p_lat: number; p_lng: number }
@@ -9156,6 +9208,30 @@ export type Database = {
           jurisdiction: string
           overlap_pct: number
           owner_name: string
+          situs_address: string
+          source_parcel_id: string
+        }[]
+      }
+      match_parcels_to_survey_v2: {
+        Args: {
+          county_filter?: string
+          gross_acres?: number
+          limit_count?: number
+          net_acres?: number
+          survey_wkt: string
+        }
+        Returns: {
+          confidence_tier: string
+          geom_json: string
+          gross_acre_delta: number
+          id: number
+          jurisdiction: string
+          match_score: number
+          net_acre_delta: number
+          overlap_acres: number
+          overlap_pct: number
+          owner_name: string
+          parcel_acres: number
           situs_address: string
           source_parcel_id: string
         }[]
