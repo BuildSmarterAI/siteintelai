@@ -412,3 +412,6 @@ verify_jwt = false
 
 [functions.query-county-parcels]
 verify_jwt = false
+
+[functions.get-mapbox-token]
+verify_jwt = false
