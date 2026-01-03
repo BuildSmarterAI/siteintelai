@@ -123,11 +123,17 @@ export function CesiumViewerComponent({
   const setStoreGoogle3DAvailable = useDesignStore((state) => state.setGoogle3DAvailable);
   const setStoreGoogle3DError = useDesignStore((state) => state.setGoogle3DError);
 
-  // Sample ground height from Cesium World Terrain (reliable for Google 3D mode)
-  const sampleGroundHeightFromTerrain = useCallback(async () => {
+  // Clamp to Google 3D Tiles surface for accurate ground height
+  const clampToGoogle3DSurface = useCallback(async (viewer: CesiumViewer) => {
     const envelope = useDesignStore.getState().envelope;
     if (!envelope?.parcelGeometry) {
       console.log("[GroundHeight] No parcel geometry available");
+      return;
+    }
+
+    // Ensure tileset is loaded
+    if (!google3DTilesetRef.current) {
+      console.log("[GroundHeight] Google 3D tileset not loaded yet");
       return;
     }
 
@@ -135,31 +141,59 @@ export function CesiumViewerComponent({
       const coords = envelope.parcelGeometry.coordinates[0];
       const centroid = getPolygonCentroid(envelope.parcelGeometry);
       
-      // Sample multiple points: centroid + 4 corners for accuracy on sloped terrain
-      const positions = [
-        Cartographic.fromDegrees(centroid.lng, centroid.lat),
-        ...coords.slice(0, 4).map(([lng, lat]: [number, number]) => Cartographic.fromDegrees(lng, lat))
-      ];
+      // Create positions at a high altitude for downward raycast
+      // Sample boundary vertices (not centroid - avoid rooftops if building on parcel)
+      const samplePositions = coords.slice(0, Math.min(5, coords.length)).map(
+        ([lng, lat]: [number, number]) => Cartesian3.fromDegrees(lng, lat, 1000)
+      );
+      // Also add centroid as fallback
+      samplePositions.push(Cartesian3.fromDegrees(centroid.lng, centroid.lat, 1000));
       
-      // Use Cesium World Terrain for accurate ground height
-      const worldTerrain = await createWorldTerrainAsync();
-      const sampledPositions = await sampleTerrainMostDetailed(worldTerrain, positions);
+      console.log(`[GroundHeight] Clamping ${samplePositions.length} positions to Google 3D surface...`);
       
-      // Use minimum height to ensure nothing floats (handles sloped terrain)
-      const heights = sampledPositions
-        .map(p => p.height)
-        .filter((h): h is number => h !== undefined && !isNaN(h));
+      // Use clampToHeightMostDetailed to get surface heights from 3D Tiles
+      const clampedPositions = await viewer.scene.clampToHeightMostDetailed(
+        samplePositions,
+        [google3DTilesetRef.current], // Only clamp to Google 3D tiles
+        0.1 // Width for sampling (meters)
+      );
+      
+      // Extract heights from clamped positions
+      const heights: number[] = [];
+      for (const pos of clampedPositions) {
+        if (pos) {
+          const carto = Cartographic.fromCartesian(pos);
+          if (carto && !isNaN(carto.height)) {
+            heights.push(carto.height);
+          }
+        }
+      }
       
       if (heights.length > 0) {
+        // Use minimum height to ensure nothing floats
         const minHeight = Math.min(...heights);
-        console.log(`[GroundHeight] Terrain-sampled min ground height: ${minHeight.toFixed(2)}m (from ${heights.length} points)`);
+        console.log(`[GroundHeight] Clamped to Google 3D surface: ${minHeight.toFixed(2)}m (from ${heights.length} points, heights: ${heights.map(h => h.toFixed(1)).join(', ')})`);
         setGroundHeightMeters(minHeight);
       } else {
-        console.log("[GroundHeight] Terrain sampling returned no valid heights, using 0");
+        console.log("[GroundHeight] Clamping returned no valid heights, falling back to 0");
         setGroundHeightMeters(0);
       }
     } catch (error) {
-      console.error("[GroundHeight] Error sampling terrain:", error);
+      console.error("[GroundHeight] Error clamping to surface:", error);
+      // Fallback: try terrain sampling
+      try {
+        const centroid = getPolygonCentroid(envelope.parcelGeometry);
+        const positions = [Cartographic.fromDegrees(centroid.lng, centroid.lat)];
+        const worldTerrain = await createWorldTerrainAsync();
+        const sampledPositions = await sampleTerrainMostDetailed(worldTerrain, positions);
+        if (sampledPositions[0]?.height !== undefined) {
+          console.log(`[GroundHeight] Terrain fallback: ${sampledPositions[0].height.toFixed(2)}m`);
+          setGroundHeightMeters(sampledPositions[0].height);
+          return;
+        }
+      } catch {
+        // Ignore terrain fallback errors
+      }
       setGroundHeightMeters(0);
     }
   }, []);
@@ -298,8 +332,12 @@ export function CesiumViewerComponent({
       viewer.scene.fog.density = 0.0002;
       viewer.scene.fog.minimumBrightness = 0.03;
       
-      // Sample ground height from terrain (more reliable than scene sampling)
-      sampleGroundHeightFromTerrain();
+      // Wait briefly for tiles to load, then clamp to surface
+      setTimeout(() => {
+        if (viewerRef.current) {
+          clampToGoogle3DSurface(viewerRef.current);
+        }
+      }, 2000); // Give tiles time to load
       
       console.log("[Google3D] Photorealistic 3D Tiles loaded successfully (with performance optimizations)");
       toast.success("Google 3D Buildings loaded");
