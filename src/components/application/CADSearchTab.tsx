@@ -19,7 +19,6 @@ import {
 import { Hash, Loader2, AlertTriangle, CheckCircle, Info } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { searchResultToCandidate } from "@/lib/parcelLock";
 import { 
@@ -81,12 +80,10 @@ export function CADSearchTab({
     const selectedCounty = county || detectedCounty;
     
     if (!selectedCounty) {
-      toast.error("Please select a county");
       return;
     }
     
     if (!apn.trim()) {
-      toast.error("Please enter a CAD/APN number");
       return;
     }
 
@@ -94,7 +91,6 @@ export function CADSearchTab({
     const validation = validateCADFormat(apn, selectedCounty);
     if (!validation.valid) {
       setFormatError(validation.error || "Invalid format");
-      toast.error(validation.error || "Invalid CAD/APN format");
       return;
     }
 
@@ -140,19 +136,18 @@ export function CADSearchTab({
       }
 
       if (candidates.length === 0) {
-        toast.error("No parcel found with this CAD/APN number.");
+        console.log('[CADSearchTab] No parcel found');
         addWarning("Parcel not found. Verify the number and county are correct.");
       } else {
         if (isExternal) {
           addWarning("Parcel boundary sourced from county GIS. Accuracy may vary.");
         }
-        toast.success("Parcel found");
+        console.log('[CADSearchTab] Parcel found');
         onCandidatesFound(candidates);
       }
 
     } catch (err) {
       console.error('[CADSearchTab] Search error:', err);
-      toast.error("Search failed. Please try again.");
     } finally {
       setIsSearching(false);
       setLoading(false);

@@ -31,7 +31,6 @@ import {
 } from '@/services/surveyAutoMatchApi';
 import { renderPdfFirstPage, isPdfFile } from '@/utils/pdfRenderer';
 import type { SurveyMatchStatus as MatchStatus, SurveyMatchCandidate, SurveyExtraction } from '@/types/surveyAutoMatch';
-import { toast } from 'sonner';
 
 interface SurveyUploadTabProps {
   onSurveyUploaded?: (survey: SurveyUploadMetadata) => void;
@@ -96,7 +95,7 @@ export function SurveyUploadTab({
   const handleFile = useCallback(async (file: File) => {
     // Validate file size
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.error(`File too large. Maximum size is ${MAX_SIZE_MB}MB.`);
+      console.warn('[SurveyUploadTab] File too large');
       return;
     }
 
@@ -111,7 +110,7 @@ export function SurveyUploadTab({
 
     if (result.success && result.survey) {
       setInternalUploadedSurvey(result.survey);
-      toast.success('Survey uploaded - analyzing...');
+      console.log('[SurveyUploadTab] Survey uploaded');
       onSurveyUploaded?.(result.survey);
 
       // Trigger auto-match with optional client-side OCR image
@@ -141,22 +140,22 @@ export function SurveyUploadTab({
         if (matchResult.status === 'AUTO_SELECTED' && matchResult.candidates[0]) {
           setMatchStatus('matched');
           setSelectedParcel(matchResult.candidates[0]);
-          toast.success('Parcel matched automatically!');
+          console.log('[SurveyUploadTab] Auto-matched');
           onParcelSelected?.(matchResult.candidates[0]);
         } else if (matchResult.status === 'NEEDS_REVIEW') {
           setMatchStatus('needs_review');
-          toast.info('Please review and select the correct parcel');
+          console.log('[SurveyUploadTab] Needs review');
         } else {
           setMatchStatus('no_match');
-          toast.warning('No matching parcels found');
+          console.log('[SurveyUploadTab] No match');
         }
       } else {
         setMatchStatus('error');
-        toast.error(matchResult.error || 'Failed to match parcel');
+        console.error('[SurveyUploadTab] Match error:', matchResult.error);
       }
     } else {
       setIsUploading(false);
-      toast.error(result.error || 'Upload failed');
+      console.error('[SurveyUploadTab] Upload failed:', result.error);
     }
   }, [surveyTitle, surveyCounty, draftId, onSurveyUploaded, onParcelSelected]);
 
@@ -193,7 +192,7 @@ export function SurveyUploadTab({
     if (url) {
       window.open(url, '_blank');
     } else {
-      toast.error('Failed to load survey preview');
+      console.error('[SurveyUploadTab] Failed to load survey preview');
     }
   }, [uploadedSurvey]);
 
@@ -207,9 +206,9 @@ export function SurveyUploadTab({
       setMatchStatus('pending');
       setMatchCandidates([]);
       setSelectedParcel(null);
-      toast.success('Survey deleted');
+      console.log('[SurveyUploadTab] Survey deleted');
     } else {
-      toast.error('Failed to delete survey');
+      console.error('[SurveyUploadTab] Failed to delete survey');
     }
   }, [uploadedSurvey, onSurveyDeleted]);
 
@@ -223,10 +222,10 @@ export function SurveyUploadTab({
     if (result.success) {
       setMatchStatus('matched');
       setSelectedParcel(candidate);
-      toast.success('Parcel selected');
+      console.log('[SurveyUploadTab] Parcel selected');
       onParcelSelected?.(candidate);
     } else {
-      toast.error(result.error || 'Failed to select parcel');
+      console.error('[SurveyUploadTab] Failed to select parcel:', result.error);
     }
   }, [uploadedSurvey, onParcelSelected]);
 
