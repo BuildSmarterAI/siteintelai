@@ -17,6 +17,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { MapLibreCanvas } from "@/components/MapLibreCanvas";
 import { MapLoadingSkeleton } from "@/components/MapLoadingSkeleton";
 import { ParcelSelectionTabs } from "./ParcelSelectionTabs";
@@ -26,7 +36,7 @@ import { ParcelConfirmationGate } from "./ParcelConfirmationGate";
 import { ParcelLockConfirmationModal } from "./ParcelLockConfirmationModal";
 import { ParcelSelectionProvider, useParcelSelection } from "@/contexts/ParcelSelectionContext";
 import { MatchFoundBadge } from "./MatchFoundBadge";
-import { MapPin, Search, Map, CheckCircle, MousePointerClick, RefreshCw } from "lucide-react";
+import { MapPin, Search, Map, CheckCircle, MousePointerClick, RefreshCw, Unlock } from "lucide-react";
 import { LockedParcelSummary } from "./LockedParcelSummary";
 import { VerifiedParcelProceed } from "./VerifiedParcelProceed";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +47,7 @@ import type { SurveyMatchCandidate } from "@/types/surveyAutoMatch";
 import { getSurveyUrl, type SurveyUploadMetadata } from "@/services/surveyUploadApi";
 import { hasValidGeometry, isValidParcelGeometry } from "@/lib/geometryValidation";
 import type { MapSelectionState } from "@/types/mapSelectionState";
+import { useParcelAnalytics } from "@/hooks/useParcelAnalytics";
 
 interface ParcelSelectionGateProps {
   onParcelLocked: (parcel: SelectedParcel) => void;
@@ -69,6 +80,11 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [mobileStep, setMobileStep] = useState<MobileStep>('search');
   const [showLockConfirmation, setShowLockConfirmation] = useState(false);
+  const [showUnlockConfirmation, setShowUnlockConfirmation] = useState(false);
+  const [lockTimestamp, setLockTimestamp] = useState<number | null>(null);
+  
+  // Analytics hook
+  const parcelAnalytics = useParcelAnalytics();
   
   // Survey overlay state
   const [uploadedSurvey, setUploadedSurvey] = useState<SurveyUploadMetadata | null>(null);
@@ -257,8 +273,17 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
 
   // Opens confirmation modal (first step of lock flow)
   const handleConfirmParcel = useCallback(() => {
+    // Track modal open
+    if (state.selectedCandidate) {
+      parcelAnalytics.trackConfirmModalOpened({
+        parcel_id: state.selectedCandidate.parcel_id,
+        confidence_tier: state.selectedCandidate.confidence || 'medium',
+        warning_shown: state.selectedCandidate.confidence !== 'high',
+        candidate_count: state.candidates.length,
+      });
+    }
     setShowLockConfirmation(true);
-  }, []);
+  }, [state.selectedCandidate, state.candidates.length, parcelAnalytics]);
 
   // Actually lock the parcel (triggered from modal confirmation)
   const handleActualLock = useCallback(async () => {
@@ -266,6 +291,14 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     try {
       const lockedParcel = await lockParcel();
       setShowLockConfirmation(false);
+      setLockTimestamp(Date.now());
+      
+      // Track lock confirmation
+      parcelAnalytics.trackParcelConfirmedLocked({
+        parcel_id: lockedParcel.parcel_id,
+        confidence_tier: lockedParcel.confidence || 'medium',
+      });
+      
       toast.success("Parcel locked for feasibility analysis");
       onParcelLocked(lockedParcel);
     } catch (err: any) {
@@ -274,7 +307,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     } finally {
       setIsLocking(false);
     }
-  }, [lockParcel, onParcelLocked]);
+  }, [lockParcel, onParcelLocked, parcelAnalytics]);
 
   // Handle map retry after error
   const handleMapRetry = useCallback(() => {
@@ -410,13 +443,38 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     toast.info('Switch to Address or CAD tab to search manually');
   }, []);
 
-  const handleUnlockParcel = useCallback(() => {
+  // Handle unlock request (shows confirmation dialog)
+  const handleUnlockRequest = useCallback(() => {
+    if (state.lockedParcel) {
+      parcelAnalytics.trackUnlockAttempted({
+        parcel_id: state.lockedParcel.parcel_id,
+        time_since_lock_ms: lockTimestamp ? Date.now() - lockTimestamp : 0,
+      });
+    }
+    setShowUnlockConfirmation(true);
+  }, [state.lockedParcel, lockTimestamp, parcelAnalytics]);
+
+  // Confirm unlock action
+  const handleConfirmUnlock = useCallback(() => {
+    if (state.lockedParcel) {
+      parcelAnalytics.trackParcelUnlocked({
+        parcel_id: state.lockedParcel.parcel_id,
+      });
+    }
+    
     unlockParcel();
     clearSelection();
     setSpotlightParcel(null);
     setMobileStep('search');
+    setShowUnlockConfirmation(false);
+    setLockTimestamp(null);
     toast.info("Selection cleared. Choose a different parcel.");
-  }, [unlockParcel, clearSelection]);
+  }, [state.lockedParcel, unlockParcel, clearSelection, parcelAnalytics]);
+
+  // Legacy unlock handler (for verified state)
+  const handleUnlockParcel = useCallback(() => {
+    handleUnlockRequest();
+  }, [handleUnlockRequest]);
 
   // Calculate centroid for verified parcel map centering
   const getParcelCentroid = useCallback((geom: any): [number, number] | null => {
@@ -541,6 +599,31 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
             </div>
           </div>
         </div>
+        
+        {/* Unlock Confirmation Dialog for locked state */}
+        <AlertDialog open={showUnlockConfirmation} onOpenChange={setShowUnlockConfirmation}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Unlock className="h-5 w-5" />
+                Unlock Parcel Selection?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Unlocking will invalidate current selection and any precomputed 
+                results tied to it. You will need to select a new parcel.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmUnlock}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Unlock & Change
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     );
   }
@@ -566,6 +649,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
           onClear={handleClearSelection}
           onRefresh={handleRefreshParcel}
           isRefreshing={isRefreshing}
+          isSelectionLocked={mapSelectionState === 'locked'}
         />
         {/* Prompt for single candidate */}
         {state.candidates.length === 1 && !state.selectedCandidate && (
@@ -660,6 +744,31 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         onConfirm={handleActualLock}
         isConfirming={isLocking}
       />
+      
+      {/* Unlock Confirmation Dialog */}
+      <AlertDialog open={showUnlockConfirmation} onOpenChange={setShowUnlockConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Unlock className="h-5 w-5" />
+              Unlock Parcel Selection?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Unlocking will invalidate current selection and any precomputed 
+              results tied to it. You will need to select a new parcel.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmUnlock}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Unlock & Change
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   ) : null;
 
