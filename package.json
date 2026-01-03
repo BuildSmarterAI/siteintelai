@@ -69,7 +69,7 @@
     "leaflet": "^1.9.4",
     "lodash-es": "^4.17.21",
     "lucide-react": "^0.462.0",
-    "maplibre-gl": "^4.7.1",
+    "maplibre-gl": "^5.15.0",
     "next-themes": "^0.3.0",
     "pdfjs-dist": "^4.4.168",
     "react": "^18.3.1",
