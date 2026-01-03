@@ -27,6 +27,9 @@ export type BasemapType = "osm" | "satellite" | "satellite-labels" | "terrain" |
 
 export type DesignMeasurementMode = "distance" | "area" | "height" | null;
 
+// Google Earth-style left panel states
+export type LeftPanelState = "expanded" | "collapsed" | "hidden";
+
 export interface DesignMeasurementResult {
   miles?: number;
   feet?: number;
@@ -294,6 +297,10 @@ interface DesignState {
   toggleShadowComparisonTime: (id: string) => void;
   updateShadowComparisonTime: (id: string, updates: Partial<ShadowComparisonTime>) => void;
 
+  // Google Earth-style panel states
+  leftPanelState: LeftPanelState;
+  setLeftPanelState: (state: LeftPanelState) => void;
+
   // Reset
   reset: () => void;
 }
@@ -375,6 +382,8 @@ const initialState = {
   shareInvites: [] as ShareInvite[],
   isICMode: false,
   currentToolState: "idle" as ToolState,
+  // Google Earth-style panel states
+  leftPanelState: "expanded" as LeftPanelState,
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -723,6 +732,9 @@ export const useDesignStore = create<DesignState>()(
             t.id === id ? { ...t, ...updates } : t
           ),
         })),
+
+      // Google Earth-style panel states
+      setLeftPanelState: (leftPanelState) => set({ leftPanelState }),
 
       reset: () => set(initialState),
     }),
