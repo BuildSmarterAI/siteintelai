@@ -18,6 +18,8 @@ import { CompliancePanel } from "@/components/design/CompliancePanel";
 import { DesignVariantList } from "@/components/design/DesignVariantList";
 import { DesignToolbar } from "@/components/design/DesignToolbar";
 import { CesiumViewerComponent } from "@/components/design/CesiumViewer";
+import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
+import { ViewModeToggle } from "@/components/design/ViewModeToggle";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
 import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
@@ -51,6 +53,8 @@ export default function DesignMode() {
     activeVariantId,
     updateVariant,
     setIsDrawing,
+    canvasViewMode,
+    setCanvasViewMode,
     reset,
   } = useDesignStore();
 
@@ -157,6 +161,10 @@ export default function DesignMode() {
         case "d":
           handleStartDrawing();
           break;
+        case "t":
+          // Toggle between 2D and 3D views
+          setCanvasViewMode(canvasViewMode === "2d" ? "3d" : "2d");
+          break;
         case "escape":
           setIsDrawing(false);
           break;
@@ -179,7 +187,7 @@ export default function DesignMode() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [variants]);
+  }, [variants, canvasViewMode, setCanvasViewMode]);
 
   // Handlers
   const handleStartDrawing = useCallback(() => {
@@ -294,6 +302,8 @@ export default function DesignMode() {
         </div>
 
         <div className="flex items-center gap-3">
+          <ViewModeToggle />
+          <div className="h-6 w-px bg-border" />
           <KeyboardShortcutsHelp />
           <DesignDisclaimerBadge />
 
@@ -350,9 +360,13 @@ export default function DesignMode() {
                 />
               </div>
 
-              {/* 3D Cesium Viewer */}
-              <div id="design-canvas" className="flex-1 relative">
-                <CesiumViewerComponent className="absolute inset-0" />
+              {/* Canvas - 2D or 3D based on toggle */}
+              <div id="design-canvas" className="flex-1 relative bg-muted">
+                {canvasViewMode === "3d" ? (
+                  <CesiumViewerComponent className="absolute inset-0" />
+                ) : (
+                  <DesignModeCanvas className="absolute inset-0" />
+                )}
 
                 {/* Envelope info overlay */}
                 {envelope && (
