@@ -13,7 +13,9 @@ export type DesignModeView = "design" | "compare" | "export";
 
 export type CameraPreset = "overhead" | "perspective_ne" | "perspective_sw" | "street" | "orbit";
 
-export type CanvasViewMode = "2d" | "3d";
+export type CanvasViewMode = "2d" | "3d" | "split";
+
+export type BasemapType = "osm" | "satellite" | "satellite-labels" | "terrain";
 
 export interface DesignPreset {
   id: string;
@@ -132,9 +134,21 @@ interface DesignState {
   isOrbiting: boolean;
   setIsOrbiting: (orbiting: boolean) => void;
 
-  // Canvas view mode (2D/3D)
+  // Canvas view mode (2D/3D/Split)
   canvasViewMode: CanvasViewMode;
   setCanvasViewMode: (mode: CanvasViewMode) => void;
+
+  // Basemap selection
+  basemap: BasemapType;
+  setBasemap: (basemap: BasemapType) => void;
+
+  // Shadow analysis
+  shadowsEnabled: boolean;
+  setShadowsEnabled: (enabled: boolean) => void;
+  shadowDateTime: Date;
+  setShadowDateTime: (date: Date) => void;
+  isShadowAnimating: boolean;
+  setIsShadowAnimating: (animating: boolean) => void;
 
   // Reset
   reset: () => void;
@@ -156,6 +170,14 @@ const initialState = {
   cameraPreset: "perspective_ne" as CameraPreset,
   isOrbiting: false,
   canvasViewMode: "3d" as CanvasViewMode,
+  basemap: "osm" as BasemapType,
+  shadowsEnabled: false,
+  shadowDateTime: (() => {
+    const date = new Date();
+    date.setHours(12, 0, 0, 0); // Default to noon
+    return date;
+  })(),
+  isShadowAnimating: false,
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -242,6 +264,14 @@ export const useDesignStore = create<DesignState>()(
       setIsOrbiting: (orbiting) => set({ isOrbiting: orbiting }),
 
       setCanvasViewMode: (mode) => set({ canvasViewMode: mode }),
+
+      setBasemap: (basemap) => set({ basemap }),
+
+      setShadowsEnabled: (enabled) => set({ shadowsEnabled: enabled }),
+
+      setShadowDateTime: (date) => set({ shadowDateTime: date }),
+
+      setIsShadowAnimating: (animating) => set({ isShadowAnimating: animating }),
 
       reset: () => set(initialState),
     }),

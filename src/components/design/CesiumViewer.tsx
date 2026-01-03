@@ -2,7 +2,7 @@
  * SiteIntel™ Design Mode - Cesium 3D Viewer
  * 
  * Renders regulatory envelopes and design footprints as 3D primitives
- * with terrain, camera presets, and orbit controls.
+ * with terrain, camera presets, orbit controls, shadow analysis, and basemaps.
  */
 
 import React, { useRef, useEffect, useCallback, useMemo } from "react";
@@ -10,7 +10,6 @@ import {
   Viewer,
   Entity,
   PolygonGraphics,
-  CameraFlyTo,
 } from "resium";
 import {
   Viewer as CesiumViewer,
@@ -18,18 +17,21 @@ import {
   Color,
   Ion,
   OpenStreetMapImageryProvider,
+  UrlTemplateImageryProvider,
   Math as CesiumMath,
   HeadingPitchRange,
   BoundingSphere,
-  createWorldTerrainAsync,
   Terrain,
   ScreenSpaceEventHandler,
   ScreenSpaceEventType,
-  defined,
+  JulianDate,
+  ShadowMode,
+  ShadowMap,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
-import { useDesignStore, CameraPreset } from "@/stores/useDesignStore";
+import { useDesignStore, CameraPreset, type BasemapType } from "@/stores/useDesignStore";
 import { CameraControls } from "./CameraControls";
+import { ShadowControls } from "./ShadowControls";
 import {
   feetToMeters,
   geojsonToCesiumPositions,
@@ -42,6 +44,9 @@ import * as turf from "@turf/turf";
 // Disable Ion default token warning - we're using open terrain
 Ion.defaultAccessToken = "";
 
+// Mapbox token for satellite imagery (public token is acceptable for tiles)
+const MAPBOX_TOKEN = "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw";
+
 interface CesiumViewerComponentProps {
   className?: string;
   onFootprintChange?: (geometry: GeoJSON.Polygon | null) => void;
@@ -53,6 +58,7 @@ export function CesiumViewerComponent({
 }: CesiumViewerComponentProps) {
   const viewerRef = useRef<CesiumViewer | null>(null);
   const orbitAnimationRef = useRef<number | null>(null);
+  const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
 
   const {
@@ -64,6 +70,12 @@ export function CesiumViewerComponent({
     isDrawing,
     setIsDrawing,
     updateVariant,
+    basemap,
+    shadowsEnabled,
+    shadowDateTime,
+    isShadowAnimating,
+    setShadowDateTime,
+    setIsShadowAnimating,
   } = useDesignStore();
 
   const activeVariant = useMemo(
@@ -251,6 +263,102 @@ export function CesiumViewerComponent({
     }
   }, [isDrawing, activeVariantId, updateVariant, onFootprintChange, setIsDrawing]);
 
+  // Handle shadow animation
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !shadowsEnabled) return;
+
+    if (isShadowAnimating) {
+      let currentHour = shadowDateTime.getHours();
+      
+      const animate = () => {
+        currentHour += 0.5; // Advance by 30 minutes
+        if (currentHour > 20) {
+          currentHour = 6;
+        }
+        
+        const newDate = new Date(shadowDateTime);
+        newDate.setHours(Math.floor(currentHour));
+        newDate.setMinutes((currentHour % 1) * 60);
+        setShadowDateTime(newDate);
+        
+        // Update Cesium clock
+        viewer.clock.currentTime = JulianDate.fromDate(newDate);
+        
+        shadowAnimationRef.current = requestAnimationFrame(animate);
+      };
+      
+      // Run at slower pace
+      const intervalId = setInterval(() => {
+        cancelAnimationFrame(shadowAnimationRef.current!);
+        animate();
+      }, 500);
+
+      return () => {
+        clearInterval(intervalId);
+        if (shadowAnimationRef.current) {
+          cancelAnimationFrame(shadowAnimationRef.current);
+        }
+      };
+    } else {
+      if (shadowAnimationRef.current) {
+        cancelAnimationFrame(shadowAnimationRef.current);
+      }
+    }
+  }, [isShadowAnimating, shadowsEnabled, shadowDateTime, setShadowDateTime]);
+
+  // Update Cesium clock when shadow datetime changes
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !shadowsEnabled) return;
+
+    viewer.clock.currentTime = JulianDate.fromDate(shadowDateTime);
+  }, [shadowDateTime, shadowsEnabled]);
+
+  // Handle basemap changes
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    // Remove all existing imagery layers
+    viewer.imageryLayers.removeAll();
+
+    // Add new basemap based on selection
+    let imageryProvider;
+    
+    switch (basemap) {
+      case "satellite":
+        imageryProvider = new UrlTemplateImageryProvider({
+          url: `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${MAPBOX_TOKEN}`,
+          maximumLevel: 19,
+          credit: "© Mapbox © OpenStreetMap",
+        });
+        break;
+      case "satellite-labels":
+        imageryProvider = new UrlTemplateImageryProvider({
+          url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,
+          maximumLevel: 22,
+          credit: "© Mapbox © OpenStreetMap",
+        });
+        break;
+      case "terrain":
+        imageryProvider = new UrlTemplateImageryProvider({
+          url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,
+          maximumLevel: 22,
+          credit: "© Mapbox © OpenStreetMap",
+        });
+        break;
+      case "osm":
+      default:
+        imageryProvider = new OpenStreetMapImageryProvider({
+          url: "https://tile.openstreetmap.org/",
+        });
+        break;
+    }
+
+    viewer.imageryLayers.addImageryProvider(imageryProvider);
+  }, [basemap]);
+
   // Zoom handlers
   const handleZoomIn = useCallback(() => {
     const viewer = viewerRef.current;
@@ -274,12 +382,14 @@ export function CesiumViewerComponent({
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
     viewerRef.current = viewer;
 
-    // Add OSM imagery
-    viewer.imageryLayers.addImageryProvider(
-      new OpenStreetMapImageryProvider({
-        url: "https://tile.openstreetmap.org/",
-      })
-    );
+    // Enable shadows if configured
+    if (shadowsEnabled) {
+      viewer.shadows = true;
+      viewer.terrainShadows = ShadowMode.RECEIVE_ONLY;
+      viewer.clock.currentTime = JulianDate.fromDate(shadowDateTime);
+    }
+
+    // Initial basemap will be set by the basemap effect
 
     // Fly to initial position
     if (centroid) {
@@ -287,7 +397,7 @@ export function CesiumViewerComponent({
         flyToPreset("perspective_ne");
       }, 500);
     }
-  }, [centroid, flyToPreset]);
+  }, [centroid, flyToPreset, shadowsEnabled, shadowDateTime]);
 
   if (!envelope?.parcelGeometry) {
     return (
@@ -315,6 +425,8 @@ export function CesiumViewerComponent({
         navigationHelpButton={false}
         fullscreenButton={false}
         terrain={Terrain.fromWorldTerrain()}
+        shadows={shadowsEnabled}
+        terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
         {/* Parcel Boundary (ground polygon) */}
         <Entity name="parcel-boundary">
@@ -355,6 +467,7 @@ export function CesiumViewerComponent({
               outline
               outlineColor={DESIGN_COLORS.footprintOutline}
               outlineWidth={2}
+              shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
             />
           </Entity>
         )}
@@ -370,6 +483,7 @@ export function CesiumViewerComponent({
               outline
               outlineColor={DESIGN_COLORS.violationOutline}
               outlineWidth={2}
+              shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
             />
           </Entity>
         )}
@@ -381,6 +495,9 @@ export function CesiumViewerComponent({
         onZoomOut={handleZoomOut}
         onResetCamera={handleResetCamera}
       />
+
+      {/* Shadow Controls - Only in 3D mode */}
+      <ShadowControls className="absolute top-4 right-4 z-10" />
 
       {/* Drawing Mode Indicator */}
       {isDrawing && (
