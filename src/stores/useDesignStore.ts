@@ -35,6 +35,27 @@ export interface DesignMeasurementResult {
   heightFt?: number;
 }
 
+// Persistent measurement annotation
+export interface MeasurementAnnotation {
+  id: string;
+  type: "distance" | "area" | "height";
+  points: [number, number][];
+  result: DesignMeasurementResult;
+  label: string;
+  color: string;
+  visible: boolean;
+  createdAt: string;
+}
+
+// Shadow comparison time slot
+export interface ShadowComparisonTime {
+  id: string;
+  hour: number;
+  label: string;
+  color: string;
+  visible: boolean;
+}
+
 export interface DesignPreset {
   id: string;
   name: string;
@@ -233,6 +254,21 @@ interface DesignState {
   setMeasurementPoints: (points: [number, number][]) => void;
   clearMeasurement: () => void;
 
+  // Measurement annotations (persistent)
+  measurementAnnotations: MeasurementAnnotation[];
+  addMeasurementAnnotation: (annotation: MeasurementAnnotation) => void;
+  updateMeasurementAnnotation: (id: string, updates: Partial<MeasurementAnnotation>) => void;
+  removeMeasurementAnnotation: (id: string) => void;
+  toggleAnnotationVisibility: (id: string) => void;
+
+  // Shadow comparison mode
+  shadowComparisonMode: boolean;
+  setShadowComparisonMode: (enabled: boolean) => void;
+  shadowComparisonTimes: ShadowComparisonTime[];
+  setShadowComparisonTimes: (times: ShadowComparisonTime[]) => void;
+  toggleShadowComparisonTime: (id: string) => void;
+  updateShadowComparisonTime: (id: string, updates: Partial<ShadowComparisonTime>) => void;
+
   // Reset
   reset: () => void;
 }
@@ -271,6 +307,16 @@ const initialState = {
   measurementMode: null as DesignMeasurementMode,
   measurementResult: null as DesignMeasurementResult | null,
   measurementPoints: [] as [number, number][],
+  // Measurement annotations (persistent)
+  measurementAnnotations: [] as MeasurementAnnotation[],
+  // Shadow comparison mode
+  shadowComparisonMode: false,
+  shadowComparisonTimes: [
+    { id: "9am", hour: 9, label: "9 AM", color: "#3B82F6", visible: true },
+    { id: "12pm", hour: 12, label: "12 PM", color: "#EAB308", visible: true },
+    { id: "3pm", hour: 15, label: "3 PM", color: "#F97316", visible: true },
+    { id: "6pm", hour: 18, label: "6 PM", color: "#EF4444", visible: true },
+  ] as ShadowComparisonTime[],
   // NEW: UX Overhaul State
   bestOverallVariantId: null as string | null,
   starredVariantIds: [] as string[],
@@ -578,6 +624,54 @@ export const useDesignStore = create<DesignState>()(
         measurementPoints: [],
         currentToolState: "idle",
       }),
+
+      // Measurement annotations
+      addMeasurementAnnotation: (annotation) =>
+        set((state) => ({
+          measurementAnnotations: [...state.measurementAnnotations, annotation],
+        })),
+
+      updateMeasurementAnnotation: (id, updates) =>
+        set((state) => ({
+          measurementAnnotations: state.measurementAnnotations.map((a) =>
+            a.id === id ? { ...a, ...updates } : a
+          ),
+        })),
+
+      removeMeasurementAnnotation: (id) =>
+        set((state) => ({
+          measurementAnnotations: state.measurementAnnotations.filter((a) => a.id !== id),
+        })),
+
+      toggleAnnotationVisibility: (id) =>
+        set((state) => ({
+          measurementAnnotations: state.measurementAnnotations.map((a) =>
+            a.id === id ? { ...a, visible: !a.visible } : a
+          ),
+        })),
+
+      // Shadow comparison mode
+      setShadowComparisonMode: (enabled) => set({ 
+        shadowComparisonMode: enabled,
+        // Disable shadow animation when entering comparison mode
+        isShadowAnimating: enabled ? false : undefined,
+      }),
+
+      setShadowComparisonTimes: (times) => set({ shadowComparisonTimes: times }),
+
+      toggleShadowComparisonTime: (id) =>
+        set((state) => ({
+          shadowComparisonTimes: state.shadowComparisonTimes.map((t) =>
+            t.id === id ? { ...t, visible: !t.visible } : t
+          ),
+        })),
+
+      updateShadowComparisonTime: (id, updates) =>
+        set((state) => ({
+          shadowComparisonTimes: state.shadowComparisonTimes.map((t) =>
+            t.id === id ? { ...t, ...updates } : t
+          ),
+        })),
 
       reset: () => set(initialState),
     }),

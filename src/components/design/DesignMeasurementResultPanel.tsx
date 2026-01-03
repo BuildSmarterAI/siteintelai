@@ -3,9 +3,18 @@
  * Shows measurement results with copy and clear options
  */
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useDesignStore } from "@/stores/useDesignStore";
-import { Copy, X, Ruler, Square, ArrowUpDown } from "lucide-react";
+import { Copy, X, Ruler, Square, ArrowUpDown, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -19,9 +28,51 @@ export function DesignMeasurementResultPanel({ className }: DesignMeasurementRes
     measurementResult,
     measurementPoints,
     clearMeasurement,
+    addMeasurementAnnotation,
+    measurementAnnotations,
   } = useDesignStore();
 
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+
   if (!measurementMode) return null;
+
+  const canSave = measurementResult && measurementPoints.length >= 2;
+
+  const generateDefaultLabel = () => {
+    const count = measurementAnnotations.filter(a => a.type === measurementMode).length + 1;
+    switch (measurementMode) {
+      case "distance":
+        return `Distance ${count}`;
+      case "area":
+        return `Area ${count}`;
+      case "height":
+        return `Height ${count}`;
+      default:
+        return `Measurement ${count}`;
+    }
+  };
+
+  const handleSaveAnnotation = () => {
+    if (!measurementResult || !measurementMode) return;
+
+    const annotation = {
+      id: crypto.randomUUID(),
+      type: measurementMode,
+      points: [...measurementPoints],
+      result: { ...measurementResult },
+      label: newLabel.trim() || generateDefaultLabel(),
+      color: "#FF7A00",
+      visible: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    addMeasurementAnnotation(annotation);
+    clearMeasurement();
+    setSaveDialogOpen(false);
+    setNewLabel("");
+    toast.success("Measurement saved as annotation");
+  };
 
   const handleCopy = () => {
     let text = "";
@@ -165,7 +216,50 @@ export function DesignMeasurementResultPanel({ className }: DesignMeasurementRes
         <div className="text-xs text-muted-foreground pt-1 border-t">
           {measurementPoints.length} point{measurementPoints.length !== 1 ? "s" : ""} placed
         </div>
+
+        {/* Save button */}
+        {canSave && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full h-7 text-xs mt-2"
+            onClick={() => setSaveDialogOpen(true)}
+          >
+            <Save className="h-3 w-3 mr-1.5" />
+            Save as Annotation
+          </Button>
+        )}
       </div>
+
+      {/* Save Dialog */}
+      <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle>Save Measurement</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              placeholder={generateDefaultLabel()}
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSaveAnnotation();
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveAnnotation}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
