@@ -6,8 +6,9 @@
  * Supports Google Photorealistic 3D Tiles for immersive visualization.
  */
 
-import React, { useRef, useEffect, useCallback, useMemo, useState, MutableRefObject } from "react";
+import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
 import { throttle } from "lodash-es";
+import { shallow } from "zustand/shallow";
 import {
   Viewer,
   Entity,
@@ -223,13 +224,25 @@ export function CesiumViewerComponent({
       const tileset = await createGooglePhotorealistic3DTileset();
       console.log("[Google3D] Tileset created successfully");
       
+      // === Performance Optimizations for Google 3D Tiles ===
+      tileset.maximumScreenSpaceError = 16; // Default 16, lower = sharper but slower
+      tileset.preloadWhenHidden = false; // Don't load tiles when not visible
+      tileset.skipLevelOfDetail = false; // Ensure proper LOD loading
+      tileset.dynamicScreenSpaceError = true; // Adaptive quality based on camera speed
+      tileset.dynamicScreenSpaceErrorDensity = 0.00278;
+      tileset.dynamicScreenSpaceErrorFactor = 4.0;
+      
+      // These properties may not be in TypeScript types but exist in Cesium runtime
+      (tileset as any).maximumMemoryUsage = 512; // MB - prevents memory bloat
+      (tileset as any).cullWithChildrenBounds = true; // Better culling performance
+      
       // Add to scene
       viewer.scene.primitives.add(tileset);
       google3DTilesetRef.current = tileset;
       setGoogle3DTileset(tileset);
       setGoogle3DError(null);
       
-      console.log("[Google3D] Photorealistic 3D Tiles loaded successfully");
+      console.log("[Google3D] Photorealistic 3D Tiles loaded successfully (with performance optimizations)");
       toast.success("Google 3D Buildings loaded");
       
       // Update store state on success
@@ -692,49 +705,42 @@ export function CesiumViewerComponent({
     }
   }, [isDrawing, activeVariantId, updateVariant, onFootprintChange, setIsDrawing]);
 
-  // Handle shadow animation
+  // Handle shadow animation - optimized with pure requestAnimationFrame
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || !shadowsEnabled) return;
+    if (!viewer || !shadowsEnabled || !isShadowAnimating) return;
 
-    if (isShadowAnimating) {
-      let currentHour = shadowDateTime.getHours();
-      
-      const animate = () => {
+    let currentHour = shadowDateTime.getHours() + shadowDateTime.getMinutes() / 60;
+    let lastUpdateTime = 0;
+    const updateInterval = 500 / shadowPlaybackSpeed; // ms between updates
+
+    const animate = (timestamp: number) => {
+      if (timestamp - lastUpdateTime >= updateInterval) {
+        lastUpdateTime = timestamp;
+        
         currentHour += 0.5; // Advance by 30 minutes
-        if (currentHour > 20) {
-          currentHour = 6;
-        }
+        if (currentHour > 20) currentHour = 6;
         
         const newDate = new Date(shadowDateTime);
         newDate.setHours(Math.floor(currentHour));
         newDate.setMinutes((currentHour % 1) * 60);
+        
         setShadowDateTime(newDate);
-        
-        // Update Cesium clock
         viewer.clock.currentTime = JulianDate.fromDate(newDate);
-        
-        shadowAnimationRef.current = requestAnimationFrame(animate);
-      };
+      }
       
-      // Run at slower pace
-      const intervalId = setInterval(() => {
-        cancelAnimationFrame(shadowAnimationRef.current!);
-        animate();
-      }, 500);
-
-      return () => {
-        clearInterval(intervalId);
-        if (shadowAnimationRef.current) {
-          cancelAnimationFrame(shadowAnimationRef.current);
-        }
-      };
-    } else {
+      shadowAnimationRef.current = requestAnimationFrame(animate);
+    };
+    
+    shadowAnimationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
       if (shadowAnimationRef.current) {
         cancelAnimationFrame(shadowAnimationRef.current);
+        shadowAnimationRef.current = null;
       }
-    }
-  }, [isShadowAnimating, shadowsEnabled, shadowDateTime, setShadowDateTime]);
+    };
+  }, [isShadowAnimating, shadowsEnabled, shadowPlaybackSpeed, setShadowDateTime]);
 
   // Update Cesium clock when shadow datetime changes
   useEffect(() => {
@@ -820,7 +826,8 @@ export function CesiumViewerComponent({
     }
   }, [buildings3dSource, viewerReady, googleMapsToken, googleTokenLoading, basemap, loadOsmBuildings, loadGoogle3DTiles, removeAllBuildings, setBuildings3dSource]);
 
-  // Camera state tracking for controls
+  // Camera state tracking for controls - use ref for immediate access, state for UI
+  const cameraStateRef = useRef({ heading: 0, tilt: 45 });
   const [currentHeading, setCurrentHeading] = useState(0);
   const [currentTilt, setCurrentTilt] = useState(45);
 
@@ -897,7 +904,7 @@ export function CesiumViewerComponent({
     setCurrentTilt(45);
   }, [flyToPreset]);
 
-  // Track camera changes with throttling to prevent feedback loops
+  // Track camera changes with throttling to prevent feedback loops - optimized
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !viewerReady) return;
@@ -909,12 +916,16 @@ export function CesiumViewerComponent({
       const headingDegrees = CesiumMath.toDegrees(viewer.camera.heading);
       const pitchDegrees = CesiumMath.toDegrees(viewer.camera.pitch);
       // Convert pitch back to tilt (0=perspective, 90=overhead)
-      const tilt = 90 + pitchDegrees;
+      const tilt = Math.max(0, Math.min(90, 90 + pitchDegrees));
       
+      // Update ref immediately (for keyboard handlers)
+      cameraStateRef.current = { heading: headingDegrees, tilt };
+      
+      // Batch state updates
       setCurrentHeading(headingDegrees);
-      setCurrentTilt(Math.max(0, Math.min(90, tilt)));
+      setCurrentTilt(tilt);
       setCameraHeading(headingDegrees); // For street view HUD
-    }, 100); // Throttle to max 10 updates/sec
+    }, 150); // Increase throttle to 150ms for better performance
 
     viewer.camera.changed.addEventListener(updateCameraState);
     return () => {
@@ -1092,7 +1103,7 @@ export function CesiumViewerComponent({
     }
   }, []);
 
-  // Initialize viewer - runs ONLY ONCE
+  // Initialize viewer - runs ONLY ONCE with scene performance optimizations
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
     // Guard: Only initialize once to prevent re-init loop
     if (hasInitializedViewerRef.current) return;
@@ -1100,9 +1111,31 @@ export function CesiumViewerComponent({
     
     viewerRef.current = viewer;
 
+    // === Scene Performance Optimizations ===
+    
     // Enable depth testing so buildings render correctly against terrain
     viewer.scene.globe.depthTestAgainstTerrain = true;
     viewer.scene.logarithmicDepthBuffer = true;
+    
+    // Reduce anti-aliasing for better performance
+    viewer.scene.postProcessStages.fxaa.enabled = false;
+    
+    // Optimize globe rendering
+    viewer.scene.globe.tileCacheSize = 100;
+    viewer.scene.globe.maximumScreenSpaceError = 2;
+    
+    // Request render mode - only render when scene changes
+    viewer.scene.requestRenderMode = true;
+    viewer.scene.maximumRenderTimeChange = Infinity;
+    
+    // Disable unnecessary atmospheric effects for parcel-level views
+    viewer.scene.fog.enabled = false;
+    viewer.scene.skyAtmosphere.show = true; // Keep for visual quality
+    
+    // Enable FPS display in development mode
+    if (import.meta.env.DEV) {
+      viewer.scene.debugShowFramesPerSecond = true;
+    }
 
     // Enable shadows if configured
     if (shadowsEnabled) {
@@ -1119,6 +1152,8 @@ export function CesiumViewerComponent({
 
     // Mark viewer as ready - triggers the basemap effect
     setViewerReady(true);
+    
+    console.log("[CesiumViewer] Initialized with performance optimizations");
   }, [shadowsEnabled, shadowDateTime, loadWorldTerrain]);
   
   // Initial fly-to when viewer AND centroid are ready (runs ONCE)
