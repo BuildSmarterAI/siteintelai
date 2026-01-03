@@ -13,6 +13,7 @@ import {
   FastForward,
   Sunrise,
   Sunset,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -49,6 +50,7 @@ export function ShadowTimeline({
     setIsShadowAnimating,
     shadowPlaybackSpeed,
     setShadowPlaybackSpeed,
+    setShadowComparisonMode,
   } = useDesignStore();
 
   const animationRef = useRef<number | null>(null);
@@ -280,6 +282,17 @@ export function ShadowTimeline({
           <span>{formatSolarTime(shadowMetrics.sunset)}</span>
         </div>
       </div>
+
+      {/* Compare Times Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full mt-3 text-xs"
+        onClick={() => setShadowComparisonMode(true)}
+      >
+        <Clock className="h-3.5 w-3.5 mr-1.5" />
+        Compare Multiple Times
+      </Button>
     </div>
   );
 }

@@ -38,10 +38,13 @@ import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType } from "@/stores/useDesignStore";
 import { ShadowControls } from "./ShadowControls";
 import { ShadowTimeline } from "./ShadowTimeline";
+import { ShadowComparisonPanel } from "./ShadowComparisonPanel";
+import { MeasurementAnnotationsPanel } from "./MeasurementAnnotationsPanel";
 import { GoogleEarthControls } from "./GoogleEarthControls";
 import { LayersPanel } from "./LayersPanel";
 import { StreetViewHUD } from "./StreetViewHUD";
 import { useFirstPersonCamera } from "@/hooks/useFirstPersonCamera";
+import { useShadowComparison } from "@/hooks/useShadowComparison";
 import {
   feetToMeters,
   geojsonToCesiumPositions,
@@ -220,6 +223,7 @@ export function CesiumViewerComponent({
     setIsStreetViewMode,
     streetViewSettings,
     setStreetViewSettings,
+    shadowComparisonMode,
   } = useDesignStore();
 
   // Track camera heading for street view HUD
@@ -235,7 +239,6 @@ export function CesiumViewerComponent({
       mouseSensitivity: streetViewSettings.mouseSensitivity,
     }
   );
-
 
   const activeVariant = useMemo(
     () => variants.find((v) => v.id === activeVariantId),
@@ -277,6 +280,13 @@ export function CesiumViewerComponent({
     if (!envelope?.parcelGeometry) return null;
     return getPolygonCentroid(envelope.parcelGeometry);
   }, [envelope?.parcelGeometry]);
+
+  // Use shadow comparison hook (after centroid is defined)
+  useShadowComparison({
+    viewer: viewerRef.current,
+    latitude: centroid?.lat ?? 29.76,
+    longitude: centroid?.lng ?? -95.36,
+  });
 
   // Helper for async camera flight
   const flyAsync = useCallback((
@@ -1004,17 +1014,27 @@ export function CesiumViewerComponent({
       )}
 
       {/* Shadow Controls - Hidden in street view */}
-      {!isStreetViewMode && shadowsEnabled && (
+      {!isStreetViewMode && shadowsEnabled && !shadowComparisonMode && (
         <ShadowTimeline 
           className="absolute top-4 right-4 z-10" 
           latitude={centroid?.lat}
           longitude={centroid?.lng}
         />
       )}
+
+      {/* Shadow Comparison Panel - When in comparison mode */}
+      {!isStreetViewMode && shadowsEnabled && shadowComparisonMode && (
+        <ShadowComparisonPanel className="absolute top-4 right-4 z-10" />
+      )}
       
       {/* Shadow Enable Button - When shadows disabled */}
       {!isStreetViewMode && !shadowsEnabled && (
         <ShadowControls className="absolute top-4 right-4 z-10" />
+      )}
+
+      {/* Measurement Annotations Panel */}
+      {!isStreetViewMode && (
+        <MeasurementAnnotationsPanel className="absolute top-20 left-4 z-10" />
       )}
 
       {/* Drawing Mode Indicator */}

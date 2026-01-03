@@ -32,6 +32,7 @@ interface UseCesiumMeasurementOptions {
 export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
   const handlerRef = useRef<ScreenSpaceEventHandler | null>(null);
   const measurementEntitiesRef = useRef<Entity[]>([]);
+  const annotationEntitiesRef = useRef<Entity[]>([]);
   const pointsRef = useRef<Cartesian3[]>([]);
 
   const {
@@ -39,9 +40,10 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
     measurementPoints,
     setMeasurementPoints,
     setMeasurementResult,
+    measurementAnnotations,
   } = useDesignStore();
 
-  // Clear all measurement entities
+  // Clear active measurement entities (not saved annotations)
   const clearEntities = useCallback(() => {
     if (!viewer) return;
     
@@ -50,6 +52,20 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
     });
     measurementEntitiesRef.current = [];
     pointsRef.current = [];
+  }, [viewer]);
+
+  // Clear annotation entities
+  const clearAnnotationEntities = useCallback(() => {
+    if (!viewer) return;
+    
+    annotationEntitiesRef.current.forEach((entity) => {
+      try {
+        viewer.entities.remove(entity);
+      } catch (e) {
+        // Entity may already be removed
+      }
+    });
+    annotationEntitiesRef.current = [];
   }, [viewer]);
 
   // Calculate distance between points
@@ -146,16 +162,23 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
     measurementEntitiesRef.current.push(entity);
   }, [viewer]);
 
-  // Add label entity
-  const addLabelEntity = useCallback((position: Cartesian3, text: string) => {
-    if (!viewer) return;
+  // Add label entity with custom styling
+  const addLabelEntity = useCallback((
+    position: Cartesian3, 
+    text: string, 
+    color?: string,
+    isAnnotation: boolean = false
+  ) => {
+    if (!viewer) return null;
 
+    const labelColor = color ? Color.fromCssColorString(color) : Color.WHITE;
+    
     const entity = viewer.entities.add({
       position,
       label: {
         text,
-        font: "14px sans-serif",
-        fillColor: Color.WHITE,
+        font: isAnnotation ? "13px sans-serif" : "14px sans-serif",
+        fillColor: labelColor,
         outlineColor: Color.BLACK,
         outlineWidth: 2,
         style: LabelStyle.FILL_AND_OUTLINE,
@@ -164,11 +187,118 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
         pixelOffset: new Cartesian2(0, -15),
         heightReference: HeightReference.CLAMP_TO_GROUND,
         disableDepthTestDistance: Number.POSITIVE_INFINITY,
+        showBackground: isAnnotation,
+        backgroundColor: isAnnotation ? Color.BLACK.withAlpha(0.6) : undefined,
       },
     });
 
-    measurementEntitiesRef.current.push(entity);
+    return entity;
   }, [viewer]);
+
+  // Add label to active measurement entities
+  const addMeasurementLabel = useCallback((position: Cartesian3, text: string) => {
+    const entity = addLabelEntity(position, text);
+    if (entity) {
+      measurementEntitiesRef.current.push(entity);
+    }
+  }, [addLabelEntity]);
+
+  // Render saved annotations
+  const renderAnnotations = useCallback(() => {
+    if (!viewer) return;
+
+    // Clear existing annotation entities
+    clearAnnotationEntities();
+
+    // Render each visible annotation
+    measurementAnnotations
+      .filter((a) => a.visible)
+      .forEach((annotation) => {
+        const cesiumPoints = annotation.points.map(([lng, lat]) =>
+          Cartesian3.fromDegrees(lng, lat)
+        );
+        const annotationColor = Color.fromCssColorString(annotation.color);
+
+        // Add point markers
+        cesiumPoints.forEach((pos) => {
+          const entity = viewer.entities.add({
+            position: pos,
+            point: {
+              pixelSize: 8,
+              color: annotationColor,
+              outlineColor: Color.WHITE,
+              outlineWidth: 1,
+              heightReference: HeightReference.CLAMP_TO_GROUND,
+            },
+          });
+          annotationEntitiesRef.current.push(entity);
+        });
+
+        // Add line or polygon
+        if (annotation.type === "distance" && cesiumPoints.length >= 2) {
+          const entity = viewer.entities.add({
+            polyline: {
+              positions: cesiumPoints,
+              width: 2,
+              material: new PolylineGlowMaterialProperty({
+                glowPower: 0.15,
+                color: annotationColor,
+              }),
+              clampToGround: true,
+            },
+          });
+          annotationEntitiesRef.current.push(entity);
+
+          // Add label
+          const midIndex = Math.floor(cesiumPoints.length / 2);
+          const labelText = `${annotation.label}: ${annotation.result.feet?.toFixed(1)} ft`;
+          const labelEntity = addLabelEntity(cesiumPoints[midIndex], labelText, annotation.color, true);
+          if (labelEntity) annotationEntitiesRef.current.push(labelEntity);
+        } else if (annotation.type === "area" && cesiumPoints.length >= 3) {
+          const entity = viewer.entities.add({
+            polygon: {
+              hierarchy: cesiumPoints,
+              material: annotationColor.withAlpha(0.25),
+              outline: true,
+              outlineColor: annotationColor,
+              heightReference: HeightReference.CLAMP_TO_GROUND,
+            },
+          });
+          annotationEntitiesRef.current.push(entity);
+
+          // Add label at centroid
+          const centerLng = annotation.points.reduce((sum, p) => sum + p[0], 0) / annotation.points.length;
+          const centerLat = annotation.points.reduce((sum, p) => sum + p[1], 0) / annotation.points.length;
+          const labelText = `${annotation.label}: ${annotation.result.sqft?.toLocaleString()} sq ft`;
+          const labelEntity = addLabelEntity(
+            Cartesian3.fromDegrees(centerLng, centerLat),
+            labelText,
+            annotation.color,
+            true
+          );
+          if (labelEntity) annotationEntitiesRef.current.push(labelEntity);
+        } else if (annotation.type === "height" && cesiumPoints.length >= 2) {
+          const entity = viewer.entities.add({
+            polyline: {
+              positions: cesiumPoints,
+              width: 2,
+              material: new PolylineGlowMaterialProperty({
+                glowPower: 0.15,
+                color: annotationColor,
+              }),
+              clampToGround: false,
+            },
+          });
+          annotationEntitiesRef.current.push(entity);
+
+          // Add label
+          const midpoint = Cartesian3.midpoint(cesiumPoints[0], cesiumPoints[1], new Cartesian3());
+          const labelText = `${annotation.label}: ${annotation.result.heightFt?.toFixed(1)} ft`;
+          const labelEntity = addLabelEntity(midpoint, labelText, annotation.color, true);
+          if (labelEntity) annotationEntitiesRef.current.push(labelEntity);
+        }
+      });
+  }, [viewer, measurementAnnotations, clearAnnotationEntities, addLabelEntity]);
 
   // Update visualization
   const updateVisualization = useCallback(() => {
@@ -191,7 +321,7 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
       
       // Add label at midpoint
       const midIndex = Math.floor(cesiumPoints.length / 2);
-      addLabelEntity(cesiumPoints[midIndex], `${feet.toFixed(1)} ft`);
+      addMeasurementLabel(cesiumPoints[midIndex], `${feet.toFixed(1)} ft`);
       
       setMeasurementResult({
         feet,
@@ -204,7 +334,7 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
       // Add label at centroid
       const centerLng = measurementPoints.reduce((sum, p) => sum + p[0], 0) / measurementPoints.length;
       const centerLat = measurementPoints.reduce((sum, p) => sum + p[1], 0) / measurementPoints.length;
-      addLabelEntity(
+      addMeasurementLabel(
         Cartesian3.fromDegrees(centerLng, centerLat),
         `${sqft.toLocaleString()} sq ft`
       );
@@ -220,7 +350,7 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
       
       if (heightFt !== null) {
         const midpoint = Cartesian3.midpoint(cesiumPoints[0], cesiumPoints[1], new Cartesian3());
-        addLabelEntity(midpoint, `${heightFt.toFixed(1)} ft`);
+        addMeasurementLabel(midpoint, `${heightFt.toFixed(1)} ft`);
         
         setMeasurementResult({ heightFt });
       }
@@ -233,7 +363,7 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
     addPointEntity,
     addLineEntity,
     addPolygonEntity,
-    addLabelEntity,
+    addMeasurementLabel,
     calculateDistance,
     calculateArea,
     calculateHeight,
@@ -288,17 +418,24 @@ export function useCesiumMeasurement({ viewer }: UseCesiumMeasurementOptions) {
     updateVisualization();
   }, [measurementPoints, updateVisualization]);
 
+  // Render annotations when they change
+  useEffect(() => {
+    renderAnnotations();
+  }, [measurementAnnotations, renderAnnotations]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       clearEntities();
+      clearAnnotationEntities();
       if (handlerRef.current) {
         handlerRef.current.destroy();
       }
     };
-  }, [clearEntities]);
+  }, [clearEntities, clearAnnotationEntities]);
 
   return {
     clearEntities,
+    renderAnnotations,
   };
 }
