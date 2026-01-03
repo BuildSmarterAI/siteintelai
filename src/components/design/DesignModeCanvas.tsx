@@ -25,6 +25,9 @@ interface DesignModeCanvasProps {
 
 // Layer IDs for consistent reference
 const LAYERS = {
+  PARCEL_GLOW_OUTER: "design-parcel-glow-outer",
+  PARCEL_GLOW_MID: "design-parcel-glow-mid",
+  PARCEL_GLOW_INNER: "design-parcel-glow-inner",
   PARCEL_FILL: "design-parcel-fill",
   PARCEL_LINE: "design-parcel-line",
   ENVELOPE_FILL: "design-envelope-fill",
@@ -176,24 +179,65 @@ export function DesignModeCanvas({
         },
       });
 
+      // Glow outer layer (14px, 8% opacity)
+      mapInstance.addLayer({
+        id: LAYERS.PARCEL_GLOW_OUTER,
+        type: "line",
+        source: SOURCES.PARCEL,
+        paint: {
+          "line-color": "#FF7A00",
+          "line-width": 14,
+          "line-opacity": 0.08,
+          "line-blur": 4,
+        },
+      });
+
+      // Glow mid layer (10px, 12% opacity)
+      mapInstance.addLayer({
+        id: LAYERS.PARCEL_GLOW_MID,
+        type: "line",
+        source: SOURCES.PARCEL,
+        paint: {
+          "line-color": "#FF7A00",
+          "line-width": 10,
+          "line-opacity": 0.12,
+          "line-blur": 2,
+        },
+      });
+
+      // Glow inner layer (6px, 18% opacity)
+      mapInstance.addLayer({
+        id: LAYERS.PARCEL_GLOW_INNER,
+        type: "line",
+        source: SOURCES.PARCEL,
+        paint: {
+          "line-color": "#FF7A00",
+          "line-width": 6,
+          "line-opacity": 0.18,
+          "line-blur": 1,
+        },
+      });
+
+      // Parcel fill (brand orange, higher opacity)
       mapInstance.addLayer({
         id: LAYERS.PARCEL_FILL,
         type: "fill",
         source: SOURCES.PARCEL,
         paint: {
-          "fill-color": "#6366F1",
-          "fill-opacity": 0.1,
+          "fill-color": "#FF7A00",
+          "fill-opacity": 0.15,
         },
       });
 
+      // Parcel outline (solid, thicker)
       mapInstance.addLayer({
         id: LAYERS.PARCEL_LINE,
         type: "line",
         source: SOURCES.PARCEL,
         paint: {
-          "line-color": "#6366F1",
-          "line-width": 2,
-          "line-dasharray": [4, 2],
+          "line-color": "#FF7A00",
+          "line-width": 4,
+          "line-opacity": 1.0,
         },
       });
     }
