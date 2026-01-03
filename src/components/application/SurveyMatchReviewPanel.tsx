@@ -4,8 +4,7 @@
  * Allows user to select from top candidates or use manual search
  */
 
-import { useState } from 'react';
-import { CheckCircle2, MapPin, User, Ruler, ChevronRight } from 'lucide-react';
+import { CheckCircle2, MapPin, User, Ruler, ChevronRight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,23 +17,36 @@ interface SurveyMatchReviewPanelProps {
   onSelectParcel: (candidate: SurveyMatchCandidate) => void;
   onUseManualSearch: () => void;
   isSelecting?: boolean;
+  hasCounty?: boolean;
 }
 
-const REASON_CODE_LABELS: Record<MatchReasonCode, { label: string; variant: "default" | "secondary" | "outline" }> = {
-  APN: { label: "APN Match", variant: "default" },
-  ADDRESS: { label: "Address", variant: "secondary" },
-  SHAPE: { label: "Shape", variant: "outline" },
-  COUNTY: { label: "County", variant: "outline" },
-  AREA_SIMILAR: { label: "Similar Area", variant: "outline" },
+const REASON_CODE_CONFIG: Record<MatchReasonCode, { label: string; variant: "default" | "secondary" | "outline"; priority: number }> = {
+  APN_MATCH: { label: "APN Match", variant: "default", priority: 1 },
+  ADDRESS_MATCH: { label: "Address Match", variant: "default", priority: 2 },
+  LEGAL_DESC_MATCH: { label: "Legal Description", variant: "secondary", priority: 3 },
+  OWNER_MATCH: { label: "Owner Match", variant: "secondary", priority: 4 },
+  AREA_MATCH: { label: "Area Match", variant: "outline", priority: 5 },
+  COUNTY_MATCH: { label: "County", variant: "outline", priority: 6 },
+  // Legacy codes
+  APN: { label: "APN Match", variant: "default", priority: 1 },
+  ADDRESS: { label: "Address", variant: "secondary", priority: 2 },
+  SHAPE: { label: "Shape", variant: "outline", priority: 3 },
+  COUNTY: { label: "County", variant: "outline", priority: 6 },
+  AREA_SIMILAR: { label: "Similar Area", variant: "outline", priority: 5 },
 };
 
 function ConfidenceBar({ confidence }: { confidence: number }) {
   const percentage = Math.round(confidence * 100);
-  const color = confidence >= 0.8 ? "bg-green-500" : confidence >= 0.6 ? "bg-amber-500" : "bg-red-500";
+  const colorClass = confidence >= 0.8 ? "bg-green-500" : confidence >= 0.6 ? "bg-amber-500" : "bg-red-500";
   
   return (
     <div className="flex items-center gap-2">
-      <Progress value={percentage} className={`h-2 w-16 ${color}`} />
+      <div className="relative w-16 h-2 bg-muted rounded-full overflow-hidden">
+        <div 
+          className={`absolute inset-y-0 left-0 ${colorClass} rounded-full transition-all`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
       <span className="text-xs font-medium text-muted-foreground">{percentage}%</span>
     </div>
   );
@@ -43,14 +55,23 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
 function CandidateCard({ 
   candidate, 
   onSelect, 
-  isSelecting 
+  isSelecting,
+  rank,
 }: { 
   candidate: SurveyMatchCandidate; 
   onSelect: () => void;
   isSelecting: boolean;
+  rank: number;
 }) {
+  // Sort reason codes by priority
+  const sortedReasonCodes = [...candidate.reason_codes].sort((a, b) => {
+    const priorityA = REASON_CODE_CONFIG[a as MatchReasonCode]?.priority || 99;
+    const priorityB = REASON_CODE_CONFIG[b as MatchReasonCode]?.priority || 99;
+    return priorityA - priorityB;
+  });
+
   return (
-    <Card className="hover:border-primary/50 transition-colors">
+    <Card className={`hover:border-primary/50 transition-colors ${rank === 1 ? 'border-primary/30 bg-primary/5' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-2">
@@ -72,7 +93,7 @@ function CandidateCard({
               {candidate.owner_name && (
                 <div className="flex items-center gap-1">
                   <User className="h-3 w-3" />
-                  <span className="truncate max-w-[120px]">{candidate.owner_name}</span>
+                  <span className="truncate max-w-[150px]">{candidate.owner_name}</span>
                 </div>
               )}
               {candidate.acreage && (
@@ -85,8 +106,8 @@ function CandidateCard({
 
             {/* Reason Chips */}
             <div className="flex flex-wrap gap-1">
-              {candidate.reason_codes.map((code) => {
-                const config = REASON_CODE_LABELS[code as MatchReasonCode] || { label: code, variant: "outline" as const };
+              {sortedReasonCodes.map((code) => {
+                const config = REASON_CODE_CONFIG[code as MatchReasonCode] || { label: code, variant: "outline" as const };
                 return (
                   <Badge key={code} variant={config.variant} className="text-xs">
                     {config.label}
@@ -104,6 +125,7 @@ function CandidateCard({
               onClick={onSelect}
               disabled={isSelecting}
               className="gap-1"
+              variant={rank === 1 ? "default" : "outline"}
             >
               <CheckCircle2 className="h-3 w-3" />
               Select
@@ -120,14 +142,29 @@ export function SurveyMatchReviewPanel({
   onSelectParcel,
   onUseManualSearch,
   isSelecting = false,
+  hasCounty = true,
 }: SurveyMatchReviewPanelProps) {
   if (candidates.length === 0) {
     return (
       <Card className="border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
-        <CardContent className="py-6 text-center">
-          <p className="text-sm text-muted-foreground mb-4">
-            No matching parcels found based on the survey data.
-          </p>
+        <CardContent className="py-6 text-center space-y-4">
+          <div className="flex justify-center">
+            <Search className="h-10 w-10 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-medium mb-1">
+              {hasCounty 
+                ? "No matching parcels found in the extracted area"
+                : "Unable to determine survey location"
+              }
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {hasCounty 
+                ? "The survey data didn't match any parcels in our database. Please search manually."
+                : "Please specify the county and use manual search to find the parcel."
+              }
+            </p>
+          </div>
           <Button variant="outline" onClick={onUseManualSearch}>
             <ChevronRight className="h-4 w-4 mr-2" />
             Use Manual Parcel Search
@@ -153,12 +190,13 @@ export function SurveyMatchReviewPanel({
       <CardContent className="space-y-3">
         <ScrollArea className="max-h-[300px]">
           <div className="space-y-2 pr-2">
-            {candidates.map((candidate) => (
+            {candidates.map((candidate, index) => (
               <CandidateCard
                 key={candidate.parcel_id}
                 candidate={candidate}
                 onSelect={() => onSelectParcel(candidate)}
                 isSelecting={isSelecting}
+                rank={index + 1}
               />
             ))}
           </div>

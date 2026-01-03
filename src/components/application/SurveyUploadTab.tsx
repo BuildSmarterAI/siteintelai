@@ -29,7 +29,8 @@ import {
   selectMatchedParcel,
   getMatchStatus 
 } from '@/services/surveyAutoMatchApi';
-import type { SurveyMatchStatus as MatchStatus, SurveyMatchCandidate } from '@/types/surveyAutoMatch';
+import { renderPdfFirstPage, isPdfFile } from '@/utils/pdfRenderer';
+import type { SurveyMatchStatus as MatchStatus, SurveyMatchCandidate, SurveyExtraction } from '@/types/surveyAutoMatch';
 import { toast } from 'sonner';
 
 interface SurveyUploadTabProps {
@@ -63,11 +64,7 @@ export function SurveyUploadTab({
   const [matchConfidence, setMatchConfidence] = useState<number>(0);
   const [matchCandidates, setMatchCandidates] = useState<SurveyMatchCandidate[]>([]);
   const [selectedParcel, setSelectedParcel] = useState<SurveyMatchCandidate | null>(null);
-  const [extraction, setExtraction] = useState<{
-    apn_extracted: string | null;
-    address_extracted: string | null;
-    county_extracted: string | null;
-  } | null>(null);
+  const [extraction, setExtraction] = useState<SurveyExtraction | null>(null);
   const [isSelectingParcel, setIsSelectingParcel] = useState(false);
 
   // Use external state if provided, otherwise use internal
@@ -117,9 +114,22 @@ export function SurveyUploadTab({
       toast.success('Survey uploaded - analyzing...');
       onSurveyUploaded?.(result.survey);
 
-      // Trigger auto-match immediately
+      // Trigger auto-match with optional client-side OCR image
       setMatchStatus('analyzing');
-      const matchResult = await triggerAutoMatch(result.survey.id);
+      
+      // If PDF, render first page for OCR
+      let ocrImageBase64: string | undefined;
+      if (isPdfFile(file)) {
+        try {
+          console.log('[SurveyUploadTab] Rendering PDF first page for OCR...');
+          ocrImageBase64 = await renderPdfFirstPage(file);
+          console.log('[SurveyUploadTab] PDF rendered, image length:', ocrImageBase64?.length);
+        } catch (renderError) {
+          console.warn('[SurveyUploadTab] PDF render failed, proceeding without OCR image:', renderError);
+        }
+      }
+      
+      const matchResult = await triggerAutoMatch(result.survey.id, ocrImageBase64);
       
       setIsUploading(false);
       
@@ -379,6 +389,7 @@ export function SurveyUploadTab({
               onSelectParcel={handleSelectCandidate}
               onUseManualSearch={handleUseManualSearch}
               isSelecting={isSelectingParcel}
+              hasCounty={!!(extraction?.county_extracted || surveyCounty)}
             />
           )}
 
