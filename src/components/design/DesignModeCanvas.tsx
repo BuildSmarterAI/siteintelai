@@ -10,7 +10,7 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
-import { useDesignStore } from "@/stores/useDesignStore";
+import { useDesignStore, type BasemapType } from "@/stores/useDesignStore";
 import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
 import { toast } from "sonner";
@@ -19,6 +19,9 @@ interface DesignModeCanvasProps {
   className?: string;
   onFootprintChange?: (geometry: GeoJSON.Polygon | null) => void;
 }
+
+// Mapbox token for satellite imagery
+const MAPBOX_TOKEN = "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw";
 
 // Layer IDs for consistent reference
 const LAYERS = {
@@ -38,37 +41,57 @@ const SOURCES = {
   VIOLATION: "design-violation",
 };
 
-export function DesignModeCanvas({ 
-  className,
-  onFootprintChange 
-}: DesignModeCanvasProps) {
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
-  const draw = useRef<MapboxDraw | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
-
-  const {
-    envelope,
-    variants,
-    activeVariantId,
-    isDrawing,
-    setIsDrawing,
-    updateVariant,
-  } = useDesignStore();
-
-  const activeVariant = variants.find(v => v.id === activeVariantId);
-
-  // Initialize map
-  useEffect(() => {
-    if (!mapContainer.current || map.current) return;
-
-    const center: [number, number] = envelope?.parcelGeometry
-      ? turf.centroid(envelope.parcelGeometry).geometry.coordinates as [number, number]
-      : [-95.37, 29.76]; // Houston default
-
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: {
+// Basemap style configurations
+const getBasemapStyle = (basemap: BasemapType): maplibregl.StyleSpecification => {
+  switch (basemap) {
+    case "satellite":
+      return {
+        version: 8,
+        sources: {
+          "mapbox-satellite": {
+            type: "raster",
+            tiles: [`https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${MAPBOX_TOKEN}`],
+            tileSize: 512,
+            attribution: "© Mapbox © OpenStreetMap",
+          },
+        },
+        layers: [
+          { id: "satellite", type: "raster", source: "mapbox-satellite" },
+        ],
+      };
+    case "satellite-labels":
+      return {
+        version: 8,
+        sources: {
+          "mapbox-hybrid": {
+            type: "raster",
+            tiles: [`https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`],
+            tileSize: 512,
+            attribution: "© Mapbox © OpenStreetMap",
+          },
+        },
+        layers: [
+          { id: "hybrid", type: "raster", source: "mapbox-hybrid" },
+        ],
+      };
+    case "terrain":
+      return {
+        version: 8,
+        sources: {
+          "mapbox-terrain": {
+            type: "raster",
+            tiles: [`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`],
+            tileSize: 512,
+            attribution: "© Mapbox © OpenStreetMap",
+          },
+        },
+        layers: [
+          { id: "terrain", type: "raster", source: "mapbox-terrain" },
+        ],
+      };
+    case "osm":
+    default:
+      return {
         version: 8,
         sources: {
           "osm-tiles": {
@@ -89,7 +112,210 @@ export function DesignModeCanvas({
             maxzoom: 19,
           },
         ],
-      },
+      };
+  }
+};
+
+export function DesignModeCanvas({ 
+  className,
+  onFootprintChange 
+}: DesignModeCanvasProps) {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<maplibregl.Map | null>(null);
+  const draw = useRef<MapboxDraw | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const layersAdded = useRef(false);
+
+  const {
+    envelope,
+    variants,
+    activeVariantId,
+    isDrawing,
+    setIsDrawing,
+    updateVariant,
+    basemap,
+  } = useDesignStore();
+
+  const activeVariant = variants.find(v => v.id === activeVariantId);
+
+  // Helper function to add design layers
+  const addDesignLayers = useCallback((
+    mapInstance: maplibregl.Map, 
+    env: typeof envelope
+  ) => {
+    if (!env) return;
+
+    // Add parcel source and layers
+    if (!mapInstance.getSource(SOURCES.PARCEL)) {
+      mapInstance.addSource(SOURCES.PARCEL, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: env.parcelGeometry,
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.PARCEL_FILL,
+        type: "fill",
+        source: SOURCES.PARCEL,
+        paint: {
+          "fill-color": "#6366F1",
+          "fill-opacity": 0.1,
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.PARCEL_LINE,
+        type: "line",
+        source: SOURCES.PARCEL,
+        paint: {
+          "line-color": "#6366F1",
+          "line-width": 2,
+          "line-dasharray": [4, 2],
+        },
+      });
+    }
+
+    // Add envelope source and layers
+    if (!mapInstance.getSource(SOURCES.ENVELOPE)) {
+      mapInstance.addSource(SOURCES.ENVELOPE, {
+        type: "geojson",
+        data: {
+          type: "Feature",
+          properties: {},
+          geometry: env.buildableFootprint2d,
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.ENVELOPE_FILL,
+        type: "fill",
+        source: SOURCES.ENVELOPE,
+        paint: {
+          "fill-color": "#64748B",
+          "fill-opacity": 0.15,
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.ENVELOPE_LINE,
+        type: "line",
+        source: SOURCES.ENVELOPE,
+        paint: {
+          "line-color": "#64748B",
+          "line-width": 2,
+          "line-dasharray": [6, 3],
+        },
+      });
+    }
+
+    // Add footprint source (empty initially)
+    if (!mapInstance.getSource(SOURCES.FOOTPRINT)) {
+      mapInstance.addSource(SOURCES.FOOTPRINT, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [],
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.FOOTPRINT_FILL,
+        type: "fill",
+        source: SOURCES.FOOTPRINT,
+        paint: {
+          "fill-color": "#FF7A00",
+          "fill-opacity": 0.4,
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.FOOTPRINT_LINE,
+        type: "line",
+        source: SOURCES.FOOTPRINT,
+        paint: {
+          "line-color": "#FF7A00",
+          "line-width": 3,
+        },
+      });
+    }
+
+    // Add violation highlight source
+    if (!mapInstance.getSource(SOURCES.VIOLATION)) {
+      mapInstance.addSource(SOURCES.VIOLATION, {
+        type: "geojson",
+        data: {
+          type: "FeatureCollection",
+          features: [],
+        },
+      });
+
+      mapInstance.addLayer({
+        id: LAYERS.VIOLATION_LINE,
+        type: "line",
+        source: SOURCES.VIOLATION,
+        paint: {
+          "line-color": "#EF4444",
+          "line-width": 4,
+          "line-dasharray": [2, 2],
+        },
+      });
+    }
+  }, []);
+
+  // Draw event handlers
+  const handleDrawCreate = useCallback((e: { features?: Array<{ geometry: GeoJSON.Polygon }> }) => {
+    if (!activeVariant || !e.features?.length) return;
+
+    const drawnGeometry = e.features[0].geometry as GeoJSON.Polygon;
+    
+    // Clear the draw control after capture
+    draw.current?.deleteAll();
+    setIsDrawing(false);
+
+    // Update variant
+    updateVariant(activeVariant.id, {
+      footprint: drawnGeometry,
+    });
+
+    onFootprintChange?.(drawnGeometry);
+    toast.success("Footprint created");
+  }, [activeVariant, updateVariant, setIsDrawing, onFootprintChange]);
+
+  const handleDrawUpdate = useCallback((e: { features?: Array<{ geometry: GeoJSON.Polygon }> }) => {
+    if (!activeVariant || !e.features?.length) return;
+
+    const updatedGeometry = e.features[0].geometry as GeoJSON.Polygon;
+    updateVariant(activeVariant.id, {
+      footprint: updatedGeometry,
+    });
+
+    onFootprintChange?.(updatedGeometry);
+  }, [activeVariant, updateVariant, onFootprintChange]);
+
+  const handleDrawDelete = useCallback(() => {
+    if (!activeVariant) return;
+
+    updateVariant(activeVariant.id, {
+      footprint: null,
+    });
+
+    onFootprintChange?.(null);
+  }, [activeVariant, updateVariant, onFootprintChange]);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapContainer.current || map.current) return;
+
+    const center: [number, number] = envelope?.parcelGeometry
+      ? turf.centroid(envelope.parcelGeometry).geometry.coordinates as [number, number]
+      : [-95.37, 29.76]; // Houston default
+
+    map.current = new maplibregl.Map({
+      container: mapContainer.current,
+      style: getBasemapStyle(basemap),
       center,
       zoom: 17,
       attributionControl: false,
@@ -164,128 +390,28 @@ export function DesignModeCanvas({
     };
   }, []);
 
+  // Handle basemap changes
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Change style
+    map.current.setStyle(getBasemapStyle(basemap));
+    
+    // Re-add layers after style loads
+    map.current.once("style.load", () => {
+      if (!map.current || !envelope) return;
+      layersAdded.current = false;
+      addDesignLayers(map.current, envelope);
+      layersAdded.current = true;
+    });
+  }, [basemap, mapLoaded, envelope, addDesignLayers]);
+
   // Add envelope and parcel layers when map loads
   useEffect(() => {
-    if (!mapLoaded || !map.current || !envelope) return;
-
-    // Add parcel source and layers
-    if (!map.current.getSource(SOURCES.PARCEL)) {
-      map.current.addSource(SOURCES.PARCEL, {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          properties: {},
-          geometry: envelope.parcelGeometry,
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.PARCEL_FILL,
-        type: "fill",
-        source: SOURCES.PARCEL,
-        paint: {
-          "fill-color": "#6366F1",
-          "fill-opacity": 0.1,
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.PARCEL_LINE,
-        type: "line",
-        source: SOURCES.PARCEL,
-        paint: {
-          "line-color": "#6366F1",
-          "line-width": 2,
-          "line-dasharray": [4, 2],
-        },
-      });
-    }
-
-    // Add envelope source and layers
-    if (!map.current.getSource(SOURCES.ENVELOPE)) {
-      map.current.addSource(SOURCES.ENVELOPE, {
-        type: "geojson",
-        data: {
-          type: "Feature",
-          properties: {},
-          geometry: envelope.buildableFootprint2d,
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.ENVELOPE_FILL,
-        type: "fill",
-        source: SOURCES.ENVELOPE,
-        paint: {
-          "fill-color": "#64748B",
-          "fill-opacity": 0.15,
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.ENVELOPE_LINE,
-        type: "line",
-        source: SOURCES.ENVELOPE,
-        paint: {
-          "line-color": "#64748B",
-          "line-width": 2,
-          "line-dasharray": [6, 3],
-        },
-      });
-    }
-
-    // Add footprint source (empty initially)
-    if (!map.current.getSource(SOURCES.FOOTPRINT)) {
-      map.current.addSource(SOURCES.FOOTPRINT, {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: [],
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.FOOTPRINT_FILL,
-        type: "fill",
-        source: SOURCES.FOOTPRINT,
-        paint: {
-          "fill-color": "#FF7A00",
-          "fill-opacity": 0.4,
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.FOOTPRINT_LINE,
-        type: "line",
-        source: SOURCES.FOOTPRINT,
-        paint: {
-          "line-color": "#FF7A00",
-          "line-width": 3,
-        },
-      });
-    }
-
-    // Add violation highlight source
-    if (!map.current.getSource(SOURCES.VIOLATION)) {
-      map.current.addSource(SOURCES.VIOLATION, {
-        type: "geojson",
-        data: {
-          type: "FeatureCollection",
-          features: [],
-        },
-      });
-
-      map.current.addLayer({
-        id: LAYERS.VIOLATION_LINE,
-        type: "line",
-        source: SOURCES.VIOLATION,
-        paint: {
-          "line-color": "#EF4444",
-          "line-width": 4,
-          "line-dasharray": [2, 2],
-        },
-      });
-    }
+    if (!mapLoaded || !map.current || !envelope || layersAdded.current) return;
+    
+    addDesignLayers(map.current, envelope);
+    layersAdded.current = true;
 
     // Fit bounds to envelope
     const bounds = turf.bbox(envelope.parcelGeometry);
@@ -293,47 +419,7 @@ export function DesignModeCanvas({
       [[bounds[0], bounds[1]], [bounds[2], bounds[3]]],
       { padding: 60, duration: 1000 }
     );
-  }, [mapLoaded, envelope]);
-
-  // Update footprint layer when active variant changes
-  useEffect(() => {
-    if (!mapLoaded || !map.current) return;
-
-    const source = map.current.getSource(SOURCES.FOOTPRINT) as maplibregl.GeoJSONSource;
-    if (!source) return;
-
-    if (activeVariant?.footprint) {
-      source.setData({
-        type: "Feature",
-        properties: {},
-        geometry: activeVariant.footprint,
-      });
-
-      // Update violation highlight if there are violations
-      updateViolationHighlight();
-    } else {
-      source.setData({
-        type: "FeatureCollection",
-        features: [],
-      });
-      // Clear violations
-      const violationSource = map.current.getSource(SOURCES.VIOLATION) as maplibregl.GeoJSONSource;
-      if (violationSource) {
-        violationSource.setData({ type: "FeatureCollection", features: [] });
-      }
-    }
-  }, [mapLoaded, activeVariant?.footprint, activeVariant?.complianceResult]);
-
-  // Handle drawing mode changes
-  useEffect(() => {
-    if (!draw.current) return;
-
-    if (isDrawing) {
-      draw.current.changeMode("draw_polygon");
-    } else {
-      draw.current.changeMode("simple_select");
-    }
-  }, [isDrawing]);
+  }, [mapLoaded, envelope, addDesignLayers]);
 
   // Update violation highlight based on compliance result
   const updateViolationHighlight = useCallback(() => {
@@ -373,45 +459,45 @@ export function DesignModeCanvas({
     }
   }, [activeVariant?.footprint, envelope]);
 
-  // Draw event handlers
-  const handleDrawCreate = useCallback((e: any) => {
-    if (!activeVariant || !e.features?.length) return;
+  // Update footprint layer when active variant changes
+  useEffect(() => {
+    if (!mapLoaded || !map.current) return;
 
-    const drawnGeometry = e.features[0].geometry as GeoJSON.Polygon;
-    
-    // Clear the draw control after capture
-    draw.current?.deleteAll();
-    setIsDrawing(false);
+    const source = map.current.getSource(SOURCES.FOOTPRINT) as maplibregl.GeoJSONSource;
+    if (!source) return;
 
-    // Update variant
-    updateVariant(activeVariant.id, {
-      footprint: drawnGeometry,
-    });
+    if (activeVariant?.footprint) {
+      source.setData({
+        type: "Feature",
+        properties: {},
+        geometry: activeVariant.footprint,
+      });
 
-    onFootprintChange?.(drawnGeometry);
-    toast.success("Footprint created");
-  }, [activeVariant, updateVariant, setIsDrawing, onFootprintChange]);
+      // Update violation highlight if there are violations
+      updateViolationHighlight();
+    } else {
+      source.setData({
+        type: "FeatureCollection",
+        features: [],
+      });
+      // Clear violations
+      const violationSource = map.current.getSource(SOURCES.VIOLATION) as maplibregl.GeoJSONSource;
+      if (violationSource) {
+        violationSource.setData({ type: "FeatureCollection", features: [] });
+      }
+    }
+  }, [mapLoaded, activeVariant?.footprint, updateViolationHighlight]);
 
-  const handleDrawUpdate = useCallback((e: any) => {
-    if (!activeVariant || !e.features?.length) return;
+  // Handle drawing mode changes
+  useEffect(() => {
+    if (!draw.current) return;
 
-    const updatedGeometry = e.features[0].geometry as GeoJSON.Polygon;
-    updateVariant(activeVariant.id, {
-      footprint: updatedGeometry,
-    });
-
-    onFootprintChange?.(updatedGeometry);
-  }, [activeVariant, updateVariant, onFootprintChange]);
-
-  const handleDrawDelete = useCallback(() => {
-    if (!activeVariant) return;
-
-    updateVariant(activeVariant.id, {
-      footprint: null,
-    });
-
-    onFootprintChange?.(null);
-  }, [activeVariant, updateVariant, onFootprintChange]);
+    if (isDrawing) {
+      draw.current.changeMode("draw_polygon");
+    } else {
+      draw.current.changeMode("simple_select");
+    }
+  }, [isDrawing]);
 
   return (
     <div className={cn("relative w-full h-full", className)}>

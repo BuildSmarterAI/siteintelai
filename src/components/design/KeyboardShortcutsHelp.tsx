@@ -15,6 +15,7 @@ import { Keyboard } from "lucide-react";
 
 const shortcuts = [
   { key: "D", description: "Start drawing footprint" },
+  { key: "T", description: "Cycle view mode (2D/3D/Split)" },
   { key: "Escape", description: "Cancel drawing / exit mode" },
   { key: "1-9", description: "Switch to variant N" },
   { key: "?", description: "Show this help" },

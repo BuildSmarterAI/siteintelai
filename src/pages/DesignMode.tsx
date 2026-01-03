@@ -19,7 +19,9 @@ import { DesignVariantList } from "@/components/design/DesignVariantList";
 import { DesignToolbar } from "@/components/design/DesignToolbar";
 import { CesiumViewerComponent } from "@/components/design/CesiumViewer";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
+import { SplitViewCanvas } from "@/components/design/SplitViewCanvas";
 import { ViewModeToggle } from "@/components/design/ViewModeToggle";
+import { BasemapSelector } from "@/components/design/BasemapSelector";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
 import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
@@ -162,8 +164,11 @@ export default function DesignMode() {
           handleStartDrawing();
           break;
         case "t":
-          // Toggle between 2D and 3D views
-          setCanvasViewMode(canvasViewMode === "2d" ? "3d" : "2d");
+          // Cycle through 2D → 3D → Split → 2D
+          const modes: ("2d" | "3d" | "split")[] = ["2d", "3d", "split"];
+          const currentIndex = modes.indexOf(canvasViewMode);
+          const nextIndex = (currentIndex + 1) % modes.length;
+          setCanvasViewMode(modes[nextIndex]);
           break;
         case "escape":
           setIsDrawing(false);
@@ -302,6 +307,7 @@ export default function DesignMode() {
         </div>
 
         <div className="flex items-center gap-3">
+          <BasemapSelector />
           <ViewModeToggle />
           <div className="h-6 w-px bg-border" />
           <KeyboardShortcutsHelp />
@@ -360,9 +366,11 @@ export default function DesignMode() {
                 />
               </div>
 
-              {/* Canvas - 2D or 3D based on toggle */}
+              {/* Canvas - 2D, 3D, or Split based on toggle */}
               <div id="design-canvas" className="flex-1 relative bg-muted">
-                {canvasViewMode === "3d" ? (
+                {canvasViewMode === "split" ? (
+                  <SplitViewCanvas className="absolute inset-0" />
+                ) : canvasViewMode === "3d" ? (
                   <CesiumViewerComponent className="absolute inset-0" />
                 ) : (
                   <DesignModeCanvas className="absolute inset-0" />
