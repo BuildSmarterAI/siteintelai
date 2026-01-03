@@ -40,7 +40,6 @@ import { MapPin, Search, Map, CheckCircle, MousePointerClick, RefreshCw, Unlock 
 import { LockedParcelSummary } from "./LockedParcelSummary";
 import { VerifiedParcelProceed } from "./VerifiedParcelProceed";
 import { motion, AnimatePresence } from "framer-motion";
-import { toast } from "sonner";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
 import type { SurveyMatchCandidate } from "@/types/surveyAutoMatch";
@@ -299,11 +298,10 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         confidence_tier: lockedParcel.confidence || 'medium',
       });
       
-      toast.success("Parcel locked for feasibility analysis");
+      console.log('[ParcelSelectionGate] Parcel locked');
       onParcelLocked(lockedParcel);
     } catch (err: any) {
       console.error('[ParcelSelectionGate] Lock failed:', err);
-      toast.error(err?.message || "Failed to lock parcel. Please try again.");
     } finally {
       setIsLocking(false);
     }
@@ -337,7 +335,6 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
   const handleClearSelection = useCallback(() => {
     clearSelection();
     setSpotlightParcel(null);
-    toast.info("Selection cleared");
   }, [clearSelection]);
 
   // Handle refresh parcel data
@@ -349,9 +346,9 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
       // Re-select the same candidate to trigger any data refresh
       // In a full implementation, this would re-fetch from the CAD API
       await new Promise(resolve => setTimeout(resolve, 800)); // Simulate API call
-      toast.success("Property data refreshed");
+      console.log('[ParcelSelectionGate] Property data refreshed');
     } catch (err) {
-      toast.error("Failed to refresh data");
+      console.error('[ParcelSelectionGate] Failed to refresh data');
     } finally {
       setIsRefreshing(false);
     }
@@ -366,7 +363,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     if (url) {
       setSurveyOverlayUrl(url);
       setShowSurveyOverlay(true);
-      toast.success('Survey will display as overlay on the map');
+      console.log('[ParcelSelectionGate] Survey overlay set');
     }
   }, []);
 
@@ -434,13 +431,13 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     }
     
     setMobileStep('verify');
-    toast.success('Parcel selected from survey');
+    console.log('[ParcelSelectionGate] Parcel selected from survey');
   }, [setCandidates, selectCandidate, handleNavigateToLocation]);
 
   // Handle using manual search from survey tab
   const handleUseManualSearch = useCallback(() => {
     // Switch to address tab for manual search
-    toast.info('Switch to Address or CAD tab to search manually');
+    console.log('[ParcelSelectionGate] Manual search requested');
   }, []);
 
   // Handle unlock request (shows confirmation dialog)
@@ -468,7 +465,7 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     setMobileStep('search');
     setShowUnlockConfirmation(false);
     setLockTimestamp(null);
-    toast.info("Selection cleared. Choose a different parcel.");
+    console.log('[ParcelSelectionGate] Selection cleared');
   }, [state.lockedParcel, unlockParcel, clearSelection, parcelAnalytics]);
 
   // Legacy unlock handler (for verified state)
