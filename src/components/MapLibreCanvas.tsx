@@ -4,7 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import MapboxDraw from '@mapbox/mapbox-gl-draw';
 import '@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, MapPin, Plus } from 'lucide-react';
+import { Eye, EyeOff, Maximize2, Minimize2, Download, Ruler, X, Copy, Box, Map, Database, MapPin, Plus, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { MapLegend } from './MapLegend';
 import { MapLayerFAB } from './MapLayerFAB';
@@ -28,6 +28,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { MapSelectionState, MAP_STATE_CONFIG, getSpotlightStyle, SELECTION_TOOLTIP_COPY } from '@/types/mapSelectionState';
 
 // Layer metadata with data sources and intent relevance
 export const LAYER_CONFIG = {
@@ -205,6 +206,16 @@ interface MapLibreCanvasProps {
   surveyOverlayUrl?: string | null;
   /** Opacity for survey overlay (0-1) */
   surveyOverlayOpacity?: number;
+  /** Map selection state for 3-state architecture */
+  selectionState?: MapSelectionState;
+  /** Callback when user requests to unlock/change parcel */
+  onUnlockRequest?: () => void;
+  /** Whether to show persistent selection tooltip */
+  showSelectionTooltip?: boolean;
+  /** Confidence level of the selection (affects tooltip warning) */
+  selectionConfidence?: 'high' | 'medium' | 'low';
+  /** Whether this is post-confirmation state (locked parcel) */
+  isPostConfirmation?: boolean;
 }
 
 /**
@@ -256,6 +267,11 @@ export function MapLibreCanvas({
   isVerified = false,
   surveyOverlayUrl,
   surveyOverlayOpacity = 0.5,
+  selectionState = 'exploration',
+  onUnlockRequest,
+  showSelectionTooltip = false,
+  selectionConfidence = 'high',
+  isPostConfirmation = false,
 }: MapLibreCanvasProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
@@ -273,10 +289,15 @@ export function MapLibreCanvas({
   const retryParcelLoad = useRef<(() => void) | null>(null);
   const measurementSourceId = 'measurement-source';
   
+  // Selection state refs for zoom lock and pan restriction
+  const selectionTooltipRef = useRef<maplibregl.Popup | null>(null);
+  const lockedBoundsRef = useRef<maplibregl.LngLatBounds | null>(null);
+  const pulseAnimationRef = useRef<number | null>(null);
+  
   // Hover state for parcel preview
   const [hoveredParcel, setHoveredParcel] = useState<HoveredParcel | null>(null);
   const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
-  
+
   // Context menu state for right-click
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
@@ -1134,6 +1155,205 @@ export function MapLibreCanvas({
       logger.error('Failed to spotlight parcel:', error);
     }
   }, [spotlightParcel, mapLoaded, isVerified]);
+
+  // =========================================================================
+  // SELECTION STATE EFFECTS - Implements 3-state Map Binding Selector
+  // =========================================================================
+  
+  // Effect 1: Zoom Lock & Pan Restriction for 'locked' state
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+    
+    const currentMap = map.current;
+    const stateConfig = MAP_STATE_CONFIG[selectionState];
+    
+    if (selectionState === 'locked' && !isPostConfirmation) {
+      // Disable scroll zoom and double-click zoom
+      currentMap.scrollZoom.disable();
+      currentMap.doubleClickZoom.disable();
+      
+      // Restrict pan to ±15% of current view
+      const currentCenter = currentMap.getCenter();
+      const bounds = currentMap.getBounds();
+      const latRange = bounds.getNorth() - bounds.getSouth();
+      const lngRange = bounds.getEast() - bounds.getWest();
+      
+      const maxBounds = new maplibregl.LngLatBounds(
+        [currentCenter.lng - lngRange * 0.15, currentCenter.lat - latRange * 0.15],
+        [currentCenter.lng + lngRange * 0.15, currentCenter.lat + latRange * 0.15]
+      );
+      currentMap.setMaxBounds(maxBounds);
+      lockedBoundsRef.current = maxBounds;
+      
+      logger.map('Selection state: locked - zoom/pan restricted');
+    } else if (isPostConfirmation) {
+      // Fully locked - disable all navigation
+      currentMap.scrollZoom.disable();
+      currentMap.doubleClickZoom.disable();
+      currentMap.dragPan.disable();
+      currentMap.setMaxBounds(null);
+      
+      logger.map('Selection state: post-confirmation - fully locked');
+    } else {
+      // Re-enable navigation for exploration/candidate-focus
+      currentMap.scrollZoom.enable();
+      currentMap.doubleClickZoom.enable();
+      currentMap.dragPan.enable();
+      currentMap.setMaxBounds(null);
+      lockedBoundsRef.current = null;
+    }
+    
+    return () => {
+      // Cleanup: re-enable all navigation
+      if (currentMap) {
+        try {
+          currentMap.scrollZoom.enable();
+          currentMap.doubleClickZoom.enable();
+          currentMap.dragPan.enable();
+          currentMap.setMaxBounds(null);
+        } catch {
+          // Map may be destroyed
+        }
+      }
+    };
+  }, [selectionState, mapLoaded, isPostConfirmation]);
+
+  // Effect 2: Continuous Pulse Animation for 'locked' state
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !spotlightParcel) return;
+    
+    const spotlightGlowId = 'spotlight-parcel-glow';
+    const currentMap = map.current;
+    
+    // Clear any existing pulse animation
+    if (pulseAnimationRef.current) {
+      cancelAnimationFrame(pulseAnimationRef.current);
+      pulseAnimationRef.current = null;
+    }
+    
+    // Only pulse in locked state, not after post-confirmation
+    if (selectionState === 'locked' && !isPostConfirmation && !isVerified) {
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      
+      if (!prefersReducedMotion) {
+        const startTime = performance.now();
+        const pulseDuration = 2000; // 2s loop
+        const minOpacity = 0.15;
+        const maxOpacity = 0.35;
+        
+        const animate = (currentTime: number) => {
+          if (!currentMap || selectionState !== 'locked' || isPostConfirmation) return;
+          
+          const elapsed = (currentTime - startTime) % pulseDuration;
+          const progress = elapsed / pulseDuration;
+          // Ease-in-out sine wave
+          const opacity = minOpacity + (maxOpacity - minOpacity) * (0.5 + 0.5 * Math.sin(progress * Math.PI * 2 - Math.PI / 2));
+          
+          try {
+            if (currentMap.getLayer(spotlightGlowId)) {
+              currentMap.setPaintProperty(spotlightGlowId, 'line-opacity', opacity);
+            }
+          } catch {
+            // Layer may not exist
+          }
+          
+          pulseAnimationRef.current = requestAnimationFrame(animate);
+        };
+        
+        pulseAnimationRef.current = requestAnimationFrame(animate);
+        logger.map('Started continuous pulse animation for locked state');
+      }
+    } else if (currentMap.getLayer(spotlightGlowId)) {
+      // Reset to static opacity
+      try {
+        currentMap.setPaintProperty(spotlightGlowId, 'line-opacity', isVerified ? 0.4 : 0.3);
+      } catch {
+        // Layer may not exist
+      }
+    }
+    
+    return () => {
+      if (pulseAnimationRef.current) {
+        cancelAnimationFrame(pulseAnimationRef.current);
+        pulseAnimationRef.current = null;
+      }
+    };
+  }, [selectionState, mapLoaded, spotlightParcel, isPostConfirmation, isVerified]);
+
+  // Effect 3: Persistent Selection Tooltip
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !spotlightParcel || !showSelectionTooltip) {
+      // Remove existing tooltip
+      if (selectionTooltipRef.current) {
+        selectionTooltipRef.current.remove();
+        selectionTooltipRef.current = null;
+      }
+      return;
+    }
+    
+    const currentMap = map.current;
+    
+    try {
+      const geometry = spotlightParcel.coordinates ? spotlightParcel : spotlightParcel;
+      const coords = geometry?.coordinates?.[0];
+      
+      if (!coords || !Array.isArray(coords)) return;
+      
+      // Calculate centroid
+      const lngs = coords.map((c: [number, number]) => c[0]);
+      const lats = coords.map((c: [number, number]) => c[1]);
+      const centroidLng = lngs.reduce((a: number, b: number) => a + b, 0) / lngs.length;
+      const centroidLat = lats.reduce((a: number, b: number) => a + b, 0) / lats.length;
+      
+      // Remove existing tooltip
+      if (selectionTooltipRef.current) {
+        selectionTooltipRef.current.remove();
+      }
+      
+      // Determine tooltip content based on state
+      let tooltipContent: string;
+      
+      if (isPostConfirmation || isVerified) {
+        tooltipContent = `
+          <div class="selection-tooltip-content locked">
+            <span class="lock-icon">🔒</span>
+            <span>Parcel locked for feasibility analysis</span>
+          </div>
+        `;
+      } else {
+        const showWarning = selectionConfidence !== 'high';
+        tooltipContent = `
+          <div class="selection-tooltip-content">
+            <div class="tooltip-title">Selected Parcel</div>
+            <div class="tooltip-subtitle">This parcel is currently selected for feasibility analysis.</div>
+            ${showWarning ? '<div class="tooltip-warning">⚠ Boundary-based selection — verify before proceeding</div>' : ''}
+          </div>
+        `;
+      }
+      
+      // Create and add tooltip
+      selectionTooltipRef.current = new maplibregl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        anchor: 'bottom',
+        offset: [0, -15],
+        className: 'selection-tooltip-popup',
+      })
+        .setLngLat([centroidLng, centroidLat])
+        .setHTML(tooltipContent)
+        .addTo(currentMap);
+        
+    } catch (error) {
+      logger.warn('Failed to create selection tooltip:', error);
+    }
+    
+    return () => {
+      if (selectionTooltipRef.current) {
+        selectionTooltipRef.current.remove();
+        selectionTooltipRef.current = null;
+      }
+    };
+  }, [spotlightParcel, mapLoaded, showSelectionTooltip, selectionState, isPostConfirmation, isVerified, selectionConfidence]);
 
   // Add parcel layer
   useEffect(() => {
@@ -2564,6 +2784,33 @@ export function MapLibreCanvas({
         tabIndex={0}
         style={{ minHeight: '300px' }}
       />
+
+      {/* Change Parcel Control - Visible when in locked state */}
+      {selectionState === 'locked' && !isPostConfirmation && onUnlockRequest && (
+        <div className="absolute top-3 left-3 z-20">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onUnlockRequest}
+            className="bg-background/90 backdrop-blur-sm shadow-lg hover:bg-background border-[hsl(var(--feasibility-orange)/0.5)] hover:border-[hsl(var(--feasibility-orange))]"
+          >
+            <Unlock className="h-4 w-4 mr-2 text-[hsl(var(--feasibility-orange))]" />
+            <span className="text-sm">Change parcel</span>
+          </Button>
+        </div>
+      )}
+      
+      {/* Locked State Indicator Badge */}
+      {selectionState === 'locked' && (
+        <div className={`absolute top-3 ${onUnlockRequest && !isPostConfirmation ? 'left-40' : 'left-3'} z-10`}>
+          <div className={`bg-[hsl(var(--feasibility-orange)/0.15)] backdrop-blur-sm rounded-full px-3 py-1.5 border border-[hsl(var(--feasibility-orange)/0.3)] flex items-center gap-2 ${!isPostConfirmation ? 'map-locked-indicator' : ''}`}>
+            <div className="h-2 w-2 rounded-full bg-[hsl(var(--feasibility-orange))]" />
+            <span className="text-xs font-medium text-[hsl(var(--feasibility-orange))]">
+              {isPostConfirmation ? 'Parcel Locked' : 'Selection Active'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Parcel Loading/Error Overlay */}
       {showParcels && (parcelLoading || parcelLoadError || (mapLoaded && map.current && map.current.getZoom() < 14)) && (

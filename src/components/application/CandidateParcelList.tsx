@@ -2,15 +2,18 @@
  * Candidate Parcel List
  * Displays ranked parcel candidates for EXPLORATION (not commitment).
  * Uses CYAN for tentative selection - Orange appears only at decision gate.
+ * 
+ * Implements auto-scroll to selected candidate for Map Binding Selector sync.
  */
 
+import { useRef, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   MapPin, User, Ruler, CheckCircle2, AlertTriangle, Building2, X, RefreshCw,
-  Scale, Waves, Zap, Leaf, Car, FileText, type LucideIcon
+  Scale, Waves, Zap, Leaf, Car, FileText, Lock, type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CandidateParcel } from "@/types/parcelSelection";
@@ -22,6 +25,8 @@ interface CandidateParcelListProps {
   onClear?: () => void;
   onRefresh?: (parcelId: string) => void;
   isRefreshing?: boolean;
+  /** Whether selection is in locked state (map binding) */
+  isSelectionLocked?: boolean;
 }
 
 /** Inline SVG illustration for empty state */
@@ -139,7 +144,32 @@ const EmptyState = () => (
   </div>
 );
 
-export function CandidateParcelList({ candidates, selectedId, onSelect, onClear, onRefresh, isRefreshing }: CandidateParcelListProps) {
+export function CandidateParcelList({ 
+  candidates, 
+  selectedId, 
+  onSelect, 
+  onClear, 
+  onRefresh, 
+  isRefreshing,
+  isSelectionLocked = false 
+}: CandidateParcelListProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+  
+  // Auto-scroll to selected candidate when selection changes (Map Binding Selector sync)
+  useEffect(() => {
+    if (selectedId && listRef.current) {
+      const selectedCard = listRef.current.querySelector(
+        `[data-parcel-id="${selectedId}"]`
+      );
+      if (selectedCard) {
+        selectedCard.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+    }
+  }, [selectedId]);
+  
   if (candidates.length === 0) {
     return <EmptyState />;
   }
@@ -166,7 +196,7 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
         )}
       </div>
       
-      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+      <div ref={listRef} className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
         {candidates.map((candidate) => {
           const isSelected = selectedId === candidate.parcel_id;
           const hasGeometry = !!candidate.geom;
@@ -175,29 +205,46 @@ export function CandidateParcelList({ candidates, selectedId, onSelect, onClear,
           return (
             <Card
               key={candidate.parcel_id}
+              data-parcel-id={candidate.parcel_id}
               className={cn(
                 "p-3 cursor-pointer transition-all duration-[180ms] hover:shadow-md border-l-2",
                 // CYAN for tentative selection (exploration) - NOT orange
-                isSelected 
+                // When locked, use orange to indicate commitment
+                isSelected && isSelectionLocked
+                  ? "border-l-[hsl(var(--feasibility-orange))] bg-[hsl(var(--feasibility-orange)/0.08)] shadow-md ring-2 ring-[hsl(var(--feasibility-orange)/0.4)]"
+                  : isSelected 
                   ? "border-l-[hsl(var(--data-cyan))] bg-[hsl(var(--data-cyan)/0.05)] shadow-sm ring-1 ring-[hsl(var(--data-cyan)/0.3)]" 
                   : "border-l-transparent hover:border-l-[hsl(var(--data-cyan)/0.5)] hover:bg-[hsl(var(--data-cyan)/0.03)]",
                 selectedId && !isSelected && "opacity-60",
                 !hasGeometry && "opacity-50 cursor-not-allowed"
               )}
-              onClick={() => hasGeometry && onSelect(candidate)}
+              onClick={() => hasGeometry && !isSelectionLocked && onSelect(candidate)}
             >
               <div className="flex-1 min-w-0 space-y-2">
-                {/* Row 1: Address (primary) + Action buttons */}
+                {/* Row 1: Address (primary) + SELECTED badge + Action buttons */}
                 <div className="flex items-start gap-2">
                   <MapPin className={cn(
                     "h-3.5 w-3.5 shrink-0 mt-0.5 transition-colors duration-[180ms]",
+                    isSelected && isSelectionLocked ? "text-[hsl(var(--feasibility-orange))]" :
                     isSelected ? "text-[hsl(var(--data-cyan))]" : "text-muted-foreground"
                   )} />
-                  <p className="text-sm font-heading font-medium leading-tight flex-1">
-                    {candidate.situs_address || 'No address on file'}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-heading font-medium leading-tight">
+                      {candidate.situs_address || 'No address on file'}
+                    </p>
+                    {/* SELECTED badge for locked state */}
+                    {isSelected && isSelectionLocked && (
+                      <Badge 
+                        variant="outline" 
+                        className="mt-1 text-[10px] px-1.5 py-0 h-4 bg-[hsl(var(--feasibility-orange)/0.15)] border-[hsl(var(--feasibility-orange)/0.4)] text-[hsl(var(--feasibility-orange))] font-semibold"
+                      >
+                        <Lock className="h-2.5 w-2.5 mr-1" />
+                        SELECTED
+                      </Badge>
+                    )}
+                  </div>
                   {/* Action icons for selected parcel */}
-                  {isSelected && (onRefresh || onClear) && (
+                  {isSelected && !isSelectionLocked && (onRefresh || onClear) && (
                     <div className="flex items-center gap-0.5 shrink-0">
                       {onRefresh && (
                         <TooltipProvider delayDuration={300}>
