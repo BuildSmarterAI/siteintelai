@@ -6,7 +6,7 @@
 
 import { Suspense, lazy } from "react";
 import { DesignModeCanvas } from "./DesignModeCanvas";
-import { CesiumErrorBoundary } from "./CesiumErrorBoundary";
+import { SafeCesiumLoader } from "./CesiumErrorBoundary";
 import { CesiumLoadingFallback } from "./CesiumLoadingFallback";
 import { cn } from "@/lib/utils";
 
@@ -46,14 +46,14 @@ export function SplitViewCanvas({
         <div className="absolute top-3 left-3 z-20 bg-background/90 backdrop-blur-sm px-2.5 py-1 rounded-md border shadow-sm">
           <span className="text-xs font-medium">3D View</span>
         </div>
-        <Suspense fallback={<CesiumLoadingFallback />}>
-          <CesiumErrorBoundary>
+        <SafeCesiumLoader fallback={<CesiumLoadingFallback />}>
+          <Suspense fallback={<CesiumLoadingFallback />}>
             <CesiumViewerLazy 
               className="h-full w-full" 
               onFootprintChange={onFootprintChange}
             />
-          </CesiumErrorBoundary>
-        </Suspense>
+          </Suspense>
+        </SafeCesiumLoader>
       </div>
     </div>
   );

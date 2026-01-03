@@ -63,4 +63,7 @@ export default defineConfig(({ mode }) => ({
       "@siteintel/gis-utils": path.resolve(__dirname, "./packages/gis-utils/src"),
     },
   },
+  optimizeDeps: {
+    exclude: ['resium'], // Prevent pre-bundling issues with React 18
+  },
 }));
