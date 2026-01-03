@@ -72,6 +72,8 @@ export function CesiumViewerComponent({
   const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
   const isUserControllingRef = useRef(false); // Prevents feedback loop
+  const hasInitializedViewerRef = useRef(false); // Prevents re-initialization loop
+  const hasDoneInitialFlyToRef = useRef(false); // Prevents repeated fly-to
   const [viewerReady, setViewerReady] = useState(false);
   const [google3DTileset, setGoogle3DTileset] = useState<Cesium3DTileset | null>(null);
   const [google3DError, setGoogle3DError] = useState<string | null>(null);
@@ -718,8 +720,12 @@ export function CesiumViewerComponent({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleResetNorth, handleReset3D, handleZoomIn, handleZoomOut, handleTiltChange, currentTilt]);
 
-  // Initialize viewer
+  // Initialize viewer - runs ONLY ONCE
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
+    // Guard: Only initialize once to prevent re-init loop
+    if (hasInitializedViewerRef.current) return;
+    hasInitializedViewerRef.current = true;
+    
     viewerRef.current = viewer;
 
     // Enable shadows if configured
@@ -729,19 +735,26 @@ export function CesiumViewerComponent({
       viewer.clock.currentTime = JulianDate.fromDate(shadowDateTime);
     }
 
-    // Apply initial basemap immediately
-    applyBasemap(viewer, basemap, mapboxToken);
+    // NOTE: Do NOT apply basemap here - the basemap useEffect handles it
+    // This prevents the repeated "Applied basemap" loop
 
-    // Mark viewer as ready - this will also trigger the basemap effect
+    // Mark viewer as ready - triggers the basemap effect
     setViewerReady(true);
-
-    // Fly to initial position
-    if (centroid) {
-      setTimeout(() => {
-        flyToPreset("perspective_ne");
-      }, 500);
-    }
-  }, [centroid, flyToPreset, shadowsEnabled, shadowDateTime, applyBasemap, basemap, mapboxToken]);
+  }, [shadowsEnabled, shadowDateTime]);
+  
+  // Initial fly-to when viewer AND centroid are ready (runs ONCE)
+  useEffect(() => {
+    if (!viewerReady || !centroid || hasDoneInitialFlyToRef.current) return;
+    
+    hasDoneInitialFlyToRef.current = true;
+    
+    // Delay initial fly to let tiles load
+    const timeoutId = setTimeout(() => {
+      flyToPreset("perspective_ne");
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [viewerReady, centroid, flyToPreset]);
 
   // Show loading while fetching token
   if (tokenLoading) {
