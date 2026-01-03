@@ -270,16 +270,24 @@ export function useDesignSession(envelopeId: string | undefined) {
     },
   });
 
-  // Create variant mutation
+  // Create variant mutation - extended to support wizard-generated variants
   const createVariantMutation = useMutation({
     mutationFn: async ({
       sessionId,
       name,
       preset,
+      footprint,
+      heightFt,
+      floors,
+      notes,
     }: {
       sessionId: string;
       name?: string;
       preset?: DesignPreset;
+      footprint?: GeoJSON.Polygon;
+      heightFt?: number;
+      floors?: number;
+      notes?: string;
     }) => {
       setIsSaving(true);
 
@@ -290,11 +298,13 @@ export function useDesignSession(envelopeId: string | undefined) {
         .insert({
           session_id: sessionId,
           name: variantName,
-          height_ft: preset?.defaultHeightFt || 24,
-          floors: preset?.defaultFloors || 1,
+          footprint: footprint || null,
+          height_ft: heightFt ?? preset?.defaultHeightFt ?? 24,
+          floors: floors ?? preset?.defaultFloors ?? 1,
           preset_type: preset?.presetKey || null,
+          notes: notes || null,
           sort_order: (variantsQuery.data?.length || 0),
-          compliance_status: "PENDING",
+          compliance_status: footprint ? "PASS" : "PENDING",
         })
         .select()
         .single();

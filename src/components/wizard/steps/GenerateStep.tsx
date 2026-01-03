@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { useDesignStore } from '@/stores/useDesignStore';
 import { useWizardStore, selectTotalProgramGfa } from '@/stores/useWizardStore';
 import { useDesignSession } from '@/hooks/useDesignSession';
@@ -17,7 +18,6 @@ import {
   Sparkles, 
   Building2, 
   Ruler, 
-  ArrowUp, 
   Car,
   Leaf,
   AlertTriangle,
@@ -27,7 +27,9 @@ import {
 import { toast } from 'sonner';
 
 export function GenerateStep() {
+  const { sessionId } = useParams<{ sessionId: string }>();
   const envelope = useDesignStore((s) => s.envelope);
+  const setActiveVariantId = useDesignStore((s) => s.setActiveVariantId);
   const { 
     programBuckets,
     selectedTemplates,
@@ -47,7 +49,7 @@ export function GenerateStep() {
   const summary = createEnvelopeSummary(envelope);
   
   const envelopeId = useDesignStore((s) => s.envelope?.id);
-  const { createVariant, duplicateVariant } = useDesignSession(envelopeId);
+  const { session, createSession, createVariant, isCreatingSession } = useDesignSession(envelopeId);
   
   const [generatedCount, setGeneratedCount] = useState(0);
   
@@ -64,6 +66,32 @@ export function GenerateStep() {
   const handleGenerate = useCallback(async () => {
     if (!envelope || !summary || selectedTemplates.length === 0) {
       toast.error('Missing required data for generation');
+      return;
+    }
+    
+    // Ensure we have a session
+    let activeSessionId = session?.id;
+    
+    if (!activeSessionId && envelopeId) {
+      // Create a new session first
+      try {
+        await new Promise<void>((resolve, reject) => {
+          createSession({ envelopeId, name: 'Wizard Design Session' }, {
+            onSuccess: (data) => {
+              activeSessionId = data.id;
+              resolve();
+            },
+            onError: reject,
+          });
+        });
+      } catch (error) {
+        toast.error('Failed to create design session');
+        return;
+      }
+    }
+    
+    if (!activeSessionId) {
+      toast.error('No active design session');
       return;
     }
     
@@ -90,42 +118,60 @@ export function GenerateStep() {
       
       // Create variants in database
       const createdIds: string[] = [];
+      let bestVariantId: string | null = null;
       
       for (let i = 0; i < variants.length; i++) {
         const variant = variants[i];
         const isBest = variant === bestVariant;
         
-        // Simulate some processing time for UX
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Short delay for UX
+        await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Create variant via hook (this should be adapted to your actual API)
-        // For now, we'll just log and track progress
-        console.log(`[Wizard] Creating variant: ${variant.name}`, {
-          strategy: variant.strategy,
-          gfa: variant.gfa,
-          far: variant.far,
-          height: variant.heightFt,
-          isBest,
-        });
+        try {
+          // Create variant in database
+          const result = await new Promise<{ id: string }>((resolve, reject) => {
+            createVariant({
+              sessionId: activeSessionId!,
+              name: isBest ? `★ ${variant.name}` : variant.name,
+              footprint: variant.footprint,
+              heightFt: variant.heightFt,
+              floors: variant.floors,
+              notes: `${variant.notes}${variant.sustainabilityLevel ? ` | Sustainability: ${variant.sustainabilityLevel}` : ''}`,
+            }, {
+              onSuccess: (data) => resolve({ id: data.id }),
+              onError: reject,
+            });
+          });
+          
+          createdIds.push(result.id);
+          if (isBest) {
+            bestVariantId = result.id;
+          }
+        } catch (error) {
+          console.error(`[Wizard] Failed to create variant ${variant.name}:`, error);
+        }
         
         // Track progress
         setGeneratedCount(i + 1);
         setGenerationProgress(30 + ((i + 1) / variants.length) * 60);
-        
-        // In a real implementation, you would call createVariant here
-        // and push the returned ID to createdIds
-        createdIds.push(`variant-${i + 1}`);
       }
       
       setGenerationProgress(100);
       setGeneratedVariantIds(createdIds);
       
-      toast.success(`Generated ${variants.length} design variants!`);
+      // Set the best variant as active
+      if (bestVariantId) {
+        setActiveVariantId(bestVariantId);
+      }
+      
+      toast.success(`Generated ${createdIds.length} design variants!`, {
+        description: bestVariantId ? 'Showing best overall variant' : undefined,
+      });
       
       // Close wizard after short delay
       setTimeout(() => {
         closeWizard();
-      }, 1500);
+      }, 1000);
       
     } catch (error) {
       console.error('[Wizard] Generation error:', error);
@@ -140,9 +186,14 @@ export function GenerateStep() {
     programBuckets,
     sustainabilityEnabled,
     sustainabilityLevel,
+    session,
+    envelopeId,
+    createSession,
+    createVariant,
     setGenerating,
     setGenerationProgress,
     setGeneratedVariantIds,
+    setActiveVariantId,
     closeWizard,
   ]);
   
@@ -283,7 +334,7 @@ export function GenerateStep() {
         </Button>
         <Button 
           onClick={handleGenerate} 
-          disabled={isGenerating || selectedTemplates.length === 0}
+          disabled={isGenerating || isCreatingSession || selectedTemplates.length === 0}
           className="flex-1 gap-2"
         >
           {isGenerating ? (
