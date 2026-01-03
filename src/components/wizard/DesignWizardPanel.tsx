@@ -113,18 +113,18 @@ export function DesignWizardPanel() {
             </div>
           </div>
           
-          {/* Navigation Footer - Always visible */}
-          {currentStep < 7 && (
-            <div className="flex gap-2 p-4 border-t border-border flex-shrink-0 bg-background">
-              <Button 
-                variant="outline" 
-                onClick={prevStep} 
-                disabled={currentStep === 1}
-                className="flex-1 gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </Button>
+          {/* Navigation Footer - Back button always visible, Next for steps 1-6 */}
+          <div className="flex gap-2 p-4 border-t border-border flex-shrink-0 bg-background">
+            <Button 
+              variant="outline" 
+              onClick={prevStep} 
+              disabled={currentStep === 1}
+              className="gap-1"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Back
+            </Button>
+            {currentStep < 7 && (
               <Button 
                 onClick={nextStep} 
                 disabled={!canProceed}
@@ -133,8 +133,8 @@ export function DesignWizardPanel() {
                 Next
                 <ChevronRight className="h-4 w-4" />
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

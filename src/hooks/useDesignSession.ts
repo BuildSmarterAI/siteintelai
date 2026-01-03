@@ -331,6 +331,8 @@ export function useDesignSession(envelopeId: string | undefined) {
         updatedAt: data.updated_at,
       };
       addVariant(variant);
+      // Invalidate variants query to ensure VariantRail refetches
+      queryClient.invalidateQueries({ queryKey: ["design-variants", data.session_id] });
       toast.success(`${variant.name} created`);
     },
     onError: (error) => {
