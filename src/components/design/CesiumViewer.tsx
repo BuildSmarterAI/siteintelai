@@ -5,7 +5,7 @@
  * with terrain, camera presets, orbit controls, shadow analysis, and basemaps.
  */
 
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
 import {
   Viewer,
   Entity,
@@ -60,10 +60,73 @@ export function CesiumViewerComponent({
   const orbitAnimationRef = useRef<number | null>(null);
   const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
-  const mapboxTokenRef = useRef<string | null>(null);
+  const [viewerReady, setViewerReady] = useState(false);
 
   // Fetch Mapbox token from Edge Function
   const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
+
+  // Apply basemap to viewer - extracted for reuse
+  const applyBasemap = useCallback((viewer: CesiumViewer, currentBasemap: BasemapType, token: string | null) => {
+    // Remove all existing imagery layers
+    viewer.imageryLayers.removeAll();
+
+    // Add new basemap based on selection
+    let imageryProvider;
+    
+    switch (currentBasemap) {
+      case "satellite":
+        if (token) {
+          imageryProvider = new UrlTemplateImageryProvider({
+            url: `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${token}`,
+            maximumLevel: 19,
+            credit: "© Mapbox © OpenStreetMap",
+          });
+        } else {
+          console.warn("No Mapbox token available for satellite imagery, falling back to OSM");
+          imageryProvider = new OpenStreetMapImageryProvider({
+            url: "https://tile.openstreetmap.org/",
+          });
+        }
+        break;
+      case "satellite-labels":
+        if (token) {
+          imageryProvider = new UrlTemplateImageryProvider({
+            url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${token}`,
+            maximumLevel: 22,
+            credit: "© Mapbox © OpenStreetMap",
+          });
+        } else {
+          console.warn("No Mapbox token available for satellite-labels imagery, falling back to OSM");
+          imageryProvider = new OpenStreetMapImageryProvider({
+            url: "https://tile.openstreetmap.org/",
+          });
+        }
+        break;
+      case "terrain":
+        if (token) {
+          imageryProvider = new UrlTemplateImageryProvider({
+            url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${token}`,
+            maximumLevel: 22,
+            credit: "© Mapbox © OpenStreetMap",
+          });
+        } else {
+          console.warn("No Mapbox token available for terrain imagery, falling back to OSM");
+          imageryProvider = new OpenStreetMapImageryProvider({
+            url: "https://tile.openstreetmap.org/",
+          });
+        }
+        break;
+      case "osm":
+      default:
+        imageryProvider = new OpenStreetMapImageryProvider({
+          url: "https://tile.openstreetmap.org/",
+        });
+        break;
+    }
+
+    viewer.imageryLayers.addImageryProvider(imageryProvider);
+    console.log(`Applied basemap: ${currentBasemap}`, token ? "(with Mapbox token)" : "(OSM fallback)");
+  }, []);
 
   // Use measurement hook for 3D
   useCesiumMeasurement({ viewer: viewerRef.current });
@@ -85,10 +148,6 @@ export function CesiumViewerComponent({
     setIsShadowAnimating,
   } = useDesignStore();
 
-  // Store token in ref for callbacks
-  useEffect(() => {
-    mapboxTokenRef.current = mapboxToken;
-  }, [mapboxToken]);
 
   const activeVariant = useMemo(
     () => variants.find((v) => v.id === activeVariantId),
@@ -327,50 +386,13 @@ export function CesiumViewerComponent({
     viewer.clock.currentTime = JulianDate.fromDate(shadowDateTime);
   }, [shadowDateTime, shadowsEnabled]);
 
-  // Handle basemap changes
+  // Handle basemap changes - runs when viewer is ready OR basemap/token changes
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer || !mapboxTokenRef.current) return;
+    if (!viewer || !viewerReady) return;
 
-    // Remove all existing imagery layers
-    viewer.imageryLayers.removeAll();
-
-    // Add new basemap based on selection
-    let imageryProvider;
-    const token = mapboxTokenRef.current;
-    
-    switch (basemap) {
-      case "satellite":
-        imageryProvider = new UrlTemplateImageryProvider({
-          url: `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${token}`,
-          maximumLevel: 19,
-          credit: "© Mapbox © OpenStreetMap",
-        });
-        break;
-      case "satellite-labels":
-        imageryProvider = new UrlTemplateImageryProvider({
-          url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${token}`,
-          maximumLevel: 22,
-          credit: "© Mapbox © OpenStreetMap",
-        });
-        break;
-      case "terrain":
-        imageryProvider = new UrlTemplateImageryProvider({
-          url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${token}`,
-          maximumLevel: 22,
-          credit: "© Mapbox © OpenStreetMap",
-        });
-        break;
-      case "osm":
-      default:
-        imageryProvider = new OpenStreetMapImageryProvider({
-          url: "https://tile.openstreetmap.org/",
-        });
-        break;
-    }
-
-    viewer.imageryLayers.addImageryProvider(imageryProvider);
-  }, [basemap, mapboxToken]);
+    applyBasemap(viewer, basemap, mapboxToken);
+  }, [basemap, mapboxToken, viewerReady, applyBasemap]);
 
   // Zoom handlers
   const handleZoomIn = useCallback(() => {
@@ -402,7 +424,11 @@ export function CesiumViewerComponent({
       viewer.clock.currentTime = JulianDate.fromDate(shadowDateTime);
     }
 
-    // Initial basemap will be set by the basemap effect
+    // Apply initial basemap immediately
+    applyBasemap(viewer, basemap, mapboxToken);
+
+    // Mark viewer as ready - this will also trigger the basemap effect
+    setViewerReady(true);
 
     // Fly to initial position
     if (centroid) {
@@ -410,7 +436,7 @@ export function CesiumViewerComponent({
         flyToPreset("perspective_ne");
       }, 500);
     }
-  }, [centroid, flyToPreset, shadowsEnabled, shadowDateTime]);
+  }, [centroid, flyToPreset, shadowsEnabled, shadowDateTime, applyBasemap, basemap, mapboxToken]);
 
   // Show loading while fetching token
   if (tokenLoading) {
