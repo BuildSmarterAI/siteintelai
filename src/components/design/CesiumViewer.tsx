@@ -127,73 +127,100 @@ export function CesiumViewerComponent({
   const clampToGoogle3DSurface = useCallback(async (viewer: CesiumViewer) => {
     const envelope = useDesignStore.getState().envelope;
     if (!envelope?.parcelGeometry) {
-      console.log("[GroundHeight] No parcel geometry available");
-      return;
-    }
-
-    // Ensure tileset is loaded
-    if (!google3DTilesetRef.current) {
-      console.log("[GroundHeight] Google 3D tileset not loaded yet");
+      console.warn("[GroundHeight] No parcel geometry for clamping");
       return;
     }
 
     try {
-      const coords = envelope.parcelGeometry.coordinates[0];
+      const coords = envelope.parcelGeometry.coordinates[0] as [number, number][];
       const centroid = getPolygonCentroid(envelope.parcelGeometry);
       
-      // Create positions at a high altitude for downward raycast
-      // Sample boundary vertices (not centroid - avoid rooftops if building on parcel)
-      const samplePositions = coords.slice(0, Math.min(5, coords.length)).map(
-        ([lng, lat]: [number, number]) => Cartesian3.fromDegrees(lng, lat, 1000)
-      );
-      // Also add centroid as fallback
-      samplePositions.push(Cartesian3.fromDegrees(centroid.lng, centroid.lat, 1000));
+      // Sample boundary vertices + centroid at high altitude for clamping
+      const sampleCount = Math.min(8, coords.length);
+      const step = Math.max(1, Math.floor(coords.length / sampleCount));
       
-      console.log(`[GroundHeight] Clamping ${samplePositions.length} positions to Google 3D surface...`);
+      const positions: Cartesian3[] = [];
       
-      // Use clampToHeightMostDetailed to get surface heights from 3D Tiles
-      const clampedPositions = await viewer.scene.clampToHeightMostDetailed(
-        samplePositions,
-        [google3DTilesetRef.current], // Only clamp to Google 3D tiles
-        0.1 // Width for sampling (meters)
-      );
+      // Add centroid
+      positions.push(Cartesian3.fromDegrees(centroid.lng, centroid.lat, 1000));
       
-      // Extract heights from clamped positions
-      const heights: number[] = [];
-      for (const pos of clampedPositions) {
-        if (pos) {
-          const carto = Cartographic.fromCartesian(pos);
-          if (carto && !isNaN(carto.height)) {
-            heights.push(carto.height);
-          }
-        }
+      // Add boundary vertices
+      for (let i = 0; i < coords.length; i += step) {
+        const [lng, lat] = coords[i];
+        positions.push(Cartesian3.fromDegrees(lng, lat, 1000));
       }
+
+      console.log(`[GroundHeight] Clamping ${positions.length} points to Google 3D surface...`);
+
+      // Clamp positions to the rendered 3D Tiles surface
+      const clampedPositions = await viewer.scene.clampToHeightMostDetailed(positions);
       
+      const heights = clampedPositions
+        .map(pos => {
+          const carto = Cartographic.fromCartesian(pos);
+          return carto.height;
+        })
+        .filter(h => !isNaN(h) && h !== undefined);
+
       if (heights.length > 0) {
-        // Use minimum height to ensure nothing floats
+        // Use minimum height to ensure no floating on sloped terrain
         const minHeight = Math.min(...heights);
-        console.log(`[GroundHeight] Clamped to Google 3D surface: ${minHeight.toFixed(2)}m (from ${heights.length} points, heights: ${heights.map(h => h.toFixed(1)).join(', ')})`);
+        console.log(`[GroundHeight] Google 3D clamped height: ${minHeight.toFixed(2)}m (min of ${heights.length} points)`);
         setGroundHeightMeters(minHeight);
       } else {
-        console.log("[GroundHeight] Clamping returned no valid heights, falling back to 0");
+        console.warn("[GroundHeight] No valid heights from clamping, using 0");
         setGroundHeightMeters(0);
       }
     } catch (error) {
-      console.error("[GroundHeight] Error clamping to surface:", error);
-      // Fallback: try terrain sampling
-      try {
-        const centroid = getPolygonCentroid(envelope.parcelGeometry);
-        const positions = [Cartographic.fromDegrees(centroid.lng, centroid.lat)];
-        const worldTerrain = await createWorldTerrainAsync();
-        const sampledPositions = await sampleTerrainMostDetailed(worldTerrain, positions);
-        if (sampledPositions[0]?.height !== undefined) {
-          console.log(`[GroundHeight] Terrain fallback: ${sampledPositions[0].height.toFixed(2)}m`);
-          setGroundHeightMeters(sampledPositions[0].height);
-          return;
-        }
-      } catch {
-        // Ignore terrain fallback errors
+      console.error("[GroundHeight] Error clamping to Google 3D surface:", error);
+      setGroundHeightMeters(0);
+    }
+  }, []);
+
+  // Sample terrain height for non-Google modes (OSM/terrain)
+  const sampleTerrainHeight = useCallback(async () => {
+    const envelope = useDesignStore.getState().envelope;
+    if (!envelope?.parcelGeometry) {
+      console.warn("[GroundHeight] No parcel geometry for terrain sampling");
+      return;
+    }
+
+    try {
+      const coords = envelope.parcelGeometry.coordinates[0] as [number, number][];
+      const centroid = getPolygonCentroid(envelope.parcelGeometry);
+
+      // Sample centroid + boundary vertices
+      const sampleCount = Math.min(5, coords.length);
+      const step = Math.max(1, Math.floor(coords.length / sampleCount));
+
+      const cartographics: Cartographic[] = [
+        Cartographic.fromDegrees(centroid.lng, centroid.lat)
+      ];
+
+      for (let i = 0; i < coords.length; i += step) {
+        const [lng, lat] = coords[i];
+        cartographics.push(Cartographic.fromDegrees(lng, lat));
       }
+
+      console.log(`[GroundHeight] Sampling terrain at ${cartographics.length} points...`);
+
+      const worldTerrain = await createWorldTerrainAsync();
+      const sampledPositions = await sampleTerrainMostDetailed(worldTerrain, cartographics);
+
+      const heights = sampledPositions
+        .map(p => p.height)
+        .filter(h => h !== undefined && !isNaN(h));
+
+      if (heights.length > 0) {
+        const minHeight = Math.min(...heights);
+        console.log(`[GroundHeight] Terrain height: ${minHeight.toFixed(2)}m (min of ${heights.length} points)`);
+        setGroundHeightMeters(minHeight);
+      } else {
+        console.warn("[GroundHeight] No valid terrain heights, using 0");
+        setGroundHeightMeters(0);
+      }
+    } catch (error) {
+      console.error("[GroundHeight] Terrain sampling failed:", error);
       setGroundHeightMeters(0);
     }
   }, []);
@@ -963,7 +990,18 @@ export function CesiumViewerComponent({
     }
   }, [buildings3dSource, viewerReady, googleMapsToken, googleTokenLoading, basemap, loadOsmBuildings, loadGoogle3DTiles, removeAllBuildings, setBuildings3dSource]);
 
-  // Camera state tracking for controls - use ref for immediate access, state for UI
+  // Sample terrain height for non-Google modes (OSM buildings or terrain-only)
+  useEffect(() => {
+    if (
+      viewerReady && 
+      buildings3dSource !== "google" && 
+      envelope?.parcelGeometry && 
+      groundHeightMeters === null
+    ) {
+      console.log("[GroundHeight] Triggering terrain sampling for non-Google mode");
+      sampleTerrainHeight();
+    }
+  }, [viewerReady, buildings3dSource, envelope?.parcelGeometry, groundHeightMeters, sampleTerrainHeight]);
   const cameraStateRef = useRef({ heading: 0, tilt: 45 });
   const [currentHeading, setCurrentHeading] = useState(0);
   const [currentTilt, setCurrentTilt] = useState(45);
@@ -1384,8 +1422,8 @@ export function CesiumViewerComponent({
               outline
               outlineColor={DESIGN_COLORS.parcelOutline}
               outlineWidth={4}
-              height={0.3}
-              extrudedHeight={0.6}
+              height={(groundHeightMeters ?? 0) + 0.1}
+              extrudedHeight={(groundHeightMeters ?? 0) + 0.4}
             />
           </Entity>
         )}
