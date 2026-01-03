@@ -17,7 +17,7 @@ import { DesignMetricsBar } from "@/components/design/DesignMetricsBar";
 import { CompliancePanel } from "@/components/design/CompliancePanel";
 import { DesignVariantList } from "@/components/design/DesignVariantList";
 import { DesignToolbar } from "@/components/design/DesignToolbar";
-import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
+import { CesiumViewerComponent } from "@/components/design/CesiumViewer";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
 import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
@@ -350,9 +350,9 @@ export default function DesignMode() {
                 />
               </div>
 
-              {/* Map canvas */}
+              {/* 3D Cesium Viewer */}
               <div id="design-canvas" className="flex-1 relative">
-                <DesignModeCanvas />
+                <CesiumViewerComponent className="absolute inset-0" />
 
                 {/* Envelope info overlay */}
                 {envelope && (

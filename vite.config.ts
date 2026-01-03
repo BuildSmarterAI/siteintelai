@@ -13,6 +13,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 // @ts-ignore - no types available
 import { viteObfuscateFile } from "vite-plugin-obfuscator";
+import cesium from "vite-plugin-cesium";
 import type { Plugin } from "vite";
 
 // Custom plugin to make CSS non-blocking
@@ -36,7 +37,8 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(), 
+    react(),
+    cesium(),
     mode === "development" && componentTagger(),
     mode === "production" && deferCSS(),
     mode === "production" && viteObfuscateFile({
