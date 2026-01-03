@@ -23,7 +23,7 @@ export type CameraPreset = "overhead" | "perspective_ne" | "perspective_sw" | "s
 
 export type CanvasViewMode = "2d" | "3d" | "split";
 
-export type BasemapType = "osm" | "satellite" | "satellite-labels" | "terrain";
+export type BasemapType = "osm" | "satellite" | "satellite-labels" | "terrain" | "google-3d";
 
 export type DesignMeasurementMode = "distance" | "area" | "height" | null;
 
