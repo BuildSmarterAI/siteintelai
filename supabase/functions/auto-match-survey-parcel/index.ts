@@ -101,6 +101,57 @@ function classifySurvey(text: string, extractedData: Partial<ExtractedData>): Su
 }
 
 // ============================================================
+// Background Cache Population (fire-and-forget)
+// ============================================================
+function cacheParcelResultsBackground(supabase: any, parcels: any[], county: string): void {
+  // Use EdgeRuntime.waitUntil if available, otherwise just fire and forget
+  const cacheJob = async () => {
+    let cached = 0;
+    let skipped = 0;
+    
+    for (const parcel of parcels) {
+      try {
+        // Check if already exists
+        const { data: existing } = await supabase
+          .from("canonical_parcels")
+          .select("parcel_uuid")
+          .eq("source_parcel_id", parcel.source_parcel_id)
+          .eq("county", county.toUpperCase())
+          .maybeSingle();
+        
+        if (existing) {
+          skipped++;
+          continue;
+        }
+        
+        // Insert new parcel
+        const { error } = await supabase
+          .from("canonical_parcels")
+          .insert({
+            parcel_uuid: parcel.parcel_uuid || crypto.randomUUID(),
+            source_parcel_id: parcel.source_parcel_id,
+            owner_name: parcel.owner_name,
+            acreage: parcel.acreage,
+            situs_address: parcel.situs_address,
+            county: county.toUpperCase(),
+            source_dataset: `live_cache_${county.toLowerCase()}`,
+            fetched_at: new Date().toISOString()
+          });
+        
+        if (!error) cached++;
+      } catch (e) {
+        // Silently ignore individual insert errors
+      }
+    }
+    
+    console.log("[Cache] Background cache complete | County:", county, "| Cached:", cached, "| Skipped:", skipped);
+  };
+  
+  // Fire and forget - don't await
+  cacheJob().catch((e) => console.error("[Cache] Background cache error:", e));
+}
+
+// ============================================================
 // Google Cloud Vision OCR
 // ============================================================
 async function performOCR(imageBase64: string): Promise<string> {
@@ -612,10 +663,14 @@ serve(async (req) => {
     // ============================================================
     console.log("[auto-match] Step 3: Running matching strategies...");
     const candidates: CandidateParcel[] = [];
+    const strategiesExecuted: string[] = [];
+    const dataSourcesUsed: string[] = [];
 
     // Strategy A: Address Match (only for LAND_TITLE_SURVEY with quality address)
     if (extractedData.surveyType === "LAND_TITLE_SURVEY" && extractedData.address && extractedData.address.length > 15) {
-      console.log("[auto-match] Strategy A: Address geocode for:", extractedData.address);
+      strategiesExecuted.push("A (ADDRESS_GEOCODE)");
+      console.log("[auto-match] Strategy A: Address geocode");
+      console.log("[Parcel] MatchingStrategy: ADDRESS_GEOCODE | Query:", extractedData.address);
       
       try {
         // Build full address string
@@ -635,9 +690,10 @@ serve(async (req) => {
         );
 
         if (geocodeError) {
-          console.error("[auto-match] Geocode error:", geocodeError);
+          console.error("[auto-match] Strategy A: Geocode error:", geocodeError);
         } else if (geocodeData?.lat && geocodeData?.lng) {
-          console.log("[auto-match] Geocoded to:", geocodeData.lat, geocodeData.lng);
+          console.log("[Parcel] Geocode Result:", { lat: geocodeData.lat, lng: geocodeData.lng, confidence: geocodeData.confidence || "N/A" });
+          dataSourcesUsed.push("geocode-with-cache");
           
           const pointWkt = `POINT(${geocodeData.lng} ${geocodeData.lat})`;
           
@@ -651,7 +707,8 @@ serve(async (req) => {
           );
 
           if (!addrError && addressMatches?.length > 0) {
-            console.log("[auto-match] Address search returned", addressMatches.length, "results");
+            console.log("[Parcel] MatchingStrategy: ADDRESS_MATCH | DataSource: canonical_parcels | CandidateCount:", addressMatches.length);
+            dataSourcesUsed.push("canonical_parcels");
             for (const match of addressMatches) {
               // Boost confidence if legal description also matches
               let confidence = match.match_score * 0.9;
@@ -679,16 +736,27 @@ serve(async (req) => {
                 }
               });
             }
+          } else {
+            console.log("[Parcel] MatchingStrategy: ADDRESS_MATCH | DataSource: canonical_parcels | CandidateCount: 0");
           }
+        } else {
+          console.log("[Parcel] Geocode failed - no coordinates returned");
         }
       } catch (geocodeErr) {
-        console.error("[auto-match] Geocode function error:", geocodeErr);
+        console.error("[auto-match] Strategy A: Geocode function error:", geocodeErr);
       }
+    } else {
+      console.log("[auto-match] Strategy A: Skipped |", 
+        !extractedData.address ? "RejectionReason: no_valid_address" :
+        extractedData.address.length <= 15 ? "RejectionReason: address_too_short" :
+        "RejectionReason: not_land_title_survey");
     }
 
     // Strategy B: Owner Name Match (mandatory for RECORDED_PLAT)
     if (extractedData.ownerName && extractedData.county) {
-      console.log("[auto-match] Strategy B: Owner match for:", extractedData.ownerName);
+      strategiesExecuted.push("B (OWNER_MATCH)");
+      console.log("[auto-match] Strategy B: Owner match");
+      console.log("[Parcel] MatchingStrategy: OWNER_MATCH | Query:", { owner: extractedData.ownerName, county: extractedData.county, acreageRange: extractedData.acreage ? [extractedData.acreage * 0.8, extractedData.acreage * 1.2] : null });
       
       const { data: ownerMatches, error: ownerError } = await supabase.rpc(
         "find_parcels_by_owner",
@@ -702,9 +770,10 @@ serve(async (req) => {
       );
 
       if (ownerError) {
-        console.error("[auto-match] Owner search error:", ownerError);
+        console.error("[auto-match] Strategy B: Owner search error:", ownerError);
       } else if (ownerMatches?.length > 0) {
-        console.log("[auto-match] Owner search returned", ownerMatches.length, "results");
+        console.log("[Parcel] MatchingStrategy: OWNER_MATCH | DataSource: canonical_parcels | CandidateCount:", ownerMatches.length);
+        dataSourcesUsed.push("canonical_parcels");
         for (const match of ownerMatches) {
           // Check for duplicates
           if (candidates.some(c => c.parcel_id === match.parcel_uuid)) continue;
@@ -729,12 +798,19 @@ serve(async (req) => {
             }
           });
         }
+      } else {
+        console.log("[Parcel] MatchingStrategy: OWNER_MATCH | DataSource: canonical_parcels | CandidateCount: 0");
       }
+    } else {
+      console.log("[auto-match] Strategy B: Skipped |",
+        !extractedData.ownerName ? "RejectionReason: no_owner_extracted" : "RejectionReason: no_county");
     }
 
     // Strategy C: Legal Description Match
     if (extractedData.legalDescription && (extractedData.legalDescription.lot || extractedData.legalDescription.subdivision)) {
+      strategiesExecuted.push("C (LEGAL_DESC)");
       console.log("[auto-match] Strategy C: Legal description match");
+      console.log("[Parcel] MatchingStrategy: LEGAL_DESC | Query:", extractedData.legalDescription);
       
       const { data: legalMatches, error: legalError } = await supabase.rpc(
         "find_parcels_by_legal_description",
@@ -748,9 +824,10 @@ serve(async (req) => {
       );
 
       if (legalError) {
-        console.error("[auto-match] Legal desc search error:", legalError);
+        console.error("[auto-match] Strategy C: Legal desc search error:", legalError);
       } else if (legalMatches?.length > 0) {
-        console.log("[auto-match] Legal desc search returned", legalMatches.length, "results");
+        console.log("[Parcel] MatchingStrategy: LEGAL_DESC | DataSource: canonical_parcels | CandidateCount:", legalMatches.length);
+        dataSourcesUsed.push("canonical_parcels");
         for (const match of legalMatches) {
           // Check for duplicates - boost existing if already there
           const existing = candidates.find(c => c.parcel_id === match.parcel_uuid);
@@ -779,12 +856,18 @@ serve(async (req) => {
             }
           });
         }
+      } else {
+        console.log("[Parcel] MatchingStrategy: LEGAL_DESC | DataSource: canonical_parcels | CandidateCount: 0");
       }
+    } else {
+      console.log("[auto-match] Strategy C: Skipped | RejectionReason: no_legal_description");
     }
 
     // Strategy D: APN Match (if we have a keyword-anchored APN)
     if (extractedData.apn) {
-      console.log("[auto-match] Strategy D: APN match for:", extractedData.apn);
+      strategiesExecuted.push("D (APN_MATCH)");
+      console.log("[auto-match] Strategy D: APN match");
+      console.log("[Parcel] MatchingStrategy: APN_MATCH | Query:", extractedData.apn);
       
       const { data: apnMatches, error: apnError } = await supabase.rpc(
         "find_parcel_candidates",
@@ -796,9 +879,10 @@ serve(async (req) => {
       );
 
       if (apnError) {
-        console.error("[auto-match] APN search error:", apnError);
+        console.error("[auto-match] Strategy D: APN search error:", apnError);
       } else if (apnMatches?.length > 0) {
-        console.log("[auto-match] APN search returned", apnMatches.length, "results");
+        console.log("[Parcel] MatchingStrategy: APN_MATCH | DataSource: canonical_parcels | CandidateCount:", apnMatches.length);
+        dataSourcesUsed.push("canonical_parcels");
         for (const match of apnMatches) {
           // Check for duplicates - boost existing
           const existing = candidates.find(c => c.parcel_id === match.parcel_uuid);
@@ -827,7 +911,11 @@ serve(async (req) => {
             }
           });
         }
+      } else {
+        console.log("[Parcel] MatchingStrategy: APN_MATCH | DataSource: canonical_parcels | CandidateCount: 0");
       }
+    } else {
+      console.log("[auto-match] Strategy D: Skipped | RejectionReason: no_apn_extracted");
     }
 
     // ============================================================
@@ -835,12 +923,15 @@ serve(async (req) => {
     // With LIVE COUNTY QUERY fallback when canonical_parcels is empty
     // ============================================================
     if (candidates.length === 0 && extractedData.acreage) {
+      strategiesExecuted.push("E (AREA_FALLBACK)");
+      
       // If no county, search all Houston-area counties
       const countiesToSearch = extractedData.county 
         ? [extractedData.county] 
         : ["HARRIS", "FORT BEND", "MONTGOMERY", "BRAZORIA", "GALVESTON"];
       
       console.log("[auto-match] Strategy E: Area fallback for acreage:", extractedData.acreage, "in counties:", countiesToSearch.join(", "));
+      console.log("[Parcel] MatchingStrategy: AREA_FALLBACK | Query:", { acreage: extractedData.acreage, tolerance: 0.25, counties: countiesToSearch });
       
       for (const county of countiesToSearch) {
         // Step 1: Try canonical_parcels cache first
@@ -855,11 +946,12 @@ serve(async (req) => {
         );
 
         if (areaError) {
-          console.error("[auto-match] Area search error for", county, ":", areaError);
+          console.error("[auto-match] Strategy E: Area search error for", county, ":", areaError);
         }
         
         if (areaMatches?.length > 0) {
-          console.log("[Parcel] MatchingStrategy: CANONICAL_CACHE | DataSource: canonical_parcels |", county, "| CandidateCount:", areaMatches.length);
+          console.log("[Parcel] MatchingStrategy: AREA_FALLBACK | DataSource: canonical_parcels |", county, "| CandidateCount:", areaMatches.length);
+          dataSourcesUsed.push("canonical_parcels");
           for (const match of areaMatches) {
             // Lower confidence when county was unknown (searched multiple)
             const countyKnown = extractedData.county !== null;
@@ -890,7 +982,7 @@ serve(async (req) => {
           // Only query supported counties (HARRIS, FORT BEND, MONTGOMERY)
           const supportedCounties = ["HARRIS", "FORT BEND", "MONTGOMERY"];
           if (!supportedCounties.includes(county.toUpperCase())) {
-            console.log("[Parcel] Live query not supported for county:", county);
+            console.log("[Parcel] Live query not supported for county:", county, "| RejectionReason: unsupported_county");
             continue;
           }
           
@@ -920,7 +1012,8 @@ serve(async (req) => {
             const liveData = await liveResponse.json();
             
             if (liveData.success && liveData.parcels?.length > 0) {
-              console.log("[Parcel] MatchingStrategy: LIVE_QUERY | DataSource:", county, "| CandidateCount:", liveData.parcels.length);
+              console.log("[Parcel] MatchingStrategy: LIVE_QUERY | DataSource:", county, "FeatureServer | CandidateCount:", liveData.parcels.length);
+              dataSourcesUsed.push(`live_${county.toLowerCase()}_featureserver`);
               
               const countyKnown = extractedData.county !== null;
               const baseConfidence = countyKnown ? 0.50 : 0.30; // Slightly lower for live data
@@ -944,6 +1037,9 @@ serve(async (req) => {
                   }
                 });
               }
+              
+              // Background: Cache these parcels for future queries
+              cacheParcelResultsBackground(supabase, liveData.parcels, county);
             } else {
               console.log("[Parcel] Live query returned 0 parcels for", county, "| Error:", liveData.error || "none");
             }
@@ -955,6 +1051,10 @@ serve(async (req) => {
         // Stop early if we found enough candidates
         if (candidates.length >= 5) break;
       }
+    } else if (candidates.length > 0) {
+      console.log("[auto-match] Strategy E: Skipped | RejectionReason: already_have_candidates");
+    } else {
+      console.log("[auto-match] Strategy E: Skipped | RejectionReason: no_acreage_extracted");
     }
 
     // ============================================================
@@ -1006,7 +1106,16 @@ serve(async (req) => {
       }
     }
 
-    console.log("[auto-match] Final status:", status, "| Candidates:", candidates.length, "| Top confidence:", topConfidence);
+    // ============================================================
+    // Final Summary Log
+    // ============================================================
+    console.log("[auto-match] ========== Summary ==========");
+    console.log("[auto-match] Status:", status);
+    console.log("[auto-match] Strategies Executed:", strategiesExecuted.length > 0 ? strategiesExecuted.join(", ") : "none");
+    console.log("[auto-match] Total Candidates:", candidates.length);
+    console.log("[auto-match] Top Confidence:", topConfidence.toFixed(3));
+    console.log("[auto-match] Data Sources Used:", dataSourcesUsed.length > 0 ? [...new Set(dataSourcesUsed)].join(", ") : "none");
+    console.log("[auto-match] ============================");
 
     // Update survey record with results
     const matchStatus = status === "AUTO_SELECTED" ? "matched" 
