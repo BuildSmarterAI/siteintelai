@@ -535,3 +535,83 @@ All colors MUST be HSL.
   .animate-cascade-in-5 { animation-delay: 200ms; }
   .animate-cascade-in-6 { animation-delay: 250ms; }
 }
+
+/* =========================================================================
+ * Selection Tooltip Styles (Map Binding Selector)
+ * ========================================================================= */
+
+.selection-tooltip-popup .maplibregl-popup-content {
+  background: hsl(var(--background) / 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+}
+
+.selection-tooltip-popup .maplibregl-popup-tip {
+  border-top-color: hsl(var(--background) / 0.95);
+}
+
+.selection-tooltip-content {
+  padding: 12px 16px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.selection-tooltip-content.locked {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: hsl(var(--status-success));
+  font-weight: 500;
+  padding: 10px 14px;
+}
+
+.selection-tooltip-content .lock-icon {
+  font-size: 14px;
+}
+
+.selection-tooltip-content .tooltip-title {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 4px;
+}
+
+.selection-tooltip-content .tooltip-subtitle {
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+}
+
+.selection-tooltip-content .tooltip-warning {
+  color: hsl(var(--status-warning));
+  font-size: 11px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* Selection state visual indicators */
+.map-locked-indicator {
+  animation: lockPulse 2s ease-in-out infinite;
+}
+
+@keyframes lockPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 hsl(var(--feasibility-orange) / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px hsl(var(--feasibility-orange) / 0);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .selection-tooltip-popup {
+    animation: none;
+  }
+  .map-locked-indicator {
+    animation: none;
+  }
+}

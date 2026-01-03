@@ -36,6 +36,7 @@ import type { CandidateParcel, SelectedParcel } from "@/types/parcelSelection";
 import type { SurveyMatchCandidate } from "@/types/surveyAutoMatch";
 import { getSurveyUrl, type SurveyUploadMetadata } from "@/services/surveyUploadApi";
 import { hasValidGeometry, isValidParcelGeometry } from "@/lib/geometryValidation";
+import type { MapSelectionState } from "@/types/mapSelectionState";
 
 interface ParcelSelectionGateProps {
   onParcelLocked: (parcel: SelectedParcel) => void;
@@ -125,6 +126,13 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
     if (!validations) return false;
     return Object.values(validations).every(v => v.status !== 'error');
   }, [validations]);
+
+  // Derive map selection state for 3-state architecture
+  const mapSelectionState = useMemo((): MapSelectionState => {
+    if (state.lockedParcel) return 'locked';
+    if (state.selectedCandidate) return 'candidate-focus';
+    return 'exploration';
+  }, [state.lockedParcel, state.selectedCandidate]);
 
   // Track map state for audit
   useEffect(() => {
@@ -466,6 +474,9 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
               showZoomHint={false}
               showDataSourceBadge={false}
               className="w-full h-full"
+              selectionState="locked"
+              isPostConfirmation={true}
+              showSelectionTooltip={true}
             />
           </div>
 
@@ -499,6 +510,9 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
               showLegend={false}
               showAttribution={false}
               className="w-full h-full"
+              selectionState="locked"
+              isPostConfirmation={true}
+              showSelectionTooltip={true}
             />
           </div>
           
@@ -614,6 +628,11 @@ function ParcelSelectionGateInner({ onParcelLocked, initialCoords }: ParcelSelec
         className="w-full h-full"
         surveyOverlayUrl={showSurveyOverlay ? surveyOverlayUrl : null}
         surveyOverlayOpacity={surveyOverlayOpacity}
+        selectionState={mapSelectionState}
+        onUnlockRequest={handleChangeParcel}
+        showSelectionTooltip={mapSelectionState !== 'exploration'}
+        selectionConfidence={state.selectedCandidate?.confidence || 'high'}
+        isPostConfirmation={false}
       />
     </>
   );
