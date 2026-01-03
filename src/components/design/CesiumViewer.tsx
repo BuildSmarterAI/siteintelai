@@ -13,6 +13,7 @@ import {
   Viewer,
   Entity,
   PolygonGraphics,
+  PolylineGraphics,
 } from "resium";
 import {
   Viewer as CesiumViewer,
@@ -107,6 +108,9 @@ export function CesiumViewerComponent({
   const [terrainProvider, setTerrainProvider] = useState<TerrainProvider | undefined>(undefined);
   const [terrainLoading, setTerrainLoading] = useState(false);
   const [buildings3DLoading, setBuildings3DLoading] = useState(false);
+  
+  // Ground height sampling for Google 3D mode
+  const [groundHeightMeters, setGroundHeightMeters] = useState<number | null>(null);
 
   // Fetch Mapbox token from Edge Function
   const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
@@ -117,6 +121,46 @@ export function CesiumViewerComponent({
   // Get store actions for Google 3D state
   const setStoreGoogle3DAvailable = useDesignStore((state) => state.setGoogle3DAvailable);
   const setStoreGoogle3DError = useDesignStore((state) => state.setGoogle3DError);
+
+  // Sample ground height from rendered Google 3D tiles at parcel centroid
+  const sampleGroundHeightFromScene = useCallback((viewer: CesiumViewer) => {
+    const envelope = useDesignStore.getState().envelope;
+    if (!envelope?.parcelGeometry) {
+      console.log("[GroundHeight] No parcel geometry available");
+      return;
+    }
+
+    const centroid = getPolygonCentroid(envelope.parcelGeometry);
+    const cartographic = Cartographic.fromDegrees(centroid.lng, centroid.lat);
+    
+    // Try to sample height from rendered 3D tiles
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    const tryToSample = () => {
+      attempts++;
+      
+      // Use scene.sampleHeight to get height from rendered primitives
+      const sampledHeight = viewer.scene.sampleHeight(cartographic);
+      
+      if (sampledHeight !== undefined && !isNaN(sampledHeight)) {
+        console.log(`[GroundHeight] Sampled ground height: ${sampledHeight.toFixed(2)}m`);
+        setGroundHeightMeters(sampledHeight);
+        return;
+      }
+      
+      // Retry if tiles not yet rendered
+      if (attempts < maxAttempts) {
+        setTimeout(tryToSample, 200);
+      } else {
+        // Fallback: use 0 if sampling fails
+        console.log("[GroundHeight] Could not sample height, using 0");
+        setGroundHeightMeters(0);
+      }
+    };
+    
+    tryToSample();
+  }, []);
 
   // Apply 2D basemap to viewer (for non-Google-3D modes)
   const applyBasemap = useCallback((viewer: CesiumViewer, currentBasemap: BasemapType, token: string | null) => {
@@ -251,6 +295,11 @@ export function CesiumViewerComponent({
       viewer.scene.fog.enabled = true;
       viewer.scene.fog.density = 0.0002;
       viewer.scene.fog.minimumBrightness = 0.03;
+      
+      // Schedule ground height sampling after tiles have time to render
+      setTimeout(() => {
+        sampleGroundHeightFromScene(viewer);
+      }, 500);
       
       console.log("[Google3D] Photorealistic 3D Tiles loaded successfully (with performance optimizations)");
       toast.success("Google 3D Buildings loaded");
@@ -405,6 +454,9 @@ export function CesiumViewerComponent({
       viewer.scene.globe.show = true;
       viewer.scene.globe.depthTestAgainstTerrain = true;
       viewer.scene.fog.enabled = false;
+      
+      // Reset ground height when leaving Google mode
+      setGroundHeightMeters(null);
       
       console.log("Removed Google 3D Tiles");
     }
@@ -1270,27 +1322,43 @@ export function CesiumViewerComponent({
         shadows={shadowsEnabled}
         terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
-        {/* Parcel Boundary - uses classification for Google 3D, fixed height otherwise */}
-        <Entity name="parcel-boundary">
-          <PolygonGraphics
-            hierarchy={geojsonToCesiumPositions(envelope.parcelGeometry)}
-            material={DESIGN_COLORS.parcelBoundary}
-            outline
-            outlineColor={DESIGN_COLORS.parcelOutline}
-            outlineWidth={4}
-            height={buildings3dSource === "google" ? 0 : 0.3}
-            extrudedHeight={buildings3dSource === "google" ? 0.5 : 0.6}
-            classificationType={2}
-          />
-        </Entity>
+        {/* Parcel Boundary - polyline for Google 3D (at ground level), polygon otherwise */}
+        {buildings3dSource === "google" ? (
+          <Entity name="parcel-boundary">
+            <PolylineGraphics
+              positions={(() => {
+                const coords = envelope.parcelGeometry.coordinates[0];
+                const baseHeight = groundHeightMeters ?? 0;
+                return coords.map(([lng, lat]) => 
+                  Cartesian3.fromDegrees(lng, lat, baseHeight + 0.3)
+                );
+              })()}
+              width={4}
+              material={DESIGN_COLORS.parcelOutline}
+              clampToGround={false}
+            />
+          </Entity>
+        ) : (
+          <Entity name="parcel-boundary">
+            <PolygonGraphics
+              hierarchy={geojsonToCesiumPositions(envelope.parcelGeometry)}
+              material={DESIGN_COLORS.parcelBoundary}
+              outline
+              outlineColor={DESIGN_COLORS.parcelOutline}
+              outlineWidth={4}
+              height={0.3}
+              extrudedHeight={0.6}
+            />
+          </Entity>
+        )}
 
         {/* Regulatory Envelope (extruded volume) */}
         {envelope.buildableFootprint2d && (
           <Entity name="regulatory-envelope">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(envelope.buildableFootprint2d)}
-              extrudedHeight={feetToMeters(envelope.heightCapFt) + (buildings3dSource === "google" ? 50 : 0)}
-              height={buildings3dSource === "google" ? 50 : 0}
+              extrudedHeight={(groundHeightMeters ?? 0) + feetToMeters(envelope.heightCapFt)}
+              height={groundHeightMeters ?? 0}
               material={DESIGN_COLORS.envelope}
               outline
               outlineColor={DESIGN_COLORS.envelopeOutline}
@@ -1304,8 +1372,8 @@ export function CesiumViewerComponent({
           <Entity name="design-footprint">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(activeVariant.footprint)}
-              extrudedHeight={feetToMeters(activeVariant.heightFt) + (buildings3dSource === "google" ? 50 : 0)}
-              height={buildings3dSource === "google" ? 50 : 0}
+              extrudedHeight={(groundHeightMeters ?? 0) + feetToMeters(activeVariant.heightFt)}
+              height={groundHeightMeters ?? 0}
               material={DESIGN_COLORS.footprint}
               outline
               outlineColor={DESIGN_COLORS.footprintOutline}
@@ -1320,8 +1388,8 @@ export function CesiumViewerComponent({
           <Entity name="violation-zone">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(violationGeometry)}
-              extrudedHeight={feetToMeters(activeVariant.heightFt) + (buildings3dSource === "google" ? 50 : 0)}
-              height={buildings3dSource === "google" ? 50 : 0}
+              extrudedHeight={(groundHeightMeters ?? 0) + feetToMeters(activeVariant.heightFt)}
+              height={groundHeightMeters ?? 0}
               material={DESIGN_COLORS.violation}
               outline
               outlineColor={DESIGN_COLORS.violationOutline}
