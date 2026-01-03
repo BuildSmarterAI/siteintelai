@@ -35,6 +35,21 @@ export interface DesignMeasurementResult {
   heightFt?: number;
 }
 
+// Snap point info for visual feedback
+export interface SnapPointInfo {
+  point: [number, number];
+  type: "vertex" | "edge";
+  source: "parcel" | "buildable" | "building";
+}
+
+// Snap settings
+export interface MeasurementSnapSettings {
+  snapToParcel: boolean;
+  snapToBuildable: boolean;
+  snapToBuildings: boolean;
+  snapThresholdFeet: number;
+}
+
 // Persistent measurement annotation
 export interface MeasurementAnnotation {
   id: string;
@@ -254,6 +269,16 @@ interface DesignState {
   setMeasurementPoints: (points: [number, number][]) => void;
   clearMeasurement: () => void;
 
+  // Measurement snapping
+  measurementSnappingEnabled: boolean;
+  setMeasurementSnappingEnabled: (enabled: boolean) => void;
+  measurementSnapSettings: MeasurementSnapSettings;
+  setMeasurementSnapSettings: (settings: Partial<MeasurementSnapSettings>) => void;
+  currentSnapPoint: SnapPointInfo | null;
+  setCurrentSnapPoint: (snap: SnapPointInfo | null) => void;
+  lastSnappedSource: string | null;
+  setLastSnappedSource: (source: string | null) => void;
+
   // Measurement annotations (persistent)
   measurementAnnotations: MeasurementAnnotation[];
   addMeasurementAnnotation: (annotation: MeasurementAnnotation) => void;
@@ -307,6 +332,16 @@ const initialState = {
   measurementMode: null as DesignMeasurementMode,
   measurementResult: null as DesignMeasurementResult | null,
   measurementPoints: [] as [number, number][],
+  // Measurement snapping
+  measurementSnappingEnabled: true,
+  measurementSnapSettings: {
+    snapToParcel: true,
+    snapToBuildable: true,
+    snapToBuildings: true,
+    snapThresholdFeet: 15,
+  } as MeasurementSnapSettings,
+  currentSnapPoint: null as SnapPointInfo | null,
+  lastSnappedSource: null as string | null,
   // Measurement annotations (persistent)
   measurementAnnotations: [] as MeasurementAnnotation[],
   // Shadow comparison mode
@@ -612,6 +647,8 @@ export const useDesignStore = create<DesignState>()(
         measurementResult: null,
         measurementPoints: [],
         currentToolState: mode ? "measuring" : "idle",
+        currentSnapPoint: null,
+        lastSnappedSource: null,
       }),
 
       setMeasurementResult: (result) => set({ measurementResult: result }),
@@ -623,7 +660,21 @@ export const useDesignStore = create<DesignState>()(
         measurementResult: null,
         measurementPoints: [],
         currentToolState: "idle",
+        currentSnapPoint: null,
+        lastSnappedSource: null,
       }),
+
+      // Measurement snapping
+      setMeasurementSnappingEnabled: (enabled) => set({ measurementSnappingEnabled: enabled }),
+
+      setMeasurementSnapSettings: (settings) =>
+        set((state) => ({
+          measurementSnapSettings: { ...state.measurementSnapSettings, ...settings },
+        })),
+
+      setCurrentSnapPoint: (snap) => set({ currentSnapPoint: snap }),
+
+      setLastSnappedSource: (source) => set({ lastSnappedSource: source }),
 
       // Measurement annotations
       addMeasurementAnnotation: (annotation) =>

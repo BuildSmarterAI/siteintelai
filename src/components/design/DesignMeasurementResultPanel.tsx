@@ -30,6 +30,7 @@ export function DesignMeasurementResultPanel({ className }: DesignMeasurementRes
     clearMeasurement,
     addMeasurementAnnotation,
     measurementAnnotations,
+    lastSnappedSource,
   } = useDesignStore();
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -212,9 +213,15 @@ export function DesignMeasurementResultPanel({ className }: DesignMeasurementRes
           <p className="text-xs text-muted-foreground">{getHint()}</p>
         )}
 
-        {/* Points counter */}
-        <div className="text-xs text-muted-foreground pt-1 border-t">
-          {measurementPoints.length} point{measurementPoints.length !== 1 ? "s" : ""} placed
+        {/* Points counter and snap info */}
+        <div className="text-xs text-muted-foreground pt-1 border-t space-y-1">
+          <div>{measurementPoints.length} point{measurementPoints.length !== 1 ? "s" : ""} placed</div>
+          {lastSnappedSource && (
+            <div className="flex items-center gap-1.5 text-primary">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+              Snapped to: {lastSnappedSource}
+            </div>
+          )}
         </div>
 
         {/* Save button */}

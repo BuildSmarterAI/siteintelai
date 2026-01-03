@@ -5,7 +5,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useDesignStore, type CanvasViewMode } from "@/stores/useDesignStore";
-import { Ruler, Square, ArrowUpDown, X } from "lucide-react";
+import { Ruler, Square, ArrowUpDown, X, Magnet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,
@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { MeasurementSnapSettings } from "./MeasurementSnapSettings";
 
 interface DesignMeasurementToolsProps {
   className?: string;
@@ -24,6 +25,8 @@ export function DesignMeasurementTools({ className }: DesignMeasurementToolsProp
     setMeasurementMode,
     clearMeasurement,
     canvasViewMode,
+    measurementSnappingEnabled,
+    setMeasurementSnappingEnabled,
   } = useDesignStore();
 
   const isActive = measurementMode !== null;
@@ -84,6 +87,27 @@ export function DesignMeasurementTools({ className }: DesignMeasurementToolsProp
             </TooltipContent>
           </Tooltip>
         )}
+
+        {/* Snapping toggle */}
+        <div className="w-px h-5 bg-border mx-1" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={measurementSnappingEnabled ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setMeasurementSnappingEnabled(!measurementSnappingEnabled)}
+              className="h-8 w-8 p-0"
+            >
+              <Magnet className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Snap to Edges {measurementSnappingEnabled ? "(On)" : "(Off)"}</p>
+          </TooltipContent>
+        </Tooltip>
+        
+        {/* Snap settings */}
+        {measurementSnappingEnabled && <MeasurementSnapSettings />}
 
         {isActive && (
           <>
