@@ -20,6 +20,7 @@ import {
   ChevronUp,
   ChevronDown,
   EyeIcon,
+  PersonStanding,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDesignStore } from "@/stores/useDesignStore";
@@ -32,6 +33,7 @@ interface LayersPanelProps {
   onToggle3DBuildings?: (enabled: boolean) => void;
   showTerrain?: boolean;
   onToggleTerrain?: (enabled: boolean) => void;
+  onEnterStreetView?: () => void;
 }
 
 // Map Cesium colors to Tailwind-safe hex values
@@ -49,6 +51,7 @@ export function LayersPanel({
   onToggle3DBuildings,
   showTerrain = false,
   onToggleTerrain,
+  onEnterStreetView,
 }: LayersPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { 
@@ -209,6 +212,26 @@ export function LayersPanel({
                     disabled
                   />
                 </motion.div>
+
+                {/* Street View Button */}
+                {onEnterStreetView && (
+                  <motion.button
+                    className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-muted/30 transition-colors"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={onEnterStreetView}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-md bg-muted">
+                        <PersonStanding className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm">Street View</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      G
+                    </span>
+                  </motion.button>
+                )}
               </div>
 
               {/* Divider */}
