@@ -91,6 +91,14 @@ export function CesiumViewerComponent({
   const hasDoneInitialFlyToRef = useRef(false); // Prevents repeated fly-to
   const terrainLoadedRef = useRef(false); // Prevents duplicate terrain loads
   const osmBuildingsLoadingRef = useRef(false); // Prevents duplicate OSM buildings loads
+  const google3DLoadingRef = useRef(false); // Prevents duplicate Google 3D loads
+  
+  // Stable refs for tilesets to avoid callback recreation
+  const google3DTilesetRef = useRef<Cesium3DTileset | null>(null);
+  const osmBuildingsTilesetRef = useRef<Cesium3DTileset | null>(null);
+  const currentBasemapRef = useRef<BasemapType | null>(null);
+  const currentBuildingsSourceRef = useRef<Buildings3DSource | null>(null);
+  
   const [viewerReady, setViewerReady] = useState(false);
   const [google3DTileset, setGoogle3DTileset] = useState<Cesium3DTileset | null>(null);
   const [osmBuildingsTileset, setOsmBuildingsTileset] = useState<Cesium3DTileset | null>(null);
@@ -179,16 +187,28 @@ export function CesiumViewerComponent({
   
   // Load Google Photorealistic 3D Tiles with robust error handling
   const loadGoogle3DTiles = useCallback(async (viewer: CesiumViewer, apiKey: string, onFallbackToOsm?: () => void) => {
+    // Prevent duplicate loads using ref
+    if (google3DLoadingRef.current) {
+      console.log("Google 3D Tiles already loading, skipping...");
+      return;
+    }
+    
+    // Check if already loaded via ref
+    if (google3DTilesetRef.current) {
+      console.log("Google 3D Tiles already loaded");
+      return;
+    }
+    
+    google3DLoadingRef.current = true;
+    setBuildings3DLoading(true);
+    
     try {
       console.log("Loading Google Photorealistic 3D Tiles...");
       
-      // Remove existing 3D tilesets
-      if (google3DTileset) {
-        viewer.scene.primitives.remove(google3DTileset);
-        setGoogle3DTileset(null);
-      }
-      if (osmBuildingsTileset) {
-        viewer.scene.primitives.remove(osmBuildingsTileset);
+      // Remove existing OSM tileset using ref
+      if (osmBuildingsTilesetRef.current) {
+        viewer.scene.primitives.remove(osmBuildingsTilesetRef.current);
+        osmBuildingsTilesetRef.current = null;
         setOsmBuildingsTileset(null);
       }
       
@@ -200,6 +220,7 @@ export function CesiumViewerComponent({
       
       // Add to scene
       viewer.scene.primitives.add(tileset);
+      google3DTilesetRef.current = tileset;
       setGoogle3DTileset(tileset);
       setGoogle3DError(null);
       
@@ -246,38 +267,45 @@ export function CesiumViewerComponent({
         console.log("Auto-falling back to OSM Buildings...");
         onFallbackToOsm();
       }
+    } finally {
+      google3DLoadingRef.current = false;
+      setBuildings3DLoading(false);
     }
-  }, [google3DTileset, osmBuildingsTileset]);
+  }, [setStoreGoogle3DAvailable, setStoreGoogle3DError]); // Removed tileset dependencies - uses refs
   
   // Load Cesium OSM Buildings (requires Cesium Ion token)
-  const loadOsmBuildings = useCallback(async (viewer: CesiumViewer, onFallback?: (source: "google" | "none") => void) => {
+  const loadOsmBuildings = useCallback(async (viewer: CesiumViewer, googleToken: string | null, onFallback?: (source: "google" | "none") => void) => {
     // Prevent duplicate loads
     if (osmBuildingsLoadingRef.current) {
       console.log("OSM Buildings already loading, skipping...");
       return;
     }
+    
+    // Check if already loaded via ref
+    if (osmBuildingsTilesetRef.current) {
+      console.log("OSM Buildings already loaded");
+      return;
+    }
+    
     osmBuildingsLoadingRef.current = true;
     setBuildings3DLoading(true);
     
     try {
       console.log("Loading Cesium OSM Buildings...");
       
-      // Remove existing 3D tilesets
-      if (osmBuildingsTileset) {
-        viewer.scene.primitives.remove(osmBuildingsTileset);
-        setOsmBuildingsTileset(null);
-      }
-      if (google3DTileset) {
-        viewer.scene.primitives.remove(google3DTileset);
+      // Remove existing Google tileset using ref
+      if (google3DTilesetRef.current) {
+        viewer.scene.primitives.remove(google3DTilesetRef.current);
+        google3DTilesetRef.current = null;
         setGoogle3DTileset(null);
       }
       
       // Create OSM buildings tileset (uses Cesium Ion asset 96188)
-      // Note: Requires a valid Cesium Ion token
       const tileset = await createOsmBuildingsAsync();
       
       // Add to scene
       viewer.scene.primitives.add(tileset);
+      osmBuildingsTilesetRef.current = tileset;
       setOsmBuildingsTileset(tileset);
       
       console.log("Cesium OSM Buildings loaded successfully");
@@ -290,7 +318,7 @@ export function CesiumViewerComponent({
         console.log("OSM Buildings require Cesium Ion token - falling back to Google 3D or none");
         
         // Try Google 3D as fallback if token is available
-        if (googleMapsToken && onFallback) {
+        if (googleToken && onFallback) {
           toast.info("OSM Buildings unavailable", {
             description: "Using Google 3D Tiles instead"
           });
@@ -308,29 +336,32 @@ export function CesiumViewerComponent({
       osmBuildingsLoadingRef.current = false;
       setBuildings3DLoading(false);
     }
-  }, [osmBuildingsTileset, google3DTileset, googleMapsToken]);
+  }, []); // No dependencies - uses refs and passed parameters
   
-  // Remove all 3D buildings
+  // Remove all 3D buildings - uses refs for stable callback
   const removeAllBuildings = useCallback((viewer: CesiumViewer) => {
-    if (google3DTileset) {
-      viewer.scene.primitives.remove(google3DTileset);
+    if (google3DTilesetRef.current) {
+      viewer.scene.primitives.remove(google3DTilesetRef.current);
+      google3DTilesetRef.current = null;
       setGoogle3DTileset(null);
     }
-    if (osmBuildingsTileset) {
-      viewer.scene.primitives.remove(osmBuildingsTileset);
+    if (osmBuildingsTilesetRef.current) {
+      viewer.scene.primitives.remove(osmBuildingsTilesetRef.current);
+      osmBuildingsTilesetRef.current = null;
       setOsmBuildingsTileset(null);
     }
     console.log("Removed all 3D buildings");
-  }, [google3DTileset, osmBuildingsTileset]);
+  }, []); // No dependencies - uses refs
   
-  // Remove Google 3D Tiles (legacy, kept for basemap compatibility)
+  // Remove Google 3D Tiles - uses refs for stable callback
   const removeGoogle3DTiles = useCallback((viewer: CesiumViewer) => {
-    if (google3DTileset) {
-      viewer.scene.primitives.remove(google3DTileset);
+    if (google3DTilesetRef.current) {
+      viewer.scene.primitives.remove(google3DTilesetRef.current);
+      google3DTilesetRef.current = null;
       setGoogle3DTileset(null);
       console.log("Removed Google 3D Tiles");
     }
-  }, [google3DTileset]);
+  }, []); // No dependencies - uses refs
 
   // Use measurement hook for 3D
   useCesiumMeasurement({ viewer: viewerRef.current });
@@ -699,16 +730,27 @@ export function CesiumViewerComponent({
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !viewerReady) return;
+    
+    // Skip if basemap hasn't actually changed
+    if (currentBasemapRef.current === basemap) return;
+    currentBasemapRef.current = basemap;
 
     if (basemap === "google-3d") {
       // For google-3d basemap, we need to use Google 3D tiles which includes imagery
       viewer.imageryLayers.removeAll();
       
-      // Force buildings to google mode when basemap is google-3d
-      if (buildings3dSource !== "google" && googleMapsToken) {
+      // Sync buildings source to google when basemap is google-3d
+      if (buildings3dSource !== "google") {
+        currentBuildingsSourceRef.current = "google";
         setBuildings3dSource("google");
-      } else if (googleMapsToken) {
-        loadGoogle3DTiles(viewer, googleMapsToken, () => setBuildings3dSource("osm"));
+      }
+      
+      // Load Google 3D tiles if we have a token
+      if (googleMapsToken) {
+        loadGoogle3DTiles(viewer, googleMapsToken, () => {
+          currentBuildingsSourceRef.current = "osm";
+          setBuildings3dSource("osm");
+        });
       } else if (!googleTokenLoading) {
         console.warn("No Google Maps token available for 3D tiles");
         toast.error("Google Maps API key not configured");
@@ -726,19 +768,30 @@ export function CesiumViewerComponent({
 
     // Skip if basemap is google-3d (handled by basemap effect)
     if (basemap === "google-3d") return;
+    
+    // Skip if buildings source hasn't actually changed
+    if (currentBuildingsSourceRef.current === buildings3dSource) return;
+    currentBuildingsSourceRef.current = buildings3dSource;
 
     switch (buildings3dSource) {
       case "osm":
-        loadOsmBuildings(viewer, setBuildings3dSource);
+        loadOsmBuildings(viewer, googleMapsToken, (fallback) => {
+          currentBuildingsSourceRef.current = fallback;
+          setBuildings3dSource(fallback);
+        });
         break;
         
       case "google":
         if (googleMapsToken) {
-          loadGoogle3DTiles(viewer, googleMapsToken, () => setBuildings3dSource("osm"));
+          loadGoogle3DTiles(viewer, googleMapsToken, () => {
+            currentBuildingsSourceRef.current = "osm";
+            setBuildings3dSource("osm");
+          });
         } else if (!googleTokenLoading) {
           toast.error("Google Maps API key required", {
             description: "Falling back to OSM buildings"
           });
+          currentBuildingsSourceRef.current = "osm";
           setBuildings3dSource("osm");
         }
         break;
