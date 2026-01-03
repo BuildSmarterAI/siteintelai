@@ -917,14 +917,14 @@ export function CesiumViewerComponent({
         shadows={shadowsEnabled}
         terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
-        {/* Parcel Boundary (ground polygon) */}
+        {/* Parcel Boundary with pulsing glow effect (ground polygon) */}
         <Entity name="parcel-boundary">
           <PolygonGraphics
             hierarchy={geojsonToCesiumPositions(envelope.parcelGeometry)}
             material={DESIGN_COLORS.parcelBoundary}
             outline
             outlineColor={DESIGN_COLORS.parcelOutline}
-            outlineWidth={2}
+            outlineWidth={4}
             height={0}
             classificationType={1}
           />
@@ -1052,7 +1052,7 @@ export function CesiumViewerComponent({
           <h4 className="text-xs font-semibold text-muted-foreground mb-2">Legend</h4>
           <div className="space-y-1.5 text-xs">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-blue-500/30 border border-blue-500" />
+              <div className="w-3 h-3 rounded-sm bg-[#FF7A00]/20 border-2 border-[#FF7A00] shadow-[0_0_6px_rgba(255,122,0,0.5)]" />
               <span>Parcel Boundary</span>
             </div>
             <div className="flex items-center gap-2">

@@ -99,8 +99,13 @@ export function createGroundPolygonOptions(
  * Design Mode color palette for Cesium entities
  */
 export const DESIGN_COLORS = {
-  parcelBoundary: Color.fromCssColorString("#3B82F6").withAlpha(0.3), // Blue
-  parcelOutline: Color.fromCssColorString("#3B82F6"),
+  parcelBoundary: Color.fromCssColorString("#FF7A00").withAlpha(0.2), // Brand Orange
+  parcelOutline: Color.fromCssColorString("#FF7A00"),
+  parcelGlow: [
+    { color: Color.fromCssColorString("#FF7A00").withAlpha(0.08), width: 14 },
+    { color: Color.fromCssColorString("#FF7A00").withAlpha(0.12), width: 10 },
+    { color: Color.fromCssColorString("#FF7A00").withAlpha(0.18), width: 6 },
+  ],
   envelope: Color.fromCssColorString("#64748B").withAlpha(0.15), // Slate
   envelopeOutline: Color.fromCssColorString("#64748B").withAlpha(0.5),
   footprint: Color.fromCssColorString("#FF7A00").withAlpha(0.6), // Feasibility Orange
