@@ -1,63 +1,47 @@
 /**
- * SiteIntel™ Design Mode Page
+ * SiteIntel™ Design Mode Page - Google Earth Style
  * 
- * Main entry point for conceptual design exploration.
- * Per PRD: "Lets you explore what's legally possible — not how to build it."
+ * Map-first overlay architecture matching Google Earth UX patterns.
+ * Full-bleed canvas with floating overlay panels.
  */
 
 import { useEffect, useCallback, useMemo, lazy, Suspense } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useDesignStore } from "@/stores/useDesignStore";
 import { useRegulatoryEnvelope } from "@/hooks/useRegulatoryEnvelope";
 import { useDesignSession } from "@/hooks/useDesignSession";
 import { checkCompliance } from "@/lib/designCompliance";
 import { calculateMetrics } from "@/lib/designMetrics";
-import { DesignDisclaimerBadge } from "@/components/design/DesignDisclaimerBadge";
-import { DesignMetricsBar } from "@/components/design/DesignMetricsBar";
-import { CompliancePanel } from "@/components/design/CompliancePanel";
-import { DesignVariantList } from "@/components/design/DesignVariantList";
-import { DesignToolbar } from "@/components/design/DesignToolbar";
+import { EarthTopBar } from "@/components/design/EarthTopBar";
+import { MapContentsPanel } from "@/components/design/MapContentsPanel";
+import { ComplianceDock } from "@/components/design/ComplianceDock";
+import { MetricsChipsBar } from "@/components/design/MetricsChipsBar";
+import { FloatingMapControls } from "@/components/design/FloatingMapControls";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
-import { ViewModeToggle } from "@/components/design/ViewModeToggle";
-import { BasemapSelector } from "@/components/design/BasemapSelector";
 import { DesignMeasurementTools } from "@/components/design/DesignMeasurementTools";
 import { DesignMeasurementResultPanel } from "@/components/design/DesignMeasurementResultPanel";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
-import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
 import { SafeCesiumLoader } from "@/components/design/CesiumErrorBoundary";
 import { CesiumLoadingFallback } from "@/components/design/CesiumLoadingFallback";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 // Lazy load Cesium components to isolate HMR issues
 const CesiumViewerLazy = lazy(() =>
-  import("@/components/design/CesiumViewer").then(module => ({
+  import("@/components/design/CesiumViewer").then((module) => ({
     default: module.CesiumViewerComponent,
   }))
 );
 const SplitViewCanvasLazy = lazy(() =>
-  import("@/components/design/SplitViewCanvas").then(module => ({
+  import("@/components/design/SplitViewCanvas").then((module) => ({
     default: module.SplitViewCanvas,
   }))
 );
-import { 
-  ArrowLeft, 
-  Maximize2, 
-  Columns2, 
-  Download,
-  Loader2
-} from "lucide-react";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
 
 export default function DesignMode() {
   const { applicationId } = useParams();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const {
@@ -76,17 +60,19 @@ export default function DesignMode() {
     setMeasurementMode,
     clearMeasurement,
     reset,
+    leftPanelState,
+    setLeftPanelState,
   } = useDesignStore();
 
   // Fetch or compute envelope
-  const { 
-    isLoading: isLoadingEnvelope, 
+  const {
+    isLoading: isLoadingEnvelope,
     isComputing,
-    computeEnvelope 
+    computeEnvelope,
   } = useRegulatoryEnvelope(applicationId);
 
   // Fetch session and variants
-  const { 
+  const {
     session: fetchedSession,
     isLoading: isLoadingSession,
     createSession,
@@ -115,8 +101,8 @@ export default function DesignMode() {
   }, [reset]);
 
   // Get active variant
-  const activeVariant = useMemo(() => 
-    variants.find(v => v.id === activeVariantId),
+  const activeVariant = useMemo(
+    () => variants.find((v) => v.id === activeVariantId),
     [variants, activeVariantId]
   );
 
@@ -163,17 +149,20 @@ export default function DesignMode() {
       },
     });
   }, [
-    activeVariant?.footprint, 
-    activeVariant?.heightFt, 
+    activeVariant?.footprint,
+    activeVariant?.heightFt,
     activeVariant?.floors,
     envelope,
   ]);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts - Google Earth patterns
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if typing in input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
         return;
       }
 
@@ -198,6 +187,22 @@ export default function DesignMode() {
             clearMeasurement();
           }
           break;
+        case "[":
+          // Toggle left panel
+          if (leftPanelState === "expanded") {
+            setLeftPanelState("collapsed");
+          } else if (leftPanelState === "collapsed") {
+            setLeftPanelState("hidden");
+          } else {
+            setLeftPanelState("expanded");
+          }
+          break;
+        case "n":
+          // Reset north (handled by map controls)
+          break;
+        case "r":
+          // Reset view (handled by map controls)
+          break;
         case "escape":
           setIsDrawing(false);
           clearMeasurement();
@@ -221,7 +226,17 @@ export default function DesignMode() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [variants, canvasViewMode, setCanvasViewMode, measurementMode, setMeasurementMode, clearMeasurement, setIsDrawing]);
+  }, [
+    variants,
+    canvasViewMode,
+    setCanvasViewMode,
+    measurementMode,
+    setMeasurementMode,
+    clearMeasurement,
+    setIsDrawing,
+    leftPanelState,
+    setLeftPanelState,
+  ]);
 
   // Handlers
   const handleStartDrawing = useCallback(() => {
@@ -249,39 +264,6 @@ export default function DesignMode() {
     });
   }, [activeVariant, updateVariant, saveVariant]);
 
-  const handleResetToEnvelope = useCallback(() => {
-    if (!activeVariant || !envelope) return;
-    // Set footprint to envelope geometry
-    updateVariant(activeVariant.id, {
-      footprint: envelope.buildableFootprint2d,
-    });
-    saveVariant({
-      id: activeVariant.id,
-      updates: {
-        footprint: envelope.buildableFootprint2d as unknown,
-      },
-    });
-    toast.success("Footprint set to maximum buildable area");
-  }, [activeVariant, envelope, updateVariant, saveVariant]);
-
-  const handleHeightChange = useCallback((height: number) => {
-    if (!activeVariant) return;
-    updateVariant(activeVariant.id, { heightFt: height });
-    saveVariant({
-      id: activeVariant.id,
-      updates: { height_ft: height },
-    });
-  }, [activeVariant, updateVariant, saveVariant]);
-
-  const handleFloorsChange = useCallback((floors: number) => {
-    if (!activeVariant) return;
-    updateVariant(activeVariant.id, { floors });
-    saveVariant({
-      id: activeVariant.id,
-      updates: { floors },
-    });
-  }, [activeVariant, updateVariant, saveVariant]);
-
   // Loading state
   if (isLoadingEnvelope || isComputing) {
     return (
@@ -303,8 +285,8 @@ export default function DesignMode() {
         <div className="text-center space-y-4 max-w-md">
           <h2 className="text-xl font-semibold">Unable to Load Design Mode</h2>
           <p className="text-muted-foreground">
-            Could not compute the regulatory envelope for this property.
-            Please ensure the feasibility analysis is complete.
+            Could not compute the regulatory envelope for this property. Please
+            ensure the feasibility analysis is complete.
           </p>
           <Button onClick={() => navigate(-1)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -315,153 +297,92 @@ export default function DesignMode() {
     );
   }
 
+  // Compare/Export views
+  if (currentView === "compare") {
+    return (
+      <>
+        <EarthTopBar
+          onStartDrawing={handleStartDrawing}
+          onClearDrawing={handleClearDrawing}
+        />
+        <div className="h-screen pt-20">
+          <CompareMode className="h-full" />
+        </div>
+      </>
+    );
+  }
+
+  if (currentView === "export") {
+    return (
+      <>
+        <EarthTopBar
+          onStartDrawing={handleStartDrawing}
+          onClearDrawing={handleClearDrawing}
+        />
+        <div className="h-screen pt-20 flex justify-center">
+          <ExportPanel className="max-w-2xl w-full" />
+        </div>
+      </>
+    );
+  }
+
+  // Main design view - Google Earth style full-bleed canvas
   return (
-    <div className="h-screen flex flex-col bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b bg-card">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div className="h-6 w-px bg-border" />
-          <div>
-            <h1 className="text-lg font-semibold text-foreground">
-              Design Mode
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {session?.name || "Loading session..."}
-            </p>
-          </div>
-        </div>
+    <div className="relative h-screen w-screen overflow-hidden bg-muted">
+      {/* Full-bleed canvas - absolutely positioned behind overlays */}
+      <div className="absolute inset-0 z-0">
+        {canvasViewMode === "split" ? (
+          <SafeCesiumLoader
+            onFallbackTo2D={() => setCanvasViewMode("2d")}
+            fallback={<CesiumLoadingFallback />}
+          >
+            <Suspense fallback={<CesiumLoadingFallback />}>
+              <SplitViewCanvasLazy className="absolute inset-0" />
+            </Suspense>
+          </SafeCesiumLoader>
+        ) : canvasViewMode === "3d" ? (
+          <SafeCesiumLoader
+            onFallbackTo2D={() => setCanvasViewMode("2d")}
+            fallback={<CesiumLoadingFallback />}
+          >
+            <Suspense fallback={<CesiumLoadingFallback />}>
+              <CesiumViewerLazy className="absolute inset-0" />
+            </Suspense>
+          </SafeCesiumLoader>
+        ) : (
+          <DesignModeCanvas className="absolute inset-0" />
+        )}
+      </div>
 
-        <div className="flex items-center gap-3">
-          <BasemapSelector />
-          <ViewModeToggle />
-          <div className="h-6 w-px bg-border" />
-          <KeyboardShortcutsHelp />
-          <DesignDisclaimerBadge />
+      {/* Google Earth-style overlay components */}
 
-          <div className="flex items-center gap-1 border rounded-lg p-1">
-            <Button
-              variant={currentView === "design" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setCurrentView("design")}
-            >
-              <Maximize2 className="h-4 w-4 mr-1.5" />
-              Design
-            </Button>
-            <Button
-              variant={currentView === "compare" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setCurrentView("compare")}
-            >
-              <Columns2 className="h-4 w-4 mr-1.5" />
-              Compare
-            </Button>
-            <Button
-              variant={currentView === "export" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setCurrentView("export")}
-            >
-              <Download className="h-4 w-4 mr-1.5" />
-              Export
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* Top bar */}
+      <EarthTopBar
+        onStartDrawing={handleStartDrawing}
+        onClearDrawing={handleClearDrawing}
+      />
 
-      {/* Main content */}
-      {currentView === "design" ? (
-        <ResizablePanelGroup direction="horizontal" className="flex-1">
-          {/* Left sidebar - Variants */}
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-            <DesignVariantList sessionId={session?.id} />
-          </ResizablePanel>
+      {/* Left panel - Map Contents (Variants + Layers) */}
+      <MapContentsPanel
+        sessionId={session?.id}
+        panelState={leftPanelState}
+        setPanelState={setLeftPanelState}
+      />
 
-          <ResizableHandle />
+      {/* Right panel - Compliance Dock */}
+      <ComplianceDock />
 
-          {/* Center - Map canvas */}
-          <ResizablePanel defaultSize={55}>
-            <div className="h-full flex flex-col">
-              {/* Toolbar */}
-              <div className="p-3 border-b">
-                <DesignToolbar
-                  onStartDrawing={handleStartDrawing}
-                  onClearDrawing={handleClearDrawing}
-                  onResetToEnvelope={handleResetToEnvelope}
-                  onHeightChange={handleHeightChange}
-                  onFloorsChange={handleFloorsChange}
-                />
-              </div>
+      {/* Measurement tools - top center */}
+      <DesignMeasurementTools className="fixed top-20 left-1/2 -translate-x-1/2 z-30" />
 
-              {/* Canvas - 2D, 3D, or Split based on toggle */}
-              <div id="design-canvas" className="flex-1 relative bg-muted">
-                {canvasViewMode === "split" ? (
-                  <SafeCesiumLoader onFallbackTo2D={() => setCanvasViewMode("2d")} fallback={<CesiumLoadingFallback />}>
-                    <Suspense fallback={<CesiumLoadingFallback />}>
-                      <SplitViewCanvasLazy className="absolute inset-0" />
-                    </Suspense>
-                  </SafeCesiumLoader>
-                ) : canvasViewMode === "3d" ? (
-                  <SafeCesiumLoader onFallbackTo2D={() => setCanvasViewMode("2d")} fallback={<CesiumLoadingFallback />}>
-                    <Suspense fallback={<CesiumLoadingFallback />}>
-                      <CesiumViewerLazy className="absolute inset-0" />
-                    </Suspense>
-                  </SafeCesiumLoader>
-                ) : (
-                  <DesignModeCanvas className="absolute inset-0" />
-                )}
+      {/* Measurement results */}
+      <DesignMeasurementResultPanel className="fixed bottom-24 right-20 z-30 w-48" />
 
-                {/* Envelope info overlay */}
-                {envelope && (
-                  <div className="absolute top-4 left-4 bg-card/90 backdrop-blur-sm border rounded-lg p-3 text-sm max-w-xs z-10">
-                    <h4 className="font-medium mb-2">Regulatory Envelope</h4>
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <div className="flex justify-between">
-                        <span>FAR Cap:</span>
-                        <span className="font-medium text-foreground">{envelope.farCap}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Height Cap:</span>
-                        <span className="font-medium text-foreground">{envelope.heightCapFt}'</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Coverage Cap:</span>
-                        <span className="font-medium text-foreground">{envelope.coverageCapPct}%</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+      {/* Bottom left - Metrics chips */}
+      <MetricsChipsBar className="fixed bottom-4 left-4 z-30" />
 
-                {/* Measurement Tools */}
-                <DesignMeasurementTools className="absolute top-4 left-1/2 -translate-x-1/2 z-20" />
-
-                {/* Measurement Results */}
-                <DesignMeasurementResultPanel className="absolute bottom-20 right-4 z-10 w-48" />
-              </div>
-
-              {/* Metrics bar */}
-              <div className="p-3 border-t">
-                <DesignMetricsBar />
-              </div>
-            </div>
-          </ResizablePanel>
-
-          <ResizableHandle />
-
-          {/* Right sidebar - Compliance */}
-          <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
-            <div className="h-full p-4 overflow-y-auto">
-              <CompliancePanel />
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      ) : currentView === "compare" ? (
-        <CompareMode className="flex-1" />
-      ) : (
-        <ExportPanel className="flex-1 max-w-2xl mx-auto" />
-      )}
+      {/* Bottom right - Floating map controls */}
+      <FloatingMapControls className="fixed bottom-4 right-4 z-30" />
     </div>
   );
 }
