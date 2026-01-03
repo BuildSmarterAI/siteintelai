@@ -41,12 +41,11 @@ import {
 import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
 import { useCesiumMeasurement } from "@/hooks/useCesiumMeasurement";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { Loader2 } from "lucide-react";
 
 // Disable Ion default token warning - we're using open terrain
 Ion.defaultAccessToken = "";
-
-// Mapbox token for satellite imagery (public token is acceptable for tiles)
-const MAPBOX_TOKEN = "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw";
 
 interface CesiumViewerComponentProps {
   className?: string;
@@ -61,6 +60,10 @@ export function CesiumViewerComponent({
   const orbitAnimationRef = useRef<number | null>(null);
   const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
+  const mapboxTokenRef = useRef<string | null>(null);
+
+  // Fetch Mapbox token from Edge Function
+  const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
 
   // Use measurement hook for 3D
   useCesiumMeasurement({ viewer: viewerRef.current });
@@ -81,6 +84,11 @@ export function CesiumViewerComponent({
     setShadowDateTime,
     setIsShadowAnimating,
   } = useDesignStore();
+
+  // Store token in ref for callbacks
+  useEffect(() => {
+    mapboxTokenRef.current = mapboxToken;
+  }, [mapboxToken]);
 
   const activeVariant = useMemo(
     () => variants.find((v) => v.id === activeVariantId),
@@ -322,32 +330,33 @@ export function CesiumViewerComponent({
   // Handle basemap changes
   useEffect(() => {
     const viewer = viewerRef.current;
-    if (!viewer) return;
+    if (!viewer || !mapboxTokenRef.current) return;
 
     // Remove all existing imagery layers
     viewer.imageryLayers.removeAll();
 
     // Add new basemap based on selection
     let imageryProvider;
+    const token = mapboxTokenRef.current;
     
     switch (basemap) {
       case "satellite":
         imageryProvider = new UrlTemplateImageryProvider({
-          url: `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${MAPBOX_TOKEN}`,
+          url: `https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${token}`,
           maximumLevel: 19,
           credit: "© Mapbox © OpenStreetMap",
         });
         break;
       case "satellite-labels":
         imageryProvider = new UrlTemplateImageryProvider({
-          url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,
+          url: `https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${token}`,
           maximumLevel: 22,
           credit: "© Mapbox © OpenStreetMap",
         });
         break;
       case "terrain":
         imageryProvider = new UrlTemplateImageryProvider({
-          url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`,
+          url: `https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${token}`,
           maximumLevel: 22,
           credit: "© Mapbox © OpenStreetMap",
         });
@@ -361,7 +370,7 @@ export function CesiumViewerComponent({
     }
 
     viewer.imageryLayers.addImageryProvider(imageryProvider);
-  }, [basemap]);
+  }, [basemap, mapboxToken]);
 
   // Zoom handlers
   const handleZoomIn = useCallback(() => {
@@ -402,6 +411,29 @@ export function CesiumViewerComponent({
       }, 500);
     }
   }, [centroid, flyToPreset, shadowsEnabled, shadowDateTime]);
+
+  // Show loading while fetching token
+  if (tokenLoading) {
+    return (
+      <div className={cn("flex items-center justify-center bg-muted h-full", className)}>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Loading 3D viewer...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className={cn("flex items-center justify-center bg-muted h-full", className)}>
+        <div className="text-center text-muted-foreground">
+          <p>Failed to load 3D viewer</p>
+          <p className="text-xs mt-1">{tokenError}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!envelope?.parcelGeometry) {
     return (

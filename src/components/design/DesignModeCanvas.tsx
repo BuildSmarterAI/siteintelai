@@ -12,17 +12,16 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import { useDesignStore, type BasemapType } from "@/stores/useDesignStore";
 import { useMapMeasurement } from "@/hooks/useMapMeasurement";
+import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface DesignModeCanvasProps {
   className?: string;
   onFootprintChange?: (geometry: GeoJSON.Polygon | null) => void;
 }
-
-// Mapbox token for satellite imagery
-const MAPBOX_TOKEN = "pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw";
 
 // Layer IDs for consistent reference
 const LAYERS = {
@@ -42,8 +41,8 @@ const SOURCES = {
   VIOLATION: "design-violation",
 };
 
-// Basemap style configurations
-const getBasemapStyle = (basemap: BasemapType): maplibregl.StyleSpecification => {
+// Basemap style configurations - token passed as parameter
+const getBasemapStyle = (basemap: BasemapType, mapboxToken: string): maplibregl.StyleSpecification => {
   switch (basemap) {
     case "satellite":
       return {
@@ -51,7 +50,7 @@ const getBasemapStyle = (basemap: BasemapType): maplibregl.StyleSpecification =>
         sources: {
           "mapbox-satellite": {
             type: "raster",
-            tiles: [`https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${MAPBOX_TOKEN}`],
+            tiles: [`https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.png?access_token=${mapboxToken}`],
             tileSize: 512,
             attribution: "© Mapbox © OpenStreetMap",
           },
@@ -66,7 +65,7 @@ const getBasemapStyle = (basemap: BasemapType): maplibregl.StyleSpecification =>
         sources: {
           "mapbox-hybrid": {
             type: "raster",
-            tiles: [`https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`],
+            tiles: [`https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=${mapboxToken}`],
             tileSize: 512,
             attribution: "© Mapbox © OpenStreetMap",
           },
@@ -81,7 +80,7 @@ const getBasemapStyle = (basemap: BasemapType): maplibregl.StyleSpecification =>
         sources: {
           "mapbox-terrain": {
             type: "raster",
-            tiles: [`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${MAPBOX_TOKEN}`],
+            tiles: [`https://api.mapbox.com/styles/v1/mapbox/outdoors-v12/tiles/{z}/{x}/{y}@2x?access_token=${mapboxToken}`],
             tileSize: 512,
             attribution: "© Mapbox © OpenStreetMap",
           },
@@ -126,6 +125,10 @@ export function DesignModeCanvas({
   const draw = useRef<MapboxDraw | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const layersAdded = useRef(false);
+  const mapboxTokenRef = useRef<string | null>(null);
+
+  // Fetch Mapbox token from Edge Function
+  const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
 
   const {
     envelope,
@@ -149,6 +152,11 @@ export function DesignModeCanvas({
     setActiveTool,
     clearMeasurement,
   } = useMapMeasurement({ map: map.current, mapLoaded });
+
+  // Store token in ref for callbacks
+  useEffect(() => {
+    mapboxTokenRef.current = mapboxToken;
+  }, [mapboxToken]);
 
   // Helper function to add design layers
   const addDesignLayers = useCallback((
@@ -317,9 +325,9 @@ export function DesignModeCanvas({
     onFootprintChange?.(null);
   }, [activeVariant, updateVariant, onFootprintChange]);
 
-  // Initialize map
+  // Initialize map - wait for token
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || !mapboxToken) return;
 
     const center: [number, number] = envelope?.parcelGeometry
       ? turf.centroid(envelope.parcelGeometry).geometry.coordinates as [number, number]
@@ -327,7 +335,7 @@ export function DesignModeCanvas({
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: getBasemapStyle(basemap),
+      style: getBasemapStyle(basemap, mapboxToken),
       center,
       zoom: 17,
       attributionControl: false,
@@ -400,14 +408,14 @@ export function DesignModeCanvas({
       map.current?.remove();
       map.current = null;
     };
-  }, []);
+  }, [mapboxToken]);
 
   // Handle basemap changes
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded || !mapboxTokenRef.current) return;
 
     // Change style
-    map.current.setStyle(getBasemapStyle(basemap));
+    map.current.setStyle(getBasemapStyle(basemap, mapboxTokenRef.current));
     
     // Re-add layers after style loads
     map.current.once("style.load", () => {
@@ -549,6 +557,29 @@ export function DesignModeCanvas({
       }
     };
   }, [mapLoaded, measurementMode, isDrawing, handleMeasurementClick]);
+
+  // Show loading while fetching token
+  if (tokenLoading) {
+    return (
+      <div className={cn("relative w-full h-full flex items-center justify-center bg-muted", className)}>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span>Loading map...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className={cn("relative w-full h-full flex items-center justify-center bg-muted", className)}>
+        <div className="text-center text-muted-foreground">
+          <p>Failed to load map</p>
+          <p className="text-xs mt-1">{tokenError}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn("relative w-full h-full", className)}>
