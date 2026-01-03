@@ -34,7 +34,7 @@ export function useRegulatoryEnvelope(applicationId: string | undefined) {
   const { setEnvelope, setIsLoadingEnvelope } = useDesignStore();
   const queryClient = useQueryClient();
 
-  // Query existing envelope
+  // Query existing envelope - use maybeSingle to avoid errors on no rows
   const envelopeQuery = useQuery({
     queryKey: ["regulatory-envelope", applicationId],
     queryFn: async () => {
@@ -46,9 +46,10 @@ export function useRegulatoryEnvelope(applicationId: string | undefined) {
         .eq("application_id", applicationId)
         .order("computed_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
+      if (error) {
+        console.error("[EnvelopeQuery] Error fetching envelope:", error);
         throw error;
       }
 
@@ -139,9 +140,13 @@ export function useRegulatoryEnvelope(applicationId: string | undefined) {
         }
       }
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error("Envelope computation error:", error);
-      toast.error("Failed to compute regulatory envelope");
+      const errorMessage = error?.message || "Unknown error";
+      toast.error("Failed to compute regulatory envelope", {
+        description: errorMessage,
+        duration: 6000,
+      });
     },
     onSettled: () => {
       setIsLoadingEnvelope(false);

@@ -5,9 +5,10 @@
  * Full-bleed canvas with floating overlay panels.
  */
 
-import { useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import { useEffect, useCallback, useMemo, lazy, Suspense, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDesignStore } from "@/stores/useDesignStore";
+import { supabase } from "@/integrations/supabase/client";
 import { useRegulatoryEnvelope } from "@/hooks/useRegulatoryEnvelope";
 import { useDesignSession } from "@/hooks/useDesignSession";
 import { checkCompliance } from "@/lib/designCompliance";
@@ -79,11 +80,38 @@ export default function DesignMode() {
     updateVariant: saveVariant,
   } = useDesignSession(envelope?.id);
 
-  // Compute envelope on mount if needed
+  // State for auth check
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  // Compute envelope on mount if needed - with auth check
   useEffect(() => {
-    if (applicationId && !envelope && !isLoadingEnvelope && !isComputing) {
-      computeEnvelope(applicationId);
-    }
+    // Skip if envelope already exists, or loading, or already computing
+    if (envelope || isLoadingEnvelope || isComputing || !applicationId) return;
+    
+    const checkAuthAndCompute = async () => {
+      setIsCheckingAuth(true);
+      setAuthError(null);
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          setAuthError("Please sign in to access Design Mode");
+          return;
+        }
+        
+        // Authenticated - compute envelope
+        computeEnvelope(applicationId);
+      } catch (error) {
+        console.error("Auth check failed:", error);
+        setAuthError("Failed to verify authentication");
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+    
+    checkAuthAndCompute();
   }, [applicationId, envelope, isLoadingEnvelope, isComputing, computeEnvelope]);
 
   // Create session if envelope exists but no session
@@ -264,14 +292,29 @@ export default function DesignMode() {
     });
   }, [activeVariant, updateVariant, saveVariant]);
 
+  // Auth error state - show login prompt
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center space-y-4 max-w-md">
+          <h2 className="text-xl font-semibold">Authentication Required</h2>
+          <p className="text-muted-foreground">{authError}</p>
+          <Button onClick={() => navigate("/auth")}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   // Loading state
-  if (isLoadingEnvelope || isComputing) {
+  if (isLoadingEnvelope || isComputing || isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
           <p className="text-muted-foreground">
-            {isComputing ? "Computing regulatory envelope..." : "Loading..."}
+            {isCheckingAuth ? "Verifying session..." : isComputing ? "Computing regulatory envelope..." : "Loading..."}
           </p>
         </div>
       </div>
