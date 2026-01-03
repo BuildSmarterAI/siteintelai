@@ -39,6 +39,13 @@ const REASON_CODE_CONFIG: Record<MatchReasonCode, { label: string; variant: "def
   OWNER_MATCH: { label: "Owner Match", variant: "secondary", priority: 4 },
   AREA_MATCH: { label: "Area Match", variant: "outline", priority: 5 },
   COUNTY_MATCH: { label: "County", variant: "outline", priority: 6 },
+  // New Survey-First codes
+  GEOMETRY_OVERLAP: { label: "Geometry Overlap", variant: "default", priority: 1 },
+  ACREAGE_FINGERPRINT: { label: "Acreage Match", variant: "secondary", priority: 3 },
+  ROW_RATIO_MATCH: { label: "ROW Ratio", variant: "outline", priority: 5 },
+  ROAD_FRONTAGE_MATCH: { label: "Road Frontage", variant: "outline", priority: 5 },
+  MULTI_PARCEL_ASSEMBLY: { label: "Multi-Parcel", variant: "secondary", priority: 4 },
+  LIVE_QUERY: { label: "Live Query", variant: "outline", priority: 7 },
   // Legacy codes
   APN: { label: "APN Match", variant: "default", priority: 1 },
   ADDRESS: { label: "Address", variant: "secondary", priority: 2 },

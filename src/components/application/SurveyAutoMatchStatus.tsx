@@ -73,6 +73,13 @@ const REASON_CODE_LABELS: Record<MatchReasonCode, string> = {
   LEGAL_DESC_MATCH: "Legal Description",
   AREA_MATCH: "Area Match",
   COUNTY_MATCH: "County Match",
+  // New Survey-First codes
+  GEOMETRY_OVERLAP: "Geometry Overlap",
+  ACREAGE_FINGERPRINT: "Acreage Match",
+  ROW_RATIO_MATCH: "ROW Ratio Match",
+  ROAD_FRONTAGE_MATCH: "Road Frontage",
+  MULTI_PARCEL_ASSEMBLY: "Multi-Parcel",
+  LIVE_QUERY: "Live Query",
   // Legacy codes
   APN: "APN Match",
   ADDRESS: "Address Match",

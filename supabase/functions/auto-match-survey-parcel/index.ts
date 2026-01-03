@@ -23,15 +23,27 @@ interface ExtractedData {
   county: string | null;
   ownerName: string | null;
   acreage: number | null;
+  // Enhanced acreage breakdown (Survey-First)
+  grossAcreage: number | null;
+  netAcreage: number | null;
+  rowAcreage: number | null;
+  easementAcreage: number | null;
+  // Road frontage
+  roadFrontages: Array<{ road_name: string; frontage_ft: number }> | null;
   legalDescription: {
     lot: string | null;
     block: string | null;
     subdivision: string | null;
+    abstract_number: string | null;
+    section_number: string | null;
   } | null;
   surveyType: SurveyType;
   rawText: string;
   extractionSource: string;
   ocrUsed: boolean;
+  // Confidence levels
+  acreageConfidence: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+  geometryConfidence: "HIGH" | "MEDIUM" | "LOW" | "NONE";
 }
 
 interface CandidateParcel {
@@ -339,35 +351,244 @@ function extractOwnerName(text: string): string | null {
 }
 
 // ============================================================
-// Acreage Extraction
+// Acreage Extraction - Enhanced for Gross/Net/ROW
 // ============================================================
-function extractAcreage(text: string): number | null {
-  const patterns = [
-    /(\d+\.?\d*)\s*(?:ACRES?|AC\.?)\b/gi,
-    /CONTAINING\s+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
-    /AREA[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+interface AcreageBreakdown {
+  gross: number | null;
+  net: number | null;
+  row: number | null;
+  easement: number | null;
+  confidence: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+}
+
+function extractAcreageBreakdown(text: string): AcreageBreakdown {
+  const upperText = text.toUpperCase();
+  const result: AcreageBreakdown = {
+    gross: null,
+    net: null,
+    row: null,
+    easement: null,
+    confidence: "NONE"
+  };
+  
+  // Pattern for GROSS acreage
+  const grossPatterns = [
+    /(\d+\.?\d*)\s*(?:ACRES?|AC\.?)\s*\(?GROSS\)?/gi,
+    /GROSS\s*(?:AREA)?[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+    /CONTAINING\s+(\d+\.?\d*)\s*(?:ACRES?|AC).*?GROSS/gi,
   ];
   
-  const upperText = text.toUpperCase();
-  
-  for (const pattern of patterns) {
+  for (const pattern of grossPatterns) {
     const match = pattern.exec(upperText);
     if (match && match[1]) {
       const acreage = parseFloat(match[1]);
-      if (acreage > 0 && acreage < 10000) { // Reasonable range
-        console.log("[Acreage] Extracted acreage:", acreage);
-        return acreage;
+      if (acreage > 0 && acreage < 10000) {
+        result.gross = acreage;
+        console.log("[Acreage] Extracted GROSS acreage:", acreage);
+        break;
       }
     }
   }
   
-  return null;
+  // Pattern for NET acreage
+  const netPatterns = [
+    /(\d+\.?\d*)\s*(?:ACRES?|AC\.?)\s*\(?NET\)?/gi,
+    /NET\s*(?:AREA)?[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+    /NET\s*BUILDABLE[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+  ];
+  
+  for (const pattern of netPatterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      const acreage = parseFloat(match[1]);
+      if (acreage > 0 && acreage < 10000) {
+        result.net = acreage;
+        console.log("[Acreage] Extracted NET acreage:", acreage);
+        break;
+      }
+    }
+  }
+  
+  // Pattern for ROW acreage
+  const rowPatterns = [
+    /(?:R\.?O\.?W\.?|RIGHT[\s-]*OF[\s-]*WAY)[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+    /(\d+\.?\d*)\s*(?:ACRES?|AC)[\s,]+(?:R\.?O\.?W\.?|RIGHT[\s-]*OF[\s-]*WAY)/gi,
+    /ROAD\s*(?:DEDICATION|R\.?O\.?W\.?)[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+  ];
+  
+  for (const pattern of rowPatterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      const acreage = parseFloat(match[1]);
+      if (acreage > 0 && acreage < 100) { // ROW typically smaller
+        result.row = acreage;
+        console.log("[Acreage] Extracted ROW acreage:", acreage);
+        break;
+      }
+    }
+  }
+  
+  // Pattern for EASEMENT acreage
+  const easementPatterns = [
+    /EASEMENT[S]?[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+    /(\d+\.?\d*)\s*(?:ACRES?|AC)[\s,]+EASEMENT/gi,
+    /UTILITY\s*EASEMENT[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+  ];
+  
+  for (const pattern of easementPatterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      const acreage = parseFloat(match[1]);
+      if (acreage > 0 && acreage < 100) {
+        result.easement = acreage;
+        console.log("[Acreage] Extracted EASEMENT acreage:", acreage);
+        break;
+      }
+    }
+  }
+  
+  // Determine confidence based on what we found
+  if (result.gross && result.net) {
+    // If we have both gross and net, high confidence
+    result.confidence = "HIGH";
+  } else if (result.gross || result.net) {
+    // If we have either, medium confidence
+    result.confidence = "MEDIUM";
+  } else {
+    // Fallback: try generic acreage pattern
+    const genericPatterns = [
+      /(\d+\.?\d*)\s*(?:ACRES?|AC\.?)\b/gi,
+      /CONTAINING\s+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+      /AREA[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+    ];
+    
+    for (const pattern of genericPatterns) {
+      const match = pattern.exec(upperText);
+      if (match && match[1]) {
+        const acreage = parseFloat(match[1]);
+        if (acreage > 0 && acreage < 10000) {
+          // Treat generic as gross if no net/row context
+          result.gross = acreage;
+          result.confidence = "LOW";
+          console.log("[Acreage] Extracted generic acreage (LOW confidence):", acreage);
+          break;
+        }
+      }
+    }
+  }
+  
+  return result;
+}
+
+// Legacy wrapper for backward compatibility
+function extractAcreage(text: string): number | null {
+  const breakdown = extractAcreageBreakdown(text);
+  return breakdown.gross || breakdown.net || null;
 }
 
 // ============================================================
-// Legal Description Extraction
+// Road Frontage Extraction
 // ============================================================
-function extractLegalDescription(text: string): { lot: string | null; block: string | null; subdivision: string | null } | null {
+interface RoadFrontage {
+  road_name: string;
+  frontage_ft: number;
+}
+
+function extractRoadFrontages(text: string): RoadFrontage[] | null {
+  const upperText = text.toUpperCase();
+  const frontages: RoadFrontage[] = [];
+  
+  // Pattern: "XXX.XX LF [ROAD NAME] FRONTAGE" or "[ROAD NAME] FRONTAGE: XXX.XX LF"
+  const frontagePatterns = [
+    /(\d+\.?\d*)\s*(?:L\.?F\.?|LINEAR\s*FEET?|FEET)[\s,]+(?:OF\s+)?([A-Z0-9\s]+?)(?:\s+FRONTAGE|\s+ROAD|\s+(?:DRIVE|DR|LANE|LN|BLVD|HWY|HIGHWAY))/gi,
+    /([A-Z0-9\s]+?)(?:ROAD|DRIVE|DR|LANE|LN|BLVD|HWY|HIGHWAY)\s+FRONTAGE[:\s]+(\d+\.?\d*)\s*(?:L\.?F\.?|FEET?)/gi,
+    /FRONTAGE\s+(?:ON|ALONG)\s+([A-Z0-9\s]+?)[:\s]+(\d+\.?\d*)\s*(?:L\.?F\.?|FEET?)/gi,
+  ];
+  
+  for (const pattern of frontagePatterns) {
+    let match;
+    while ((match = pattern.exec(upperText)) !== null) {
+      // Different patterns have name/value in different positions
+      const isValueFirst = /^\d/.test(match[1]);
+      const value = parseFloat(isValueFirst ? match[1] : match[2]);
+      let roadName = (isValueFirst ? match[2] : match[1]).trim();
+      
+      // Clean up road name
+      roadName = roadName.replace(/\s+/g, ' ').replace(/^(OF|THE|ON)\s+/i, '').trim();
+      
+      if (value > 0 && value < 10000 && roadName.length >= 3) {
+        // Avoid duplicates
+        if (!frontages.some(f => f.road_name === roadName)) {
+          frontages.push({ road_name: roadName, frontage_ft: value });
+          console.log("[Frontage] Extracted:", roadName, "=", value, "LF");
+        }
+      }
+    }
+  }
+  
+  return frontages.length > 0 ? frontages : null;
+}
+
+// ============================================================
+// Abstract/Section Extraction (Rural Texas Parcels)
+// ============================================================
+interface RuralIdentifiers {
+  abstract_number: string | null;
+  section_number: string | null;
+}
+
+function extractRuralIdentifiers(text: string): RuralIdentifiers {
+  const upperText = text.toUpperCase();
+  const result: RuralIdentifiers = {
+    abstract_number: null,
+    section_number: null,
+  };
+  
+  // Abstract patterns
+  const abstractPatterns = [
+    /ABSTRACT\s*(?:NO\.?|NUMBER|#)?\s*[:\s]*([A-Z]?[\d-]+)/gi,
+    /A-(\d+)/gi,
+    /ABS\.?\s*(\d+)/gi,
+  ];
+  
+  for (const pattern of abstractPatterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      result.abstract_number = match[1].replace(/[^A-Z0-9-]/gi, '');
+      console.log("[Rural] Extracted abstract:", result.abstract_number);
+      break;
+    }
+  }
+  
+  // Section patterns
+  const sectionPatterns = [
+    /SECTION\s*(?:NO\.?|NUMBER|#)?\s*[:\s]*(\d+)/gi,
+    /SEC\.?\s*(\d+)/gi,
+    /S-(\d+)/gi,
+  ];
+  
+  for (const pattern of sectionPatterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      result.section_number = match[1];
+      console.log("[Rural] Extracted section:", result.section_number);
+      break;
+    }
+  }
+  
+  return result;
+}
+
+// ============================================================
+// Legal Description Extraction - Enhanced with Abstract/Section
+// ============================================================
+function extractLegalDescription(text: string): { 
+  lot: string | null; 
+  block: string | null; 
+  subdivision: string | null;
+  abstract_number: string | null;
+  section_number: string | null;
+} | null {
   const upperText = text.toUpperCase();
   
   const lot = upperText.match(/\bLOT\s+(\d+[A-Z]?)\b/i)?.[1] || null;
@@ -391,9 +612,19 @@ function extractLegalDescription(text: string): { lot: string | null; block: str
     }
   }
   
-  if (lot || block || subdivision) {
-    console.log("[Legal] Extracted legal desc - Lot:", lot, "Block:", block, "Subdivision:", subdivision);
-    return { lot, block, subdivision };
+  // Extract rural identifiers
+  const ruralIds = extractRuralIdentifiers(text);
+  
+  if (lot || block || subdivision || ruralIds.abstract_number || ruralIds.section_number) {
+    console.log("[Legal] Extracted legal desc - Lot:", lot, "Block:", block, "Subdivision:", subdivision, 
+      "Abstract:", ruralIds.abstract_number, "Section:", ruralIds.section_number);
+    return { 
+      lot, 
+      block, 
+      subdivision,
+      abstract_number: ruralIds.abstract_number,
+      section_number: ruralIds.section_number
+    };
   }
   
   return null;
@@ -538,18 +769,28 @@ serve(async (req) => {
     console.log("[auto-match] Filename:", filename);
     console.log("[auto-match] Survey county from metadata:", survey.county);
 
-    // Initialize extracted data
+    // Initialize extracted data with enhanced Survey-First fields
     const extractedData: ExtractedData = {
       apn: null,
       address: null,
       county: survey.county || null,
       ownerName: null,
       acreage: null,
+      // Enhanced acreage breakdown
+      grossAcreage: null,
+      netAcreage: null,
+      rowAcreage: null,
+      easementAcreage: null,
+      // Road frontages
+      roadFrontages: null,
       legalDescription: null,
       surveyType: "UNKNOWN",
       rawText: "",
       extractionSource: "none",
       ocrUsed: false,
+      // Confidence levels
+      acreageConfidence: "NONE",
+      geometryConfidence: "NONE",
     };
 
     // ============================================================
@@ -608,10 +849,20 @@ serve(async (req) => {
     // Owner name
     extractedData.ownerName = extractOwnerName(textContent);
     
-    // Acreage
-    extractedData.acreage = extractAcreage(textContent);
+    // Acreage - Enhanced breakdown (Survey-First)
+    const acreageBreakdown = extractAcreageBreakdown(textContent);
+    extractedData.grossAcreage = acreageBreakdown.gross;
+    extractedData.netAcreage = acreageBreakdown.net;
+    extractedData.rowAcreage = acreageBreakdown.row;
+    extractedData.easementAcreage = acreageBreakdown.easement;
+    extractedData.acreageConfidence = acreageBreakdown.confidence;
+    // Legacy: use gross or net for backward compatibility
+    extractedData.acreage = acreageBreakdown.gross || acreageBreakdown.net || null;
     
-    // Legal description
+    // Road Frontage extraction
+    extractedData.roadFrontages = extractRoadFrontages(textContent);
+    
+    // Legal description (enhanced with abstract/section)
     extractedData.legalDescription = extractLegalDescription(textContent);
     
     // County (from text if not in metadata, then try filename)
@@ -629,13 +880,17 @@ serve(async (req) => {
       apn: extractedData.apn,
       address: extractedData.address,
       ownerName: extractedData.ownerName,
-      acreage: extractedData.acreage,
+      grossAcreage: extractedData.grossAcreage,
+      netAcreage: extractedData.netAcreage,
+      rowAcreage: extractedData.rowAcreage,
+      roadFrontages: extractedData.roadFrontages,
       legalDescription: extractedData.legalDescription,
       county: extractedData.county,
       surveyType: extractedData.surveyType,
+      acreageConfidence: extractedData.acreageConfidence,
     });
 
-    // Update status to matching
+    // Update status to matching with enhanced extraction data
     await supabase
       .from("survey_uploads")
       .update({ 
@@ -645,15 +900,27 @@ serve(async (req) => {
         extracted_acreage: extractedData.acreage,
         extracted_legal_description: extractedData.legalDescription,
         extraction_json: {
-          apn: extractedData.apn,
-          address: extractedData.address,
-          county: extractedData.county,
-          ownerName: extractedData.ownerName,
-          acreage: extractedData.acreage,
-          legalDescription: extractedData.legalDescription,
-          surveyType: extractedData.surveyType,
-          ocrUsed: extractedData.ocrUsed,
-          extractionSource: extractedData.extractionSource,
+          // Standard fields
+          apn_extracted: extractedData.apn,
+          address_extracted: extractedData.address,
+          county_extracted: extractedData.county,
+          owner_extracted: extractedData.ownerName,
+          acreage_extracted: extractedData.acreage,
+          legal_description: extractedData.legalDescription,
+          survey_type: extractedData.surveyType,
+          ocr_used: extractedData.ocrUsed,
+          extraction_source: extractedData.extractionSource,
+          // Enhanced Survey-First fields
+          gross_acreage: extractedData.grossAcreage,
+          net_acreage: extractedData.netAcreage,
+          row_acreage: extractedData.rowAcreage,
+          easement_acreage: extractedData.easementAcreage,
+          road_frontages: extractedData.roadFrontages,
+          acreage_confidence: extractedData.acreageConfidence,
+          geometry_confidence: extractedData.geometryConfidence,
+          // Rural identifiers
+          abstract_number: extractedData.legalDescription?.abstract_number || null,
+          section_number: extractedData.legalDescription?.section_number || null,
         }
       })
       .eq("id", survey_upload_id);
@@ -1143,6 +1410,7 @@ serve(async (req) => {
         confidence: topConfidence,
         candidates: candidates.slice(0, 5),
         extraction: {
+          // Standard fields
           apn_extracted: extractedData.apn,
           address_extracted: extractedData.address,
           county_extracted: extractedData.county,
@@ -1152,6 +1420,17 @@ serve(async (req) => {
           survey_type: extractedData.surveyType,
           ocr_used: extractedData.ocrUsed,
           extraction_source: extractedData.extractionSource,
+          // Enhanced Survey-First fields
+          gross_acreage: extractedData.grossAcreage,
+          net_acreage: extractedData.netAcreage,
+          row_acreage: extractedData.rowAcreage,
+          easement_acreage: extractedData.easementAcreage,
+          road_frontages: extractedData.roadFrontages,
+          acreage_confidence: extractedData.acreageConfidence,
+          geometry_confidence: extractedData.geometryConfidence,
+          // Rural identifiers
+          abstract_number: extractedData.legalDescription?.abstract_number || null,
+          section_number: extractedData.legalDescription?.section_number || null,
         }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
