@@ -1,5 +1,5 @@
 import { useParams, Outlet, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, PencilRuler } from "lucide-react";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { useReportData } from "@/hooks/useReportData";
 import { ReportContextProvider } from "@/contexts/ReportContext";
@@ -118,18 +118,28 @@ export default function ReportLayout() {
 
             <div className="flex-1 overflow-auto">
               <div className="container mx-auto px-4 md:px-6 pt-6">
-                <ReportHeader
-                  address={report.applications?.formatted_address || 'Property Report'}
-                  parcelId={report.applications?.parcel_id}
-                  jurisdiction={report.applications?.city || report.applications?.county}
-                  zoningCode={report.applications?.zoning_code || undefined}
-                  acreage={report.applications?.acreage_cad || report.applications?.lot_size_value}
-                  createdAt={report.created_at}
-                  pdfUrl={report.pdf_url}
-                  onDownloadPdf={() => window.open(report.pdf_url!, '_blank')}
-                  pdfGenerating={pdfGenerating}
-                  pdfError={pdfError}
-                />
+                <div className="flex items-center justify-between gap-4 mb-4">
+                  <ReportHeader
+                    address={report.applications?.formatted_address || 'Property Report'}
+                    parcelId={report.applications?.parcel_id}
+                    jurisdiction={report.applications?.city || report.applications?.county}
+                    zoningCode={report.applications?.zoning_code || undefined}
+                    acreage={report.applications?.acreage_cad || report.applications?.lot_size_value}
+                    createdAt={report.created_at}
+                    pdfUrl={report.pdf_url}
+                    onDownloadPdf={() => window.open(report.pdf_url!, '_blank')}
+                    pdfGenerating={pdfGenerating}
+                    pdfError={pdfError}
+                  />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(`/design/${report.application_id}`)}
+                    className="shrink-0"
+                  >
+                    <PencilRuler className="h-4 w-4 mr-2" />
+                    Design Mode
+                  </Button>
+                </div>
               </div>
 
               <main className="container mx-auto px-4 md:px-6 py-6 md:py-8">
