@@ -30,7 +30,7 @@ export function WizardStepper() {
               onClick={() => isAccessible && setStep(step.id)}
               disabled={!isAccessible}
               className={cn(
-                "flex items-center gap-3 w-full px-3 py-2 rounded-lg transition-all text-left",
+                "flex flex-col items-center gap-1 w-full p-2 rounded-lg transition-all text-center",
                 isActive && "bg-primary/10 text-primary",
                 !isActive && isComplete && "text-muted-foreground hover:bg-muted/50",
                 !isActive && !isComplete && isAccessible && "text-muted-foreground hover:bg-muted/50",
@@ -40,38 +40,33 @@ export function WizardStepper() {
               {/* Step indicator */}
               <div
                 className={cn(
-                  "flex items-center justify-center w-7 h-7 rounded-full border-2 transition-colors",
+                  "flex items-center justify-center w-6 h-6 rounded-full border-2 transition-colors",
                   isActive && "border-primary bg-primary text-primary-foreground",
                   isComplete && "border-primary bg-primary text-primary-foreground",
                   !isActive && !isComplete && "border-muted-foreground/30"
                 )}
               >
                 {isComplete ? (
-                  <Check className="h-4 w-4" />
+                  <Check className="h-3 w-3" />
                 ) : (
-                  <IconComponent className="h-3.5 w-3.5" />
+                  <IconComponent className="h-3 w-3" />
                 )}
               </div>
               
               {/* Step label */}
-              <div className="flex-1 min-w-0">
-                <span className={cn(
-                  "text-sm font-medium truncate",
-                  isActive && "text-primary"
-                )}>
-                  {step.label}
-                </span>
-                {step.isOptional && (
-                  <span className="text-xs text-muted-foreground ml-1">(optional)</span>
-                )}
-              </div>
+              <span className={cn(
+                "text-[10px] font-medium leading-tight",
+                isActive && "text-primary"
+              )}>
+                {step.label}
+              </span>
             </button>
             
             {/* Connector line */}
             {!isLast && (
               <div 
                 className={cn(
-                  "absolute left-[22px] top-[42px] w-0.5 h-4 -translate-x-1/2",
+                  "mx-auto w-0.5 h-2",
                   isComplete ? "bg-primary" : "bg-muted-foreground/20"
                 )}
               />

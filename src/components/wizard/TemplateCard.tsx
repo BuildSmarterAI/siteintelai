@@ -58,7 +58,7 @@ export function TemplateCard({
   return (
     <div
       className={cn(
-        "group relative p-3 rounded-lg border transition-all cursor-pointer",
+        "group relative p-3 rounded-lg border transition-all cursor-pointer min-w-[280px]",
         isSelected && "border-primary bg-primary/5",
         !isSelected && !isFail && "border-border hover:border-muted-foreground/50 hover:bg-muted/30",
         isFail && !isSelected && "border-red-500/30 bg-red-500/5 opacity-75"

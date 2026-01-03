@@ -87,7 +87,7 @@ export function TemplateRecommendations() {
       )}
       
       {/* Template Cards */}
-      <ScrollArea className="flex-1 -mx-1 px-1">
+      <div className="flex-1 overflow-y-auto -mx-1 px-1">
         <div className="space-y-4 pb-4">
           {/* Recommended */}
           {rankedTemplates?.recommended && rankedTemplates.recommended.length > 0 && (
@@ -163,7 +163,7 @@ export function TemplateRecommendations() {
             </div>
           )}
         </div>
-      </ScrollArea>
+      </div>
       
       {/* Navigation */}
       <div className="flex gap-2 pt-2 flex-shrink-0">
