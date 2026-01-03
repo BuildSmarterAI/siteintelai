@@ -204,9 +204,25 @@ interface DesignState {
   shadowsEnabled: boolean;
   setShadowsEnabled: (enabled: boolean) => void;
   shadowDateTime: Date;
-  setShadowDateTime: (date: Date) => void;
+  setShadowDateTime: (date: Date | ((prev: Date) => Date)) => void;
   isShadowAnimating: boolean;
   setIsShadowAnimating: (animating: boolean) => void;
+  shadowPlaybackSpeed: 0.5 | 1 | 2 | 4;
+  setShadowPlaybackSpeed: (speed: 0.5 | 1 | 2 | 4) => void;
+
+  // Street View Mode
+  isStreetViewMode: boolean;
+  setIsStreetViewMode: (enabled: boolean) => void;
+  streetViewSettings: {
+    walkSpeed: "slow" | "medium" | "fast";
+    eyeHeightMeters: number;
+    mouseSensitivity: number;
+  };
+  setStreetViewSettings: (settings: Partial<{
+    walkSpeed: "slow" | "medium" | "fast";
+    eyeHeightMeters: number;
+    mouseSensitivity: number;
+  }>) => void;
 
   // Measurement tools
   measurementMode: DesignMeasurementMode;
@@ -245,6 +261,13 @@ const initialState = {
     return date;
   })(),
   isShadowAnimating: false,
+  shadowPlaybackSpeed: 1 as 0.5 | 1 | 2 | 4,
+  isStreetViewMode: false,
+  streetViewSettings: {
+    walkSpeed: "medium" as const,
+    eyeHeightMeters: 1.7,
+    mouseSensitivity: 1.0,
+  },
   measurementMode: null as DesignMeasurementMode,
   measurementResult: null as DesignMeasurementResult | null,
   measurementPoints: [] as [number, number][],
@@ -524,9 +547,19 @@ export const useDesignStore = create<DesignState>()(
 
       setShadowsEnabled: (enabled) => set({ shadowsEnabled: enabled }),
 
-      setShadowDateTime: (date) => set({ shadowDateTime: date }),
+      setShadowDateTime: (dateOrFn) => set((state) => ({
+        shadowDateTime: typeof dateOrFn === 'function' ? dateOrFn(state.shadowDateTime) : dateOrFn
+      })),
 
       setIsShadowAnimating: (animating) => set({ isShadowAnimating: animating }),
+      
+      setShadowPlaybackSpeed: (speed) => set({ shadowPlaybackSpeed: speed }),
+
+      setIsStreetViewMode: (enabled) => set({ isStreetViewMode: enabled }),
+      
+      setStreetViewSettings: (settings) => set((state) => ({
+        streetViewSettings: { ...state.streetViewSettings, ...settings }
+      })),
 
       setMeasurementMode: (mode) => set({ 
         measurementMode: mode,

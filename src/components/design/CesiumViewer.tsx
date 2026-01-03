@@ -37,8 +37,11 @@ import {
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType } from "@/stores/useDesignStore";
 import { ShadowControls } from "./ShadowControls";
+import { ShadowTimeline } from "./ShadowTimeline";
 import { GoogleEarthControls } from "./GoogleEarthControls";
 import { LayersPanel } from "./LayersPanel";
+import { StreetViewHUD } from "./StreetViewHUD";
+import { useFirstPersonCamera } from "@/hooks/useFirstPersonCamera";
 import {
   feetToMeters,
   geojsonToCesiumPositions,
@@ -212,7 +215,26 @@ export function CesiumViewerComponent({
     isShadowAnimating,
     setShadowDateTime,
     setIsShadowAnimating,
+    shadowPlaybackSpeed,
+    isStreetViewMode,
+    setIsStreetViewMode,
+    streetViewSettings,
+    setStreetViewSettings,
   } = useDesignStore();
+
+  // Track camera heading for street view HUD
+  const [cameraHeading, setCameraHeading] = useState(0);
+
+  // Use first-person camera hook for street view
+  useFirstPersonCamera(
+    viewerRef.current,
+    isStreetViewMode,
+    {
+      walkSpeed: streetViewSettings.walkSpeed,
+      eyeHeightMeters: streetViewSettings.eyeHeightMeters,
+      mouseSensitivity: streetViewSettings.mouseSensitivity,
+    }
+  );
 
 
   const activeVariant = useMemo(
@@ -647,6 +669,7 @@ export function CesiumViewerComponent({
       
       setCurrentHeading(headingDegrees);
       setCurrentTilt(Math.max(0, Math.min(90, tilt)));
+      setCameraHeading(headingDegrees); // For street view HUD
     }, 100); // Throttle to max 10 updates/sec
 
     viewer.camera.changed.addEventListener(updateCameraState);
@@ -655,6 +678,55 @@ export function CesiumViewerComponent({
       updateCameraState.cancel();
     };
   }, [viewerReady]);
+
+  // Enter street view mode
+  const enterStreetView = useCallback(async () => {
+    const viewer = viewerRef.current;
+    if (!viewer || !centroid) return;
+
+    setIsStreetViewMode(true);
+
+    // Fly down to street level
+    await googleEarthFlyTo(
+      viewer,
+      centroid.lng,
+      centroid.lat + 0.0003, // Offset slightly to view parcel
+      streetViewSettings.eyeHeightMeters,
+      -5, // Nearly level horizon
+      0   // Face north initially
+    );
+  }, [centroid, googleEarthFlyTo, setIsStreetViewMode, streetViewSettings.eyeHeightMeters]);
+
+  // Exit street view mode
+  const exitStreetView = useCallback(() => {
+    setIsStreetViewMode(false);
+    // Return to perspective view
+    flyToPreset("perspective_ne");
+  }, [setIsStreetViewMode, flyToPreset]);
+
+  // Handle height change in street view
+  const handleStreetViewHeightChange = useCallback((height: number) => {
+    setStreetViewSettings({ eyeHeightMeters: height });
+    
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+
+    const currentPosition = viewer.camera.positionCartographic;
+    const newPosition = Cartesian3.fromRadians(
+      currentPosition.longitude,
+      currentPosition.latitude,
+      height
+    );
+
+    viewer.camera.setView({
+      destination: newPosition,
+      orientation: {
+        heading: viewer.camera.heading,
+        pitch: viewer.camera.pitch,
+        roll: viewer.camera.roll,
+      },
+    });
+  }, [setStreetViewSettings]);
 
   // Keyboard shortcuts for 3D navigation
   useEffect(() => {
@@ -705,20 +777,46 @@ export function CesiumViewerComponent({
           break;
         case 'arrowleft':
           // Pan left
-          viewer.camera.moveLeft(50);
+          if (!isStreetViewMode) {
+            viewer.camera.moveLeft(50);
+          }
           e.preventDefault();
           break;
         case 'arrowright':
           // Pan right
-          viewer.camera.moveRight(50);
+          if (!isStreetViewMode) {
+            viewer.camera.moveRight(50);
+          }
           e.preventDefault();
+          break;
+        case 'g':
+          // Toggle street view
+          if (isStreetViewMode) {
+            exitStreetView();
+          } else {
+            enterStreetView();
+          }
+          break;
+        case ' ':
+          // Toggle shadow animation
+          if (shadowsEnabled) {
+            setIsShadowAnimating(!isShadowAnimating);
+            e.preventDefault();
+          }
+          break;
+        case 'escape':
+          // Exit street view on ESC
+          if (isStreetViewMode) {
+            exitStreetView();
+            e.preventDefault();
+          }
           break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleResetNorth, handleReset3D, handleZoomIn, handleZoomOut, handleTiltChange, currentTilt]);
+  }, [handleResetNorth, handleReset3D, handleZoomIn, handleZoomOut, handleTiltChange, currentTilt, isStreetViewMode, enterStreetView, exitStreetView, shadowsEnabled, isShadowAnimating, setIsShadowAnimating]);
 
   // Initialize viewer - runs ONLY ONCE
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
@@ -870,23 +968,54 @@ export function CesiumViewerComponent({
         )}
       </Viewer>
 
-      {/* Google Earth-Style Navigation Controls */}
-      <GoogleEarthControls
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onResetNorth={handleResetNorth}
-        onTiltChange={handleTiltChange}
-        onReset3D={handleReset3D}
-        currentHeading={currentHeading}
-        currentTilt={currentTilt}
-      />
+      {/* Street View HUD - Only in street view mode */}
+      {isStreetViewMode && (
+        <StreetViewHUD
+          className="absolute inset-0 z-20"
+          heading={cameraHeading}
+          eyeHeight={streetViewSettings.eyeHeightMeters}
+          walkSpeed={streetViewSettings.walkSpeed}
+          onExit={exitStreetView}
+          onSpeedChange={(speed) => setStreetViewSettings({ walkSpeed: speed })}
+          onHeightChange={handleStreetViewHeightChange}
+        />
+      )}
 
-      {/* Layers Panel */}
-      <LayersPanel className="absolute bottom-4 left-4 z-10" />
+      {/* Google Earth-Style Navigation Controls - Hidden in street view */}
+      {!isStreetViewMode && (
+        <GoogleEarthControls
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onResetNorth={handleResetNorth}
+          onTiltChange={handleTiltChange}
+          onReset3D={handleReset3D}
+          currentHeading={currentHeading}
+          currentTilt={currentTilt}
+        />
+      )}
 
-      {/* Shadow Controls - Only in 3D mode */}
-      <ShadowControls className="absolute top-4 right-4 z-10" />
+      {/* Layers Panel - Hidden in street view */}
+      {!isStreetViewMode && (
+        <LayersPanel 
+          className="absolute bottom-4 left-4 z-10" 
+          onEnterStreetView={enterStreetView}
+        />
+      )}
+
+      {/* Shadow Controls - Hidden in street view */}
+      {!isStreetViewMode && shadowsEnabled && (
+        <ShadowTimeline 
+          className="absolute top-4 right-4 z-10" 
+          latitude={centroid?.lat}
+          longitude={centroid?.lng}
+        />
+      )}
+      
+      {/* Shadow Enable Button - When shadows disabled */}
+      {!isStreetViewMode && !shadowsEnabled && (
+        <ShadowControls className="absolute top-4 right-4 z-10" />
+      )}
 
       {/* Drawing Mode Indicator */}
       {isDrawing && (
@@ -897,28 +1026,30 @@ export function CesiumViewerComponent({
         </div>
       )}
 
-      {/* Legend */}
-      <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg border shadow-lg p-3 z-10">
-        <h4 className="text-xs font-semibold text-muted-foreground mb-2">Legend</h4>
-        <div className="space-y-1.5 text-xs">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-blue-500/30 border border-blue-500" />
-            <span>Parcel Boundary</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-slate-500/15 border border-slate-500/50" />
-            <span>Regulatory Envelope</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-[#FF7A00]/60 border border-[#FF7A00]" />
-            <span>Design Footprint</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-sm bg-red-500/50 border border-red-500" />
-            <span>Violation Zone</span>
+      {/* Legend - Hidden in street view */}
+      {!isStreetViewMode && (
+        <div className="absolute bottom-4 right-4 bg-background/90 backdrop-blur-sm rounded-lg border shadow-lg p-3 z-10">
+          <h4 className="text-xs font-semibold text-muted-foreground mb-2">Legend</h4>
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-blue-500/30 border border-blue-500" />
+              <span>Parcel Boundary</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-slate-500/15 border border-slate-500/50" />
+              <span>Regulatory Envelope</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-[#FF7A00]/60 border border-[#FF7A00]" />
+              <span>Design Footprint</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-sm bg-red-500/50 border border-red-500" />
+              <span>Violation Zone</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
