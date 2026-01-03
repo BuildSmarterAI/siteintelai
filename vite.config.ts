@@ -64,7 +64,22 @@ export default defineConfig(({ mode }) => ({
       "@siteintel/gis-utils": path.resolve(__dirname, "./packages/gis-utils/src"),
     },
     // Deduplicate react/react-dom and radix to fix resium's createPortal import and hook conflicts
-    dedupe: ['react', 'react-dom', 'cesium', 'resium', '@radix-ui/react-tooltip'],
+    dedupe: [
+      'react', 
+      'react-dom', 
+      'cesium', 
+      'resium', 
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-slot',
+    ],
   },
   optimizeDeps: {
     // Include resium for proper pre-bundling with React 18

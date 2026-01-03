@@ -98,6 +98,10 @@ export function CesiumViewerComponent({
   // Fetch Google Maps token for 3D Tiles
   const { token: googleMapsToken, isLoading: googleTokenLoading } = useGoogleMapsToken();
 
+  // Get store actions for Google 3D state
+  const setStoreGoogle3DAvailable = useDesignStore((state) => state.setGoogle3DAvailable);
+  const setStoreGoogle3DError = useDesignStore((state) => state.setGoogle3DError);
+
   // Apply 2D basemap to viewer (for non-Google-3D modes)
   const applyBasemap = useCallback((viewer: CesiumViewer, currentBasemap: BasemapType, token: string | null) => {
     // Skip for google-3d - handled separately
@@ -194,10 +198,18 @@ export function CesiumViewerComponent({
       
       console.log("Google Photorealistic 3D Tiles loaded successfully");
       toast.success("Google 3D Buildings loaded");
+      
+      // Update store state on success
+      setStoreGoogle3DAvailable(true);
+      setStoreGoogle3DError(null);
     } catch (error) {
       console.error("Failed to load Google 3D Tiles:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
       setGoogle3DError(errorMessage);
+      
+      // Update store state on failure
+      setStoreGoogle3DAvailable(false);
+      setStoreGoogle3DError(errorMessage);
       
       // Provide specific error messages based on error type
       if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("Access Denied")) {

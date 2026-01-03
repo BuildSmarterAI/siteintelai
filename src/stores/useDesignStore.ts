@@ -307,6 +307,12 @@ interface DesignState {
   leftPanelState: LeftPanelState;
   setLeftPanelState: (state: LeftPanelState) => void;
 
+  // Google 3D availability state
+  google3DAvailable: boolean;
+  setGoogle3DAvailable: (available: boolean) => void;
+  google3DError: string | null;
+  setGoogle3DError: (error: string | null) => void;
+
   // Reset
   reset: () => void;
 }
@@ -391,6 +397,9 @@ const initialState = {
   currentToolState: "idle" as ToolState,
   // Google Earth-style panel states
   leftPanelState: "expanded" as LeftPanelState,
+  // Google 3D availability
+  google3DAvailable: true,
+  google3DError: null as string | null,
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -744,6 +753,10 @@ export const useDesignStore = create<DesignState>()(
 
       // Google Earth-style panel states
       setLeftPanelState: (leftPanelState) => set({ leftPanelState }),
+
+      // Google 3D availability
+      setGoogle3DAvailable: (google3DAvailable) => set({ google3DAvailable }),
+      setGoogle3DError: (google3DError) => set({ google3DError }),
 
       reset: () => set(initialState),
     }),
