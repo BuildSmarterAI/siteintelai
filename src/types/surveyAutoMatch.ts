@@ -65,6 +65,12 @@ export interface SurveyMatchCandidate {
   acreage: number | null;
   county: string;
   geometry: GeoJSON.Polygon | GeoJSON.MultiPolygon | null;
+  // V2 Enhanced fields
+  match_score?: number;
+  confidence_tier?: ConfidenceLevel;
+  overlap_pct?: number;
+  gross_acre_delta?: number;
+  net_acre_delta?: number;
   // Enhanced scoring breakdown
   score_breakdown?: {
     geometry_overlap: number;
@@ -145,6 +151,7 @@ export interface AutoMatchResult {
   status: 'AUTO_SELECTED' | 'NEEDS_REVIEW' | 'NO_MATCH' | 'ERROR';
   selected_parcel_id: string | null;
   confidence: number;
+  confidence_tier?: ConfidenceLevel;
   candidates: SurveyMatchCandidate[];
   extraction: SurveyExtraction;
   dual_confidence?: DualConfidence;

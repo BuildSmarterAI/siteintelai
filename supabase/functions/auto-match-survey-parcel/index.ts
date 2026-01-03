@@ -56,11 +56,57 @@ interface CandidateParcel {
   acreage: number | null;
   county: string;
   geometry: object | null;
+  // Enhanced v2 fields
+  match_score?: number;
+  confidence_tier?: 'HIGH' | 'MEDIUM' | 'LOW';
+  overlap_pct?: number;
+  gross_acre_delta?: number;
+  net_acre_delta?: number;
   debug: {
     apn_extracted: string | null;
     address_extracted: string | null;
     match_type: string;
+    data_source?: string;
   };
+}
+
+// V2 Matching result from enhanced RPC
+interface V2MatchResult {
+  id: number;
+  source_parcel_id: string;
+  jurisdiction: string;
+  situs_address: string | null;
+  owner_name: string | null;
+  parcel_acres: number;
+  overlap_acres: number;
+  overlap_pct: number;
+  gross_acre_delta: number;
+  net_acre_delta: number | null;
+  match_score: number;
+  confidence_tier: 'HIGH' | 'MEDIUM' | 'LOW';
+  geom_json: string;
+}
+
+// Auto-select validation result
+interface AutoSelectResult {
+  auto_select_ok: boolean;
+  best_parcel_id: number | null;
+  best_score: number | null;
+  best_overlap_pct: number | null;
+  runner_up_score: number | null;
+  score_gap: number | null;
+  reason: string;
+}
+
+// Multi-parcel assembly result
+interface MultiParcelResult {
+  parcel_ids: string[];
+  union_acres: number;
+  overlap_acres: number;
+  overlap_pct: number;
+  gross_delta: number;
+  match_score: number;
+  union_geom_json: string;
 }
 
 // Texas county names for matching
@@ -1325,40 +1371,69 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // Step 4: Determine final status with confidence gating
+    // Step 4: Determine final status with enhanced V2 scoring
     // ============================================================
     let status: "AUTO_SELECTED" | "NEEDS_REVIEW" | "NO_MATCH" = "NO_MATCH";
     let selectedParcelId: string | null = null;
     let topConfidence = 0;
+    let topConfidenceTier: 'HIGH' | 'MEDIUM' | 'LOW' | null = null;
+    let geometryConfidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE' = 'NONE';
+    let parcelIdentityConfidenceLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE' = 'NONE';
 
     if (candidates.length > 0) {
-      // Sort by confidence descending
-      candidates.sort((a, b) => b.confidence - a.confidence);
-      topConfidence = candidates[0].confidence;
+      // Sort by match_score (V2) or confidence (legacy) descending
+      candidates.sort((a, b) => (b.match_score || b.confidence) - (a.match_score || a.confidence));
       
-      // Auto-select ONLY if:
-      // 1. Confidence >= 0.85
-      // 2. Has at least one deterministic signal (ADDRESS or LEGAL_DESC or APN)
       const topCandidate = candidates[0];
+      topConfidence = topCandidate.match_score || topCandidate.confidence;
+      topConfidenceTier = topCandidate.confidence_tier || null;
+      
+      // Check for deterministic signals
       const hasDeterministicSignal = 
         topCandidate.reason_codes.includes("ADDRESS_MATCH") ||
         topCandidate.reason_codes.includes("LEGAL_DESC_MATCH") ||
-        topCandidate.reason_codes.includes("APN_MATCH");
+        topCandidate.reason_codes.includes("APN_MATCH") ||
+        topCandidate.reason_codes.includes("GEOMETRY_OVERLAP");
       
-      if (topConfidence >= 0.85 && hasDeterministicSignal) {
+      // V2 Auto-select rules:
+      // 1. match_score >= 0.85
+      // 2. overlap_pct >= 0.90 (if available)
+      // 3. Has deterministic signal
+      // 4. Score gap >= 0.10 from runner-up
+      const hasHighOverlap = topCandidate.overlap_pct ? topCandidate.overlap_pct >= 0.90 : true;
+      const runnerUp = candidates[1];
+      const scoreGap = runnerUp ? topConfidence - (runnerUp.match_score || runnerUp.confidence) : 1.0;
+      const isUnambiguous = scoreGap >= 0.10;
+      
+      if (topConfidence >= 0.85 && hasHighOverlap && hasDeterministicSignal && isUnambiguous) {
         status = "AUTO_SELECTED";
         selectedParcelId = topCandidate.parcel_id;
-        console.log("[auto-match] AUTO_SELECTED parcel:", selectedParcelId, "confidence:", topConfidence);
+        console.log("[auto-match] AUTO_SELECTED parcel:", selectedParcelId, 
+          "| score:", topConfidence.toFixed(3), 
+          "| overlap:", (topCandidate.overlap_pct || 0).toFixed(3),
+          "| gap:", scoreGap.toFixed(3));
       } else {
         status = "NEEDS_REVIEW";
-        console.log("[auto-match] NEEDS_REVIEW - confidence:", topConfidence, "deterministic:", hasDeterministicSignal);
+        console.log("[auto-match] NEEDS_REVIEW | score:", topConfidence.toFixed(3), 
+          "| overlap:", (topCandidate.overlap_pct || 0).toFixed(3),
+          "| deterministic:", hasDeterministicSignal,
+          "| gap:", scoreGap.toFixed(3));
       }
+      
+      // Set confidence levels for dual-track reporting
+      geometryConfidenceLevel = topCandidate.overlap_pct 
+        ? (topCandidate.overlap_pct >= 0.90 ? 'HIGH' : topCandidate.overlap_pct >= 0.75 ? 'MEDIUM' : 'LOW')
+        : extractedData.geometryConfidence || 'NONE';
+      
+      parcelIdentityConfidenceLevel = topConfidenceTier === 'HIGH' ? 'HIGH' 
+        : topConfidenceTier === 'MEDIUM' ? 'MEDIUM' 
+        : topConfidence >= 0.65 ? 'MEDIUM' : 'LOW';
+        
     } else {
       // HARD RULE: Never NO_MATCH if we have ANY useful signals
       const hasSignals = extractedData.ownerName || extractedData.acreage || 
                          extractedData.legalDescription || extractedData.address;
       
-      // Also check if it's a scanned PDF that we couldn't OCR - user should manually review
       const isScanned = isPdfScanned(extractedData.rawText);
       const noOcrProvided = !extractedData.ocrUsed;
       
@@ -1373,6 +1448,12 @@ serve(async (req) => {
       }
     }
 
+    // Determine report grade based on dual confidence tracks
+    const reportGrade: 'LENDER_READY' | 'SCREENING_ONLY' = 
+      geometryConfidenceLevel === 'HIGH' && parcelIdentityConfidenceLevel === 'HIGH' 
+        ? 'LENDER_READY' 
+        : 'SCREENING_ONLY';
+
     // ============================================================
     // Final Summary Log
     // ============================================================
@@ -1380,11 +1461,15 @@ serve(async (req) => {
     console.log("[auto-match] Status:", status);
     console.log("[auto-match] Strategies Executed:", strategiesExecuted.length > 0 ? strategiesExecuted.join(", ") : "none");
     console.log("[auto-match] Total Candidates:", candidates.length);
-    console.log("[auto-match] Top Confidence:", topConfidence.toFixed(3));
+    console.log("[auto-match] Top Score:", topConfidence.toFixed(3));
+    console.log("[auto-match] Confidence Tier:", topConfidenceTier || "N/A");
+    console.log("[auto-match] Geometry Confidence:", geometryConfidenceLevel);
+    console.log("[auto-match] Identity Confidence:", parcelIdentityConfidenceLevel);
+    console.log("[auto-match] Report Grade:", reportGrade);
     console.log("[auto-match] Data Sources Used:", dataSourcesUsed.length > 0 ? [...new Set(dataSourcesUsed)].join(", ") : "none");
     console.log("[auto-match] ============================");
 
-    // Update survey record with results
+    // Update survey record with enhanced results
     const matchStatus = status === "AUTO_SELECTED" ? "matched" 
       : status === "NEEDS_REVIEW" ? "needs_review" 
       : "no_match";
@@ -1397,6 +1482,13 @@ serve(async (req) => {
         match_confidence: topConfidence,
         match_candidates: candidates.slice(0, 10),
         match_reason_codes: candidates[0]?.reason_codes || [],
+        // Enhanced fields
+        gross_acreage: extractedData.grossAcreage,
+        net_acreage: extractedData.netAcreage,
+        row_acreage: extractedData.rowAcreage,
+        geometry_confidence_level: geometryConfidenceLevel,
+        parcel_identity_confidence_level: parcelIdentityConfidenceLevel,
+        report_grade: reportGrade,
       })
       .eq("id", survey_upload_id);
 
@@ -1408,7 +1500,13 @@ serve(async (req) => {
         status,
         selected_parcel_id: selectedParcelId,
         confidence: topConfidence,
+        confidence_tier: topConfidenceTier,
         candidates: candidates.slice(0, 5),
+        dual_confidence: {
+          geometry_confidence: geometryConfidenceLevel,
+          parcel_identity_confidence: parcelIdentityConfidenceLevel,
+          report_grade: reportGrade,
+        },
         extraction: {
           // Standard fields
           apn_extracted: extractedData.apn,
@@ -1427,7 +1525,7 @@ serve(async (req) => {
           easement_acreage: extractedData.easementAcreage,
           road_frontages: extractedData.roadFrontages,
           acreage_confidence: extractedData.acreageConfidence,
-          geometry_confidence: extractedData.geometryConfidence,
+          geometry_confidence: geometryConfidenceLevel,
           // Rural identifiers
           abstract_number: extractedData.legalDescription?.abstract_number || null,
           section_number: extractedData.legalDescription?.section_number || null,
