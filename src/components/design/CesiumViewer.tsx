@@ -34,6 +34,8 @@ import {
   GoogleMaps,
   EasingFunction,
   Cartographic,
+  createWorldTerrainAsync,
+  TerrainProvider,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType, type Buildings3DSource } from "@/stores/useDesignStore";
@@ -87,10 +89,15 @@ export function CesiumViewerComponent({
   const isUserControllingRef = useRef(false); // Prevents feedback loop
   const hasInitializedViewerRef = useRef(false); // Prevents re-initialization loop
   const hasDoneInitialFlyToRef = useRef(false); // Prevents repeated fly-to
+  const terrainLoadedRef = useRef(false); // Prevents duplicate terrain loads
+  const osmBuildingsLoadingRef = useRef(false); // Prevents duplicate OSM buildings loads
   const [viewerReady, setViewerReady] = useState(false);
   const [google3DTileset, setGoogle3DTileset] = useState<Cesium3DTileset | null>(null);
   const [osmBuildingsTileset, setOsmBuildingsTileset] = useState<Cesium3DTileset | null>(null);
   const [google3DError, setGoogle3DError] = useState<string | null>(null);
+  const [terrainProvider, setTerrainProvider] = useState<TerrainProvider | undefined>(undefined);
+  const [terrainLoading, setTerrainLoading] = useState(false);
+  const [buildings3DLoading, setBuildings3DLoading] = useState(false);
 
   // Fetch Mapbox token from Edge Function
   const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
@@ -244,6 +251,14 @@ export function CesiumViewerComponent({
   
   // Load Cesium OSM Buildings (requires Cesium Ion token)
   const loadOsmBuildings = useCallback(async (viewer: CesiumViewer, onFallback?: (source: "google" | "none") => void) => {
+    // Prevent duplicate loads
+    if (osmBuildingsLoadingRef.current) {
+      console.log("OSM Buildings already loading, skipping...");
+      return;
+    }
+    osmBuildingsLoadingRef.current = true;
+    setBuildings3DLoading(true);
+    
     try {
       console.log("Loading Cesium OSM Buildings...");
       
@@ -289,6 +304,9 @@ export function CesiumViewerComponent({
       } else {
         toast.error("Failed to load OSM buildings");
       }
+    } finally {
+      osmBuildingsLoadingRef.current = false;
+      setBuildings3DLoading(false);
     }
   }, [osmBuildingsTileset, google3DTileset, googleMapsToken]);
   
@@ -973,6 +991,36 @@ export function CesiumViewerComponent({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleResetNorth, handleReset3D, handleZoomIn, handleZoomOut, handleTiltChange, currentTilt, isStreetViewMode, enterStreetView, exitStreetView, shadowsEnabled, isShadowAnimating, setIsShadowAnimating]);
 
+  // Load Cesium World Terrain (requires Ion token)
+  const loadWorldTerrain = useCallback(async (viewer: CesiumViewer) => {
+    if (terrainLoadedRef.current) return;
+    terrainLoadedRef.current = true;
+    
+    if (!cesiumIonToken) {
+      console.warn("No Cesium Ion token - using ellipsoid terrain");
+      return;
+    }
+    
+    try {
+      setTerrainLoading(true);
+      console.log("Loading Cesium World Terrain...");
+      
+      const terrain = await createWorldTerrainAsync({
+        requestWaterMask: true,
+        requestVertexNormals: true,
+      });
+      
+      viewer.terrainProvider = terrain;
+      setTerrainProvider(terrain);
+      console.log("Cesium World Terrain loaded successfully");
+    } catch (error) {
+      console.error("Failed to load world terrain:", error);
+      // Keep ellipsoid as fallback - already set in Viewer component
+    } finally {
+      setTerrainLoading(false);
+    }
+  }, []);
+
   // Initialize viewer - runs ONLY ONCE
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
     // Guard: Only initialize once to prevent re-init loop
@@ -981,6 +1029,10 @@ export function CesiumViewerComponent({
     
     viewerRef.current = viewer;
 
+    // Enable depth testing so buildings render correctly against terrain
+    viewer.scene.globe.depthTestAgainstTerrain = true;
+    viewer.scene.logarithmicDepthBuffer = true;
+
     // Enable shadows if configured
     if (shadowsEnabled) {
       viewer.shadows = true;
@@ -988,12 +1040,15 @@ export function CesiumViewerComponent({
       viewer.clock.currentTime = JulianDate.fromDate(shadowDateTime);
     }
 
+    // Load world terrain for proper building rendering
+    loadWorldTerrain(viewer);
+
     // NOTE: Do NOT apply basemap here - the basemap useEffect handles it
     // This prevents the repeated "Applied basemap" loop
 
     // Mark viewer as ready - triggers the basemap effect
     setViewerReady(true);
-  }, [shadowsEnabled, shadowDateTime]);
+  }, [shadowsEnabled, shadowDateTime, loadWorldTerrain]);
   
   // Initial fly-to when viewer AND centroid are ready (runs ONCE)
   useEffect(() => {
@@ -1057,8 +1112,8 @@ export function CesiumViewerComponent({
         sceneModePicker={false}
         navigationHelpButton={false}
         fullscreenButton={false}
-        // Use simple ellipsoid terrain - no Ion dependency, no async loading
-        terrainProvider={new EllipsoidTerrainProvider()}
+        // Start with ellipsoid, upgrade to world terrain async when Ion token available
+        terrainProvider={terrainProvider}
         shadows={shadowsEnabled}
         terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
@@ -1122,6 +1177,18 @@ export function CesiumViewerComponent({
           </Entity>
         )}
       </Viewer>
+
+      {/* Terrain/Buildings Loading Indicator */}
+      {(terrainLoading || buildings3DLoading) && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20 pointer-events-none">
+          <div className="bg-background/90 backdrop-blur-sm rounded-lg px-4 py-3 flex items-center gap-3 shadow-lg">
+            <Loader2 className="w-5 h-5 animate-spin text-primary" />
+            <span className="text-sm font-medium">
+              {terrainLoading ? "Loading terrain..." : "Loading 3D buildings..."}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Street View HUD - Only in street view mode */}
       {isStreetViewMode && (
