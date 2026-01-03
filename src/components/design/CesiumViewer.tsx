@@ -3,6 +3,7 @@
  * 
  * Renders regulatory envelopes and design footprints as 3D primitives
  * with terrain, camera presets, orbit controls, shadow analysis, and basemaps.
+ * Supports Google Photorealistic 3D Tiles for immersive visualization.
  */
 
 import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
@@ -26,7 +27,9 @@ import {
   ScreenSpaceEventType,
   JulianDate,
   ShadowMode,
-  ShadowMap,
+  Cesium3DTileset,
+  createGooglePhotorealistic3DTileset,
+  GoogleMaps,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType } from "@/stores/useDesignStore";
@@ -42,7 +45,9 @@ import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
 import { useCesiumMeasurement } from "@/hooks/useCesiumMeasurement";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
+import { useGoogleMapsToken } from "@/hooks/useGoogleMapsToken";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 // Disable Ion default token warning - we're using open terrain
 Ion.defaultAccessToken = "";
@@ -61,12 +66,22 @@ export function CesiumViewerComponent({
   const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
   const [viewerReady, setViewerReady] = useState(false);
+  const [google3DTileset, setGoogle3DTileset] = useState<Cesium3DTileset | null>(null);
+  const [google3DError, setGoogle3DError] = useState<string | null>(null);
 
   // Fetch Mapbox token from Edge Function
   const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
+  
+  // Fetch Google Maps token for 3D Tiles
+  const { token: googleMapsToken, isLoading: googleTokenLoading } = useGoogleMapsToken();
 
-  // Apply basemap to viewer - extracted for reuse
+  // Apply 2D basemap to viewer (for non-Google-3D modes)
   const applyBasemap = useCallback((viewer: CesiumViewer, currentBasemap: BasemapType, token: string | null) => {
+    // Skip for google-3d - handled separately
+    if (currentBasemap === "google-3d") {
+      return;
+    }
+    
     // Remove all existing imagery layers
     viewer.imageryLayers.removeAll();
 
@@ -127,6 +142,48 @@ export function CesiumViewerComponent({
     viewer.imageryLayers.addImageryProvider(imageryProvider);
     console.log(`Applied basemap: ${currentBasemap}`, token ? "(with Mapbox token)" : "(OSM fallback)");
   }, []);
+  
+  // Load Google Photorealistic 3D Tiles
+  const loadGoogle3DTiles = useCallback(async (viewer: CesiumViewer, apiKey: string) => {
+    try {
+      console.log("Loading Google Photorealistic 3D Tiles...");
+      
+      // Remove existing 3D tileset if any
+      if (google3DTileset) {
+        viewer.scene.primitives.remove(google3DTileset);
+        setGoogle3DTileset(null);
+      }
+      
+      // Set Google Maps API key for Cesium
+      GoogleMaps.defaultApiKey = apiKey;
+      
+      // Create photorealistic 3D tileset
+      const tileset = await createGooglePhotorealistic3DTileset();
+      
+      // Add to scene
+      viewer.scene.primitives.add(tileset);
+      setGoogle3DTileset(tileset);
+      setGoogle3DError(null);
+      
+      console.log("Google Photorealistic 3D Tiles loaded successfully");
+      toast.success("3D Buildings loaded");
+    } catch (error) {
+      console.error("Failed to load Google 3D Tiles:", error);
+      setGoogle3DError(error instanceof Error ? error.message : "Failed to load 3D tiles");
+      toast.error("Failed to load 3D buildings", {
+        description: "Falling back to satellite imagery"
+      });
+    }
+  }, [google3DTileset]);
+  
+  // Remove Google 3D Tiles
+  const removeGoogle3DTiles = useCallback((viewer: CesiumViewer) => {
+    if (google3DTileset) {
+      viewer.scene.primitives.remove(google3DTileset);
+      setGoogle3DTileset(null);
+      console.log("Removed Google 3D Tiles");
+    }
+  }, [google3DTileset]);
 
   // Use measurement hook for 3D
   useCesiumMeasurement({ viewer: viewerRef.current });
@@ -391,8 +448,25 @@ export function CesiumViewerComponent({
     const viewer = viewerRef.current;
     if (!viewer || !viewerReady) return;
 
-    applyBasemap(viewer, basemap, mapboxToken);
-  }, [basemap, mapboxToken, viewerReady, applyBasemap]);
+    if (basemap === "google-3d") {
+      // Remove 2D imagery layers for Google 3D (it has its own imagery)
+      viewer.imageryLayers.removeAll();
+      
+      // Load Google 3D Tiles if we have the token
+      if (googleMapsToken) {
+        loadGoogle3DTiles(viewer, googleMapsToken);
+      } else if (!googleTokenLoading) {
+        console.warn("No Google Maps token available for 3D tiles");
+        toast.error("Google Maps API key not configured");
+      }
+    } else {
+      // Remove Google 3D tiles if switching away
+      removeGoogle3DTiles(viewer);
+      
+      // Apply 2D basemap
+      applyBasemap(viewer, basemap, mapboxToken);
+    }
+  }, [basemap, mapboxToken, googleMapsToken, googleTokenLoading, viewerReady, applyBasemap, loadGoogle3DTiles, removeGoogle3DTiles]);
 
   // Zoom handlers
   const handleZoomIn = useCallback(() => {

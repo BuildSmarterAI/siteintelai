@@ -4,7 +4,7 @@
  * Allows switching between different basemap styles (OSM, Satellite, etc.)
  */
 
-import { Map, Satellite, Mountain, MapPin } from "lucide-react";
+import { Map, Satellite, Mountain, MapPin, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,6 +23,12 @@ interface BasemapSelectorProps {
 }
 
 const basemapOptions: { value: BasemapType; label: string; icon: React.ReactNode; description: string }[] = [
+  { 
+    value: "google-3d", 
+    label: "3D Buildings", 
+    icon: <Building className="h-4 w-4" />,
+    description: "Photorealistic 3D"
+  },
   { 
     value: "osm", 
     label: "Map", 
