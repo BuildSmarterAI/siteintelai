@@ -5,7 +5,7 @@
  * Enhanced with smooth animations and Google Earth-like styling.
  */
 
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -46,17 +46,13 @@ export function GoogleEarthControls({
   currentHeading = 0,
   currentTilt = 45,
 }: GoogleEarthControlsProps) {
-  const [tilt, setTilt] = useState(currentTilt);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Sync with external tilt changes
-  useEffect(() => {
-    setTilt(currentTilt);
-  }, [currentTilt]);
+  // Use prop directly - no local state sync to prevent feedback loop
+  const tilt = currentTilt;
 
   const handleTiltChange = useCallback((value: number[]) => {
     const newTilt = value[0];
-    setTilt(newTilt);
     onTiltChange(newTilt);
   }, [onTiltChange]);
 

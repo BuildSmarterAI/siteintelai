@@ -6,7 +6,8 @@
  * Supports Google Photorealistic 3D Tiles for immersive visualization.
  */
 
-import React, { useRef, useEffect, useCallback, useMemo, useState } from "react";
+import React, { useRef, useEffect, useCallback, useMemo, useState, MutableRefObject } from "react";
+import { throttle } from "lodash-es";
 import {
   Viewer,
   Entity,
@@ -70,6 +71,7 @@ export function CesiumViewerComponent({
   const orbitAnimationRef = useRef<number | null>(null);
   const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
+  const isUserControllingRef = useRef(false); // Prevents feedback loop
   const [viewerReady, setViewerReady] = useState(false);
   const [google3DTileset, setGoogle3DTileset] = useState<Cesium3DTileset | null>(null);
   const [google3DError, setGoogle3DError] = useState<string | null>(null);
@@ -591,30 +593,33 @@ export function CesiumViewerComponent({
     setCurrentHeading(0);
   }, [centroid]);
 
-  // Tilt change handler
+  // Tilt change handler - uses setView for instant feedback, no flyTo animation
   const handleTiltChange = useCallback((degrees: number) => {
     const viewer = viewerRef.current;
     if (!viewer) return;
+    
+    // Mark as user controlling to prevent feedback loop
+    isUserControllingRef.current = true;
     
     // Convert degrees (0=perspective, 90=overhead) to radians for pitch
     // Cesium pitch: -90deg = looking straight down, 0deg = looking horizontal
     const pitch = CesiumMath.toRadians(-(90 - degrees));
     
-    const currentPosition = viewer.camera.positionCartographic;
-    viewer.camera.flyTo({
-      destination: Cartesian3.fromRadians(
-        currentPosition.longitude,
-        currentPosition.latitude,
-        currentPosition.height
-      ),
+    // Use setView for instant response (no animation = no feedback loop)
+    viewer.camera.setView({
       orientation: {
         heading: viewer.camera.heading,
         pitch: pitch,
         roll: 0,
       },
-      duration: 0.3,
     });
+    
     setCurrentTilt(degrees);
+    
+    // Reset flag after a short delay
+    setTimeout(() => {
+      isUserControllingRef.current = false;
+    }, 50);
   }, []);
 
   // Reset to 3D perspective view
@@ -624,12 +629,15 @@ export function CesiumViewerComponent({
     setCurrentTilt(45);
   }, [flyToPreset]);
 
-  // Track camera changes
+  // Track camera changes with throttling to prevent feedback loops
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !viewerReady) return;
 
-    const updateCameraState = () => {
+    const updateCameraState = throttle(() => {
+      // Skip updates while user is actively controlling
+      if (isUserControllingRef.current) return;
+      
       const headingDegrees = CesiumMath.toDegrees(viewer.camera.heading);
       const pitchDegrees = CesiumMath.toDegrees(viewer.camera.pitch);
       // Convert pitch back to tilt (0=perspective, 90=overhead)
@@ -637,11 +645,12 @@ export function CesiumViewerComponent({
       
       setCurrentHeading(headingDegrees);
       setCurrentTilt(Math.max(0, Math.min(90, tilt)));
-    };
+    }, 100); // Throttle to max 10 updates/sec
 
     viewer.camera.changed.addEventListener(updateCameraState);
     return () => {
       viewer.camera.changed.removeEventListener(updateCameraState);
+      updateCameraState.cancel();
     };
   }, [viewerReady]);
 
