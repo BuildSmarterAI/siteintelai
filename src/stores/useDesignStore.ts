@@ -13,6 +13,8 @@ export type DesignModeView = "design" | "compare" | "export";
 
 export type CameraPreset = "overhead" | "perspective_ne" | "perspective_sw" | "street" | "orbit";
 
+export type CanvasViewMode = "2d" | "3d";
+
 export interface DesignPreset {
   id: string;
   name: string;
@@ -130,6 +132,10 @@ interface DesignState {
   isOrbiting: boolean;
   setIsOrbiting: (orbiting: boolean) => void;
 
+  // Canvas view mode (2D/3D)
+  canvasViewMode: CanvasViewMode;
+  setCanvasViewMode: (mode: CanvasViewMode) => void;
+
   // Reset
   reset: () => void;
 }
@@ -149,6 +155,7 @@ const initialState = {
   isSaving: false,
   cameraPreset: "perspective_ne" as CameraPreset,
   isOrbiting: false,
+  canvasViewMode: "3d" as CanvasViewMode,
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -233,6 +240,8 @@ export const useDesignStore = create<DesignState>()(
       setCameraPreset: (preset) => set({ cameraPreset: preset }),
 
       setIsOrbiting: (orbiting) => set({ isOrbiting: orbiting }),
+
+      setCanvasViewMode: (mode) => set({ canvasViewMode: mode }),
 
       reset: () => set(initialState),
     }),
