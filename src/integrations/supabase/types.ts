@@ -6477,6 +6477,9 @@ export type Database = {
           county: string | null
           created_at: string | null
           draft_id: string | null
+          extracted_acreage: number | null
+          extracted_legal_description: Json | null
+          extracted_owner_name: string | null
           extraction_json: Json | null
           file_size: number
           filename: string
@@ -6492,6 +6495,7 @@ export type Database = {
           selected_parcel_id: string | null
           storage_path: string
           survey_date: string | null
+          survey_type: string | null
           surveyor_name: string | null
           title: string | null
           transform_matrix: Json | null
@@ -6507,6 +6511,9 @@ export type Database = {
           county?: string | null
           created_at?: string | null
           draft_id?: string | null
+          extracted_acreage?: number | null
+          extracted_legal_description?: Json | null
+          extracted_owner_name?: string | null
           extraction_json?: Json | null
           file_size: number
           filename: string
@@ -6522,6 +6529,7 @@ export type Database = {
           selected_parcel_id?: string | null
           storage_path: string
           survey_date?: string | null
+          survey_type?: string | null
           surveyor_name?: string | null
           title?: string | null
           transform_matrix?: Json | null
@@ -6537,6 +6545,9 @@ export type Database = {
           county?: string | null
           created_at?: string | null
           draft_id?: string | null
+          extracted_acreage?: number | null
+          extracted_legal_description?: Json | null
+          extracted_owner_name?: string | null
           extraction_json?: Json | null
           file_size?: number
           filename?: string
@@ -6552,6 +6563,7 @@ export type Database = {
           selected_parcel_id?: string | null
           storage_path?: string
           survey_date?: string | null
+          survey_type?: string | null
           surveyor_name?: string | null
           title?: string | null
           transform_matrix?: Json | null
@@ -8541,6 +8553,65 @@ export type Database = {
           p_county?: string
           p_limit?: number
           p_search_bbox?: unknown
+        }
+        Returns: {
+          acreage: number
+          county: string
+          geometry: Json
+          match_score: number
+          match_type: string
+          owner_name: string
+          parcel_uuid: string
+          situs_address: string
+          source_parcel_id: string
+        }[]
+      }
+      find_parcels_by_area: {
+        Args: {
+          p_county: string
+          p_limit?: number
+          p_target_acreage: number
+          p_tolerance?: number
+        }
+        Returns: {
+          acreage: number
+          county: string
+          geometry: Json
+          match_score: number
+          match_type: string
+          owner_name: string
+          parcel_uuid: string
+          situs_address: string
+          source_parcel_id: string
+        }[]
+      }
+      find_parcels_by_legal_description: {
+        Args: {
+          p_block?: string
+          p_county?: string
+          p_limit?: number
+          p_lot?: string
+          p_subdivision?: string
+        }
+        Returns: {
+          acreage: number
+          county: string
+          geometry: Json
+          match_score: number
+          match_type: string
+          owner_name: string
+          parcel_uuid: string
+          situs_address: string
+          source_parcel_id: string
+        }[]
+      }
+      find_parcels_by_owner: {
+        Args: {
+          p_acreage_max?: number
+          p_acreage_min?: number
+          p_county?: string
+          p_limit?: number
+          p_owner_name: string
         }
         Returns: {
           acreage: number

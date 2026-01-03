@@ -9,20 +9,28 @@ import type {
   SurveyMatchCandidate, 
   SurveyMatchStatus,
   SurveyWithMatchData,
-  MatchReasonCode
+  MatchReasonCode,
+  SurveyExtraction
 } from "@/types/surveyAutoMatch";
 
 /**
  * Trigger automatic parcel matching for a survey
+ * @param surveyUploadId - The survey upload ID
+ * @param ocrImageBase64 - Optional pre-rendered first page image for OCR
  */
 export async function triggerAutoMatch(
-  surveyUploadId: string
+  surveyUploadId: string,
+  ocrImageBase64?: string
 ): Promise<AutoMatchResult> {
   try {
     console.log("[surveyAutoMatchApi] Triggering auto-match for:", surveyUploadId);
+    console.log("[surveyAutoMatchApi] OCR image provided:", ocrImageBase64 ? "Yes" : "No");
 
     const { data, error } = await supabase.functions.invoke("auto-match-survey-parcel", {
-      body: { survey_upload_id: surveyUploadId },
+      body: { 
+        survey_upload_id: surveyUploadId,
+        ocr_image_base64: ocrImageBase64 
+      },
     });
 
     if (error) {
@@ -65,12 +73,13 @@ export async function getMatchStatus(
   confidence?: number;
   candidates?: SurveyMatchCandidate[];
   selectedParcelId?: string;
+  extraction?: SurveyExtraction;
   error?: string;
 }> {
   try {
     const { data, error } = await supabase
       .from("survey_uploads")
-      .select("match_status, match_confidence, match_candidates, selected_parcel_id")
+      .select("match_status, match_confidence, match_candidates, selected_parcel_id, extraction_json, survey_type")
       .eq("id", surveyUploadId)
       .single();
 
@@ -84,6 +93,7 @@ export async function getMatchStatus(
       confidence: data.match_confidence || 0,
       candidates: (data.match_candidates as unknown as SurveyMatchCandidate[]) || [],
       selectedParcelId: data.selected_parcel_id || undefined,
+      extraction: data.extraction_json as unknown as SurveyExtraction,
     };
   } catch (err) {
     console.error("[surveyAutoMatchApi] getMatchStatus exception:", err);
@@ -152,6 +162,7 @@ export async function getSurveyWithMatchData(
         match_candidates: data.match_candidates as unknown as SurveyMatchCandidate[] | null,
         match_reason_codes: data.match_reason_codes as unknown as MatchReasonCode[] | null,
         selected_parcel_id: data.selected_parcel_id,
+        survey_type: data.survey_type as SurveyWithMatchData['survey_type'],
         extraction_json: data.extraction_json as unknown as SurveyWithMatchData['extraction_json'],
         created_at: data.created_at,
       },

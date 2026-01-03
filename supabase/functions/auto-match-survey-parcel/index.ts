@@ -7,18 +7,31 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============================================================
+// Types
+// ============================================================
 interface MatchRequest {
   survey_upload_id: string;
+  ocr_image_base64?: string; // Pre-rendered first page from client
 }
+
+type SurveyType = "LAND_TITLE_SURVEY" | "RECORDED_PLAT" | "BOUNDARY_ONLY" | "UNKNOWN";
 
 interface ExtractedData {
   apn: string | null;
-  recording_number: string | null;
   address: string | null;
   county: string | null;
-  raw_text: string;
-  extraction_source: string;
-  ocr_used: boolean;
+  ownerName: string | null;
+  acreage: number | null;
+  legalDescription: {
+    lot: string | null;
+    block: string | null;
+    subdivision: string | null;
+  } | null;
+  surveyType: SurveyType;
+  rawText: string;
+  extractionSource: string;
+  ocrUsed: boolean;
 }
 
 interface CandidateParcel {
@@ -44,6 +57,49 @@ const TEXAS_COUNTIES = [
   "LIBERTY", "CHAMBERS", "WALLER", "AUSTIN", "COLORADO"
 ];
 
+// APN Keywords - only extract numbers as APNs if near these
+const APN_KEYWORDS = [
+  "APN", "ACCOUNT", "PARCEL ID", "PARCEL NO", "PARCEL NUMBER",
+  "CAD", "HCAD", "FBCAD", "MCAD", "TAX ID", "PROPERTY ID",
+  "ACCT", "ACCOUNT NO", "ACCOUNT NUMBER"
+];
+
+// ============================================================
+// Survey Type Classifier
+// ============================================================
+function classifySurvey(text: string, extractedData: Partial<ExtractedData>): SurveyType {
+  const upperText = text.toUpperCase();
+  
+  // Check for address pattern (number + street name)
+  const hasAddress = extractedData.address && /^\d+\s+[A-Z]/i.test(extractedData.address);
+  
+  // Check for legal description elements
+  const hasLegalDesc = /\bLOT\s+\d+|\bBLOCK\s+[A-Z0-9]+|\bSUBDIVISION\b/i.test(upperText);
+  
+  // LAND_TITLE_SURVEY: Has address + legal description
+  if (hasAddress && hasLegalDesc) {
+    console.log("[Classifier] LAND_TITLE_SURVEY - has address and legal description");
+    return "LAND_TITLE_SURVEY";
+  }
+  
+  // RECORDED_PLAT: "Recorded Plat" or "Subdivision of X acres", no address, may have owner
+  const isPlat = /RECORDED\s*PLAT|PLAT\s*OF|SUBDIVISION\s*OF\s*[\d.]+\s*ACRES|PLAT\s*RECORD/i.test(upperText);
+  if (isPlat && !hasAddress) {
+    console.log("[Classifier] RECORDED_PLAT - plat keywords, no address");
+    return "RECORDED_PLAT";
+  }
+  
+  // BOUNDARY_ONLY: Has bearings/distances but no address and no owner
+  const hasBearings = /[NS]\s*\d+[°']\s*\d+|\bBEARING\b|\bN\s*\d+\s*DEG\s*\d+/i.test(upperText);
+  if (hasBearings && !hasAddress && !extractedData.ownerName) {
+    console.log("[Classifier] BOUNDARY_ONLY - bearings only");
+    return "BOUNDARY_ONLY";
+  }
+  
+  console.log("[Classifier] UNKNOWN - no clear classification");
+  return "UNKNOWN";
+}
+
 // ============================================================
 // Google Cloud Vision OCR
 // ============================================================
@@ -55,7 +111,7 @@ async function performOCR(imageBase64: string): Promise<string> {
   }
 
   try {
-    console.log("[OCR] Calling Google Cloud Vision API...");
+    console.log("[OCR] Calling Google Cloud Vision API with image (" + imageBase64.length + " chars)...");
     const response = await fetch(
       `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
       {
@@ -89,31 +145,24 @@ async function performOCR(imageBase64: string): Promise<string> {
 }
 
 // ============================================================
-// PDF Processing - Extract text layer or trigger OCR
+// PDF Text Layer Extraction (fallback when no client OCR image)
 // ============================================================
-async function extractTextFromPdfBlob(blob: Blob, supabase: any, storagePath: string): Promise<{ text: string; ocrUsed: boolean }> {
-  // First, try to extract text layer from PDF
-  const arrayBuffer = await blob.arrayBuffer();
-  const bytes = new Uint8Array(arrayBuffer);
-  
-  // Simple text extraction from PDF bytes (works for text-layer PDFs)
+function extractTextFromPdfBytes(bytes: Uint8Array): string {
   let text = "";
   try {
-    // Decode as UTF-8 text and look for readable text streams
     const rawText = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
     
-    // Extract text between stream/endstream markers (simplified PDF text extraction)
+    // Extract text between stream/endstream markers
     const streamMatches = rawText.matchAll(/stream\s*([\s\S]*?)\s*endstream/g);
     for (const match of streamMatches) {
       const streamContent = match[1];
-      // Filter to only printable ASCII chars
       const printable = streamContent.replace(/[^\x20-\x7E\n\r]/g, " ");
       if (printable.length > 20) {
         text += printable + " ";
       }
     }
     
-    // Also try direct text extraction (some PDFs have uncompressed text)
+    // Direct text extraction
     const textObjects = rawText.matchAll(/\(([^)]+)\)/g);
     for (const match of textObjects) {
       const obj = match[1];
@@ -125,171 +174,40 @@ async function extractTextFromPdfBlob(blob: Blob, supabase: any, storagePath: st
     console.log("[PDF] Text layer extraction failed:", e);
   }
   
-  // Clean up extracted text
-  text = text.replace(/\s+/g, " ").trim();
-  console.log("[PDF] Text layer extraction got", text.length, "characters");
-  
-  // If we got meaningful text (more than 100 chars with some letters), use it
-  const hasLetters = (text.match(/[A-Za-z]/g) || []).length;
-  if (text.length > 100 && hasLetters > 20) {
-    console.log("[PDF] Using text layer (found meaningful content)");
-    return { text, ocrUsed: false };
-  }
-  
-  // Otherwise, this is likely a scanned PDF - try OCR
-  console.log("[PDF] Text layer insufficient, attempting OCR on first page...");
-  
-  // For OCR, we need to convert PDF page to image
-  // Since we can't render PDF in Deno, we'll send the raw bytes to Vision API
-  // and see if it can extract text from the PDF header/metadata or embedded images
-  
-  // Convert the entire blob to base64 for Vision API
-  const base64 = btoa(String.fromCharCode(...bytes));
-  const ocrText = await performOCR(base64);
-  
-  if (ocrText.length > 50) {
-    console.log("[PDF] OCR extracted", ocrText.length, "characters");
-    return { text: ocrText, ocrUsed: true };
-  }
-  
-  // If PDF OCR didn't work, return whatever text we got
-  console.log("[PDF] OCR did not improve results, using text layer");
-  return { text, ocrUsed: false };
+  return text.replace(/\s+/g, " ").trim();
 }
 
 // ============================================================
-// Smart Reference Classification
+// APN Extraction (Keyword-Anchored Only)
 // ============================================================
-interface ClassifiedReference {
-  value: string;
-  type: "APN" | "RECORDING_NUMBER" | "UNKNOWN";
-  confidence: number;
-  source: string;
-}
-
-function classifyReferences(text: string, filename: string): ClassifiedReference[] {
-  const references: ClassifiedReference[] = [];
+function extractAPNWithKeyword(text: string): { apn: string; confidence: number } | null {
   const upperText = text.toUpperCase();
   
-  // Pattern 1: Explicit APN/Account/Parcel ID labels (high confidence)
-  const apnLabelPatterns = [
-    /(?:APN|PARCEL\s*(?:ID|NO|NUMBER)?|ACCOUNT\s*(?:NO|NUMBER)?|PROPERTY\s*ID|HCAD|FBCAD|MCAD)[:\s#]*([A-Z0-9\-\.]{8,15})/gi,
-    /(?:TAX\s*(?:ID|PARCEL))[:\s#]*([A-Z0-9\-\.]{8,15})/gi,
-  ];
-  
-  for (const pattern of apnLabelPatterns) {
-    const matches = [...upperText.matchAll(pattern)];
-    for (const match of matches) {
-      const value = match[1]?.replace(/[^A-Z0-9]/g, "");
-      if (value && value.length >= 8 && value.length <= 15) {
-        references.push({
-          value,
-          type: "APN",
-          confidence: 0.95,
-          source: "labeled_apn"
-        });
+  for (const keyword of APN_KEYWORDS) {
+    // Look for keyword followed by a number
+    const pattern = new RegExp(keyword.replace(/\s+/g, "\\s*") + "[:\\s#]*([A-Z0-9\\-]{8,15})", "gi");
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      const apn = match[1].replace(/[^A-Z0-9]/gi, "");
+      if (apn.length >= 8 && apn.length <= 15) {
+        console.log("[APN] Found keyword-anchored APN:", apn, "via keyword:", keyword);
+        return { apn, confidence: 0.95 };
       }
     }
   }
   
-  // Pattern 2: Recording/Document numbers (medium-low confidence for APN matching)
-  const recordingPatterns = [
-    /(?:DOCUMENT|DOC|RECORDING|RECORDED\s*PLAT|FILE|CLERK['']?S?\s*FILE)\s*(?:NO|NUMBER|#)?[:\s]*(\d{5,8})/gi,
-    /(?:PLAT\s*RECORDED)[:\s]*(\d{5,8})/gi,
-    /(?:VOLUME|VOL)\.?\s*\d+\s*(?:PAGE|PG)\.?\s*\d+/gi, // Vol/Page references
-  ];
-  
-  for (const pattern of recordingPatterns) {
-    const matches = [...upperText.matchAll(pattern)];
-    for (const match of matches) {
-      const value = match[1]?.replace(/[^0-9]/g, "");
-      if (value && value.length >= 5 && value.length <= 8) {
-        references.push({
-          value,
-          type: "RECORDING_NUMBER",
-          confidence: 0.3, // Low confidence for parcel matching
-          source: "recording_number"
-        });
-      }
-    }
-  }
-  
-  // Pattern 3: Standalone long numbers (10-15 digits) - likely APNs
-  const longNumberPattern = /\b(\d{10,15})\b/g;
-  const longMatches = [...upperText.matchAll(longNumberPattern)];
-  for (const match of longMatches) {
-    const value = match[1];
-    // Avoid duplicates
-    if (!references.some(r => r.value === value)) {
-      references.push({
-        value,
-        type: "APN",
-        confidence: 0.75,
-        source: "long_number"
-      });
-    }
-  }
-  
-  // Pattern 4: Common APN format 123-456-789 or similar
+  // Also check for dashed format near keywords
   const dashPattern = /\b(\d{3,5}[-\.]\d{3,5}[-\.]\d{3,5})\b/g;
   const dashMatches = [...upperText.matchAll(dashPattern)];
   for (const match of dashMatches) {
-    const value = match[1].replace(/[^0-9]/g, "");
-    if (!references.some(r => r.value === value)) {
-      references.push({
-        value,
-        type: "APN",
-        confidence: 0.85,
-        source: "dash_format"
-      });
+    const apn = match[1].replace(/[^0-9]/g, "");
+    if (apn.length >= 8 && apn.length <= 15) {
+      console.log("[APN] Found dashed-format APN:", apn);
+      return { apn, confidence: 0.85 };
     }
   }
   
-  // Pattern 5: Filename extraction (high confidence if formatted properly)
-  const filenamePatterns = [
-    /\((\d{5,15})\)/,           // (679486)
-    /(?:plat|doc|file|survey)\s*#?\s*(\d{5,15})/i,  // Plat 679486
-    /-(\d{6,15})-/,            // -679486-
-    /_(\d{6,15})_/,            // _679486_
-    /^(\d{8,15})/,             // Starts with numbers
-  ];
-  
-  for (const pattern of filenamePatterns) {
-    const match = filename.match(pattern);
-    if (match && match[1]) {
-      const value = match[1];
-      const len = value.length;
-      
-      // Short numbers (5-7 digits) from filename are likely recording numbers
-      // Longer numbers (10+) are more likely APNs
-      if (len >= 10) {
-        references.push({
-          value,
-          type: "APN",
-          confidence: 0.85,
-          source: "filename_long"
-        });
-      } else if (len >= 5 && len <= 8) {
-        references.push({
-          value,
-          type: "RECORDING_NUMBER",
-          confidence: 0.4,
-          source: "filename_short"
-        });
-      }
-    }
-  }
-  
-  // Sort by confidence descending
-  references.sort((a, b) => b.confidence - a.confidence);
-  
-  // Remove duplicates, keeping highest confidence
-  const seen = new Set<string>();
-  return references.filter(r => {
-    if (seen.has(r.value)) return false;
-    seen.add(r.value);
-    return true;
-  });
+  return null;
 }
 
 // ============================================================
@@ -299,20 +217,113 @@ function extractAddress(text: string): string | null {
   const upperText = text.toUpperCase();
   
   const addressPatterns = [
-    // Labeled addresses
-    /(?:SITUS|PROPERTY\s*ADDRESS|SITE\s*ADDRESS|LOCATION|STREET\s*ADDRESS)[:\s]*(\d+\s+[A-Z0-9\s]+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY)[,.\s]*(?:[A-Z\s]*\d{5})?)/gi,
-    // Unlabeled street addresses
-    /\b(\d+\s+(?:[NSEW]\s+)?[A-Z][A-Z0-9\s]+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY))\b/gi,
+    // Labeled addresses (highest priority)
+    /(?:SITUS|PROPERTY\s*ADDRESS|SITE\s*ADDRESS|LOCATION|STREET\s*ADDRESS)[:\s]*(\d+\s+[A-Z0-9\s]+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY))/gi,
+    // Unlabeled street addresses (less priority)
+    /\b(\d+\s+(?:[NSEW]\s+)?[A-Z][A-Z0-9\s]+(?:STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|LANE|LN|BLVD|BOULEVARD|WAY|CIRCLE|CIR|COURT|CT|PLACE|PL|PKWY|PARKWAY|HWY|HIGHWAY)(?:\s+(?:SOUTH|NORTH|EAST|WEST|S|N|E|W))?)\b/gi,
   ];
   
   for (const pattern of addressPatterns) {
     const matches = [...upperText.matchAll(pattern)];
     if (matches.length > 0) {
-      const address = matches[0][1]?.trim();
+      let address = matches[0][1]?.trim();
       if (address && address.length > 10) {
+        // Clean up the address
+        address = address.replace(/\s+/g, " ").trim();
         return address;
       }
     }
+  }
+  
+  return null;
+}
+
+// ============================================================
+// Owner Name Extraction
+// ============================================================
+function extractOwnerName(text: string): string | null {
+  const patterns = [
+    /OWNER[:\s]+([A-Z][A-Z\s&,.']+?)(?:LLC|LP|INC|CORP|$|\n)/gi,
+    /PREPARED\s+FOR[:\s]+([A-Z][A-Z\s&,.']+?)(?:LLC|LP|INC|CORP|$|\n)/gi,
+    /PROPERTY\s+OF[:\s]+([A-Z][A-Z\s&,.']+?)(?:LLC|LP|INC|CORP|$|\n)/gi,
+    /SURVEYED\s+FOR[:\s]+([A-Z][A-Z\s&,.']+?)(?:LLC|LP|INC|CORP|$|\n)/gi,
+    /CLIENT[:\s]+([A-Z][A-Z\s&,.']+?)(?:LLC|LP|INC|CORP|$|\n)/gi,
+  ];
+  
+  const upperText = text.toUpperCase();
+  
+  for (const pattern of patterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      let owner = match[1].trim();
+      // Clean up and validate
+      owner = owner.replace(/\s+/g, " ").replace(/[,.']+$/, "").trim();
+      if (owner.length >= 3 && owner.length <= 100) {
+        console.log("[Owner] Extracted owner name:", owner);
+        return owner;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// ============================================================
+// Acreage Extraction
+// ============================================================
+function extractAcreage(text: string): number | null {
+  const patterns = [
+    /(\d+\.?\d*)\s*(?:ACRES?|AC\.?)\b/gi,
+    /CONTAINING\s+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+    /AREA[:\s]+(\d+\.?\d*)\s*(?:ACRES?|AC)/gi,
+  ];
+  
+  const upperText = text.toUpperCase();
+  
+  for (const pattern of patterns) {
+    const match = pattern.exec(upperText);
+    if (match && match[1]) {
+      const acreage = parseFloat(match[1]);
+      if (acreage > 0 && acreage < 10000) { // Reasonable range
+        console.log("[Acreage] Extracted acreage:", acreage);
+        return acreage;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// ============================================================
+// Legal Description Extraction
+// ============================================================
+function extractLegalDescription(text: string): { lot: string | null; block: string | null; subdivision: string | null } | null {
+  const upperText = text.toUpperCase();
+  
+  const lot = upperText.match(/\bLOT\s+(\d+[A-Z]?)\b/i)?.[1] || null;
+  const block = upperText.match(/\bBLOCK\s+([A-Z0-9]+)\b/i)?.[1] || null;
+  
+  // Try to extract subdivision name
+  let subdivision: string | null = null;
+  const subdivPatterns = [
+    /(?:SUBDIVISION|ADDN|ADDITION)\s+(?:OF\s+)?([A-Z][A-Z\s]+?)(?:,|\n|BLOCK|LOT|SECTION)/i,
+    /([A-Z][A-Z\s]+?)\s+(?:SUBDIVISION|ADDN|ADDITION)/i,
+  ];
+  
+  for (const pattern of subdivPatterns) {
+    const match = upperText.match(pattern);
+    if (match && match[1]) {
+      subdivision = match[1].trim();
+      if (subdivision.length >= 3 && subdivision.length <= 60) {
+        break;
+      }
+      subdivision = null;
+    }
+  }
+  
+  if (lot || block || subdivision) {
+    console.log("[Legal] Extracted legal desc - Lot:", lot, "Block:", block, "Subdivision:", subdivision);
+    return { lot, block, subdivision };
   }
   
   return null;
@@ -330,7 +341,7 @@ function extractCounty(text: string): string | null {
     }
   }
   
-  // Also check for just county name
+  // Fallback: just county name
   for (const county of TEXAS_COUNTIES) {
     if (upperText.includes(county)) {
       return county;
@@ -353,7 +364,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { survey_upload_id } = await req.json() as MatchRequest;
+    const { survey_upload_id, ocr_image_base64 } = await req.json() as MatchRequest;
 
     if (!survey_upload_id) {
       return new Response(
@@ -363,6 +374,7 @@ serve(async (req) => {
     }
 
     console.log(`[auto-match] ========== Processing survey: ${survey_upload_id} ==========`);
+    console.log(`[auto-match] Client OCR image provided: ${ocr_image_base64 ? "Yes (" + ocr_image_base64.length + " chars)" : "No"}`);
 
     // Update status to analyzing
     await supabase
@@ -387,124 +399,303 @@ serve(async (req) => {
 
     const filename = survey.filename || "";
     console.log("[auto-match] Filename:", filename);
-    console.log("[auto-match] Storage path:", survey.storage_path);
-    console.log("[auto-match] Survey county:", survey.county);
+    console.log("[auto-match] Survey county from metadata:", survey.county);
 
     // Initialize extracted data
     const extractedData: ExtractedData = {
       apn: null,
-      recording_number: null,
       address: null,
       county: survey.county || null,
-      raw_text: "",
-      extraction_source: "none",
-      ocr_used: false,
+      ownerName: null,
+      acreage: null,
+      legalDescription: null,
+      surveyType: "UNKNOWN",
+      rawText: "",
+      extractionSource: "none",
+      ocrUsed: false,
     };
 
     // ============================================================
-    // Step 1: Download and analyze PDF (ALWAYS attempt this)
+    // Step 1: Get text content (prefer client OCR image, fallback to PDF text layer)
     // ============================================================
-    let pdfText = "";
-    let ocrUsed = false;
+    let textContent = "";
     
-    if (survey.storage_path) {
-      console.log("[auto-match] Step 1: Downloading PDF from 'surveys' bucket...");
-      
+    if (ocr_image_base64) {
+      // Client provided a pre-rendered image - use OCR on it
+      console.log("[auto-match] Step 1: Using client-provided OCR image");
+      textContent = await performOCR(ocr_image_base64);
+      extractedData.ocrUsed = true;
+      extractedData.extractionSource = "client_ocr";
+    }
+    
+    // If OCR didn't produce enough text, try PDF text layer
+    if (textContent.length < 100 && survey.storage_path) {
+      console.log("[auto-match] Step 1b: Trying PDF text layer extraction");
       try {
-        // Use the correct bucket name: "surveys" (not "survey-uploads")
         const { data: fileData, error: fileError } = await supabase.storage
           .from("surveys")
           .download(survey.storage_path);
 
-        if (fileError) {
-          console.error("[auto-match] Failed to download PDF:", fileError.message);
-          console.log("[auto-match] Trying alternate path without leading slash...");
+        if (!fileError && fileData) {
+          const arrayBuffer = await fileData.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          const pdfText = extractTextFromPdfBytes(bytes);
           
-          // Try removing leading slash if present
-          const altPath = survey.storage_path.replace(/^\//, "");
-          const { data: altFileData, error: altFileError } = await supabase.storage
-            .from("surveys")
-            .download(altPath);
-            
-          if (altFileError) {
-            console.error("[auto-match] Alternate path also failed:", altFileError.message);
-          } else if (altFileData) {
-            console.log("[auto-match] Downloaded via alternate path, size:", altFileData.size, "bytes");
-            const result = await extractTextFromPdfBlob(altFileData, supabase, altPath);
-            pdfText = result.text;
-            ocrUsed = result.ocrUsed;
+          if (pdfText.length > textContent.length) {
+            textContent = pdfText;
+            extractedData.extractionSource = "pdf_text";
           }
-        } else if (fileData) {
-          console.log("[auto-match] Downloaded PDF, size:", fileData.size, "bytes");
-          const result = await extractTextFromPdfBlob(fileData, supabase, survey.storage_path);
-          pdfText = result.text;
-          ocrUsed = result.ocrUsed;
         }
-      } catch (downloadError) {
-        console.error("[auto-match] PDF download error:", downloadError);
+      } catch (e) {
+        console.log("[auto-match] PDF download/extraction failed:", e);
       }
     }
-
-    extractedData.raw_text = pdfText.substring(0, 5000);
-    extractedData.ocr_used = ocrUsed;
-    extractedData.extraction_source = ocrUsed ? "ocr" : (pdfText.length > 100 ? "pdf_text" : "filename");
+    
+    extractedData.rawText = textContent.substring(0, 5000);
+    console.log("[auto-match] Text content length:", textContent.length, "Source:", extractedData.extractionSource);
 
     // ============================================================
-    // Step 2: Classify all extracted references
+    // Step 2: Extract all fields
     // ============================================================
-    console.log("[auto-match] Step 2: Classifying references from text and filename...");
+    console.log("[auto-match] Step 2: Extracting fields from text...");
     
-    const allReferences = classifyReferences(pdfText + " " + (survey.title || ""), filename);
-    console.log("[auto-match] Found references:", JSON.stringify(allReferences.slice(0, 5)));
-    
-    // Pick the best APN candidate
-    const apnCandidates = allReferences.filter(r => r.type === "APN");
-    const recordingNumbers = allReferences.filter(r => r.type === "RECORDING_NUMBER");
-    
-    if (apnCandidates.length > 0) {
-      extractedData.apn = apnCandidates[0].value;
-      console.log("[auto-match] Best APN candidate:", extractedData.apn, "confidence:", apnCandidates[0].confidence);
+    // APN (keyword-anchored only)
+    const apnResult = extractAPNWithKeyword(textContent);
+    if (apnResult) {
+      extractedData.apn = apnResult.apn;
     }
     
-    if (recordingNumbers.length > 0) {
-      extractedData.recording_number = recordingNumbers[0].value;
-      console.log("[auto-match] Recording number found:", extractedData.recording_number);
-    }
-
-    // ============================================================
-    // Step 3: Extract address
-    // ============================================================
-    extractedData.address = extractAddress(pdfText) || extractAddress(survey.title || "");
-    if (extractedData.address) {
-      console.log("[auto-match] Address extracted:", extractedData.address);
-    }
-
-    // ============================================================
-    // Step 4: Extract/confirm county
-    // ============================================================
+    // Address
+    extractedData.address = extractAddress(textContent) || extractAddress(survey.title || "");
+    
+    // Owner name
+    extractedData.ownerName = extractOwnerName(textContent);
+    
+    // Acreage
+    extractedData.acreage = extractAcreage(textContent);
+    
+    // Legal description
+    extractedData.legalDescription = extractLegalDescription(textContent);
+    
+    // County (from text if not in metadata)
     if (!extractedData.county) {
-      extractedData.county = extractCounty(pdfText);
+      extractedData.county = extractCounty(textContent);
     }
-    console.log("[auto-match] County:", extractedData.county);
+    
+    // Classify survey type
+    extractedData.surveyType = classifySurvey(textContent, extractedData);
+    
+    console.log("[auto-match] Extraction results:", {
+      apn: extractedData.apn,
+      address: extractedData.address,
+      ownerName: extractedData.ownerName,
+      acreage: extractedData.acreage,
+      legalDescription: extractedData.legalDescription,
+      county: extractedData.county,
+      surveyType: extractedData.surveyType,
+    });
 
     // Update status to matching
     await supabase
       .from("survey_uploads")
       .update({ 
         match_status: "matching",
-        extraction_json: extractedData
+        survey_type: extractedData.surveyType,
+        extracted_owner_name: extractedData.ownerName,
+        extracted_acreage: extractedData.acreage,
+        extracted_legal_description: extractedData.legalDescription,
+        extraction_json: {
+          apn: extractedData.apn,
+          address: extractedData.address,
+          county: extractedData.county,
+          ownerName: extractedData.ownerName,
+          acreage: extractedData.acreage,
+          legalDescription: extractedData.legalDescription,
+          surveyType: extractedData.surveyType,
+          ocrUsed: extractedData.ocrUsed,
+          extractionSource: extractedData.extractionSource,
+        }
       })
       .eq("id", survey_upload_id);
 
     // ============================================================
-    // Step 5: Query for parcel candidates
+    // Step 3: Run matching strategies (independent, parallel-ish)
     // ============================================================
-    console.log("[auto-match] Step 5: Searching for parcel matches...");
+    console.log("[auto-match] Step 3: Running matching strategies...");
     const candidates: CandidateParcel[] = [];
 
-    // Strategy A: Direct APN match (highest priority)
+    // Strategy A: Address Match (only for LAND_TITLE_SURVEY with quality address)
+    if (extractedData.surveyType === "LAND_TITLE_SURVEY" && extractedData.address && extractedData.address.length > 15) {
+      console.log("[auto-match] Strategy A: Address geocode for:", extractedData.address);
+      
+      try {
+        // Build full address string
+        const fullAddress = extractedData.address + 
+          (extractedData.county ? ", " + extractedData.county + " County" : "") + 
+          ", TX";
+        
+        // FIX: Use correct geocoder API format - query + query_type
+        const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke(
+          "geocode-with-cache",
+          { 
+            body: { 
+              query: fullAddress,
+              query_type: "address"
+            } 
+          }
+        );
+
+        if (geocodeError) {
+          console.error("[auto-match] Geocode error:", geocodeError);
+        } else if (geocodeData?.lat && geocodeData?.lng) {
+          console.log("[auto-match] Geocoded to:", geocodeData.lat, geocodeData.lng);
+          
+          const pointWkt = `POINT(${geocodeData.lng} ${geocodeData.lat})`;
+          
+          const { data: addressMatches, error: addrError } = await supabase.rpc(
+            "find_parcel_candidates",
+            {
+              p_county: extractedData.county,
+              p_address_point: pointWkt,
+              p_limit: 5
+            }
+          );
+
+          if (!addrError && addressMatches?.length > 0) {
+            console.log("[auto-match] Address search returned", addressMatches.length, "results");
+            for (const match of addressMatches) {
+              // Boost confidence if legal description also matches
+              let confidence = match.match_score * 0.9;
+              const reasonCodes = ["ADDRESS_MATCH"];
+              
+              if (extractedData.legalDescription && confidence > 0.5) {
+                confidence = Math.min(confidence + 0.1, 0.98);
+                reasonCodes.push("LEGAL_DESC_MATCH");
+              }
+              
+              candidates.push({
+                parcel_id: match.parcel_uuid,
+                source_parcel_id: match.source_parcel_id,
+                confidence,
+                reason_codes: reasonCodes,
+                situs_address: match.situs_address,
+                owner_name: match.owner_name,
+                acreage: match.acreage,
+                county: match.county,
+                geometry: match.geometry,
+                debug: {
+                  apn_extracted: extractedData.apn,
+                  address_extracted: extractedData.address,
+                  match_type: "ADDRESS_GEOCODE"
+                }
+              });
+            }
+          }
+        }
+      } catch (geocodeErr) {
+        console.error("[auto-match] Geocode function error:", geocodeErr);
+      }
+    }
+
+    // Strategy B: Owner Name Match (mandatory for RECORDED_PLAT)
+    if (extractedData.ownerName && extractedData.county) {
+      console.log("[auto-match] Strategy B: Owner match for:", extractedData.ownerName);
+      
+      const { data: ownerMatches, error: ownerError } = await supabase.rpc(
+        "find_parcels_by_owner",
+        {
+          p_owner_name: extractedData.ownerName,
+          p_county: extractedData.county,
+          p_acreage_min: extractedData.acreage ? extractedData.acreage * 0.8 : null,
+          p_acreage_max: extractedData.acreage ? extractedData.acreage * 1.2 : null,
+          p_limit: 5
+        }
+      );
+
+      if (ownerError) {
+        console.error("[auto-match] Owner search error:", ownerError);
+      } else if (ownerMatches?.length > 0) {
+        console.log("[auto-match] Owner search returned", ownerMatches.length, "results");
+        for (const match of ownerMatches) {
+          // Check for duplicates
+          if (candidates.some(c => c.parcel_id === match.parcel_uuid)) continue;
+          
+          // Owner alone never auto-selects, cap at 0.75
+          const confidence = Math.min(match.match_score * 0.75, 0.75);
+          
+          candidates.push({
+            parcel_id: match.parcel_uuid,
+            source_parcel_id: match.source_parcel_id,
+            confidence,
+            reason_codes: ["OWNER_MATCH", "COUNTY_MATCH"],
+            situs_address: match.situs_address,
+            owner_name: match.owner_name,
+            acreage: match.acreage,
+            county: match.county,
+            geometry: match.geometry,
+            debug: {
+              apn_extracted: extractedData.apn,
+              address_extracted: extractedData.address,
+              match_type: "OWNER_MATCH"
+            }
+          });
+        }
+      }
+    }
+
+    // Strategy C: Legal Description Match
+    if (extractedData.legalDescription && (extractedData.legalDescription.lot || extractedData.legalDescription.subdivision)) {
+      console.log("[auto-match] Strategy C: Legal description match");
+      
+      const { data: legalMatches, error: legalError } = await supabase.rpc(
+        "find_parcels_by_legal_description",
+        {
+          p_lot: extractedData.legalDescription.lot,
+          p_block: extractedData.legalDescription.block,
+          p_subdivision: extractedData.legalDescription.subdivision,
+          p_county: extractedData.county,
+          p_limit: 5
+        }
+      );
+
+      if (legalError) {
+        console.error("[auto-match] Legal desc search error:", legalError);
+      } else if (legalMatches?.length > 0) {
+        console.log("[auto-match] Legal desc search returned", legalMatches.length, "results");
+        for (const match of legalMatches) {
+          // Check for duplicates - boost existing if already there
+          const existing = candidates.find(c => c.parcel_id === match.parcel_uuid);
+          if (existing) {
+            existing.confidence = Math.min(existing.confidence + 0.15, 0.98);
+            if (!existing.reason_codes.includes("LEGAL_DESC_MATCH")) {
+              existing.reason_codes.push("LEGAL_DESC_MATCH");
+            }
+            continue;
+          }
+          
+          candidates.push({
+            parcel_id: match.parcel_uuid,
+            source_parcel_id: match.source_parcel_id,
+            confidence: match.match_score,
+            reason_codes: ["LEGAL_DESC_MATCH"],
+            situs_address: match.situs_address,
+            owner_name: match.owner_name,
+            acreage: match.acreage,
+            county: match.county,
+            geometry: match.geometry,
+            debug: {
+              apn_extracted: extractedData.apn,
+              address_extracted: extractedData.address,
+              match_type: "LEGAL_DESC"
+            }
+          });
+        }
+      }
+    }
+
+    // Strategy D: APN Match (if we have a keyword-anchored APN)
     if (extractedData.apn) {
-      console.log("[auto-match] Strategy A: APN match for", extractedData.apn);
+      console.log("[auto-match] Strategy D: APN match for:", extractedData.apn);
       
       const { data: apnMatches, error: apnError } = await supabase.rpc(
         "find_parcel_candidates",
@@ -520,11 +711,21 @@ serve(async (req) => {
       } else if (apnMatches?.length > 0) {
         console.log("[auto-match] APN search returned", apnMatches.length, "results");
         for (const match of apnMatches) {
+          // Check for duplicates - boost existing
+          const existing = candidates.find(c => c.parcel_id === match.parcel_uuid);
+          if (existing) {
+            existing.confidence = Math.min(existing.confidence + 0.2, 0.98);
+            if (!existing.reason_codes.includes("APN_MATCH")) {
+              existing.reason_codes.push("APN_MATCH");
+            }
+            continue;
+          }
+          
           candidates.push({
             parcel_id: match.parcel_uuid,
             source_parcel_id: match.source_parcel_id,
             confidence: match.match_score,
-            reason_codes: [match.match_type],
+            reason_codes: ["APN_MATCH"],
             situs_address: match.situs_address,
             owner_name: match.owner_name,
             acreage: match.acreage,
@@ -533,99 +734,7 @@ serve(async (req) => {
             debug: {
               apn_extracted: extractedData.apn,
               address_extracted: extractedData.address,
-              match_type: match.match_type
-            }
-          });
-        }
-      }
-    }
-
-    // Strategy B: Address geocode + proximity (if no APN matches)
-    if (candidates.length === 0 && extractedData.address) {
-      console.log("[auto-match] Strategy B: Address geocode for", extractedData.address);
-      
-      try {
-        const { data: geocodeData, error: geocodeError } = await supabase.functions.invoke(
-          "geocode-with-cache",
-          { body: { address: extractedData.address + (extractedData.county ? ", " + extractedData.county + " County, TX" : ", TX") } }
-        );
-
-        if (geocodeError) {
-          console.error("[auto-match] Geocode error:", geocodeError);
-        } else if (geocodeData?.lat && geocodeData?.lng) {
-          console.log("[auto-match] Geocoded to:", geocodeData.lat, geocodeData.lng);
-          
-          // Create a point geometry for the spatial query
-          const pointWkt = `POINT(${geocodeData.lng} ${geocodeData.lat})`;
-          
-          const { data: addressMatches, error: addrError } = await supabase.rpc(
-            "find_parcel_candidates",
-            {
-              p_county: extractedData.county,
-              p_address_point: pointWkt,
-              p_limit: 5
-            }
-          );
-
-          if (addrError) {
-            console.error("[auto-match] Address search error:", addrError);
-          } else if (addressMatches?.length > 0) {
-            console.log("[auto-match] Address search returned", addressMatches.length, "results");
-            for (const match of addressMatches) {
-              candidates.push({
-                parcel_id: match.parcel_uuid,
-                source_parcel_id: match.source_parcel_id,
-                confidence: match.match_score * 0.9, // Slightly lower than APN match
-                reason_codes: [match.match_type, "ADDRESS_GEOCODE"],
-                situs_address: match.situs_address,
-                owner_name: match.owner_name,
-                acreage: match.acreage,
-                county: match.county,
-                geometry: match.geometry,
-                debug: {
-                  apn_extracted: extractedData.apn,
-                  address_extracted: extractedData.address,
-                  match_type: match.match_type
-                }
-              });
-            }
-          }
-        }
-      } catch (geocodeErr) {
-        console.error("[auto-match] Geocode function error:", geocodeErr);
-      }
-    }
-
-    // Strategy C: Try recording number as partial APN (low confidence)
-    if (candidates.length === 0 && extractedData.recording_number) {
-      console.log("[auto-match] Strategy C: Recording number as partial search:", extractedData.recording_number);
-      
-      const { data: recMatches, error: recError } = await supabase.rpc(
-        "find_parcel_candidates",
-        {
-          p_county: extractedData.county,
-          p_apn: extractedData.recording_number,
-          p_limit: 5
-        }
-      );
-
-      if (!recError && recMatches?.length > 0) {
-        console.log("[auto-match] Recording number search returned", recMatches.length, "results");
-        for (const match of recMatches) {
-          candidates.push({
-            parcel_id: match.parcel_uuid,
-            source_parcel_id: match.source_parcel_id,
-            confidence: match.match_score * 0.5, // Much lower confidence
-            reason_codes: [match.match_type, "RECORDING_NUMBER_FALLBACK"],
-            situs_address: match.situs_address,
-            owner_name: match.owner_name,
-            acreage: match.acreage,
-            county: match.county,
-            geometry: match.geometry,
-            debug: {
-              apn_extracted: extractedData.apn,
-              address_extracted: extractedData.address,
-              match_type: "RECORDING_FALLBACK"
+              match_type: "APN_MATCH"
             }
           });
         }
@@ -633,7 +742,48 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // Step 6: Determine final status
+    // Strategy E: Area Fallback (NEVER return NO_MATCH if we have county + acreage)
+    // ============================================================
+    if (candidates.length === 0 && extractedData.county && extractedData.acreage) {
+      console.log("[auto-match] Strategy E: Area fallback for county:", extractedData.county, "acreage:", extractedData.acreage);
+      
+      const { data: areaMatches, error: areaError } = await supabase.rpc(
+        "find_parcels_by_area",
+        {
+          p_county: extractedData.county,
+          p_target_acreage: extractedData.acreage,
+          p_tolerance: 0.25,
+          p_limit: 5
+        }
+      );
+
+      if (areaError) {
+        console.error("[auto-match] Area search error:", areaError);
+      } else if (areaMatches?.length > 0) {
+        console.log("[auto-match] Area search returned", areaMatches.length, "results");
+        for (const match of areaMatches) {
+          candidates.push({
+            parcel_id: match.parcel_uuid,
+            source_parcel_id: match.source_parcel_id,
+            confidence: Math.min(match.match_score * 0.5, 0.55), // Low confidence for area-only
+            reason_codes: ["AREA_MATCH", "COUNTY_MATCH"],
+            situs_address: match.situs_address,
+            owner_name: match.owner_name,
+            acreage: match.acreage,
+            county: match.county,
+            geometry: match.geometry,
+            debug: {
+              apn_extracted: extractedData.apn,
+              address_extracted: extractedData.address,
+              match_type: "AREA_FALLBACK"
+            }
+          });
+        }
+      }
+    }
+
+    // ============================================================
+    // Step 4: Determine final status with confidence gating
     // ============================================================
     let status: "AUTO_SELECTED" | "NEEDS_REVIEW" | "NO_MATCH" = "NO_MATCH";
     let selectedParcelId: string | null = null;
@@ -643,20 +793,33 @@ serve(async (req) => {
       // Sort by confidence descending
       candidates.sort((a, b) => b.confidence - a.confidence);
       topConfidence = candidates[0].confidence;
-
-      if (topConfidence >= 0.85) {
+      
+      // Auto-select ONLY if:
+      // 1. Confidence >= 0.85
+      // 2. Has at least one deterministic signal (ADDRESS or LEGAL_DESC or APN)
+      const topCandidate = candidates[0];
+      const hasDeterministicSignal = 
+        topCandidate.reason_codes.includes("ADDRESS_MATCH") ||
+        topCandidate.reason_codes.includes("LEGAL_DESC_MATCH") ||
+        topCandidate.reason_codes.includes("APN_MATCH");
+      
+      if (topConfidence >= 0.85 && hasDeterministicSignal) {
         status = "AUTO_SELECTED";
-        selectedParcelId = candidates[0].parcel_id;
-        console.log("[auto-match] AUTO_SELECTED parcel:", selectedParcelId);
-      } else if (topConfidence >= 0.5) {
-        status = "NEEDS_REVIEW";
-        console.log("[auto-match] NEEDS_REVIEW - top confidence:", topConfidence);
+        selectedParcelId = topCandidate.parcel_id;
+        console.log("[auto-match] AUTO_SELECTED parcel:", selectedParcelId, "confidence:", topConfidence);
       } else {
-        status = "NEEDS_REVIEW"; // Still show low-confidence candidates for review
-        console.log("[auto-match] NEEDS_REVIEW (low confidence) - top:", topConfidence);
+        status = "NEEDS_REVIEW";
+        console.log("[auto-match] NEEDS_REVIEW - confidence:", topConfidence, "deterministic:", hasDeterministicSignal);
       }
     } else {
-      console.log("[auto-match] NO_MATCH - no candidates found");
+      // HARD RULE: Never NO_MATCH if we have county + (owner OR acreage OR legal)
+      const hasSignals = extractedData.ownerName || extractedData.acreage || extractedData.legalDescription;
+      if (extractedData.county && hasSignals) {
+        console.log("[auto-match] NO_MATCH prevented - downgrading to NEEDS_REVIEW with empty candidates");
+        status = "NEEDS_REVIEW";
+      } else {
+        console.log("[auto-match] NO_MATCH - no candidates and insufficient signals");
+      }
     }
 
     console.log("[auto-match] Final status:", status, "| Candidates:", candidates.length, "| Top confidence:", topConfidence);
@@ -674,7 +837,6 @@ serve(async (req) => {
         match_confidence: topConfidence,
         match_candidates: candidates.slice(0, 10),
         match_reason_codes: candidates[0]?.reason_codes || [],
-        extraction_json: extractedData,
       })
       .eq("id", survey_upload_id);
 
@@ -689,11 +851,14 @@ serve(async (req) => {
         candidates: candidates.slice(0, 5),
         extraction: {
           apn_extracted: extractedData.apn,
-          recording_number: extractedData.recording_number,
           address_extracted: extractedData.address,
           county_extracted: extractedData.county,
-          ocr_used: extractedData.ocr_used,
-          extraction_source: extractedData.extraction_source,
+          owner_extracted: extractedData.ownerName,
+          acreage_extracted: extractedData.acreage,
+          legal_description: extractedData.legalDescription,
+          survey_type: extractedData.surveyType,
+          ocr_used: extractedData.ocrUsed,
+          extraction_source: extractedData.extractionSource,
         }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

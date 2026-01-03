@@ -12,7 +12,25 @@ export type SurveyMatchStatus =
   | 'no_match' 
   | 'error';
 
-export type MatchReasonCode = 'APN' | 'ADDRESS' | 'SHAPE' | 'COUNTY' | 'AREA_SIMILAR';
+export type SurveyType = 
+  | 'LAND_TITLE_SURVEY' 
+  | 'RECORDED_PLAT' 
+  | 'BOUNDARY_ONLY' 
+  | 'UNKNOWN';
+
+export type MatchReasonCode = 
+  | 'APN_MATCH'
+  | 'ADDRESS_MATCH' 
+  | 'OWNER_MATCH'
+  | 'LEGAL_DESC_MATCH'
+  | 'AREA_MATCH'
+  | 'COUNTY_MATCH'
+  // Legacy codes for backwards compatibility
+  | 'APN' 
+  | 'ADDRESS' 
+  | 'SHAPE' 
+  | 'COUNTY' 
+  | 'AREA_SIMILAR';
 
 export interface SurveyMatchCandidate {
   parcel_id: string;
@@ -31,17 +49,31 @@ export interface SurveyMatchCandidate {
   };
 }
 
+export interface LegalDescription {
+  lot: string | null;
+  block: string | null;
+  subdivision: string | null;
+}
+
+export interface SurveyExtraction {
+  apn_extracted: string | null;
+  address_extracted: string | null;
+  county_extracted: string | null;
+  owner_extracted?: string | null;
+  acreage_extracted?: number | null;
+  legal_description?: LegalDescription | null;
+  survey_type?: SurveyType;
+  ocr_used?: boolean;
+  extraction_source?: string;
+}
+
 export interface AutoMatchResult {
   success: boolean;
   status: 'AUTO_SELECTED' | 'NEEDS_REVIEW' | 'NO_MATCH' | 'ERROR';
   selected_parcel_id: string | null;
   confidence: number;
   candidates: SurveyMatchCandidate[];
-  extraction: {
-    apn_extracted: string | null;
-    address_extracted: string | null;
-    county_extracted: string | null;
-  };
+  extraction: SurveyExtraction;
   error?: string;
 }
 
@@ -59,10 +91,7 @@ export interface SurveyWithMatchData {
   match_candidates: SurveyMatchCandidate[] | null;
   match_reason_codes: MatchReasonCode[] | null;
   selected_parcel_id: string | null;
-  extraction_json: {
-    apn: string | null;
-    address: string | null;
-    county: string | null;
-  } | null;
+  survey_type?: SurveyType;
+  extraction_json: SurveyExtraction | null;
   created_at: string;
 }
