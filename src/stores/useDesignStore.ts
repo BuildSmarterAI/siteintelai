@@ -17,6 +17,16 @@ export type CanvasViewMode = "2d" | "3d" | "split";
 
 export type BasemapType = "osm" | "satellite" | "satellite-labels" | "terrain";
 
+export type DesignMeasurementMode = "distance" | "area" | "height" | null;
+
+export interface DesignMeasurementResult {
+  miles?: number;
+  feet?: number;
+  acres?: number;
+  sqft?: number;
+  heightFt?: number;
+}
+
 export interface DesignPreset {
   id: string;
   name: string;
@@ -150,6 +160,15 @@ interface DesignState {
   isShadowAnimating: boolean;
   setIsShadowAnimating: (animating: boolean) => void;
 
+  // Measurement tools
+  measurementMode: DesignMeasurementMode;
+  setMeasurementMode: (mode: DesignMeasurementMode) => void;
+  measurementResult: DesignMeasurementResult | null;
+  setMeasurementResult: (result: DesignMeasurementResult | null) => void;
+  measurementPoints: [number, number][];
+  setMeasurementPoints: (points: [number, number][]) => void;
+  clearMeasurement: () => void;
+
   // Reset
   reset: () => void;
 }
@@ -178,6 +197,9 @@ const initialState = {
     return date;
   })(),
   isShadowAnimating: false,
+  measurementMode: null as DesignMeasurementMode,
+  measurementResult: null as DesignMeasurementResult | null,
+  measurementPoints: [] as [number, number][],
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -272,6 +294,22 @@ export const useDesignStore = create<DesignState>()(
       setShadowDateTime: (date) => set({ shadowDateTime: date }),
 
       setIsShadowAnimating: (animating) => set({ isShadowAnimating: animating }),
+
+      setMeasurementMode: (mode) => set({ 
+        measurementMode: mode,
+        measurementResult: null,
+        measurementPoints: [],
+      }),
+
+      setMeasurementResult: (result) => set({ measurementResult: result }),
+
+      setMeasurementPoints: (points) => set({ measurementPoints: points }),
+
+      clearMeasurement: () => set({
+        measurementMode: null,
+        measurementResult: null,
+        measurementPoints: [],
+      }),
 
       reset: () => set(initialState),
     }),

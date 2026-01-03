@@ -40,6 +40,7 @@ import {
 } from "@/lib/cesiumGeometry";
 import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
+import { useCesiumMeasurement } from "@/hooks/useCesiumMeasurement";
 
 // Disable Ion default token warning - we're using open terrain
 Ion.defaultAccessToken = "";
@@ -60,6 +61,9 @@ export function CesiumViewerComponent({
   const orbitAnimationRef = useRef<number | null>(null);
   const shadowAnimationRef = useRef<number | null>(null);
   const drawingPointsRef = useRef<Cartesian3[]>([]);
+
+  // Use measurement hook for 3D
+  useCesiumMeasurement({ viewer: viewerRef.current });
 
   const {
     envelope,

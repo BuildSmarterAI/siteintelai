@@ -11,6 +11,7 @@ import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import { useDesignStore, type BasemapType } from "@/stores/useDesignStore";
+import { useMapMeasurement } from "@/hooks/useMapMeasurement";
 import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
 import { toast } from "sonner";
@@ -134,9 +135,20 @@ export function DesignModeCanvas({
     setIsDrawing,
     updateVariant,
     basemap,
+    measurementMode,
+    setMeasurementResult,
   } = useDesignStore();
 
   const activeVariant = variants.find(v => v.id === activeVariantId);
+
+  // Use measurement hook
+  const {
+    activeTool,
+    measurementResult,
+    handleMapClick: handleMeasurementClick,
+    setActiveTool,
+    clearMeasurement,
+  } = useMapMeasurement({ map: map.current, mapLoaded });
 
   // Helper function to add design layers
   const addDesignLayers = useCallback((
@@ -498,6 +510,45 @@ export function DesignModeCanvas({
       draw.current.changeMode("simple_select");
     }
   }, [isDrawing]);
+
+  // Sync measurement mode with hook
+  useEffect(() => {
+    if (measurementMode === "distance" || measurementMode === "area") {
+      setActiveTool(measurementMode);
+    } else {
+      clearMeasurement();
+    }
+  }, [measurementMode, setActiveTool, clearMeasurement]);
+
+  // Update store with measurement results
+  useEffect(() => {
+    if (measurementResult) {
+      setMeasurementResult(measurementResult);
+    }
+  }, [measurementResult, setMeasurementResult]);
+
+  // Handle measurement clicks
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !measurementMode || measurementMode === "height") return;
+
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      // Don't measure if drawing
+      if (isDrawing) return;
+      handleMeasurementClick({ lng: e.lngLat.lng, lat: e.lngLat.lat });
+    };
+
+    map.current.on("click", handleClick);
+    
+    // Change cursor
+    map.current.getCanvas().style.cursor = "crosshair";
+
+    return () => {
+      map.current?.off("click", handleClick);
+      if (map.current) {
+        map.current.getCanvas().style.cursor = "";
+      }
+    };
+  }, [mapLoaded, measurementMode, isDrawing, handleMeasurementClick]);
 
   return (
     <div className={cn("relative w-full h-full", className)}>
