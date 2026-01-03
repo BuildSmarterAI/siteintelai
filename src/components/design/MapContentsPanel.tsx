@@ -132,6 +132,8 @@ export function MapContentsPanel({
     envelope,
     buildings3dSource,
     setBuildings3dSource,
+    google3DAvailable,
+    google3DError,
   } = useDesignStore();
 
   const { createVariant, deleteVariant, duplicateVariant, isCreatingVariant } =
@@ -438,24 +440,39 @@ export function MapContentsPanel({
                             <Badge variant="secondary" className="ml-auto text-xs">Free</Badge>
                           </button>
                           
-                          <button
-                            className={cn(
-                              "flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm transition-colors",
-                              buildings3dSource === "google" 
-                                ? "bg-primary/10 text-primary" 
-                                : "hover:bg-muted/50"
-                            )}
-                            onClick={() => setBuildings3dSource("google")}
-                          >
-                            <div className={cn(
-                              "w-3 h-3 rounded-full border-2",
-                              buildings3dSource === "google" 
-                                ? "border-primary bg-primary" 
-                                : "border-muted-foreground"
-                            )} />
-                            <span>Google 3D</span>
-                            <Badge variant="outline" className="ml-auto text-xs">Premium</Badge>
-                          </button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button
+                                  className={cn(
+                                    "flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm transition-colors",
+                                    !google3DAvailable && "opacity-50 cursor-not-allowed",
+                                    buildings3dSource === "google" 
+                                      ? "bg-primary/10 text-primary" 
+                                      : "hover:bg-muted/50"
+                                  )}
+                                  onClick={() => google3DAvailable && setBuildings3dSource("google")}
+                                  disabled={!google3DAvailable}
+                                >
+                                  <div className={cn(
+                                    "w-3 h-3 rounded-full border-2",
+                                    buildings3dSource === "google" 
+                                      ? "border-primary bg-primary" 
+                                      : "border-muted-foreground"
+                                  )} />
+                                  <span>Google 3D{!google3DAvailable && " (Unavailable)"}</span>
+                                  <Badge variant="outline" className="ml-auto text-xs">Premium</Badge>
+                                </button>
+                              </TooltipTrigger>
+                              {!google3DAvailable && (
+                                <TooltipContent side="right" className="max-w-xs">
+                                  <p className="text-xs">
+                                    {google3DError || "Google 3D Tiles unavailable. Check API key and enable Map Tiles API + Maps JavaScript API."}
+                                  </p>
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       )}
                     </div>
