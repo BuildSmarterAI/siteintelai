@@ -30,6 +30,8 @@ import {
   Cesium3DTileset,
   createGooglePhotorealistic3DTileset,
   GoogleMaps,
+  EasingFunction,
+  Cartographic,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType } from "@/stores/useDesignStore";
@@ -250,48 +252,125 @@ export function CesiumViewerComponent({
     return getPolygonCentroid(envelope.parcelGeometry);
   }, [envelope?.parcelGeometry]);
 
-  // Fly camera to preset position
+  // Helper for async camera flight
+  const flyAsync = useCallback((
+    viewer: CesiumViewer,
+    options: {
+      destination: Cartesian3;
+      orientation: { heading: number; pitch: number; roll: number };
+      duration: number;
+      easingFunction?: typeof EasingFunction.QUADRATIC_OUT;
+    }
+  ): Promise<void> => {
+    return new Promise((resolve) => {
+      viewer.camera.flyTo({
+        ...options,
+        complete: resolve,
+        cancel: resolve,
+      });
+    });
+  }, []);
+
+  // Auto-tilt based on altitude for natural viewing
+  const getAutoTiltForHeight = useCallback((height: number): number => {
+    if (height > 1000) return -70;
+    if (height > 500) return -55;
+    if (height > 300) return -45;
+    if (height > 100) return -30;
+    return -15;
+  }, []);
+
+  // Google Earth-style fly-to with rise-travel-descend motion
+  const googleEarthFlyTo = useCallback(async (
+    viewer: CesiumViewer,
+    targetLng: number,
+    targetLat: number,
+    finalHeight: number = 500,
+    finalPitch: number = -45,
+    finalHeading: number = 0
+  ) => {
+    const currentPosition = viewer.camera.positionCartographic;
+    const currentHeight = currentPosition.height;
+    const cruiseAltitude = Math.max(currentHeight, finalHeight) + 300;
+    
+    // Phase 1: Rise to cruise altitude (0.6s)
+    await flyAsync(viewer, {
+      destination: Cartesian3.fromRadians(
+        currentPosition.longitude,
+        currentPosition.latitude,
+        cruiseAltitude
+      ),
+      orientation: { 
+        heading: viewer.camera.heading, 
+        pitch: CesiumMath.toRadians(-60), 
+        roll: 0 
+      },
+      duration: 0.6,
+      easingFunction: EasingFunction.QUADRATIC_OUT,
+    });
+    
+    // Phase 2: Travel to target at cruise altitude (1.0s)
+    await flyAsync(viewer, {
+      destination: Cartesian3.fromDegrees(targetLng, targetLat, cruiseAltitude),
+      orientation: { 
+        heading: CesiumMath.toRadians(finalHeading), 
+        pitch: CesiumMath.toRadians(-65), 
+        roll: 0 
+      },
+      duration: 1.0,
+      easingFunction: EasingFunction.CUBIC_IN_OUT,
+    });
+    
+    // Phase 3: Descend to final position (0.8s)
+    await flyAsync(viewer, {
+      destination: Cartesian3.fromDegrees(targetLng, targetLat, finalHeight),
+      orientation: { 
+        heading: CesiumMath.toRadians(finalHeading), 
+        pitch: CesiumMath.toRadians(finalPitch), 
+        roll: 0 
+      },
+      duration: 0.8,
+      easingFunction: EasingFunction.QUADRATIC_IN,
+    });
+  }, [flyAsync]);
+
+  // Fly camera to preset position with Google Earth-style animation
   const flyToPreset = useCallback((preset: CameraPreset) => {
     const viewer = viewerRef.current;
     if (!viewer || !centroid) return;
 
-    const target = Cartesian3.fromDegrees(centroid.lng, centroid.lat);
-    const range = 500; // meters
-
     let heading = 0;
-    let pitch = -90; // Top-down
-    let duration = 1.5;
+    let pitch = -90;
+    let range = 500;
 
     switch (preset) {
       case "overhead":
         heading = 0;
-        pitch = -90;
+        pitch = -85;
+        range = 600;
         break;
       case "perspective_ne":
-        heading = CesiumMath.toRadians(45);
-        pitch = CesiumMath.toRadians(-45);
+        heading = 45;
+        pitch = -45;
+        range = 500;
         break;
       case "perspective_sw":
-        heading = CesiumMath.toRadians(225);
-        pitch = CesiumMath.toRadians(-45);
+        heading = 225;
+        pitch = -45;
+        range = 500;
         break;
       case "street":
         heading = 0;
-        pitch = CesiumMath.toRadians(-15);
+        pitch = -15;
+        range = 200;
         break;
       case "orbit":
-        // Don't fly, just start orbit
         return;
     }
 
-    viewer.camera.flyToBoundingSphere(
-      new BoundingSphere(target, range),
-      {
-        offset: new HeadingPitchRange(heading, pitch, range),
-        duration,
-      }
-    );
-  }, [centroid]);
+    // Use cinematic fly-to animation
+    googleEarthFlyTo(viewer, centroid.lng, centroid.lat, range, pitch, heading);
+  }, [centroid, googleEarthFlyTo]);
 
   // Handle camera preset changes
   useEffect(() => {
@@ -565,6 +644,70 @@ export function CesiumViewerComponent({
       viewer.camera.changed.removeEventListener(updateCameraState);
     };
   }, [viewerReady]);
+
+  // Keyboard shortcuts for 3D navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const viewer = viewerRef.current;
+      if (!viewer) return;
+      
+      // Skip if typing in input
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case 'n':
+          // Reset to north
+          handleResetNorth();
+          break;
+        case 'r':
+          // Reset 3D view
+          handleReset3D();
+          break;
+        case '+':
+        case '=':
+          handleZoomIn();
+          break;
+        case '-':
+          handleZoomOut();
+          break;
+        case 'arrowup':
+          if (e.shiftKey) {
+            // Tilt up (more overhead)
+            handleTiltChange(Math.min(currentTilt + 10, 90));
+          } else {
+            // Pan forward
+            viewer.camera.moveForward(50);
+          }
+          e.preventDefault();
+          break;
+        case 'arrowdown':
+          if (e.shiftKey) {
+            // Tilt down (more perspective)
+            handleTiltChange(Math.max(currentTilt - 10, 0));
+          } else {
+            // Pan backward
+            viewer.camera.moveBackward(50);
+          }
+          e.preventDefault();
+          break;
+        case 'arrowleft':
+          // Pan left
+          viewer.camera.moveLeft(50);
+          e.preventDefault();
+          break;
+        case 'arrowright':
+          // Pan right
+          viewer.camera.moveRight(50);
+          e.preventDefault();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleResetNorth, handleReset3D, handleZoomIn, handleZoomOut, handleTiltChange, currentTilt]);
 
   // Initialize viewer
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
