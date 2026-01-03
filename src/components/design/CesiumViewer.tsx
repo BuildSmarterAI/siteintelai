@@ -477,6 +477,32 @@ export function CesiumViewerComponent({
     return getPolygonCentroid(envelope.parcelGeometry);
   }, [envelope?.parcelGeometry]);
 
+  // Calculate optimal camera range based on parcel size
+  const optimalCameraRange = useMemo(() => {
+    if (!envelope?.parcelGeometry) return 400; // Default fallback
+    
+    try {
+      // Calculate bounding box and diagonal distance
+      const bbox = turf.bbox(envelope.parcelGeometry);
+      const [minLng, minLat, maxLng, maxLat] = bbox;
+      
+      const corner1 = turf.point([minLng, minLat]);
+      const corner2 = turf.point([maxLng, maxLat]);
+      const diagonalKm = turf.distance(corner1, corner2, { units: 'kilometers' });
+      const diagonalMeters = diagonalKm * 1000;
+      
+      // Optimal range = diagonal * 1.8 for good framing
+      // Clamp between 150m (small parcels) and 1500m (large parcels)
+      const range = Math.min(1500, Math.max(150, diagonalMeters * 1.8));
+      
+      console.log(`[Camera] Parcel diagonal: ${diagonalMeters.toFixed(0)}m, optimal range: ${range.toFixed(0)}m`);
+      return range;
+    } catch (e) {
+      console.warn("[Camera] Failed to calculate optimal range:", e);
+      return 400;
+    }
+  }, [envelope?.parcelGeometry]);
+
   // Use shadow comparison hook (after centroid is defined)
   useShadowComparison({
     viewer: viewerRef.current,
@@ -573,23 +599,28 @@ export function CesiumViewerComponent({
 
     let heading = 0;
     let pitch = -90;
-    let range = 500;
+    let range = optimalCameraRange;
 
     switch (preset) {
+      case "parcel_fit": // Best initial view - SE perspective
+        heading = 135;
+        pitch = -42;
+        range = optimalCameraRange;
+        break;
       case "overhead":
         heading = 0;
         pitch = -85;
-        range = 600;
+        range = optimalCameraRange * 1.2;
         break;
       case "perspective_ne":
         heading = 45;
         pitch = -45;
-        range = 500;
+        range = optimalCameraRange;
         break;
       case "perspective_sw":
         heading = 225;
         pitch = -45;
-        range = 500;
+        range = optimalCameraRange;
         break;
       case "street":
         heading = 0;
@@ -602,7 +633,7 @@ export function CesiumViewerComponent({
 
     // Use cinematic fly-to animation
     googleEarthFlyTo(viewer, centroid.lng, centroid.lat, range, pitch, heading);
-  }, [centroid, googleEarthFlyTo]);
+  }, [centroid, googleEarthFlyTo, optimalCameraRange]);
 
   // Handle camera preset changes
   useEffect(() => {
@@ -1164,7 +1195,7 @@ export function CesiumViewerComponent({
     
     // Delay initial fly to let tiles load
     const timeoutId = setTimeout(() => {
-      flyToPreset("perspective_ne");
+      flyToPreset("parcel_fit");
     }, 500);
     
     return () => clearTimeout(timeoutId);
