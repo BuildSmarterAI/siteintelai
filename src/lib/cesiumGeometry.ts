@@ -108,3 +108,31 @@ export const DESIGN_COLORS = {
   violation: Color.fromCssColorString("#EF4444").withAlpha(0.5), // Red
   violationOutline: Color.fromCssColorString("#EF4444"),
 };
+
+/**
+ * Variant colors for multi-variant 3D display (Google Earth style)
+ * Each variant gets a distinct color when rendered simultaneously
+ */
+export const VARIANT_COLORS = [
+  Color.fromCssColorString("#FF7A00").withAlpha(0.85), // Orange (primary)
+  Color.GOLD.withAlpha(0.85),                          // Gold
+  Color.CYAN.withAlpha(0.85),                          // Cyan
+  Color.fromCssColorString("#F472B6").withAlpha(0.85), // Pink
+  Color.LIME.withAlpha(0.85),                          // Lime
+  Color.fromCssColorString("#8B5CF6").withAlpha(0.85), // Purple
+  Color.fromCssColorString("#10B981").withAlpha(0.85), // Emerald
+];
+
+/**
+ * Get variant color by index (wraps around if more variants than colors)
+ */
+export function getVariantColor(index: number): Color {
+  return VARIANT_COLORS[index % VARIANT_COLORS.length];
+}
+
+/**
+ * Get variant outline color (slightly darker/more saturated)
+ */
+export function getVariantOutlineColor(index: number): Color {
+  return VARIANT_COLORS[index % VARIANT_COLORS.length].withAlpha(1.0);
+}

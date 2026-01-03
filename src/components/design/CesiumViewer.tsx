@@ -33,13 +33,16 @@ import {
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType } from "@/stores/useDesignStore";
-import { CameraControls } from "./CameraControls";
 import { ShadowControls } from "./ShadowControls";
+import { GoogleEarthControls } from "./GoogleEarthControls";
+import { LayersPanel } from "./LayersPanel";
 import {
   feetToMeters,
   geojsonToCesiumPositions,
   getPolygonCentroid,
   DESIGN_COLORS,
+  getVariantColor,
+  getVariantOutlineColor,
 } from "@/lib/cesiumGeometry";
 import { cn } from "@/lib/utils";
 import * as turf from "@turf/turf";
@@ -468,6 +471,10 @@ export function CesiumViewerComponent({
     }
   }, [basemap, mapboxToken, googleMapsToken, googleTokenLoading, viewerReady, applyBasemap, loadGoogle3DTiles, removeGoogle3DTiles]);
 
+  // Camera state tracking for controls
+  const [currentHeading, setCurrentHeading] = useState(0);
+  const [currentTilt, setCurrentTilt] = useState(45);
+
   // Zoom handlers
   const handleZoomIn = useCallback(() => {
     const viewer = viewerRef.current;
@@ -483,9 +490,81 @@ export function CesiumViewerComponent({
     }
   }, []);
 
-  const handleResetCamera = useCallback(() => {
-    flyToPreset("overhead");
+  // Reset to north (heading = 0)
+  const handleResetNorth = useCallback(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !centroid) return;
+    
+    const currentPosition = viewer.camera.positionCartographic;
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromRadians(
+        currentPosition.longitude,
+        currentPosition.latitude,
+        currentPosition.height
+      ),
+      orientation: {
+        heading: 0,
+        pitch: viewer.camera.pitch,
+        roll: 0,
+      },
+      duration: 0.5,
+    });
+    setCurrentHeading(0);
+  }, [centroid]);
+
+  // Tilt change handler
+  const handleTiltChange = useCallback((degrees: number) => {
+    const viewer = viewerRef.current;
+    if (!viewer) return;
+    
+    // Convert degrees (0=perspective, 90=overhead) to radians for pitch
+    // Cesium pitch: -90deg = looking straight down, 0deg = looking horizontal
+    const pitch = CesiumMath.toRadians(-(90 - degrees));
+    
+    const currentPosition = viewer.camera.positionCartographic;
+    viewer.camera.flyTo({
+      destination: Cartesian3.fromRadians(
+        currentPosition.longitude,
+        currentPosition.latitude,
+        currentPosition.height
+      ),
+      orientation: {
+        heading: viewer.camera.heading,
+        pitch: pitch,
+        roll: 0,
+      },
+      duration: 0.3,
+    });
+    setCurrentTilt(degrees);
+  }, []);
+
+  // Reset to 3D perspective view
+  const handleReset3D = useCallback(() => {
+    flyToPreset("perspective_ne");
+    setCurrentHeading(45);
+    setCurrentTilt(45);
   }, [flyToPreset]);
+
+  // Track camera changes
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !viewerReady) return;
+
+    const updateCameraState = () => {
+      const headingDegrees = CesiumMath.toDegrees(viewer.camera.heading);
+      const pitchDegrees = CesiumMath.toDegrees(viewer.camera.pitch);
+      // Convert pitch back to tilt (0=perspective, 90=overhead)
+      const tilt = 90 + pitchDegrees;
+      
+      setCurrentHeading(headingDegrees);
+      setCurrentTilt(Math.max(0, Math.min(90, tilt)));
+    };
+
+    viewer.camera.changed.addEventListener(updateCameraState);
+    return () => {
+      viewer.camera.changed.removeEventListener(updateCameraState);
+    };
+  }, [viewerReady]);
 
   // Initialize viewer
   const handleViewerReady = useCallback((viewer: CesiumViewer) => {
@@ -626,12 +705,20 @@ export function CesiumViewerComponent({
         )}
       </Viewer>
 
-      {/* Camera Controls Overlay */}
-      <CameraControls
+      {/* Google Earth-Style Navigation Controls */}
+      <GoogleEarthControls
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-10"
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
-        onResetCamera={handleResetCamera}
+        onResetNorth={handleResetNorth}
+        onTiltChange={handleTiltChange}
+        onReset3D={handleReset3D}
+        currentHeading={currentHeading}
+        currentTilt={currentTilt}
       />
+
+      {/* Layers Panel */}
+      <LayersPanel className="absolute bottom-4 left-4 z-10" />
 
       {/* Shadow Controls - Only in 3D mode */}
       <ShadowControls className="absolute top-4 right-4 z-10" />
