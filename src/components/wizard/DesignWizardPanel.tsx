@@ -57,7 +57,7 @@ export function DesignWizardPanel() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="fixed right-0 top-0 z-50 h-full w-[380px] bg-background border-l border-border shadow-xl flex flex-col"
+          className="fixed right-0 top-0 z-50 h-full w-[480px] bg-background border-l border-border shadow-xl flex flex-col"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0">
@@ -88,7 +88,7 @@ export function DesignWizardPanel() {
           {/* Main Content */}
           <div className="flex flex-1 min-h-0">
             {/* Stepper */}
-            <div className="w-[140px] p-3 border-r border-border flex-shrink-0 bg-muted/30">
+            <div className="w-[100px] p-2 border-r border-border flex-shrink-0 bg-muted/30">
               <WizardStepper />
             </div>
             
