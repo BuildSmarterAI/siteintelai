@@ -8,21 +8,13 @@ import { useWizardStore } from '@/stores/useWizardStore';
 import { USE_TYPE_CONFIG, type UseType } from '@/types/wizard';
 import * as Icons from 'lucide-react';
 import { Check, AlertCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const USE_TYPES: UseType[] = ['industrial', 'multifamily', 'office', 'retail', 'medical', 'hotel'];
 
 export function UseTypeSelector() {
-  const { selectedUseTypes, toggleUseType, nextStep, prevStep } = useWizardStore();
+  const { selectedUseTypes, toggleUseType } = useWizardStore();
   
-  const canProceed = selectedUseTypes.length > 0;
   const atLimit = selectedUseTypes.length >= 3;
-  
-  const handleNext = () => {
-    if (canProceed) {
-      nextStep();
-    }
-  };
   
   return (
     <div className="space-y-4">
@@ -96,19 +88,6 @@ export function UseTypeSelector() {
         )}
       </div>
       
-      {/* Navigation */}
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" onClick={prevStep} className="flex-1">
-          Back
-        </Button>
-        <Button 
-          onClick={handleNext} 
-          disabled={!canProceed}
-          className="flex-1"
-        >
-          Next
-        </Button>
-      </div>
     </div>
   );
 }

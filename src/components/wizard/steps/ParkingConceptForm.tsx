@@ -5,7 +5,6 @@
 
 import { useWizardStore, selectTotalProgramGfa } from '@/stores/useWizardStore';
 import { DEFAULT_PARKING_RATIOS, type ParkingType } from '@/types/wizard';
-import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -22,8 +21,6 @@ export function ParkingConceptForm() {
     setParkingType, 
     setParkingRatio,
     updateParkingEstimate,
-    nextStep, 
-    prevStep,
     selectedUseTypes,
   } = useWizardStore();
   
@@ -148,15 +145,6 @@ export function ParkingConceptForm() {
         </Card>
       )}
       
-      {/* Navigation */}
-      <div className="flex gap-2 pt-2">
-        <Button variant="outline" onClick={prevStep} className="flex-1">
-          Back
-        </Button>
-        <Button onClick={nextStep} className="flex-1">
-          Next
-        </Button>
-      </div>
     </div>
   );
 }

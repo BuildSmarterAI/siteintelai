@@ -14,12 +14,13 @@ import { SustainabilityStep } from './steps/SustainabilityStep';
 import { GenerateStep } from './steps/GenerateStep';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 
 export function DesignWizardPanel() {
-  const { isOpen, currentStep, closeWizard, resetWizard } = useWizardStore();
+  const { isOpen, currentStep, closeWizard, resetWizard, nextStep, prevStep } = useWizardStore();
+  const canProceed = useWizardStore(selectCanProceed);
   
   const handleClose = () => {
     closeWizard();
@@ -111,6 +112,29 @@ export function DesignWizardPanel() {
               </ScrollArea>
             </div>
           </div>
+          
+          {/* Navigation Footer - Always visible */}
+          {currentStep < 7 && (
+            <div className="flex gap-2 p-4 border-t border-border flex-shrink-0 bg-background">
+              <Button 
+                variant="outline" 
+                onClick={prevStep} 
+                disabled={currentStep === 1}
+                className="flex-1 gap-1"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Back
+              </Button>
+              <Button 
+                onClick={nextStep} 
+                disabled={!canProceed}
+                className="flex-1 gap-1"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
