@@ -409,3 +409,6 @@ verify_jwt = false
 
 [functions.auto-match-survey-parcel]
 verify_jwt = false
+
+[functions.query-county-parcels]
+verify_jwt = false
