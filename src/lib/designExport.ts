@@ -30,6 +30,16 @@ const BLOCKED_FORMATS = [
 
 export type AllowedExportFormat = "png" | "pdf" | "csv";
 
+/**
+ * Safe number formatting for exports - returns "—" for undefined/null/NaN
+ */
+function safeFixed(value: unknown, digits: number): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+  return value.toFixed(digits);
+}
+
 export interface MeasurementData {
   mode: "distance" | "area" | "height" | null;
   result: DesignMeasurementResult | null;
@@ -262,15 +272,15 @@ export async function exportAsPDF(options: ExportOptions): Promise<void> {
       const col2X = margin + 80;
       
       pdf.text(`Height: ${variant.heightFt}' (${variant.floors} floors)`, col1X, y);
-      pdf.text(`GFA: ${variant.metrics.grossFloorAreaSf.toLocaleString()} SF`, col2X, y);
+      pdf.text(`GFA: ${typeof variant.metrics.grossFloorAreaSf === "number" ? variant.metrics.grossFloorAreaSf.toLocaleString() : "—"} SF`, col2X, y);
       y += 5;
       
-      pdf.text(`FAR Used: ${variant.metrics.farUsedPct.toFixed(1)}%`, col1X, y);
-      pdf.text(`Coverage: ${variant.metrics.coveragePct.toFixed(1)}%`, col2X, y);
+      pdf.text(`FAR Used: ${safeFixed(variant.metrics.farUsedPct, 1)}%`, col1X, y);
+      pdf.text(`Coverage: ${safeFixed(variant.metrics.coveragePct, 1)}%`, col2X, y);
       y += 5;
       
-      pdf.text(`Envelope Util: ${variant.metrics.envelopeUtilizationPct?.toFixed(1) || "—"}%`, col1X, y);
-      pdf.text(`Violations: ${variant.metrics.violationCount}`, col2X, y);
+      pdf.text(`Envelope Util: ${safeFixed(variant.metrics.envelopeUtilizationPct, 1)}%`, col1X, y);
+      pdf.text(`Violations: ${typeof variant.metrics.violationCount === "number" ? variant.metrics.violationCount : "—"}`, col2X, y);
       y += 5;
 
       // Compliance details if available
@@ -377,13 +387,13 @@ export function exportAsCSV(options: ExportOptions): void {
     variant.complianceStatus,
     variant.heightFt,
     variant.floors,
-    variant.metrics?.grossFloorAreaSf || 0,
-    variant.metrics?.farUsedPct?.toFixed(2) || 0,
+    variant.metrics?.grossFloorAreaSf ?? "—",
+    safeFixed(variant.metrics?.farUsedPct, 2),
     envelope.farCap,
-    variant.metrics?.coveragePct?.toFixed(2) || 0,
+    safeFixed(variant.metrics?.coveragePct, 2),
     envelope.coverageCapPct,
-    variant.metrics?.envelopeUtilizationPct?.toFixed(2) || 0,
-    variant.metrics?.violationCount || 0,
+    safeFixed(variant.metrics?.envelopeUtilizationPct, 2),
+    variant.metrics?.violationCount ?? "—",
     variant.presetType || "Custom",
   ]);
 

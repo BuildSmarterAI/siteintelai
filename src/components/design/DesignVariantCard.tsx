@@ -29,6 +29,16 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
+/**
+ * Safe number formatting - returns "—" for undefined/null/NaN values
+ */
+function formatFixed(value: unknown, digits: number): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "—";
+  }
+  return value.toFixed(digits);
+}
+
 interface DesignVariantCardProps {
   variant: DesignVariant;
   onDuplicate: () => void;
@@ -180,7 +190,7 @@ export function DesignVariantCard({
           <span className="text-muted-foreground">FAR</span>
           <div className="font-medium">
             {variant.metrics 
-              ? variant.metrics.farUsed.toFixed(2)
+              ? formatFixed(variant.metrics.farUsed, 2)
               : "—"
             }
           </div>

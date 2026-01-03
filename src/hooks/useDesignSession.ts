@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useDesignStore, type DesignVariant, type DesignSession, type DesignPreset } from "@/stores/useDesignStore";
 import { toast } from "sonner";
 import type { Json } from "@/integrations/supabase/types";
+import type { DesignMetrics } from "@/lib/designMetrics";
 
 interface DesignSessionRow {
   id: string;
@@ -63,12 +64,42 @@ interface DesignPresetRow {
   icon: string | null;
 }
 
-function generateUUID(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+/**
+ * Validate that a value is a complete DesignMetrics object
+ */
+function isValidDesignMetrics(value: unknown): value is DesignMetrics {
+  if (!value || typeof value !== "object") return false;
+  const m = value as Record<string, unknown>;
+  
+  const requiredNumericFields = [
+    "grossFloorAreaSf",
+    "footprintSf", 
+    "farUsed",
+    "farUsedPct",
+    "coveragePct",
+    "heightUsedPct",
+    "envelopeUtilizationPct",
+    "violationCount",
+    "efficiencyScore",
+  ];
+  
+  for (const field of requiredNumericFields) {
+    if (typeof m[field] !== "number" || !Number.isFinite(m[field] as number)) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * Normalize metrics from DB - returns null if invalid/incomplete
+ */
+function normalizeDesignMetrics(value: unknown): DesignMetrics | null {
+  if (isValidDesignMetrics(value)) {
+    return value;
+  }
+  return null;
 }
 
 export function useDesignSession(envelopeId: string | undefined) {
@@ -146,7 +177,7 @@ export function useDesignSession(envelopeId: string | undefined) {
         floors: row.floors,
         presetType: row.preset_type,
         notes: row.notes || "",
-        metrics: row.metrics as DesignVariant["metrics"],
+        metrics: normalizeDesignMetrics(row.metrics),
         complianceStatus: row.compliance_status as DesignVariant["complianceStatus"],
         complianceResult: null, // Will be computed client-side
         isBaseline: row.is_baseline,
