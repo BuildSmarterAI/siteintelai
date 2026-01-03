@@ -1223,7 +1223,7 @@ export function CesiumViewerComponent({
         shadows={shadowsEnabled}
         terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
-        {/* Parcel Boundary with pulsing glow effect (ground polygon) */}
+        {/* Parcel Boundary - raised slightly above ground for visibility with Google 3D Tiles */}
         <Entity name="parcel-boundary">
           <PolygonGraphics
             hierarchy={geojsonToCesiumPositions(envelope.parcelGeometry)}
@@ -1231,8 +1231,9 @@ export function CesiumViewerComponent({
             outline
             outlineColor={DESIGN_COLORS.parcelOutline}
             outlineWidth={4}
-            height={0}
-            classificationType={1}
+            height={2}
+            extrudedHeight={2.5}
+            classificationType={2}
           />
         </Entity>
 
