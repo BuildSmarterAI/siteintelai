@@ -10,9 +10,9 @@ import { useDesignStore } from "@/stores/useDesignStore";
 import { 
   exportAsPDF, 
   exportAsCSV, 
-  exportAsPNG, 
-  isBlockedFormat,
-  type AllowedExportFormat 
+  exportAsPNG,
+  type AllowedExportFormat,
+  type MeasurementData
 } from "@/lib/designExport";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { 
@@ -32,7 +33,8 @@ import {
   AlertTriangle,
   Ban,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Ruler
 } from "lucide-react";
 
 interface ExportPanelProps {
@@ -71,10 +73,13 @@ const BLOCKED_FORMATS = [
 ];
 
 export function ExportPanel({ className }: ExportPanelProps) {
-  const { variants, envelope } = useDesignStore();
+  const { variants, envelope, measurementMode, measurementResult, measurementPoints } = useDesignStore();
   const [selectedFormat, setSelectedFormat] = useState<AllowedExportFormat>("pdf");
   const [fileName, setFileName] = useState("siteintel-design");
   const [isExporting, setIsExporting] = useState(false);
+  const [includeMeasurements, setIncludeMeasurements] = useState(true);
+
+  const hasMeasurements = measurementResult !== null;
 
   const handleExport = async () => {
     if (!envelope) {
@@ -89,6 +94,13 @@ export function ExportPanel({ className }: ExportPanelProps) {
 
     setIsExporting(true);
 
+    // Prepare measurements data
+    const measurements: MeasurementData = {
+      mode: measurementMode,
+      result: measurementResult,
+      points: measurementPoints,
+    };
+
     try {
       switch (selectedFormat) {
         case "png":
@@ -96,8 +108,15 @@ export function ExportPanel({ className }: ExportPanelProps) {
           toast.success("Map snapshot exported");
           break;
         case "pdf":
-          await exportAsPDF({ format: "pdf", variants, envelope, fileName });
-          toast.success("PDF summary exported");
+          await exportAsPDF({ 
+            format: "pdf", 
+            variants, 
+            envelope, 
+            fileName,
+            includeMeasurements,
+            measurements,
+          });
+          toast.success("PDF report exported with measurements & compliance");
           break;
         case "csv":
           exportAsCSV({ format: "csv", variants, envelope, fileName });
@@ -182,6 +201,33 @@ export function ExportPanel({ className }: ExportPanelProps) {
           </RadioGroup>
 
           <Separator />
+
+          {/* Measurements toggle (only for PDF) */}
+          {selectedFormat === "pdf" && (
+            <div className="flex items-center space-x-3 p-3 rounded-lg border border-border bg-muted/30">
+              <Checkbox
+                id="includeMeasurements"
+                checked={includeMeasurements}
+                onCheckedChange={(checked) => setIncludeMeasurements(!!checked)}
+              />
+              <div className="flex-1">
+                <Label htmlFor="includeMeasurements" className="font-medium cursor-pointer flex items-center gap-2">
+                  <Ruler className="h-4 w-4" />
+                  Include Measurements
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {hasMeasurements 
+                    ? "Current measurement data will be included" 
+                    : "No active measurements to include"}
+                </p>
+              </div>
+              {hasMeasurements && (
+                <Badge variant="outline" className="text-primary border-primary/30">
+                  Active
+                </Badge>
+              )}
+            </div>
+          )}
 
           {/* File name input */}
           <div className="space-y-2">

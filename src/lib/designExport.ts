@@ -9,7 +9,7 @@
 
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import type { DesignVariant, RegulatoryEnvelope } from "@/stores/useDesignStore";
+import type { DesignVariant, RegulatoryEnvelope, DesignMeasurementResult } from "@/stores/useDesignStore";
 import type { DesignMetrics } from "@/lib/designMetrics";
 
 // Legal disclaimer required on all exports
@@ -30,12 +30,20 @@ const BLOCKED_FORMATS = [
 
 export type AllowedExportFormat = "png" | "pdf" | "csv";
 
+export interface MeasurementData {
+  mode: "distance" | "area" | "height" | null;
+  result: DesignMeasurementResult | null;
+  points: [number, number][];
+}
+
 export interface ExportOptions {
   format: AllowedExportFormat;
   variants: DesignVariant[];
   envelope: RegulatoryEnvelope;
   includeMetrics?: boolean;
   includeCompliance?: boolean;
+  includeMeasurements?: boolean;
+  measurements?: MeasurementData;
   fileName?: string;
 }
 
@@ -98,10 +106,16 @@ export async function exportAsPNG(
 }
 
 /**
- * Export design summary as PDF
+ * Export design summary as PDF with measurements, variants, and compliance
  */
 export async function exportAsPDF(options: ExportOptions): Promise<void> {
-  const { variants, envelope, fileName = "design-summary" } = options;
+  const { 
+    variants, 
+    envelope, 
+    measurements,
+    includeMeasurements = true,
+    fileName = "design-summary" 
+  } = options;
 
   const pdf = new jsPDF({
     orientation: "portrait",
@@ -113,10 +127,18 @@ export async function exportAsPDF(options: ExportOptions): Promise<void> {
   const margin = 20;
   let y = margin;
 
+  // Helper to check page break
+  const checkPageBreak = (neededSpace: number = 30) => {
+    if (y > 250 - neededSpace) {
+      pdf.addPage();
+      y = margin;
+    }
+  };
+
   // Header
   pdf.setFontSize(18);
   pdf.setFont("helvetica", "bold");
-  pdf.text("SiteIntel™ Design Summary", margin, y);
+  pdf.text("SiteIntel™ Design Report", margin, y);
   y += 10;
 
   // Conceptual badge
@@ -125,61 +147,184 @@ export async function exportAsPDF(options: ExportOptions): Promise<void> {
   pdf.setTextColor(150);
   pdf.text("CONCEPTUAL DESIGN - NOT FOR CONSTRUCTION", margin, y);
   pdf.setTextColor(0);
+  y += 8;
+
+  // Date
+  pdf.setFontSize(9);
+  pdf.text(`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`, margin, y);
   y += 15;
 
   // Envelope constraints section
   pdf.setFontSize(12);
   pdf.setFont("helvetica", "bold");
-  pdf.text("Regulatory Envelope", margin, y);
+  pdf.text("Regulatory Envelope Constraints", margin, y);
   y += 8;
 
   pdf.setFontSize(10);
   pdf.setFont("helvetica", "normal");
-  pdf.text(`FAR Cap: ${envelope.farCap}`, margin, y);
-  y += 6;
-  pdf.text(`Height Cap: ${envelope.heightCapFt}'`, margin, y);
-  y += 6;
-  pdf.text(`Coverage Cap: ${envelope.coverageCapPct}%`, margin, y);
-  y += 15;
+  
+  // Draw constraint table
+  const constraintData = [
+    ["Constraint", "Value", "Status"],
+    ["FAR Cap", envelope.farCap.toString(), "—"],
+    ["Height Cap", `${envelope.heightCapFt}'`, "—"],
+    ["Coverage Cap", `${envelope.coverageCapPct}%`, "—"],
+    ["Front Setback", `${envelope.setbacks.front}'`, "—"],
+    ["Rear Setback", `${envelope.setbacks.rear}'`, "—"],
+    ["Side Setbacks", `${envelope.setbacks.left}' / ${envelope.setbacks.right}'`, "—"],
+  ];
+  
+  constraintData.forEach((row, idx) => {
+    const isHeader = idx === 0;
+    pdf.setFont("helvetica", isHeader ? "bold" : "normal");
+    pdf.setFontSize(isHeader ? 10 : 9);
+    pdf.text(row[0], margin, y);
+    pdf.text(row[1], margin + 50, y);
+    y += 5;
+  });
+  y += 10;
+
+  // Measurements section (if available)
+  if (includeMeasurements && measurements?.result) {
+    checkPageBreak(40);
+    
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("Site Measurements", margin, y);
+    y += 8;
+
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+
+    if (measurements.mode === "distance" && measurements.result.feet !== undefined) {
+      pdf.text(`Distance: ${measurements.result.feet.toFixed(2)} ft`, margin, y);
+      y += 5;
+      if (measurements.result.miles !== undefined) {
+        pdf.text(`           (${measurements.result.miles.toFixed(4)} miles)`, margin, y);
+        y += 5;
+      }
+    }
+    
+    if (measurements.mode === "area" && measurements.result.sqft !== undefined) {
+      pdf.text(`Area: ${measurements.result.sqft.toLocaleString()} sq ft`, margin, y);
+      y += 5;
+      if (measurements.result.acres !== undefined) {
+        pdf.text(`      (${measurements.result.acres.toFixed(3)} acres)`, margin, y);
+        y += 5;
+      }
+    }
+    
+    if (measurements.mode === "height" && measurements.result.heightFt !== undefined) {
+      pdf.text(`Height Difference: ${measurements.result.heightFt.toFixed(2)} ft`, margin, y);
+      y += 5;
+    }
+
+    if (measurements.points.length > 0) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(100);
+      pdf.text(`Measurement points: ${measurements.points.length}`, margin, y);
+      pdf.setTextColor(0);
+      y += 5;
+    }
+    y += 10;
+  }
 
   // Variants section
+  checkPageBreak(50);
   pdf.setFontSize(12);
   pdf.setFont("helvetica", "bold");
-  pdf.text("Design Variants", margin, y);
+  pdf.text(`Design Variants (${variants.length})`, margin, y);
   y += 10;
 
   for (const variant of variants) {
-    // Variant header
+    checkPageBreak(45);
+    
+    // Variant header with status badge
     pdf.setFontSize(11);
     pdf.setFont("helvetica", "bold");
-    pdf.text(`${variant.name} (${variant.complianceStatus})`, margin, y);
-    y += 6;
+    
+    const statusColor = variant.complianceStatus === "PASS" ? [34, 139, 34] : 
+                        variant.complianceStatus === "WARN" ? [255, 165, 0] :
+                        variant.complianceStatus === "FAIL" ? [220, 20, 60] : [128, 128, 128];
+    
+    pdf.text(variant.name, margin, y);
+    pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+    pdf.text(`[${variant.complianceStatus}]`, margin + 60, y);
+    pdf.setTextColor(0);
+    y += 7;
 
     pdf.setFontSize(9);
     pdf.setFont("helvetica", "normal");
 
     if (variant.metrics) {
-      pdf.text(`Height: ${variant.heightFt}' (${variant.floors} floors)`, margin + 5, y);
+      // Two-column layout for metrics
+      const col1X = margin + 5;
+      const col2X = margin + 80;
+      
+      pdf.text(`Height: ${variant.heightFt}' (${variant.floors} floors)`, col1X, y);
+      pdf.text(`GFA: ${variant.metrics.grossFloorAreaSf.toLocaleString()} SF`, col2X, y);
       y += 5;
-      pdf.text(`GFA: ${variant.metrics.grossFloorAreaSf.toLocaleString()} SF`, margin + 5, y);
+      
+      pdf.text(`FAR Used: ${variant.metrics.farUsedPct.toFixed(1)}%`, col1X, y);
+      pdf.text(`Coverage: ${variant.metrics.coveragePct.toFixed(1)}%`, col2X, y);
       y += 5;
-      pdf.text(`FAR Used: ${variant.metrics.farUsedPct.toFixed(1)}%`, margin + 5, y);
+      
+      pdf.text(`Envelope Util: ${variant.metrics.envelopeUtilizationPct?.toFixed(1) || "—"}%`, col1X, y);
+      pdf.text(`Violations: ${variant.metrics.violationCount}`, col2X, y);
       y += 5;
-      pdf.text(`Coverage: ${variant.metrics.coveragePct.toFixed(1)}%`, margin + 5, y);
-      y += 5;
-      pdf.text(`Violations: ${variant.metrics.violationCount}`, margin + 5, y);
-      y += 10;
+
+      // Compliance details if available
+      if (variant.complianceResult) {
+        const violations = variant.complianceResult.violations || [];
+        if (Array.isArray(violations) && violations.length > 0) {
+          pdf.setFontSize(8);
+          pdf.setTextColor(220, 20, 60);
+          const violationText = violations.map((v: unknown) => 
+            typeof v === 'object' && v !== null && 'rule' in v ? (v as { rule: string }).rule : String(v)
+          ).join(", ");
+          pdf.text(`Violations: ${violationText}`, col1X, y);
+          pdf.setTextColor(0);
+          y += 5;
+        }
+      }
     } else {
       pdf.text("No footprint defined", margin + 5, y);
-      y += 10;
+      y += 5;
     }
 
-    // Add page break if needed
-    if (y > 250) {
-      pdf.addPage();
-      y = margin;
+    if (variant.notes) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(100);
+      pdf.text(`Notes: ${variant.notes.substring(0, 80)}${variant.notes.length > 80 ? "..." : ""}`, margin + 5, y);
+      pdf.setTextColor(0);
+      y += 5;
     }
+
+    y += 8;
   }
+
+  // Compliance Summary section
+  checkPageBreak(40);
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "bold");
+  pdf.text("Compliance Summary", margin, y);
+  y += 8;
+
+  const passCount = variants.filter(v => v.complianceStatus === "PASS").length;
+  const warnCount = variants.filter(v => v.complianceStatus === "WARN").length;
+  const failCount = variants.filter(v => v.complianceStatus === "FAIL").length;
+
+  pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
+  
+  pdf.setTextColor(34, 139, 34);
+  pdf.text(`✓ Passing: ${passCount}`, margin, y);
+  pdf.setTextColor(255, 165, 0);
+  pdf.text(`⚠ Warnings: ${warnCount}`, margin + 50, y);
+  pdf.setTextColor(220, 20, 60);
+  pdf.text(`✗ Failing: ${failCount}`, margin + 100, y);
+  pdf.setTextColor(0);
+  y += 15;
 
   // Footer disclaimer on every page
   const pageCount = pdf.getNumberOfPages();
