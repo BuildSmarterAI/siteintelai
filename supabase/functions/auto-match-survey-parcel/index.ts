@@ -352,6 +352,73 @@ function extractCounty(text: string): string | null {
 }
 
 // ============================================================
+// County Extraction from Filename
+// ============================================================
+function extractCountyFromFilename(filename: string): string | null {
+  const upper = filename.toUpperCase();
+  
+  // Direct county name matches
+  for (const county of TEXAS_COUNTIES) {
+    if (upper.includes(county)) {
+      console.log("[County] Extracted from filename:", county);
+      return county;
+    }
+  }
+  
+  // City-to-county mappings for Houston area
+  const cityMappings: Record<string, string> = {
+    "HOUSTON": "HARRIS",
+    "SUGAR LAND": "FORT BEND",
+    "SUGARLAND": "FORT BEND",
+    "KATY": "HARRIS", // Could be Fort Bend too
+    "PEARLAND": "BRAZORIA",
+    "LEAGUE CITY": "GALVESTON",
+    "THE WOODLANDS": "MONTGOMERY",
+    "WOODLANDS": "MONTGOMERY",
+    "CONROE": "MONTGOMERY",
+    "CYPRESS": "HARRIS",
+    "HUMBLE": "HARRIS",
+    "SPRING": "HARRIS",
+    "PASADENA": "HARRIS",
+    "BAYTOWN": "HARRIS",
+    "MISSOURI CITY": "FORT BEND",
+    "RICHMOND": "FORT BEND",
+    "ROSENBERG": "FORT BEND",
+    "FRIENDSWOOD": "GALVESTON",
+    "TEXAS CITY": "GALVESTON",
+    "GALVESTON": "GALVESTON",
+    "ANGLETON": "BRAZORIA",
+    "FREEPORT": "BRAZORIA",
+    "CLUTE": "BRAZORIA",
+  };
+  
+  for (const [city, county] of Object.entries(cityMappings)) {
+    if (upper.includes(city)) {
+      console.log("[County] Derived from city in filename:", city, "->", county);
+      return county;
+    }
+  }
+  
+  return null;
+}
+
+// ============================================================
+// Scanned PDF Detection
+// ============================================================
+function isPdfScanned(pdfText: string): boolean {
+  if (pdfText.length < 50) return true; // Almost no text = likely scanned
+  
+  // Count readable vs garbage characters
+  const readable = pdfText.replace(/[^a-zA-Z0-9\s.,;:'"()-]/g, "").length;
+  const ratio = readable / pdfText.length;
+  
+  console.log("[PDF] Readable ratio:", ratio.toFixed(2), "(readable:", readable, "/ total:", pdfText.length, ")");
+  
+  // Less than 30% readable = likely scanned/image-based
+  return ratio < 0.3;
+}
+
+// ============================================================
 // Main Handler
 // ============================================================
 serve(async (req) => {
@@ -477,9 +544,12 @@ serve(async (req) => {
     // Legal description
     extractedData.legalDescription = extractLegalDescription(textContent);
     
-    // County (from text if not in metadata)
+    // County (from text if not in metadata, then try filename)
     if (!extractedData.county) {
       extractedData.county = extractCounty(textContent);
+    }
+    if (!extractedData.county) {
+      extractedData.county = extractCountyFromFilename(filename);
     }
     
     // Classify survey type
@@ -742,43 +812,60 @@ serve(async (req) => {
     }
 
     // ============================================================
-    // Strategy E: Area Fallback (NEVER return NO_MATCH if we have county + acreage)
+    // Strategy E: Area Fallback (search multiple counties if county unknown)
     // ============================================================
-    if (candidates.length === 0 && extractedData.county && extractedData.acreage) {
-      console.log("[auto-match] Strategy E: Area fallback for county:", extractedData.county, "acreage:", extractedData.acreage);
+    if (candidates.length === 0 && extractedData.acreage) {
+      // If no county, search all Houston-area counties
+      const countiesToSearch = extractedData.county 
+        ? [extractedData.county] 
+        : ["HARRIS", "FORT BEND", "MONTGOMERY", "BRAZORIA", "GALVESTON"];
       
-      const { data: areaMatches, error: areaError } = await supabase.rpc(
-        "find_parcels_by_area",
-        {
-          p_county: extractedData.county,
-          p_target_acreage: extractedData.acreage,
-          p_tolerance: 0.25,
-          p_limit: 5
-        }
-      );
+      console.log("[auto-match] Strategy E: Area fallback for acreage:", extractedData.acreage, "in counties:", countiesToSearch.join(", "));
+      
+      for (const county of countiesToSearch) {
+        const { data: areaMatches, error: areaError } = await supabase.rpc(
+          "find_parcels_by_area",
+          {
+            p_county: county,
+            p_target_acreage: extractedData.acreage,
+            p_tolerance: 0.25,
+            p_limit: 3 // Fewer per county when searching multiple
+          }
+        );
 
-      if (areaError) {
-        console.error("[auto-match] Area search error:", areaError);
-      } else if (areaMatches?.length > 0) {
-        console.log("[auto-match] Area search returned", areaMatches.length, "results");
-        for (const match of areaMatches) {
-          candidates.push({
-            parcel_id: match.parcel_uuid,
-            source_parcel_id: match.source_parcel_id,
-            confidence: Math.min(match.match_score * 0.5, 0.55), // Low confidence for area-only
-            reason_codes: ["AREA_MATCH", "COUNTY_MATCH"],
-            situs_address: match.situs_address,
-            owner_name: match.owner_name,
-            acreage: match.acreage,
-            county: match.county,
-            geometry: match.geometry,
-            debug: {
-              apn_extracted: extractedData.apn,
-              address_extracted: extractedData.address,
-              match_type: "AREA_FALLBACK"
-            }
-          });
+        if (areaError) {
+          console.error("[auto-match] Area search error for", county, ":", areaError);
+          continue;
         }
+        
+        if (areaMatches?.length > 0) {
+          console.log("[auto-match] Area search in", county, "returned", areaMatches.length, "results");
+          for (const match of areaMatches) {
+            // Lower confidence when county was unknown (searched multiple)
+            const countyKnown = extractedData.county !== null;
+            const baseConfidence = countyKnown ? 0.55 : 0.35;
+            
+            candidates.push({
+              parcel_id: match.parcel_uuid,
+              source_parcel_id: match.source_parcel_id,
+              confidence: Math.min(match.match_score * baseConfidence, countyKnown ? 0.55 : 0.40),
+              reason_codes: countyKnown ? ["AREA_MATCH", "COUNTY_MATCH"] : ["AREA_MATCH"],
+              situs_address: match.situs_address,
+              owner_name: match.owner_name,
+              acreage: match.acreage,
+              county: match.county,
+              geometry: match.geometry,
+              debug: {
+                apn_extracted: extractedData.apn,
+                address_extracted: extractedData.address,
+                match_type: countyKnown ? "AREA_FALLBACK" : "AREA_MULTI_COUNTY"
+              }
+            });
+          }
+        }
+        
+        // Stop early if we found enough candidates
+        if (candidates.length >= 5) break;
       }
     }
 
@@ -812,13 +899,22 @@ serve(async (req) => {
         console.log("[auto-match] NEEDS_REVIEW - confidence:", topConfidence, "deterministic:", hasDeterministicSignal);
       }
     } else {
-      // HARD RULE: Never NO_MATCH if we have county + (owner OR acreage OR legal)
-      const hasSignals = extractedData.ownerName || extractedData.acreage || extractedData.legalDescription;
-      if (extractedData.county && hasSignals) {
-        console.log("[auto-match] NO_MATCH prevented - downgrading to NEEDS_REVIEW with empty candidates");
+      // HARD RULE: Never NO_MATCH if we have ANY useful signals
+      const hasSignals = extractedData.ownerName || extractedData.acreage || 
+                         extractedData.legalDescription || extractedData.address;
+      
+      // Also check if it's a scanned PDF that we couldn't OCR - user should manually review
+      const isScanned = isPdfScanned(extractedData.rawText);
+      const noOcrProvided = !extractedData.ocrUsed;
+      
+      if (hasSignals) {
+        console.log("[auto-match] NO_MATCH prevented - has useful signals, downgrading to NEEDS_REVIEW");
+        status = "NEEDS_REVIEW";
+      } else if (isScanned && noOcrProvided) {
+        console.log("[auto-match] NO_MATCH prevented - scanned PDF without OCR, needs manual review");
         status = "NEEDS_REVIEW";
       } else {
-        console.log("[auto-match] NO_MATCH - no candidates and insufficient signals");
+        console.log("[auto-match] NO_MATCH - no candidates, no useful signals, not a scanned PDF");
       }
     }
 
