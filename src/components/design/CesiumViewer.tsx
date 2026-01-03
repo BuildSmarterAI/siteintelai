@@ -166,8 +166,8 @@ export function CesiumViewerComponent({
     console.log(`Applied basemap: ${currentBasemap}`, token ? "(with Mapbox token)" : "(OSM fallback)");
   }, []);
   
-  // Load Google Photorealistic 3D Tiles
-  const loadGoogle3DTiles = useCallback(async (viewer: CesiumViewer, apiKey: string) => {
+  // Load Google Photorealistic 3D Tiles with robust error handling
+  const loadGoogle3DTiles = useCallback(async (viewer: CesiumViewer, apiKey: string, onFallbackToOsm?: () => void) => {
     try {
       console.log("Loading Google Photorealistic 3D Tiles...");
       
@@ -196,10 +196,37 @@ export function CesiumViewerComponent({
       toast.success("Google 3D Buildings loaded");
     } catch (error) {
       console.error("Failed to load Google 3D Tiles:", error);
-      setGoogle3DError(error instanceof Error ? error.message : "Failed to load 3D tiles");
-      toast.error("Failed to load Google 3D buildings", {
-        description: "Falling back to OSM buildings"
-      });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setGoogle3DError(errorMessage);
+      
+      // Provide specific error messages based on error type
+      if (errorMessage.includes("403") || errorMessage.includes("PERMISSION_DENIED") || errorMessage.includes("Access Denied")) {
+        toast.error("Google 3D Tiles Access Denied", {
+          description: "Check API key restrictions: add your domain to HTTP referrers and enable Map Tiles API + Maps JavaScript API",
+          duration: 8000,
+        });
+      } else if (errorMessage.includes("401") || errorMessage.includes("unauthorized")) {
+        toast.error("Google 3D Tiles Unauthorized", {
+          description: "Invalid or missing Google Maps API key",
+          duration: 6000,
+        });
+      } else if (errorMessage.includes("quota") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+        toast.error("Google 3D Tiles Quota Exceeded", {
+          description: "Your Google Maps API quota has been reached",
+          duration: 6000,
+        });
+      } else {
+        toast.error("Google 3D Tiles Unavailable", {
+          description: "Switching to OSM Buildings",
+          duration: 4000,
+        });
+      }
+      
+      // Auto-fallback to OSM Buildings via callback
+      if (onFallbackToOsm) {
+        console.log("Auto-falling back to OSM Buildings...");
+        onFallbackToOsm();
+      }
     }
   }, [google3DTileset, osmBuildingsTileset]);
   
@@ -651,7 +678,7 @@ export function CesiumViewerComponent({
       if (buildings3dSource !== "google" && googleMapsToken) {
         setBuildings3dSource("google");
       } else if (googleMapsToken) {
-        loadGoogle3DTiles(viewer, googleMapsToken);
+        loadGoogle3DTiles(viewer, googleMapsToken, () => setBuildings3dSource("osm"));
       } else if (!googleTokenLoading) {
         console.warn("No Google Maps token available for 3D tiles");
         toast.error("Google Maps API key not configured");
@@ -677,7 +704,7 @@ export function CesiumViewerComponent({
         
       case "google":
         if (googleMapsToken) {
-          loadGoogle3DTiles(viewer, googleMapsToken);
+          loadGoogle3DTiles(viewer, googleMapsToken, () => setBuildings3dSource("osm"));
         } else if (!googleTokenLoading) {
           toast.error("Google Maps API key required", {
             description: "Falling back to OSM buildings"
