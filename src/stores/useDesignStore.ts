@@ -2,16 +2,24 @@
  * SiteIntel™ Design Mode - Global State Store
  * 
  * Manages design session state using Zustand.
+ * Enhanced with UX overhaul features: hover preview, sharing, IC mode, best overall.
  */
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import type { ComplianceResult } from "@/lib/designCompliance";
 import type { DesignMetrics } from "@/lib/designMetrics";
+import type { 
+  VariantSortMode, 
+  VariantTag, 
+  ToolState,
+  ShareSettings,
+  ShareInvite 
+} from "@/types/design";
 
 export type DesignModeView = "design" | "compare" | "export";
 
-export type CameraPreset = "overhead" | "perspective_ne" | "perspective_sw" | "street" | "orbit";
+export type CameraPreset = "overhead" | "perspective_ne" | "perspective_sw" | "street" | "orbit" | "context" | "parcel_fit";
 
 export type CanvasViewMode = "2d" | "3d" | "split";
 
@@ -113,6 +121,46 @@ interface DesignState {
   setActiveVariantId: (id: string | null) => void;
   getActiveVariant: () => DesignVariant | null;
 
+  // ========== NEW: Best Overall Calculation ==========
+  bestOverallVariantId: string | null;
+  computeBestOverall: () => void;
+
+  // ========== NEW: Variant Quick Actions State ==========
+  starredVariantIds: string[];
+  pinnedVariantIds: string[];
+  variantTags: Record<string, VariantTag[]>;
+  toggleStarVariant: (id: string) => void;
+  togglePinVariant: (id: string) => void;
+  setVariantTags: (id: string, tags: VariantTag[]) => void;
+
+  // ========== NEW: Sorting & Search ==========
+  variantSortMode: VariantSortMode;
+  setVariantSortMode: (mode: VariantSortMode) => void;
+  variantSearchQuery: string;
+  setVariantSearchQuery: (query: string) => void;
+  getSortedVariants: () => DesignVariant[];
+
+  // ========== NEW: Hover Preview State ==========
+  hoveredVariantId: string | null;
+  setHoveredVariantId: (id: string | null) => void;
+
+  // ========== NEW: Share Modal State ==========
+  shareModalOpen: boolean;
+  setShareModalOpen: (open: boolean) => void;
+  shareSettings: ShareSettings;
+  setShareSettings: (settings: Partial<ShareSettings>) => void;
+  shareInvites: ShareInvite[];
+  addShareInvite: (invite: ShareInvite) => void;
+  removeShareInvite: (email: string) => void;
+
+  // ========== NEW: IC Mode ==========
+  isICMode: boolean;
+  setIsICMode: (enabled: boolean) => void;
+
+  // ========== NEW: Tool State ==========
+  currentToolState: ToolState;
+  setCurrentToolState: (state: ToolState) => void;
+
   // Compare mode selection
   compareVariantIds: string[];
   toggleCompareVariant: (id: string) => void;
@@ -200,6 +248,29 @@ const initialState = {
   measurementMode: null as DesignMeasurementMode,
   measurementResult: null as DesignMeasurementResult | null,
   measurementPoints: [] as [number, number][],
+  // NEW: UX Overhaul State
+  bestOverallVariantId: null as string | null,
+  starredVariantIds: [] as string[],
+  pinnedVariantIds: [] as string[],
+  variantTags: {} as Record<string, VariantTag[]>,
+  variantSortMode: "recommended" as VariantSortMode,
+  variantSearchQuery: "",
+  hoveredVariantId: null as string | null,
+  shareModalOpen: false,
+  shareSettings: {
+    role: "viewer" as const,
+    linkAccess: "restricted" as const,
+    expiration: "none" as const,
+    exportPackage: {
+      pdf: true,
+      png: true,
+      csv: false,
+      complianceLog: false,
+    },
+  } as ShareSettings,
+  shareInvites: [] as ShareInvite[],
+  isICMode: false,
+  currentToolState: "idle" as ToolState,
 };
 
 export const useDesignStore = create<DesignState>()(
@@ -213,20 +284,28 @@ export const useDesignStore = create<DesignState>()(
 
       setEnvelope: (envelope) => set({ envelope }),
 
-      setVariants: (variants) => set({ variants }),
+      setVariants: (variants) => {
+        set({ variants });
+        // Recompute best overall when variants change
+        get().computeBestOverall();
+      },
 
       addVariant: (variant) =>
-        set((state) => ({
-          variants: [...state.variants, variant],
-          activeVariantId: variant.id,
-        })),
+        set((state) => {
+          const newVariants = [...state.variants, variant];
+          return {
+            variants: newVariants,
+            activeVariantId: variant.id,
+          };
+        }),
 
       updateVariant: (id, updates) =>
-        set((state) => ({
-          variants: state.variants.map((v) =>
+        set((state) => {
+          const newVariants = state.variants.map((v) =>
             v.id === id ? { ...v, ...updates, updatedAt: new Date().toISOString() } : v
-          ),
-        })),
+          );
+          return { variants: newVariants };
+        }),
 
       removeVariant: (id) =>
         set((state) => {
@@ -238,6 +317,8 @@ export const useDesignStore = create<DesignState>()(
                 ? newVariants[0]?.id || null
                 : state.activeVariantId,
             compareVariantIds: state.compareVariantIds.filter((vid) => vid !== id),
+            starredVariantIds: state.starredVariantIds.filter((vid) => vid !== id),
+            pinnedVariantIds: state.pinnedVariantIds.filter((vid) => vid !== id),
           };
         }),
 
@@ -248,6 +329,155 @@ export const useDesignStore = create<DesignState>()(
         return state.variants.find((v) => v.id === state.activeVariantId) || null;
       },
 
+      // ========== Best Overall Calculation ==========
+      computeBestOverall: () => {
+        const state = get();
+        const passVariants = state.variants.filter(v => v.complianceStatus === "PASS");
+        
+        if (passVariants.length === 0) {
+          set({ bestOverallVariantId: null });
+          return;
+        }
+
+        // Score each variant
+        const scores = passVariants.map(v => {
+          const envelope = state.envelope;
+          if (!envelope || !v.metrics) {
+            return { id: v.id, score: 0 };
+          }
+
+          // Envelope utilization (sweet spot is 70-90%)
+          const farUtil = (v.metrics.farUsed / envelope.farCap) * 100;
+          const utilizationScore = farUtil >= 70 && farUtil <= 90 
+            ? 100 
+            : farUtil > 90 
+              ? 100 - (farUtil - 90) * 2 // Penalize over-optimization
+              : farUtil * (100 / 70); // Scale up if under 70%
+
+          // Risk proximity penalty (based on how close to WARN thresholds)
+          const heightUtil = (v.heightFt / envelope.heightCapFt) * 100;
+          const coverageUtil = v.metrics.coveragePct 
+            ? (v.metrics.coveragePct / envelope.coverageCapPct) * 100 
+            : 0;
+          
+          const riskPenalty = 
+            (heightUtil > 90 ? (heightUtil - 90) * 0.5 : 0) +
+            (coverageUtil > 90 ? (coverageUtil - 90) * 0.5 : 0) +
+            (farUtil > 90 ? (farUtil - 90) * 0.5 : 0);
+
+          // Final score
+          const finalScore = utilizationScore - riskPenalty;
+
+          return { id: v.id, score: finalScore };
+        });
+
+        // Find best
+        const best = scores.reduce((a, b) => a.score > b.score ? a : b);
+        set({ bestOverallVariantId: best.id });
+      },
+
+      // ========== Variant Quick Actions ==========
+      toggleStarVariant: (id) =>
+        set((state) => ({
+          starredVariantIds: state.starredVariantIds.includes(id)
+            ? state.starredVariantIds.filter((vid) => vid !== id)
+            : [...state.starredVariantIds, id],
+        })),
+
+      togglePinVariant: (id) =>
+        set((state) => ({
+          pinnedVariantIds: state.pinnedVariantIds.includes(id)
+            ? state.pinnedVariantIds.filter((vid) => vid !== id)
+            : [...state.pinnedVariantIds, id],
+        })),
+
+      setVariantTags: (id, tags) =>
+        set((state) => ({
+          variantTags: { ...state.variantTags, [id]: tags },
+        })),
+
+      // ========== Sorting & Search ==========
+      setVariantSortMode: (mode) => set({ variantSortMode: mode }),
+      setVariantSearchQuery: (query) => set({ variantSearchQuery: query }),
+
+      getSortedVariants: () => {
+        const state = get();
+        let filtered = state.variants;
+
+        // Apply search filter
+        if (state.variantSearchQuery.trim()) {
+          const query = state.variantSearchQuery.toLowerCase();
+          filtered = filtered.filter(v => 
+            v.name.toLowerCase().includes(query) ||
+            v.presetType?.toLowerCase().includes(query)
+          );
+        }
+
+        // Apply sorting
+        const sorted = [...filtered].sort((a, b) => {
+          // Pinned always first
+          const aPinned = state.pinnedVariantIds.includes(a.id);
+          const bPinned = state.pinnedVariantIds.includes(b.id);
+          if (aPinned && !bPinned) return -1;
+          if (!aPinned && bPinned) return 1;
+
+          switch (state.variantSortMode) {
+            case "recommended":
+              // Best Overall first, then PASS, WARN, FAIL, then by score
+              if (a.id === state.bestOverallVariantId) return -1;
+              if (b.id === state.bestOverallVariantId) return 1;
+              const statusOrder = { PASS: 0, WARN: 1, FAIL: 2, PENDING: 3 };
+              const statusDiff = statusOrder[a.complianceStatus] - statusOrder[b.complianceStatus];
+              if (statusDiff !== 0) return statusDiff;
+              return a.sortOrder - b.sortOrder;
+
+            case "newest":
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+
+            case "starred":
+              const aStarred = state.starredVariantIds.includes(a.id);
+              const bStarred = state.starredVariantIds.includes(b.id);
+              if (aStarred && !bStarred) return -1;
+              if (!aStarred && bStarred) return 1;
+              return a.sortOrder - b.sortOrder;
+
+            case "compliance":
+              const compOrder = { PASS: 0, WARN: 1, FAIL: 2, PENDING: 3 };
+              return compOrder[a.complianceStatus] - compOrder[b.complianceStatus];
+
+            default:
+              return a.sortOrder - b.sortOrder;
+          }
+        });
+
+        return sorted;
+      },
+
+      // ========== Hover Preview ==========
+      setHoveredVariantId: (id) => set({ hoveredVariantId: id }),
+
+      // ========== Share Modal ==========
+      setShareModalOpen: (open) => set({ shareModalOpen: open }),
+      setShareSettings: (settings) =>
+        set((state) => ({
+          shareSettings: { ...state.shareSettings, ...settings },
+        })),
+      addShareInvite: (invite) =>
+        set((state) => ({
+          shareInvites: [...state.shareInvites, invite],
+        })),
+      removeShareInvite: (email) =>
+        set((state) => ({
+          shareInvites: state.shareInvites.filter((i) => i.email !== email),
+        })),
+
+      // ========== IC Mode ==========
+      setIsICMode: (enabled) => set({ isICMode: enabled }),
+
+      // ========== Tool State ==========
+      setCurrentToolState: (state) => set({ currentToolState: state }),
+
+      // ========== Compare Mode ==========
       toggleCompareVariant: (id) =>
         set((state) => {
           const isSelected = state.compareVariantIds.includes(id);
@@ -267,7 +497,10 @@ export const useDesignStore = create<DesignState>()(
 
       clearCompareSelection: () => set({ compareVariantIds: [] }),
 
-      setIsDrawing: (drawing) => set({ isDrawing: drawing }),
+      setIsDrawing: (drawing) => set({ 
+        isDrawing: drawing,
+        currentToolState: drawing ? "drawing" : "idle",
+      }),
 
       setPresets: (presets) => set({ presets }),
 
@@ -299,6 +532,7 @@ export const useDesignStore = create<DesignState>()(
         measurementMode: mode,
         measurementResult: null,
         measurementPoints: [],
+        currentToolState: mode ? "measuring" : "idle",
       }),
 
       setMeasurementResult: (result) => set({ measurementResult: result }),
@@ -309,6 +543,7 @@ export const useDesignStore = create<DesignState>()(
         measurementMode: null,
         measurementResult: null,
         measurementPoints: [],
+        currentToolState: "idle",
       }),
 
       reset: () => set(initialState),
