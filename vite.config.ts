@@ -41,20 +41,21 @@ export default defineConfig(({ mode }) => ({
     cesium(),
     mode === "development" && componentTagger(),
     mode === "production" && deferCSS(),
-    mode === "production" && viteObfuscateFile({
-      compact: true,
-      controlFlowFlattening: false,
-      deadCodeInjection: false,
-      debugProtection: false,
-      disableConsoleOutput: true,
-      identifierNamesGenerator: 'hexadecimal',
-      renameGlobals: false,
-      rotateStringArray: true,
-      selfDefending: false,
-      stringArray: true,
-      stringArrayThreshold: 0.75,
-      unicodeEscapeSequence: false
-    })
+    // Obfuscation disabled - breaks Cesium/Resium WebGL initialization
+    // mode === "production" && viteObfuscateFile({
+    //   compact: true,
+    //   controlFlowFlattening: false,
+    //   deadCodeInjection: false,
+    //   debugProtection: false,
+    //   disableConsoleOutput: true,
+    //   identifierNamesGenerator: 'hexadecimal',
+    //   renameGlobals: false,
+    //   rotateStringArray: true,
+    //   selfDefending: false,
+    //   stringArray: true,
+    //   stringArrayThreshold: 0.75,
+    //   unicodeEscapeSequence: false
+    // })
   ].filter(Boolean),
   resolve: {
     alias: {
