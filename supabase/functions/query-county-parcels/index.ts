@@ -13,17 +13,21 @@ interface CountyConfig {
   ownerField: string;
   addressField: string;
   apnField: string;
+  compositeAddress?: boolean; // If true, build address from component fields
+  available?: boolean; // If false, skip this county
 }
 
 const COUNTY_CONFIGS: Record<string, CountyConfig> = {
   HARRIS: {
     name: "Harris",
     featureServerUrl: "https://www.gis.hctx.net/arcgis/rest/services/HCAD/Parcels/MapServer/0",
-    acreageField: "Acreage",
-    outFields: ["OBJECTID", "acct_num", "owner_name_1", "Acreage", "site_address", "land_value", "market_val"],
+    acreageField: "acreage_1",
+    outFields: ["OBJECTID", "acct_num", "owner_name_1", "acreage_1", "land_value", "impr_value", "site_str_num", "site_str_name", "site_str_sfx", "site_city", "site_zip"],
     ownerField: "owner_name_1",
-    addressField: "site_address",
+    addressField: "", // Built from composite fields
     apnField: "acct_num",
+    compositeAddress: true,
+    available: true,
   },
   "FORT BEND": {
     name: "Fort Bend",
@@ -33,6 +37,7 @@ const COUNTY_CONFIGS: Record<string, CountyConfig> = {
     ownerField: "ownername",
     addressField: "situs",
     apnField: "propnumber",
+    available: true,
   },
   MONTGOMERY: {
     name: "Montgomery",
@@ -42,6 +47,7 @@ const COUNTY_CONFIGS: Record<string, CountyConfig> = {
     ownerField: "OWNER_NAME",
     addressField: "SITUS_ADDR",
     apnField: "PROP_ID",
+    available: false, // Endpoint may be unavailable
   },
 };
 
@@ -84,6 +90,19 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           error: `Unsupported county: ${county}. Supported: ${Object.keys(COUNTY_CONFIGS).join(", ")}`,
+          parcels: [] 
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Check if county is available
+    if (config.available === false) {
+      console.log("[query-county-parcels] County marked unavailable:", countyUpper);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: `${config.name} County endpoint is currently unavailable`,
           parcels: [] 
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -152,6 +171,22 @@ serve(async (req) => {
       const props = f.properties || {};
       const acreage = props[config.acreageField] || props[config.acreageField.toLowerCase()];
       
+      // Build address - composite for Harris County, direct field for others
+      let situsAddress: string | null = null;
+      if (config.compositeAddress) {
+        // Harris County: build from component fields
+        const parts = [
+          props.site_str_num,
+          props.site_str_name,
+          props.site_str_sfx,
+          props.site_city,
+          props.site_zip
+        ].filter(Boolean);
+        situsAddress = parts.length > 0 ? parts.join(" ") : null;
+      } else {
+        situsAddress = props[config.addressField] || null;
+      }
+      
       // Calculate match score based on acreage proximity
       const targetAcreage = (acreage_min + acreage_max) / 2;
       const acreageDiff = Math.abs((acreage || 0) - targetAcreage);
@@ -162,7 +197,7 @@ serve(async (req) => {
         source_parcel_id: String(props[config.apnField] || props.OBJECTID || ""),
         owner_name: props[config.ownerField] || null,
         acreage: acreage || null,
-        situs_address: props[config.addressField] || null,
+        situs_address: situsAddress,
         county: countyUpper,
         geometry: f.geometry,
         match_score: acreageScore,
