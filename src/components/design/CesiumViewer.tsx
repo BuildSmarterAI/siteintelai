@@ -242,6 +242,16 @@ export function CesiumViewerComponent({
       setGoogle3DTileset(tileset);
       setGoogle3DError(null);
       
+      // === CRITICAL: Configure scene for Google 3D Tiles ===
+      // Hide globe - Google 3D includes its own ground surface, prevents z-fighting
+      viewer.scene.globe.show = false;
+      // Disable globe depth testing - not needed with hidden globe
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+      // Enable atmospheric fog for realistic perspective
+      viewer.scene.fog.enabled = true;
+      viewer.scene.fog.density = 0.0002;
+      viewer.scene.fog.minimumBrightness = 0.03;
+      
       console.log("[Google3D] Photorealistic 3D Tiles loaded successfully (with performance optimizations)");
       toast.success("Google 3D Buildings loaded");
       
@@ -390,6 +400,12 @@ export function CesiumViewerComponent({
       viewer.scene.primitives.remove(google3DTilesetRef.current);
       google3DTilesetRef.current = null;
       setGoogle3DTileset(null);
+      
+      // Restore scene settings
+      viewer.scene.globe.show = true;
+      viewer.scene.globe.depthTestAgainstTerrain = true;
+      viewer.scene.fog.enabled = false;
+      
       console.log("Removed Google 3D Tiles");
     }
   }, []); // No dependencies - uses refs
@@ -1254,7 +1270,7 @@ export function CesiumViewerComponent({
         shadows={shadowsEnabled}
         terrainShadows={shadowsEnabled ? ShadowMode.RECEIVE_ONLY : ShadowMode.DISABLED}
       >
-        {/* Parcel Boundary - thin ground-hugging polygon visible above 3D tiles */}
+        {/* Parcel Boundary - uses classification for Google 3D, fixed height otherwise */}
         <Entity name="parcel-boundary">
           <PolygonGraphics
             hierarchy={geojsonToCesiumPositions(envelope.parcelGeometry)}
@@ -1262,8 +1278,8 @@ export function CesiumViewerComponent({
             outline
             outlineColor={DESIGN_COLORS.parcelOutline}
             outlineWidth={4}
-            height={0.3}
-            extrudedHeight={0.6}
+            height={buildings3dSource === "google" ? 0 : 0.3}
+            extrudedHeight={buildings3dSource === "google" ? 0.5 : 0.6}
             classificationType={2}
           />
         </Entity>
@@ -1273,8 +1289,8 @@ export function CesiumViewerComponent({
           <Entity name="regulatory-envelope">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(envelope.buildableFootprint2d)}
-              extrudedHeight={feetToMeters(envelope.heightCapFt)}
-              height={0}
+              extrudedHeight={feetToMeters(envelope.heightCapFt) + (buildings3dSource === "google" ? 50 : 0)}
+              height={buildings3dSource === "google" ? 50 : 0}
               material={DESIGN_COLORS.envelope}
               outline
               outlineColor={DESIGN_COLORS.envelopeOutline}
@@ -1288,8 +1304,8 @@ export function CesiumViewerComponent({
           <Entity name="design-footprint">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(activeVariant.footprint)}
-              extrudedHeight={feetToMeters(activeVariant.heightFt)}
-              height={0}
+              extrudedHeight={feetToMeters(activeVariant.heightFt) + (buildings3dSource === "google" ? 50 : 0)}
+              height={buildings3dSource === "google" ? 50 : 0}
               material={DESIGN_COLORS.footprint}
               outline
               outlineColor={DESIGN_COLORS.footprintOutline}
@@ -1304,8 +1320,8 @@ export function CesiumViewerComponent({
           <Entity name="violation-zone">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(violationGeometry)}
-              extrudedHeight={feetToMeters(activeVariant.heightFt)}
-              height={0}
+              extrudedHeight={feetToMeters(activeVariant.heightFt) + (buildings3dSource === "google" ? 50 : 0)}
+              height={buildings3dSource === "google" ? 50 : 0}
               material={DESIGN_COLORS.violation}
               outline
               outlineColor={DESIGN_COLORS.violationOutline}
