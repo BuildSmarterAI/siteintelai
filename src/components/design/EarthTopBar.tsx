@@ -41,8 +41,10 @@ import {
   Loader2,
   ChevronDown,
   AlertTriangle,
+  Wand2,
 } from "lucide-react";
 import { ShareModal } from "./ShareModal";
+import { useWizardStore } from "@/stores/useWizardStore";
 
 interface EarthTopBarProps {
   className?: string;
@@ -76,6 +78,8 @@ export function EarthTopBar({
     setShareModalOpen,
     session,
   } = useDesignStore();
+
+  const { isOpen: isWizardOpen, openWizard, closeWizard } = useWizardStore();
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -276,6 +280,26 @@ export function EarthTopBar({
             <AlertTriangle className="h-3 w-3 mr-1.5" />
             Conceptual Design
           </Badge>
+
+          {/* Explore Designs wizard toggle */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isWizardOpen ? "secondary" : "outline"}
+                  size="sm"
+                  className="h-10 bg-background/95 backdrop-blur-md shadow-lg rounded-full px-4"
+                  onClick={() => isWizardOpen ? closeWizard() : openWizard()}
+                >
+                  <Wand2 className="h-4 w-4 mr-1.5" />
+                  Explore Designs
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Design Wizard (W)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           {/* View mode buttons */}
           <div className="flex items-center gap-1 bg-background/95 backdrop-blur-md border shadow-lg rounded-full px-1 py-1">

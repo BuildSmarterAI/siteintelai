@@ -16,6 +16,8 @@ import { calculateMetrics } from "@/lib/designMetrics";
 import { EarthTopBar } from "@/components/design/EarthTopBar";
 import { MapContentsPanel } from "@/components/design/MapContentsPanel";
 import { ComplianceDock } from "@/components/design/ComplianceDock";
+import { DesignWizardPanel } from "@/components/wizard";
+import { useWizardStore } from "@/stores/useWizardStore";
 import { MetricsChipsBar } from "@/components/design/MetricsChipsBar";
 import { FloatingMapControls } from "@/components/design/FloatingMapControls";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
@@ -64,6 +66,8 @@ export default function DesignMode() {
     leftPanelState,
     setLeftPanelState,
   } = useDesignStore();
+
+  const isWizardOpen = useWizardStore((s) => s.isOpen);
 
   // Fetch or compute envelope
   const {
@@ -231,9 +235,18 @@ export default function DesignMode() {
         case "r":
           // Reset view (handled by map controls)
           break;
+        case "w":
+          const wizardStore = useWizardStore.getState();
+          if (wizardStore.isOpen) {
+            wizardStore.closeWizard();
+          } else {
+            wizardStore.openWizard();
+          }
+          break;
         case "escape":
           setIsDrawing(false);
           clearMeasurement();
+          useWizardStore.getState().closeWizard();
           break;
         case "1":
         case "2":
@@ -412,8 +425,11 @@ export default function DesignMode() {
         setPanelState={setLeftPanelState}
       />
 
-      {/* Right panel - Compliance Dock */}
-      <ComplianceDock />
+      {/* Right panel - Compliance Dock (hidden when wizard is open) */}
+      {!isWizardOpen && <ComplianceDock />}
+
+      {/* Design Wizard Panel */}
+      <DesignWizardPanel />
 
       {/* Measurement tools - top center */}
       <DesignMeasurementTools className="fixed top-20 left-1/2 -translate-x-1/2 z-30" />
