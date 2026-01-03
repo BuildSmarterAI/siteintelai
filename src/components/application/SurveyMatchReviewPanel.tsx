@@ -1,16 +1,27 @@
 /**
  * Survey Match Review Panel
- * Displayed when auto-match confidence is below threshold
- * Allows user to select from top candidates or use manual search
+ * Decision-logic ordered panel for parcel selection
+ * Displays recommended parcel prominently, other matches collapsed
  */
 
-import { CheckCircle2, MapPin, User, Ruler, ChevronRight, Search } from 'lucide-react';
+import { useState } from 'react';
+import { CheckCircle2, MapPin, User, Ruler, ChevronRight, ChevronDown, Search, AlertCircle, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import type { SurveyMatchCandidate, MatchReasonCode } from '@/types/surveyAutoMatch';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import type { SurveyMatchCandidate, MatchReasonCode, SurveyExtraction } from '@/types/surveyAutoMatch';
 
 interface SurveyMatchReviewPanelProps {
   candidates: SurveyMatchCandidate[];
@@ -18,6 +29,7 @@ interface SurveyMatchReviewPanelProps {
   onUseManualSearch: () => void;
   isSelecting?: boolean;
   hasCounty?: boolean;
+  extraction?: SurveyExtraction | null;
 }
 
 const REASON_CODE_CONFIG: Record<MatchReasonCode, { label: string; variant: "default" | "secondary" | "outline"; priority: number }> = {
@@ -52,38 +64,91 @@ function ConfidenceBar({ confidence }: { confidence: number }) {
   );
 }
 
-function CandidateCard({ 
+function AddressDisplay({ address }: { address: string | null }) {
+  if (address) {
+    return <span className="font-medium">{address}</span>;
+  }
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
+            Address unavailable – boundary only
+            <AlertCircle className="h-3 w-3" />
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-[220px]">
+          <p className="text-xs">
+            Some counties do not provide situs addresses. This increases verification risk.
+          </p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function WhyThisParcel({ candidate, extraction }: { candidate: SurveyMatchCandidate; extraction?: SurveyExtraction | null }) {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  const acreageDelta = extraction?.acreage_extracted && candidate.acreage
+    ? Math.abs(extraction.acreage_extracted - candidate.acreage)
+    : null;
+  
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="text-xs text-muted-foreground underline hover:text-foreground flex items-center gap-1">
+        <HelpCircle className="h-3 w-3" />
+        Why we chose this parcel
+        <ChevronDown className={`h-3 w-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </CollapsibleTrigger>
+      <CollapsibleContent className="mt-2">
+        <div className="text-xs space-y-1 bg-muted/50 p-2.5 rounded-md border border-border/50">
+          {acreageDelta !== null && (
+            <p>• Acreage delta: <span className="font-mono">±{acreageDelta.toFixed(3)} ac</span> from survey</p>
+          )}
+          <p>• County: Matched ({candidate.county})</p>
+          <p>• Match signals: {candidate.reason_codes.length} criteria met</p>
+          <p>• Confidence: {Math.round(candidate.confidence * 100)}%</p>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function RecommendedParcelCard({ 
   candidate, 
   onSelect, 
   isSelecting,
-  rank,
+  extraction,
 }: { 
   candidate: SurveyMatchCandidate; 
   onSelect: () => void;
   isSelecting: boolean;
-  rank: number;
+  extraction?: SurveyExtraction | null;
 }) {
-  // Sort reason codes by priority
   const sortedReasonCodes = [...candidate.reason_codes].sort((a, b) => {
     const priorityA = REASON_CODE_CONFIG[a as MatchReasonCode]?.priority || 99;
     const priorityB = REASON_CODE_CONFIG[b as MatchReasonCode]?.priority || 99;
     return priorityA - priorityB;
   });
+  
+  const hasAddressWarning = !candidate.situs_address;
 
   return (
-    <Card className={`hover:border-primary/50 transition-colors ${rank === 1 ? 'border-primary/30 bg-primary/5' : ''}`}>
-      <CardContent className="p-4">
+    <Card className={`border-2 border-[hsl(var(--feasibility-orange)/0.4)] bg-[hsl(var(--commitment-orange-subtle))] shadow-md ${hasAddressWarning ? 'ring-1 ring-amber-300 dark:ring-amber-700' : ''}`}>
+      <CardContent className="p-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0 space-y-2">
             {/* Address */}
             <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <MapPin className="h-4 w-4 text-[hsl(var(--feasibility-orange))] shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-sm font-medium truncate">
-                  {candidate.situs_address || "Address not available"}
+                <p className="text-sm truncate">
+                  <AddressDisplay address={candidate.situs_address} />
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {candidate.county} County • {candidate.source_parcel_id}
+                  {candidate.county} County • #{candidate.source_parcel_id}
                 </p>
               </div>
             </div>
@@ -99,7 +164,7 @@ function CandidateCard({
               {candidate.acreage && (
                 <div className="flex items-center gap-1">
                   <Ruler className="h-3 w-3" />
-                  <span>{candidate.acreage.toFixed(2)} ac</span>
+                  <span className="font-mono">{candidate.acreage.toFixed(2)} ac</span>
                 </div>
               )}
             </div>
@@ -117,23 +182,61 @@ function CandidateCard({
             </div>
           </div>
 
-          {/* Confidence & Select */}
+          {/* Confidence */}
           <div className="flex flex-col items-end gap-2 shrink-0">
             <ConfidenceBar confidence={candidate.confidence} />
-            <Button 
-              size="sm" 
-              onClick={onSelect}
-              disabled={isSelecting}
-              className="gap-1"
-              variant={rank === 1 ? "default" : "outline"}
-            >
-              <CheckCircle2 className="h-3 w-3" />
-              Select
-            </Button>
           </div>
         </div>
+        
+        {/* Why This Parcel */}
+        <WhyThisParcel candidate={candidate} extraction={extraction} />
+        
+        {/* Select Button - Prominent */}
+        <Button 
+          onClick={onSelect}
+          disabled={isSelecting}
+          className="w-full bg-[hsl(var(--feasibility-orange))] hover:bg-[hsl(var(--feasibility-orange)/0.9)] text-white font-semibold gap-2"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+          Select This Parcel
+        </Button>
       </CardContent>
     </Card>
+  );
+}
+
+function CompactCandidateCard({ 
+  candidate, 
+  onSelect, 
+  isSelecting,
+}: { 
+  candidate: SurveyMatchCandidate; 
+  onSelect: () => void;
+  isSelecting: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border hover:border-primary/30 bg-background transition-colors">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm truncate">
+          <AddressDisplay address={candidate.situs_address} />
+        </p>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>#{candidate.source_parcel_id}</span>
+          {candidate.acreage && <span>• {candidate.acreage.toFixed(2)} ac</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <ConfidenceBar confidence={candidate.confidence} />
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={onSelect}
+          disabled={isSelecting}
+        >
+          Select
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -143,7 +246,10 @@ export function SurveyMatchReviewPanel({
   onUseManualSearch,
   isSelecting = false,
   hasCounty = true,
+  extraction,
 }: SurveyMatchReviewPanelProps) {
+  const [othersOpen, setOthersOpen] = useState(false);
+  
   if (candidates.length === 0) {
     return (
       <Card className="border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10">
@@ -174,46 +280,61 @@ export function SurveyMatchReviewPanel({
     );
   }
 
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center justify-between">
-          <span>Select Matching Parcel</span>
-          <Badge variant="secondary" className="font-normal">
-            {candidates.length} candidate{candidates.length !== 1 ? 's' : ''}
-          </Badge>
-        </CardTitle>
-        <p className="text-xs text-muted-foreground">
-          We found potential matches for your survey. Please review and select the correct parcel.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <ScrollArea className="max-h-[300px]">
-          <div className="space-y-2 pr-2">
-            {candidates.map((candidate, index) => (
-              <CandidateCard
-                key={candidate.parcel_id}
-                candidate={candidate}
-                onSelect={() => onSelectParcel(candidate)}
-                isSelecting={isSelecting}
-                rank={index + 1}
-              />
-            ))}
-          </div>
-        </ScrollArea>
+  const [recommendedParcel, ...otherCandidates] = candidates;
 
-        <div className="border-t pt-3">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onUseManualSearch}
-            className="w-full text-muted-foreground"
-          >
-            <ChevronRight className="h-4 w-4 mr-2" />
-            Use manual parcel search instead
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+  return (
+    <div className="space-y-4">
+      {/* Recommended Parcel Section */}
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-foreground">
+          Based on your survey, we recommend this parcel:
+        </p>
+        <RecommendedParcelCard
+          candidate={recommendedParcel}
+          onSelect={() => onSelectParcel(recommendedParcel)}
+          isSelecting={isSelecting}
+          extraction={extraction}
+        />
+      </div>
+
+      {/* Other Candidates - Collapsed by Default */}
+      {otherCandidates.length > 0 && (
+        <Collapsible open={othersOpen} onOpenChange={setOthersOpen}>
+          <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
+            <span className="text-sm text-muted-foreground">
+              Other Possible Matches ({otherCandidates.length})
+            </span>
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${othersOpen ? 'rotate-180' : ''}`} />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            <ScrollArea className="max-h-[200px]">
+              <div className="space-y-2 pr-2">
+                {otherCandidates.map((candidate) => (
+                  <CompactCandidateCard
+                    key={candidate.parcel_id}
+                    candidate={candidate}
+                    onSelect={() => onSelectParcel(candidate)}
+                    isSelecting={isSelecting}
+                  />
+                ))}
+              </div>
+            </ScrollArea>
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
+      {/* Manual Search Option */}
+      <div className="border-t pt-3">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onUseManualSearch}
+          className="w-full text-muted-foreground"
+        >
+          <ChevronRight className="h-4 w-4 mr-2" />
+          Use manual parcel search instead
+        </Button>
+      </div>
+    </div>
   );
 }

@@ -2,15 +2,20 @@
  * Parcel Confirmation Gate
  * The DECISION GATE - Only place where orange appears.
  * This is the first irreversible act in SiteIntel.
+ * Shows locked indicator after parcel is confirmed.
  */
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { 
   Lock,
   Loader2,
   AlertTriangle,
+  CheckCircle2,
+  MapPin,
+  Ruler,
 } from "lucide-react";
 import type { CandidateParcel } from "@/types/parcelSelection";
 
@@ -20,6 +25,7 @@ interface ParcelConfirmationGateProps {
   isLocking: boolean;
   canConfirm: boolean;
   warnings: string[];
+  isLocked?: boolean;
 }
 
 export function ParcelConfirmationGate({
@@ -28,7 +34,57 @@ export function ParcelConfirmationGate({
   isLocking,
   canConfirm,
   warnings,
+  isLocked = false,
 }: ParcelConfirmationGateProps) {
+  // Locked State Display
+  if (isLocked) {
+    return (
+      <Card className="border-2 border-green-500/40 bg-green-50/50 dark:bg-green-950/20">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+              <Lock className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-green-700 dark:text-green-300">
+                  Parcel Locked for Analysis
+                </span>
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 text-xs">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  Confirmed
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                All feasibility calculations will use this parcel boundary
+              </p>
+            </div>
+          </div>
+          
+          {/* Locked parcel summary */}
+          <div className="bg-white/60 dark:bg-background/40 rounded-lg p-3 space-y-1.5 border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2 text-sm">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="font-medium">
+                {candidate.situs_address || "Address unavailable – boundary only"}
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <span>{candidate.county} County</span>
+              {candidate.acreage && (
+                <span className="flex items-center gap-1">
+                  <Ruler className="h-3 w-3" />
+                  {candidate.acreage.toFixed(2)} ac
+                </span>
+              )}
+              <span className="font-mono">#{candidate.parcel_id}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Warnings - Must be reviewed before proceeding */}

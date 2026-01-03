@@ -3,7 +3,7 @@
  * Shows the current status of automatic parcel matching
  */
 
-import { Loader2, CheckCircle2, AlertCircle, Search, FileText, MapPin, User, Ruler, FileType } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Search, FileText, MapPin, User, Ruler, FileType, Lock } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -88,32 +88,60 @@ const SURVEY_TYPE_LABELS: Record<SurveyType, { label: string; color: string }> =
   UNKNOWN: { label: "Unknown Type", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300" },
 };
 
-function SelectedParcelSummary({ parcel, confidence }: { parcel: SurveyMatchCandidate; confidence?: number }) {
+function AddressDisplay({ address }: { address: string | null }) {
+  if (address) {
+    return <span className="font-medium truncate">{address}</span>;
+  }
+  
   return (
-    <div className="bg-green-50 dark:bg-green-950/20 rounded-lg p-3 space-y-2">
+    <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
+      <span>Address unavailable – boundary only</span>
+      <AlertCircle className="h-3 w-3 shrink-0" />
+    </span>
+  );
+}
+
+function ConfidenceMeter({ confidence }: { confidence: number }) {
+  const percentage = Math.round(confidence * 100);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">Match confidence</span>
+        <span className={`font-medium ${
+          confidence >= 0.8 ? 'text-green-600' : 
+          confidence >= 0.6 ? 'text-amber-600' : 'text-red-600'
+        }`}>{percentage}%</span>
+      </div>
+      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+        <div 
+          className={`h-full transition-all ${
+            confidence >= 0.8 ? 'bg-green-500' : 
+            confidence >= 0.6 ? 'bg-amber-500' : 'bg-red-500'
+          }`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SelectedParcelSummary({ parcel, confidence }: { parcel: SurveyMatchCandidate; confidence?: number }) {
+  const hasAddressWarning = !parcel.situs_address;
+  
+  return (
+    <div className={`bg-green-50 dark:bg-green-950/20 rounded-lg p-3 space-y-2 ${hasAddressWarning ? 'ring-1 ring-amber-300/50 dark:ring-amber-700/50' : ''}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 min-w-0">
-          <MapPin className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+          <MapPin className={`h-4 w-4 shrink-0 mt-0.5 ${hasAddressWarning ? 'text-amber-600' : 'text-green-600'}`} />
           <div className="min-w-0">
-            <p className="text-sm font-medium truncate">
-              {parcel.situs_address || "Address not available"}
+            <p className="text-sm truncate">
+              <AddressDisplay address={parcel.situs_address} />
             </p>
             <p className="text-xs text-muted-foreground">
-              {parcel.county} County • {parcel.source_parcel_id}
+              {parcel.county} County • #{parcel.source_parcel_id}
             </p>
           </div>
         </div>
-        {confidence !== undefined && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Progress 
-              value={Math.round(confidence * 100)} 
-              className="h-2 w-12 bg-green-200 dark:bg-green-900"
-            />
-            <span className="text-xs font-medium text-green-600">
-              {Math.round(confidence * 100)}%
-            </span>
-          </div>
-        )}
       </div>
       
       {/* Owner & Acreage */}
@@ -127,13 +155,18 @@ function SelectedParcelSummary({ parcel, confidence }: { parcel: SurveyMatchCand
         {parcel.acreage && (
           <div className="flex items-center gap-1">
             <Ruler className="h-3 w-3" />
-            <span>{parcel.acreage.toFixed(2)} ac</span>
+            <span className="font-mono">{parcel.acreage.toFixed(2)} ac</span>
           </div>
         )}
       </div>
 
+      {/* Confidence Meter */}
+      {confidence !== undefined && confidence > 0 && (
+        <ConfidenceMeter confidence={confidence} />
+      )}
+
       {/* Match Reasons */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 pt-1">
         {parcel.reason_codes.map((code) => (
           <Badge key={code} variant="secondary" className="text-xs bg-green-100 dark:bg-green-900/50">
             {REASON_CODE_LABELS[code as MatchReasonCode] || code}
