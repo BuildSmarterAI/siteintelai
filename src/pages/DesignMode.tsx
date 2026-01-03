@@ -25,7 +25,7 @@ import { DesignMeasurementResultPanel } from "@/components/design/DesignMeasurem
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
 import { KeyboardShortcutsHelp } from "@/components/design/KeyboardShortcutsHelp";
-import { CesiumErrorBoundary } from "@/components/design/CesiumErrorBoundary";
+import { SafeCesiumLoader } from "@/components/design/CesiumErrorBoundary";
 import { CesiumLoadingFallback } from "@/components/design/CesiumLoadingFallback";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -398,17 +398,17 @@ export default function DesignMode() {
               {/* Canvas - 2D, 3D, or Split based on toggle */}
               <div id="design-canvas" className="flex-1 relative bg-muted">
                 {canvasViewMode === "split" ? (
-                  <Suspense fallback={<CesiumLoadingFallback />}>
-                    <CesiumErrorBoundary onFallbackTo2D={() => setCanvasViewMode("2d")}>
+                  <SafeCesiumLoader onFallbackTo2D={() => setCanvasViewMode("2d")} fallback={<CesiumLoadingFallback />}>
+                    <Suspense fallback={<CesiumLoadingFallback />}>
                       <SplitViewCanvasLazy className="absolute inset-0" />
-                    </CesiumErrorBoundary>
-                  </Suspense>
+                    </Suspense>
+                  </SafeCesiumLoader>
                 ) : canvasViewMode === "3d" ? (
-                  <Suspense fallback={<CesiumLoadingFallback />}>
-                    <CesiumErrorBoundary onFallbackTo2D={() => setCanvasViewMode("2d")}>
+                  <SafeCesiumLoader onFallbackTo2D={() => setCanvasViewMode("2d")} fallback={<CesiumLoadingFallback />}>
+                    <Suspense fallback={<CesiumLoadingFallback />}>
                       <CesiumViewerLazy className="absolute inset-0" />
-                    </CesiumErrorBoundary>
-                  </Suspense>
+                    </Suspense>
+                  </SafeCesiumLoader>
                 ) : (
                   <DesignModeCanvas className="absolute inset-0" />
                 )}
