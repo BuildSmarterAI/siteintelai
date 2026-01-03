@@ -62,8 +62,14 @@ import { useGoogleMapsToken } from "@/hooks/useGoogleMapsToken";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// Disable Ion default token warning - we're using open terrain
-Ion.defaultAccessToken = "";
+// Set Cesium Ion token from environment for OSM Buildings
+const cesiumIonToken = import.meta.env.VITE_CESIUM_ION_TOKEN;
+if (cesiumIonToken) {
+  Ion.defaultAccessToken = cesiumIonToken;
+} else {
+  // Disable Ion default token warning if no token provided
+  Ion.defaultAccessToken = "";
+}
 
 interface CesiumViewerComponentProps {
   className?: string;
