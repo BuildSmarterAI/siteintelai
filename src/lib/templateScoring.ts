@@ -1,6 +1,8 @@
 /**
  * Template Scoring Algorithm
  * Ranks templates based on site envelope and program targets
+ * 
+ * Uses the unified compliance engine for consistent PASS/WARN/FAIL calculations.
  */
 
 import * as turf from '@turf/turf';
@@ -12,6 +14,7 @@ import type {
   EnvelopeSummary,
   ProgramBucket,
 } from '@/types/wizard';
+import { checkTemplateCompliance } from './complianceEngine';
 
 // Scoring weights
 const WEIGHTS = {
@@ -22,6 +25,7 @@ const WEIGHTS = {
 
 /**
  * Score a single template against envelope and targets
+ * Uses unified compliance engine for consistent PASS/WARN/FAIL calculations
  */
 export function scoreTemplate(
   template: DesignTemplate,
@@ -64,36 +68,18 @@ export function scoreTemplate(
   }
   utilizationScore = Math.max(0, Math.min(100, utilizationScore));
   
-  // 3. Compliance Check
-  let compliancePenalty = 0;
-  let complianceStatus: ComplianceStatus = 'PASS';
-  
-  // Height check
-  if (templateHeight > envelope.heightCapFt) {
-    compliancePenalty += 50;
-    complianceStatus = 'FAIL';
-  } else if (templateHeight > envelope.heightCapFt * 0.9) {
-    compliancePenalty += 10;
-    if (complianceStatus === 'PASS') complianceStatus = 'WARN';
-  }
-  
-  // Coverage check
-  if (coveragePct > envelope.coverageCapPct) {
-    compliancePenalty += 50;
-    complianceStatus = 'FAIL';
-  } else if (coveragePct > envelope.coverageCapPct * 0.9) {
-    compliancePenalty += 10;
-    if (complianceStatus === 'PASS') complianceStatus = 'WARN';
-  }
-  
-  // FAR check
-  if (far > envelope.farCap) {
-    compliancePenalty += 50;
-    complianceStatus = 'FAIL';
-  } else if (far > envelope.farCap * 0.9) {
-    compliancePenalty += 10;
-    if (complianceStatus === 'PASS') complianceStatus = 'WARN';
-  }
+  // 3. Compliance Check - USE UNIFIED ENGINE
+  const { status: complianceStatus, penalty: compliancePenalty } = checkTemplateCompliance({
+    estimatedGfa: templateGfa,
+    estimatedHeight: templateHeight,
+    estimatedCoverage: coveragePct,
+    envelope: {
+      parcelSqft: envelope.parcelSqft,
+      farCap: envelope.farCap,
+      heightCapFt: envelope.heightCapFt,
+      coverageCapPct: envelope.coverageCapPct,
+    },
+  });
   
   // 4. Risk Adjustment
   let riskAdjustment = 0;

@@ -3,14 +3,17 @@
  * 
  * Floating right panel that can be collapsed to a pill or expanded to a card.
  * Shows compliance status and "Fix it" actions.
+ * 
+ * Uses UNIFIED COMPLIANCE ENGINE for consistent PASS/WARN/FAIL calculations.
  */
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useDesignStore } from "@/stores/useDesignStore";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { computeCompliance, createEnvelopeConstraints } from "@/lib/complianceEngine";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -33,8 +36,30 @@ export function ComplianceDock({ className }: ComplianceDockProps) {
   const { variants, activeVariantId, envelope, updateVariant } = useDesignStore();
   
   const activeVariant = variants.find((v) => v.id === activeVariantId);
-  const complianceResult = activeVariant?.complianceResult;
-  const overallStatus = activeVariant?.complianceStatus || "PENDING";
+  
+  // Compute compliance using UNIFIED ENGINE
+  const complianceResult = useMemo(() => {
+    if (!activeVariant || !envelope || !activeVariant.footprint) {
+      return null;
+    }
+    
+    const constraints = createEnvelopeConstraints({
+      parcelGeometry: envelope.parcelGeometry,
+      buildableFootprint2d: envelope.buildableFootprint2d,
+      farCap: envelope.farCap,
+      heightCapFt: envelope.heightCapFt,
+      coverageCapPct: envelope.coverageCapPct,
+    });
+    
+    return computeCompliance({
+      designGeometry: activeVariant.footprint,
+      heightFt: activeVariant.heightFt,
+      floors: activeVariant.floors,
+      envelope: constraints,
+    });
+  }, [activeVariant, envelope]);
+  
+  const overallStatus = complianceResult?.overall || activeVariant?.complianceStatus || "PENDING";
 
   const statusConfig = {
     PASS: {
