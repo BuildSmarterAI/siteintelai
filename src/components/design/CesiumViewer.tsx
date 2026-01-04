@@ -1442,17 +1442,29 @@ export function CesiumViewerComponent({
           </Entity>
         )}
 
-        {/* Regulatory Envelope (extruded volume) */}
+        {/* Regulatory Envelope - 2D outline while wizard open, 3D when closed */}
         {envelope.buildableFootprint2d && (
           <Entity name="regulatory-envelope">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(envelope.buildableFootprint2d)}
-              extrudedHeight={(groundHeightMeters ?? 0) + feetToMeters(envelope.heightCapFt)}
+              extrudedHeight={
+                wizardIsOpen 
+                  ? undefined 
+                  : (groundHeightMeters ?? 0) + feetToMeters(envelope.heightCapFt)
+              }
               height={groundHeightMeters ?? 0}
-              material={DESIGN_COLORS.envelope}
+              material={
+                wizardIsOpen 
+                  ? Color.TRANSPARENT 
+                  : DESIGN_COLORS.envelope
+              }
               outline
-              outlineColor={DESIGN_COLORS.envelopeOutline}
-              outlineWidth={1}
+              outlineColor={
+                wizardIsOpen 
+                  ? Color.fromCssColorString('#64748b').withAlpha(0.8)
+                  : DESIGN_COLORS.envelopeOutline
+              }
+              outlineWidth={wizardIsOpen ? 2 : 1}
             />
           </Entity>
         )}
