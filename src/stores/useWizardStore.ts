@@ -66,7 +66,7 @@ const initialState: WizardState & { isOpen: boolean } = {
 };
 
 const DEFAULT_FLOOR_HEIGHTS: Record<UseType, number> = {
-  industrial: 28, multifamily: 11, office: 13, retail: 14, medical: 12, hotel: 10,
+  industrial: 28, multifamily: 11, office: 13, retail: 14, medical: 12, hotel: 10, qsr: 15, retail_strip: 16,
 };
 
 export const useWizardStore = create<WizardStore>()((set, get) => ({
