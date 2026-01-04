@@ -173,9 +173,12 @@ export function createEnvelopeSummary(envelope: any): EnvelopeSummary | null {
       const turf = require('@turf/turf');
       const area = turf.area(turf.polygon(envelope.parcelGeometry.coordinates));
       parcelAcres = area / 4046.86; // sqm to acres
-    } catch {
+    } catch (err) {
+      console.warn('[EnvelopeSummary] Failed to calculate parcel area from geometry:', err);
       parcelAcres = 1;
     }
+  } else {
+    console.warn('[EnvelopeSummary] No parcel geometry provided, defaulting to 1 acre');
   }
   
   const parcelSqft = parcelAcres * 43560;
