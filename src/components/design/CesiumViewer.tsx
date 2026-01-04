@@ -113,6 +113,10 @@ export function CesiumViewerComponent({
   
   // Ground height sampling for Google 3D mode
   const [groundHeightMeters, setGroundHeightMeters] = useState<number | null>(null);
+  
+  // Animation state for envelope 2D/3D transition
+  const [envelopeAnimProgress, setEnvelopeAnimProgress] = useState(1); // 0 = 2D, 1 = 3D
+  const envelopeAnimRef = useRef<number | null>(null);
 
   // Fetch Mapbox token from Edge Function
   const { token: mapboxToken, isLoading: tokenLoading, error: tokenError } = useMapboxToken();
@@ -568,6 +572,66 @@ export function CesiumViewerComponent({
     previewGeometry &&
     previewHeightFt
   );
+
+  // Animate envelope transition (2D ↔ 3D) when wizard opens/closes
+  useEffect(() => {
+    const duration = 500; // ms
+    const startTime = performance.now();
+    const startProgress = envelopeAnimProgress;
+    const endProgress = wizardIsOpen ? 0 : 1; // 0 = 2D, 1 = 3D
+    
+    // Early exit if already at target
+    if (Math.abs(startProgress - endProgress) < 0.01) return;
+    
+    const animate = (currentTime: number) => {
+      const elapsed = currentTime - startTime;
+      const t = Math.min(elapsed / duration, 1);
+      
+      // Ease-out cubic for smooth deceleration
+      const eased = 1 - Math.pow(1 - t, 3);
+      
+      const newProgress = startProgress + (endProgress - startProgress) * eased;
+      setEnvelopeAnimProgress(newProgress);
+      
+      if (t < 1) {
+        envelopeAnimRef.current = requestAnimationFrame(animate);
+      }
+    };
+    
+    envelopeAnimRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (envelopeAnimRef.current) {
+        cancelAnimationFrame(envelopeAnimRef.current);
+      }
+    };
+  }, [wizardIsOpen]);
+
+  // Compute animated envelope properties
+  const envelopeAnimatedProps = useMemo(() => {
+    const groundHeight = groundHeightMeters ?? 0;
+    const maxHeight = groundHeight + feetToMeters(envelope?.heightCapFt ?? 0);
+    
+    // Interpolate height: 0 progress = ground height only (2D), 1 = full extrusion
+    const animatedHeight = envelopeAnimProgress > 0.01 
+      ? groundHeight + (maxHeight - groundHeight) * envelopeAnimProgress
+      : undefined;
+    
+    // Interpolate material alpha: 0 progress = transparent, 1 = 0.15 alpha
+    const baseAlpha = 0.15;
+    const animatedAlpha = baseAlpha * envelopeAnimProgress;
+    
+    // Interpolate outline: more visible when 2D
+    const outlineAlpha = 0.3 + 0.5 * (1 - envelopeAnimProgress);
+    const outlineWidth = 2 - envelopeAnimProgress; // 2px when 2D, 1px when 3D
+    
+    return {
+      extrudedHeight: animatedHeight,
+      material: Color.fromCssColorString('#64748b').withAlpha(animatedAlpha),
+      outlineColor: Color.fromCssColorString('#64748b').withAlpha(outlineAlpha),
+      outlineWidth: Math.max(1, outlineWidth),
+    };
+  }, [envelopeAnimProgress, groundHeightMeters, envelope?.heightCapFt]);
 
   // Track camera heading for street view HUD
   const [cameraHeading, setCameraHeading] = useState(0);
@@ -1442,29 +1506,17 @@ export function CesiumViewerComponent({
           </Entity>
         )}
 
-        {/* Regulatory Envelope - 2D outline while wizard open, 3D when closed */}
+        {/* Regulatory Envelope - Animated 2D/3D transition */}
         {envelope.buildableFootprint2d && (
           <Entity name="regulatory-envelope">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(envelope.buildableFootprint2d)}
-              extrudedHeight={
-                wizardIsOpen 
-                  ? undefined 
-                  : (groundHeightMeters ?? 0) + feetToMeters(envelope.heightCapFt)
-              }
+              extrudedHeight={envelopeAnimatedProps.extrudedHeight}
               height={groundHeightMeters ?? 0}
-              material={
-                wizardIsOpen 
-                  ? Color.TRANSPARENT 
-                  : DESIGN_COLORS.envelope
-              }
+              material={envelopeAnimatedProps.material}
               outline
-              outlineColor={
-                wizardIsOpen 
-                  ? Color.fromCssColorString('#64748b').withAlpha(0.8)
-                  : DESIGN_COLORS.envelopeOutline
-              }
-              outlineWidth={wizardIsOpen ? 2 : 1}
+              outlineColor={envelopeAnimatedProps.outlineColor}
+              outlineWidth={envelopeAnimatedProps.outlineWidth}
             />
           </Entity>
         )}
