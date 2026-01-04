@@ -13,6 +13,7 @@ import type {
   SelectedTemplate,
   WizardState,
 } from '@/types/wizard';
+import type { IntensityLevel, OrientationMode, PreviewParkingMode } from '@/types/buildingTypes';
 
 interface WizardStore extends WizardState {
   isOpen: boolean;
@@ -28,33 +29,54 @@ interface WizardStore extends WizardState {
   confirmSite: () => void;
   // Step 2: Use Types
   toggleUseType: (useType: UseType) => void;
-  // Step 3: Program Targets
+  // Step 3: Building Type (NEW)
+  buildingTypeId: string | null;
+  intensity: IntensityLevel;
+  orientation: OrientationMode;
+  parkingMode: PreviewParkingMode;
+  setBuildingType: (id: string | null) => void;
+  setIntensity: (level: IntensityLevel) => void;
+  setOrientation: (mode: OrientationMode) => void;
+  setParkingMode: (mode: PreviewParkingMode) => void;
+  // Step 4: Program Targets
   updateProgramBucket: (useType: UseType, updates: Partial<ProgramBucket>) => void;
-  // Step 4: Parking
+  // Step 5: Parking
   setParkingEnabled: (enabled: boolean) => void;
   setParkingType: (type: ParkingType) => void;
   setParkingRatio: (ratio: number) => void;
   updateParkingEstimate: (totalGfa: number) => void;
-  // Step 5: Templates
+  // Step 6: Templates
   addTemplate: (template: SelectedTemplate) => void;
   removeTemplate: (templateKey: string) => void;
   setHoveredTemplate: (templateKey: string | null) => void;
-  // Step 6: Sustainability
+  // Step 7: Sustainability
   setSustainabilityEnabled: (enabled: boolean) => void;
   setSustainabilityLevel: (level: SustainabilityLevel) => void;
-  // Step 7: Generate
+  // Step 8: Generate
   setGenerating: (isGenerating: boolean) => void;
   setGenerationProgress: (progress: number) => void;
   setGeneratedVariantIds: (ids: string[]) => void;
 }
 
-const initialState: WizardState & { isOpen: boolean } = {
+const initialState: WizardState & { 
+  isOpen: boolean;
+  buildingTypeId: string | null;
+  intensity: IntensityLevel;
+  orientation: OrientationMode;
+  parkingMode: PreviewParkingMode;
+} = {
   isOpen: false,
   currentStep: 1,
   maxReachedStep: 1,
   siteConfirmed: false,
   selectedUseTypes: [],
   programBuckets: [],
+  // Building type step (NEW)
+  buildingTypeId: null,
+  intensity: 'optimal',
+  orientation: 'parcel',
+  parkingMode: 'surface',
+  // Existing state
   parkingConfig: { enabled: false, type: 'surface', ratio: 3.5, estimatedStalls: 0 },
   selectedTemplates: [],
   hoveredTemplateKey: null,
@@ -81,7 +103,7 @@ export const useWizardStore = create<WizardStore>()((set, get) => ({
     maxReachedStep: Math.max(step, s.maxReachedStep) 
   })),
   nextStep: () => set((s) => {
-    if (s.currentStep < 7) {
+    if (s.currentStep < 8) { // Updated from 7 to 8 steps
       const next = s.currentStep + 1;
       return { currentStep: next, maxReachedStep: Math.max(next, s.maxReachedStep) };
     }
@@ -90,6 +112,12 @@ export const useWizardStore = create<WizardStore>()((set, get) => ({
   prevStep: () => set((s) => s.currentStep > 1 ? { currentStep: s.currentStep - 1 } : {}),
   
   confirmSite: () => set({ siteConfirmed: true }),
+  
+  // Building Type Step (NEW)
+  setBuildingType: (id) => set({ buildingTypeId: id }),
+  setIntensity: (level) => set({ intensity: level }),
+  setOrientation: (mode) => set({ orientation: mode }),
+  setParkingMode: (mode) => set({ parkingMode: mode }),
   
   toggleUseType: (useType) => set((s) => {
     const idx = s.selectedUseTypes.indexOf(useType);
@@ -161,11 +189,12 @@ export const selectCanProceed = (state: WizardStore): boolean => {
   switch (state.currentStep) {
     case 1: return state.siteConfirmed;
     case 2: return state.selectedUseTypes.length > 0;
-    case 3: return state.programBuckets.length > 0;
-    case 4: return true;
-    case 5: return state.selectedTemplates.length > 0;
-    case 6: return true;
-    case 7: return !state.isGenerating;
+    case 3: return state.buildingTypeId !== null; // Building Type step (NEW)
+    case 4: return state.programBuckets.length > 0; // Program (was step 3)
+    case 5: return true; // Parking (was step 4)
+    case 6: return state.selectedTemplates.length > 0; // Templates (was step 5)
+    case 7: return true; // Sustainability (was step 6)
+    case 8: return !state.isGenerating; // Generate (was step 7)
     default: return false;
   }
 };
