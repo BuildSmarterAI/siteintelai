@@ -1,502 +1,405 @@
-/**
- * SiteIntel™ Design Mode - Atomic Variant Generation
- * 
- * Server-side variant generation with batch insert for atomic persistence.
- * Ensures all-or-nothing variant creation and consistent state.
- */
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface ProgramBucket {
-  useType: string;
-  targetGfa: number;
-  targetStories: number;
-  riskTolerance: string;
-  floorToFloorFt: number;
-}
+// ============================================================================
+// Types
+// ============================================================================
 
-interface SelectedTemplate {
-  templateKey: string;
-  template: {
-    id: string;
-    template_key: string;
-    use_type: string;
-    name: string;
-    default_floors: number;
-    floor_to_floor_ft: number;
-    footprint_shape: string;
-    footprint_area_target_sqft: number | null;
-    width_depth_ratio: number;
-    min_footprint_sqft: number;
-    max_footprint_sqft: number;
-    min_floors: number;
-    max_floors: number;
-  };
-  modifiedFloors?: number;
-  modifiedFootprintSqft?: number;
-}
-
-interface EnvelopeSummary {
-  parcelAcres: number;
-  parcelSqft: number;
-  buildableSqft: number;
-  farCap: number;
-  heightCapFt: number;
-  coverageCapPct: number;
-  maxGfa: number;
-}
-
-interface GenerateRequest {
+interface GenerateVariantsRequest {
   sessionId: string;
   envelopeId: string;
-  envelope: EnvelopeSummary;
-  buildablePolygon: GeoJSON.Polygon;
-  selectedTemplates: SelectedTemplate[];
-  programBuckets: ProgramBucket[];
-  sustainabilityLevel: string | null;
-  designIntent?: Record<string, unknown>;
+  intent: {
+    selectedTemplates: string[];
+    programBuckets: Record<string, number>;
+    sustainabilityLevel: "standard" | "enhanced" | "premium";
+    wizardStep?: number;
+  };
+  options?: {
+    maxVariants?: number;
+    replaceExisting?: boolean;
+  };
 }
 
-interface GeneratedVariant {
+interface VariantData {
   name: string;
   strategy: string;
-  footprint: GeoJSON.Polygon;
-  height_ft: number;
-  floors: number;
-  gfa: number;
-  far: number;
-  coverage: number;
-  notes: string;
-  compliance_status: string;
-  preset_type: string | null;
+  footprint_geojson: unknown;
+  metrics: Record<string, unknown>;
 }
-
-type VariantStrategy = 'safe' | 'balanced' | 'max_yield' | 'height_biased' | 'coverage_biased' | 'mixed_program';
 
 // ============================================================================
-// VARIANT GENERATION LOGIC (server-side implementation)
+// Helpers
 // ============================================================================
 
-function getActiveStrategies(config: {
-  envelope: EnvelopeSummary;
-  selectedTemplates: SelectedTemplate[];
-}): VariantStrategy[] {
-  const strategies: VariantStrategy[] = ['safe', 'balanced', 'max_yield'];
-  
-  if (config.envelope.heightCapFt > 40) {
-    strategies.push('height_biased');
-  }
-  
-  if (config.envelope.coverageCapPct > 60) {
-    strategies.push('coverage_biased');
-  }
-  
-  if (config.selectedTemplates.length >= 2) {
-    strategies.push('mixed_program');
-  }
-  
-  return strategies.slice(0, 6);
+function jsonOk(payload: unknown): Response {
+  return new Response(JSON.stringify(payload), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status: 200,
+  });
 }
 
-function formatGfa(gfa: number): string {
-  if (gfa >= 1000000) return `${(gfa / 1000000).toFixed(1)}M`;
-  return `${Math.round(gfa / 1000)}K`;
+function jsonError(status: number, code: string, message?: string): Response {
+  return new Response(JSON.stringify({ ok: false, code, message }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status,
+  });
 }
 
-function capitalizeFirst(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1).replace(/_/g, ' ');
-}
-
-function generateSimpleRectangle(
-  centerLng: number,
-  centerLat: number,
-  widthFt: number,
-  depthFt: number
-): GeoJSON.Polygon {
-  // Approximate conversion: 1 degree lat = 364,000 ft, 1 degree lng = 288,200 ft at ~30°N
-  const latPerFt = 1 / 364000;
-  const lngPerFt = 1 / 288200;
+// Generate idempotency key from canonical inputs
+function computeIdempotencyKey(
+  sessionId: string,
+  envelopeId: string,
+  intent: GenerateVariantsRequest["intent"]
+): string {
+  const canonical = JSON.stringify({
+    sessionId,
+    envelopeId,
+    templates: [...intent.selectedTemplates].sort(),
+    buckets: intent.programBuckets,
+    sustainability: intent.sustainabilityLevel,
+  });
   
-  const halfWidth = (widthFt / 2) * lngPerFt;
-  const halfDepth = (depthFt / 2) * latPerFt;
-  
-  return {
-    type: 'Polygon',
-    coordinates: [[
-      [centerLng - halfWidth, centerLat - halfDepth],
-      [centerLng + halfWidth, centerLat - halfDepth],
-      [centerLng + halfWidth, centerLat + halfDepth],
-      [centerLng - halfWidth, centerLat + halfDepth],
-      [centerLng - halfWidth, centerLat - halfDepth],
-    ]],
-  };
-}
-
-function getPolygonCentroid(polygon: GeoJSON.Polygon): { lng: number; lat: number } {
-  const coords = polygon.coordinates[0];
-  let sumLng = 0;
-  let sumLat = 0;
-  const n = coords.length - 1; // Skip closing point
-  
-  for (let i = 0; i < n; i++) {
-    sumLng += coords[i][0];
-    sumLat += coords[i][1];
+  // Simple hash for idempotency key
+  let hash = 0;
+  for (let i = 0; i < canonical.length; i++) {
+    const char = canonical.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
   }
-  
-  return { lng: sumLng / n, lat: sumLat / n };
+  return `variant_gen_${Math.abs(hash).toString(16)}`;
 }
 
-function createVariantForStrategy(
-  config: GenerateRequest,
-  strategy: VariantStrategy
-): GeneratedVariant | null {
-  const { envelope, buildablePolygon, selectedTemplates, programBuckets, sustainabilityLevel } = config;
-  
-  const primaryTemplate = selectedTemplates[0];
-  if (!primaryTemplate) return null;
-  
-  const template = primaryTemplate.template;
-  const bucket = programBuckets.find(b => b.useType === template.use_type) || programBuckets[0];
-  if (!bucket) return null;
-  
-  const centroid = getPolygonCentroid(buildablePolygon);
-  
-  let footprintSqft: number;
-  let floors: number;
-  let heightFt: number;
-  
-  const baseFootprint = primaryTemplate.modifiedFootprintSqft || template.footprint_area_target_sqft || 20000;
-  const baseFloors = primaryTemplate.modifiedFloors || template.default_floors;
-  
-  switch (strategy) {
-    case 'safe':
-      footprintSqft = Math.min(
-        baseFootprint * 0.8,
-        (envelope.coverageCapPct * 0.6 / 100) * envelope.parcelSqft
-      );
-      floors = Math.min(baseFloors, 
-        Math.floor((envelope.heightCapFt * 0.7) / template.floor_to_floor_ft));
-      floors = Math.max(1, floors);
-      heightFt = floors * template.floor_to_floor_ft;
-      break;
-      
-    case 'balanced':
-      footprintSqft = Math.min(
-        baseFootprint,
-        (envelope.coverageCapPct * 0.8 / 100) * envelope.parcelSqft
-      );
-      floors = baseFloors;
-      heightFt = floors * template.floor_to_floor_ft;
-      break;
-      
-    case 'max_yield':
-      footprintSqft = Math.min(
-        baseFootprint * 1.2,
-        (envelope.coverageCapPct * 0.95 / 100) * envelope.parcelSqft
-      );
-      floors = Math.floor((envelope.heightCapFt * 0.95) / template.floor_to_floor_ft);
-      floors = Math.max(1, floors);
-      heightFt = Math.min(envelope.heightCapFt * 0.95, floors * template.floor_to_floor_ft);
-      break;
-      
-    case 'height_biased':
-      floors = Math.floor(envelope.heightCapFt / template.floor_to_floor_ft);
-      floors = Math.max(1, floors);
-      heightFt = floors * template.floor_to_floor_ft;
-      footprintSqft = Math.max(
-        template.min_footprint_sqft,
-        bucket.targetGfa / floors
-      );
-      break;
-      
-    case 'coverage_biased':
-      footprintSqft = Math.min(
-        template.max_footprint_sqft,
-        (envelope.coverageCapPct * 0.9 / 100) * envelope.parcelSqft
-      );
-      floors = Math.max(1, Math.ceil(bucket.targetGfa / footprintSqft));
-      floors = Math.min(floors, template.max_floors);
-      heightFt = floors * template.floor_to_floor_ft;
-      break;
-      
-    case 'mixed_program':
-      footprintSqft = baseFootprint;
-      floors = baseFloors;
-      heightFt = floors * template.floor_to_floor_ft;
-      break;
-      
-    default:
-      footprintSqft = baseFootprint;
-      floors = baseFloors;
-      heightFt = floors * template.floor_to_floor_ft;
-  }
-  
-  // Generate footprint geometry
-  const aspectRatio = template.width_depth_ratio || 1.5;
-  const area = footprintSqft;
-  const width = Math.sqrt(area * aspectRatio);
-  const depth = area / width;
-  
-  const footprint = generateSimpleRectangle(centroid.lng, centroid.lat, width, depth);
-  
-  // Calculate metrics
-  const gfa = footprintSqft * floors;
-  const far = gfa / envelope.parcelSqft;
-  const coverage = (footprintSqft / envelope.parcelSqft) * 100;
-  
-  // Determine compliance status
-  let complianceStatus = 'PASS';
-  if (far > envelope.farCap || heightFt > envelope.heightCapFt || coverage > envelope.coverageCapPct) {
-    complianceStatus = 'FAIL';
-  } else if (far > envelope.farCap * 0.9 || heightFt > envelope.heightCapFt * 0.9 || coverage > envelope.coverageCapPct * 0.9) {
-    complianceStatus = 'WARN';
-  }
-  
-  // Build name
-  const useTypeLabel = capitalizeFirst(template.use_type);
-  const strategyLabel = capitalizeFirst(strategy);
-  const name = `${strategyLabel} — ${useTypeLabel} — ${formatGfa(gfa)} — ${Math.round(heightFt)}'`;
-  
-  return {
-    name,
-    strategy,
-    footprint,
-    height_ft: heightFt,
-    floors,
-    gfa,
-    far: Math.round(far * 100) / 100,
-    coverage: Math.round(coverage),
-    notes: `Generated via ${strategy} strategy${sustainabilityLevel ? ` | Sustainability: ${sustainabilityLevel}` : ''}`,
-    compliance_status: complianceStatus,
-    preset_type: template.template_key,
-  };
-}
+// ============================================================================
+// Variant Generation Logic
+// ============================================================================
 
-function generateVariantPack(config: GenerateRequest): GeneratedVariant[] {
-  const strategies = getActiveStrategies(config);
-  const variants: GeneratedVariant[] = [];
+function generateVariantsFromIntent(
+  envelope: { heightCapFt: number; farCap: number; coverageCapPct: number; setbacks: Record<string, number> },
+  intent: GenerateVariantsRequest["intent"],
+  maxVariants: number
+): VariantData[] {
+  const variants: VariantData[] = [];
+  const strategies = ["maximize_gfa", "balanced", "maximize_open_space"];
   
-  for (const strategy of strategies) {
-    const variant = createVariantForStrategy(config, strategy);
-    if (variant) {
-      variants.push(variant);
+  for (let i = 0; i < Math.min(maxVariants, 3); i++) {
+    const strategy = strategies[i] || "balanced";
+    
+    // Adjust metrics based on strategy
+    let coverageMultiplier = 1.0;
+    let heightMultiplier = 1.0;
+    
+    switch (strategy) {
+      case "maximize_gfa":
+        coverageMultiplier = 0.95;
+        heightMultiplier = 1.0;
+        break;
+      case "balanced":
+        coverageMultiplier = 0.75;
+        heightMultiplier = 0.85;
+        break;
+      case "maximize_open_space":
+        coverageMultiplier = 0.55;
+        heightMultiplier = 0.7;
+        break;
     }
+    
+    const effectiveHeight = envelope.heightCapFt * heightMultiplier;
+    const effectiveCoverage = envelope.coverageCapPct * coverageMultiplier;
+    const floors = Math.floor(effectiveHeight / 12); // 12 ft per floor
+    
+    // Calculate sustainability bonus
+    let sustainabilityBonus = 0;
+    switch (intent.sustainabilityLevel) {
+      case "enhanced":
+        sustainabilityBonus = 5;
+        break;
+      case "premium":
+        sustainabilityBonus = 10;
+        break;
+    }
+    
+    variants.push({
+      name: `Variant ${String.fromCharCode(65 + i)} - ${strategy.replace(/_/g, " ")}`,
+      strategy,
+      footprint_geojson: {
+        type: "Polygon",
+        coordinates: [[[0, 0], [100, 0], [100, 100], [0, 100], [0, 0]]], // Placeholder
+      },
+      metrics: {
+        heightFt: effectiveHeight,
+        floors,
+        coveragePct: effectiveCoverage,
+        farAchieved: envelope.farCap * (effectiveCoverage / 100) * (floors / Math.floor(envelope.heightCapFt / 12)),
+        sustainabilityScore: 70 + sustainabilityBonus,
+        score: {
+          overall: 75 + sustainabilityBonus + (strategy === "balanced" ? 5 : 0),
+          compliance: 85,
+          utilization: 70 + (strategy === "maximize_gfa" ? 10 : 0),
+        },
+        templates: intent.selectedTemplates,
+        programBuckets: intent.programBuckets,
+      },
+    });
   }
   
   return variants;
 }
 
-function getBestOverallVariant(variants: GeneratedVariant[]): GeneratedVariant | null {
-  if (variants.length === 0) return null;
-  
-  const scored = variants.map(v => {
-    let score = 0;
-    
-    if (v.strategy === 'balanced') score += 20;
-    if (v.strategy === 'safe') score += 10;
-    
-    if (v.coverage >= 70 && v.coverage <= 90) score += 15;
-    if (v.far >= 0.5 && v.far <= 0.8) score += 15;
-    
-    score += Math.min(20, v.gfa / 10000);
-    
-    // Penalty for non-compliant
-    if (v.compliance_status === 'FAIL') score -= 50;
-    if (v.compliance_status === 'WARN') score -= 10;
-    
-    return { variant: v, score };
-  });
-  
-  scored.sort((a, b) => b.score - a.score);
-  return scored[0]?.variant || null;
-}
-
 // ============================================================================
-// MAIN HANDLER
+// Main Handler
 // ============================================================================
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    // Get auth token from request
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+  console.log("[generate-variants] Request received");
 
-    // Create client with user's auth
+  try {
+    // 1) Create Supabase client with user's auth
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const authHeader = req.headers.get("Authorization") || "";
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { headers: { Authorization: authHeader } },
     });
 
-    // Get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-    
-    if (authError || !user) {
-      console.error('[generate-variants] Auth error:', authError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // 2) Verify authentication
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData.user) {
+      console.error("[generate-variants] Auth failed:", userErr?.message);
+      return jsonError(401, "AUTH_REQUIRED", "Authentication required");
     }
 
-    const body: GenerateRequest = await req.json();
-    const { sessionId, envelopeId, envelope, buildablePolygon, selectedTemplates, programBuckets, sustainabilityLevel, designIntent } = body;
+    const userId = userData.user.id;
+    console.log("[generate-variants] User authenticated:", userId);
 
-    console.log('[generate-variants] Starting generation for session:', sessionId);
-    console.log('[generate-variants] Templates:', selectedTemplates.length, 'Program buckets:', programBuckets.length);
+    // 3) Parse request body
+    let body: GenerateVariantsRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return jsonError(400, "INVALID_REQUEST", "Invalid JSON body");
+    }
 
-    // Validate session belongs to user
-    const { data: session, error: sessionError } = await supabase
-      .from('design_sessions')
-      .select('id, user_id')
-      .eq('id', sessionId)
+    const { sessionId, envelopeId, intent, options } = body;
+    
+    if (!sessionId || !envelopeId || !intent) {
+      return jsonError(400, "MISSING_PARAMS", "sessionId, envelopeId, and intent are required");
+    }
+
+    const maxVariants = options?.maxVariants ?? 3;
+    const replaceExisting = options?.replaceExisting ?? true;
+
+    // 4) Generate idempotency key
+    const idempotencyKey = computeIdempotencyKey(sessionId, envelopeId, intent);
+    console.log("[generate-variants] Idempotency key:", idempotencyKey);
+
+    // 5) Check for existing job with same idempotency key
+    const { data: existingJob } = await supabase
+      .from("design_jobs")
+      .select("id, status, output_json")
+      .eq("job_type", "variant_generate")
+      .eq("idempotency_key", idempotencyKey)
       .single();
 
-    if (sessionError || !session) {
-      console.error('[generate-variants] Session not found:', sessionError);
-      return new Response(
-        JSON.stringify({ error: 'Session not found' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (existingJob) {
+      if (existingJob.status === "succeeded") {
+        console.log("[generate-variants] Returning cached result from job:", existingJob.id);
+        return jsonOk({
+          ok: true,
+          cached: true,
+          jobId: existingJob.id,
+          result: existingJob.output_json,
+        });
+      } else if (existingJob.status === "running" || existingJob.status === "queued") {
+        console.log("[generate-variants] Job already in progress:", existingJob.id);
+        return jsonOk({
+          ok: true,
+          pending: true,
+          jobId: existingJob.id,
+          status: existingJob.status,
+        });
+      }
+      // If failed, we'll create a new attempt below
     }
 
-    if (session.user_id !== user.id) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // 6) Verify session exists and belongs to user
+    const { data: session, error: sessErr } = await supabase
+      .from("design_sessions")
+      .select("id, envelope_id, user_id")
+      .eq("id", sessionId)
+      .single();
+
+    if (sessErr || !session) {
+      console.error("[generate-variants] Session not found:", sessErr?.message);
+      return jsonError(404, "SESSION_NOT_FOUND", "Design session not found");
     }
 
-    // Create generation job
-    const inputHash = JSON.stringify({ envelopeId, templateKeys: selectedTemplates.map(t => t.templateKey) })
-      .split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0)
-      .toString(16);
+    if (session.user_id !== userId) {
+      return jsonError(403, "FORBIDDEN", "Not authorized to access this session");
+    }
 
-    const { data: job, error: jobError } = await supabase
-      .from('design_generation_jobs')
+    // 7) Load envelope data
+    const { data: envelope, error: envErr } = await supabase
+      .from("regulatory_envelopes")
+      .select("id, height_cap_ft, far_cap, coverage_cap_pct, setbacks, status, application_id")
+      .eq("id", envelopeId)
+      .single();
+
+    if (envErr || !envelope) {
+      console.error("[generate-variants] Envelope not found:", envErr?.message);
+      return jsonError(404, "ENVELOPE_NOT_FOUND", "Regulatory envelope not found");
+    }
+
+    if (envelope.status !== "ready") {
+      return jsonError(400, "ENVELOPE_NOT_READY", "Envelope computation is still pending");
+    }
+
+    const applicationId = envelope.application_id;
+    if (!applicationId) {
+      return jsonError(500, "NO_APPLICATION", "Could not determine application for envelope");
+    }
+
+    // 8) Create job record
+    const { data: job, error: jobErr } = await supabase
+      .from("design_jobs")
       .insert({
+        job_type: "variant_generate",
+        status: "running",
+        application_id: applicationId,
+        envelope_id: envelopeId,
         session_id: sessionId,
-        status: 'processing',
-        input_hash: inputHash,
-        design_intent: designIntent || null,
+        idempotency_key: idempotencyKey,
+        attempt: 1,
+        input_json: { intent, options: { maxVariants, replaceExisting } },
       })
       .select()
       .single();
 
-    if (jobError) {
-      console.error('[generate-variants] Failed to create job:', jobError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to create generation job' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (jobErr) {
+      // Might be a conflict - check if job was created by another request
+      console.error("[generate-variants] Failed to create job:", jobErr.message);
+      
+      const { data: conflictJob } = await supabase
+        .from("design_jobs")
+        .select("id, status")
+        .eq("job_type", "variant_generate")
+        .eq("idempotency_key", idempotencyKey)
+        .single();
+      
+      if (conflictJob) {
+        return jsonOk({
+          ok: true,
+          pending: true,
+          jobId: conflictJob.id,
+          status: conflictJob.status,
+        });
+      }
+      
+      return jsonError(500, "JOB_CREATE_FAILED", jobErr.message);
     }
 
-    console.log('[generate-variants] Created job:', job.id);
+    console.log("[generate-variants] Job created:", job.id);
 
-    // Generate variants
-    const variants = generateVariantPack(body);
-    const bestVariant = getBestOverallVariant(variants);
-    
-    console.log('[generate-variants] Generated', variants.length, 'variants');
+    try {
+      // 9) Generate variants
+      const generatedVariants = generateVariantsFromIntent(
+        {
+          heightCapFt: envelope.height_cap_ft ?? 35,
+          farCap: envelope.far_cap ?? 1.0,
+          coverageCapPct: envelope.coverage_cap_pct ?? 50,
+          setbacks: (envelope.setbacks as Record<string, number>) ?? {},
+        },
+        intent,
+        maxVariants
+      );
 
-    if (variants.length === 0) {
-      // Mark job as failed
+      // 10) Delete existing variants if replaceExisting
+      if (replaceExisting) {
+        await supabase
+          .from("design_variants")
+          .delete()
+          .eq("session_id", sessionId);
+      }
+
+      // 11) Insert new variants atomically
+      const variantsToInsert = generatedVariants.map((v) => ({
+        session_id: sessionId,
+        name: v.name,
+        strategy: v.strategy,
+        footprint_geojson: v.footprint_geojson,
+        metrics: v.metrics,
+      }));
+
+      const { data: insertedVariants, error: insertErr } = await supabase
+        .from("design_variants")
+        .insert(variantsToInsert)
+        .select("id, name");
+
+      if (insertErr) {
+        throw new Error(`Failed to insert variants: ${insertErr.message}`);
+      }
+
+      // 12) Set first variant as active
+      if (insertedVariants && insertedVariants.length > 0) {
+        await supabase
+          .from("design_sessions")
+          .update({ active_variant_id: insertedVariants[0].id })
+          .eq("id", sessionId);
+      }
+
+      // 13) Update design intent on session
       await supabase
-        .from('design_generation_jobs')
-        .update({ status: 'failed', error_message: 'No variants generated', completed_at: new Date().toISOString() })
-        .eq('id', job.id);
+        .from("design_sessions")
+        .update({ design_intent: intent })
+        .eq("id", sessionId);
 
-      return new Response(
-        JSON.stringify({ error: 'No variants could be generated' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      // 14) Complete the job
+      const outputJson = {
+        variantIds: insertedVariants?.map((v) => v.id) ?? [],
+        variantCount: insertedVariants?.length ?? 0,
+        completedAt: new Date().toISOString(),
+      };
 
-    // Mark best variant
-    const variantsForInsert = variants.map(v => ({
-      ...v,
-      name: v === bestVariant ? `★ ${v.name}` : v.name,
-    }));
-
-    // Batch insert using RPC
-    const { data: insertedVariants, error: insertError } = await supabase
-      .rpc('insert_variants_batch', {
-        p_session_id: sessionId,
-        p_variants: variantsForInsert,
-        p_best_variant_id: null, // Will be set after insert
-        p_generation_job_id: job.id,
+      await supabase.rpc("complete_design_job", {
+        p_job_id: job.id,
+        p_output: outputJson,
       });
 
-    if (insertError) {
-      console.error('[generate-variants] Batch insert failed:', insertError);
-      
-      // Mark job as failed
-      await supabase
-        .from('design_generation_jobs')
-        .update({ status: 'failed', error_message: insertError.message, completed_at: new Date().toISOString() })
-        .eq('id', job.id);
+      console.log("[generate-variants] Generation complete, variants:", insertedVariants?.length);
 
-      return new Response(
-        JSON.stringify({ error: 'Failed to save variants', details: insertError.message }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Find best variant ID
-    const bestVariantId = insertedVariants?.find((v: { name: string }) => 
-      v.name.startsWith('★')
-    )?.id || insertedVariants?.[0]?.id || null;
-
-    // Update job with best variant
-    await supabase
-      .from('design_generation_jobs')
-      .update({ best_variant_id: bestVariantId })
-      .eq('id', job.id);
-
-    // Update design intent on session if provided
-    if (designIntent) {
-      await supabase
-        .from('design_sessions')
-        .update({ design_intent: designIntent, updated_at: new Date().toISOString() })
-        .eq('id', sessionId);
-    }
-
-    console.log('[generate-variants] Success! Inserted', insertedVariants?.length, 'variants. Best:', bestVariantId);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
+      return jsonOk({
+        ok: true,
         jobId: job.id,
         variants: insertedVariants,
-        variantsCount: insertedVariants?.length || 0,
-        bestVariantId,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+        activeVariantId: insertedVariants?.[0]?.id ?? null,
+      });
 
-  } catch (error) {
-    console.error('[generate-variants] Unexpected error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Internal server error', details: String(error) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    } catch (genErr) {
+      // 15) Mark job as failed with retry backoff
+      console.error("[generate-variants] Generation failed:", genErr);
+
+      await supabase.rpc("fail_design_job", {
+        p_job_id: job.id,
+        p_error: {
+          message: genErr instanceof Error ? genErr.message : "Unknown error",
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      return jsonError(500, "GENERATION_FAILED", genErr instanceof Error ? genErr.message : "Unknown error");
+    }
+
+  } catch (err) {
+    console.error("[generate-variants] Unexpected error:", err);
+    return jsonError(500, "INTERNAL_ERROR", err instanceof Error ? err.message : "Unknown error");
   }
 });
