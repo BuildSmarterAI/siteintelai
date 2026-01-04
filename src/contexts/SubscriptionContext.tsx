@@ -60,6 +60,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
 
       if (error) {
+        // Handle auth errors gracefully - don't crash the app
+        if (error.message?.includes('401') || error.message?.includes('Invalid JWT')) {
+          console.warn('Session may have expired, waiting for refresh');
+          setSubscribed(false);
+          setLoading(false);
+          return;
+        }
         console.error('Error checking subscription:', error);
         return;
       }
@@ -69,11 +76,21 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setSubscriptionEnd(data.subscription_end || null);
 
       // Fetch credits info
-      const { data: creditsData } = await supabase.functions.invoke('get-credits', {
+      const { data: creditsData, error: creditsError } = await supabase.functions.invoke('get-credits', {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
       });
+
+      if (creditsError) {
+        // Handle auth errors gracefully
+        if (creditsError.message?.includes('401') || creditsError.message?.includes('Invalid JWT')) {
+          console.warn('Credits fetch failed due to session issue');
+          return;
+        }
+        console.error('Error fetching credits:', creditsError);
+        return;
+      }
 
       if (creditsData) {
         setCredits(creditsData);
