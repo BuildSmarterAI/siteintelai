@@ -3216,6 +3216,13 @@ export type Database = {
             referencedRelation: "regulatory_envelopes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "design_sessions_envelope_id_fkey"
+            columns: ["envelope_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_envelopes_geojson"
+            referencedColumns: ["id"]
+          },
         ]
       }
       design_templates: {
@@ -8161,6 +8168,66 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      regulatory_envelopes_geojson: {
+        Row: {
+          application_id: string | null
+          buildable_footprint_2d_geojson: Json | null
+          computed_at: string | null
+          constraints_source: Json | null
+          constraints_version: string | null
+          coverage_cap_pct: number | null
+          exclusion_zones: Json | null
+          far_cap: number | null
+          height_cap_ft: number | null
+          id: string | null
+          parcel_geometry_geojson: Json | null
+          setbacks: Json | null
+        }
+        Insert: {
+          application_id?: string | null
+          buildable_footprint_2d_geojson?: never
+          computed_at?: string | null
+          constraints_source?: Json | null
+          constraints_version?: string | null
+          coverage_cap_pct?: number | null
+          exclusion_zones?: Json | null
+          far_cap?: number | null
+          height_cap_ft?: number | null
+          id?: string | null
+          parcel_geometry_geojson?: never
+          setbacks?: Json | null
+        }
+        Update: {
+          application_id?: string | null
+          buildable_footprint_2d_geojson?: never
+          computed_at?: string | null
+          constraints_source?: Json | null
+          constraints_version?: string | null
+          coverage_cap_pct?: number | null
+          exclusion_zones?: Json | null
+          far_cap?: number | null
+          height_cap_ft?: number | null
+          id?: string | null
+          parcel_geometry_geojson?: never
+          setbacks?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_envelopes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_envelopes_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+        ]
       }
       v_parcels: {
         Row: {
