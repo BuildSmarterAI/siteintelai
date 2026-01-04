@@ -100,7 +100,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.check-subscription]
-verify_jwt = true
+verify_jwt = false
 
 [functions.get-checkout-session]
 verify_jwt = false
@@ -175,7 +175,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.get-credits]
-verify_jwt = true
+verify_jwt = false
 
 [functions.use-credit]
 verify_jwt = true
