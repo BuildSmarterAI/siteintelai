@@ -3123,6 +3123,56 @@ export type Database = {
         }
         Relationships: []
       }
+      design_generation_jobs: {
+        Row: {
+          best_variant_id: string | null
+          completed_at: string | null
+          created_at: string
+          design_intent: Json | null
+          error_message: string | null
+          id: string
+          input_hash: string | null
+          session_id: string
+          status: string
+          updated_at: string
+          variants_count: number | null
+        }
+        Insert: {
+          best_variant_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          design_intent?: Json | null
+          error_message?: string | null
+          id?: string
+          input_hash?: string | null
+          session_id: string
+          status?: string
+          updated_at?: string
+          variants_count?: number | null
+        }
+        Update: {
+          best_variant_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          design_intent?: Json | null
+          error_message?: string | null
+          id?: string
+          input_hash?: string | null
+          session_id?: string
+          status?: string
+          updated_at?: string
+          variants_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_generation_jobs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "design_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       design_presets: {
         Row: {
           category: string
@@ -3175,6 +3225,7 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          design_intent: Json | null
           envelope_id: string
           id: string
           is_active: boolean | null
@@ -3187,6 +3238,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
+          design_intent?: Json | null
           envelope_id: string
           id?: string
           is_active?: boolean | null
@@ -3199,6 +3251,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string | null
+          design_intent?: Json | null
           envelope_id?: string
           id?: string
           is_active?: boolean | null
@@ -9334,6 +9387,36 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_variants_batch: {
+        Args: {
+          p_best_variant_id?: string
+          p_generation_job_id?: string
+          p_session_id: string
+          p_variants: Json
+        }
+        Returns: {
+          compliance_status: string | null
+          created_at: string | null
+          floors: number | null
+          footprint: unknown
+          height_ft: number | null
+          id: string
+          is_baseline: boolean | null
+          metrics: Json | null
+          name: string
+          notes: string | null
+          preset_type: string | null
+          session_id: string
+          sort_order: number | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "design_variants"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       is_account_admin: { Args: { a: string }; Returns: boolean }
       is_account_member: { Args: { a: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
@@ -10070,6 +10153,28 @@ export type Database = {
       update_demographics_geometry: {
         Args: { p_geoid: string; p_geom_json: string }
         Returns: undefined
+      }
+      update_session_design_intent: {
+        Args: { p_design_intent: Json; p_session_id: string }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          design_intent: Json | null
+          envelope_id: string
+          id: string
+          is_active: boolean | null
+          is_shared: boolean | null
+          name: string
+          shared_with: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "design_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       updategeometrysrid: {
         Args: {

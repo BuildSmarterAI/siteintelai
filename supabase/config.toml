@@ -1,5 +1,11 @@
 project_id = "mcmfwlgovubpdcfiqfvk"
 
+[functions.generate-variants]
+verify_jwt = true
+
+[functions.design-mode-bootstrap]
+verify_jwt = false
+
 [functions.address-autocomplete]
 verify_jwt = false
 

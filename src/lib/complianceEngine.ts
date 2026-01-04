@@ -394,6 +394,7 @@ export function isDesignCompliant(input: ComplianceInput): boolean {
 /**
  * Check compliance for template scoring (simplified - no geometry needed)
  * Used by templateScoring.ts to score templates without full geometry
+ * Returns only PASS/WARN/FAIL (no PENDING) for template scoring compatibility
  */
 export function checkTemplateCompliance(params: {
   estimatedGfa: number;
@@ -405,38 +406,38 @@ export function checkTemplateCompliance(params: {
     heightCapFt: number;
     coverageCapPct: number;
   };
-}): { status: ComplianceStatus; penalty: number } {
+}): { status: 'PASS' | 'WARN' | 'FAIL'; penalty: number } {
   const { estimatedGfa, estimatedHeight, estimatedCoverage, envelope } = params;
   
   let penalty = 0;
-  let status: ComplianceStatus = "PASS";
+  let status: 'PASS' | 'WARN' | 'FAIL' = 'PASS';
 
   // FAR check
   const far = estimatedGfa / envelope.parcelSqft;
   if (far > envelope.farCap) {
     penalty += 50;
-    status = "FAIL";
+    status = 'FAIL';
   } else if (far > envelope.farCap * 0.9) {
     penalty += 10;
-    if (status === "PASS") status = "WARN";
+    if (status === 'PASS') status = 'WARN';
   }
 
   // Height check
   if (estimatedHeight > envelope.heightCapFt) {
     penalty += 50;
-    status = "FAIL";
+    status = 'FAIL';
   } else if (estimatedHeight > envelope.heightCapFt * 0.9) {
     penalty += 10;
-    if (status === "PASS") status = "WARN";
+    if (status === 'PASS') status = 'WARN';
   }
 
   // Coverage check
   if (estimatedCoverage > envelope.coverageCapPct) {
     penalty += 50;
-    status = "FAIL";
+    status = 'FAIL';
   } else if (estimatedCoverage > envelope.coverageCapPct * 0.9) {
     penalty += 10;
-    if (status === "PASS") status = "WARN";
+    if (status === 'PASS') status = 'WARN';
   }
 
   return { status, penalty };
