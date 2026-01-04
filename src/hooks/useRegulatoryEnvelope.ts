@@ -34,14 +34,15 @@ export function useRegulatoryEnvelope(applicationId: string | undefined) {
   const { setEnvelope, setIsLoadingEnvelope } = useDesignStore();
   const queryClient = useQueryClient();
 
-  // Query existing envelope - use maybeSingle to avoid errors on no rows
+  // Query existing envelope using GeoJSON view to get proper geometry format
   const envelopeQuery = useQuery({
     queryKey: ["regulatory-envelope", applicationId],
     queryFn: async () => {
       if (!applicationId) return null;
 
+      // Use the GeoJSON view to get geometries as proper GeoJSON objects
       const { data, error } = await supabase
-        .from("regulatory_envelopes")
+        .from("regulatory_envelopes_geojson")
         .select("*")
         .eq("application_id", applicationId)
         .order("computed_at", { ascending: false })
@@ -55,11 +56,17 @@ export function useRegulatoryEnvelope(applicationId: string | undefined) {
 
       if (data) {
         const rawSetbacks = data.setbacks as SetbacksJson | null;
+        const constraintsSource = data.constraints_source as { geometry_source?: string } | null;
+        
+        // The view returns parcel_geometry_geojson and buildable_footprint_2d_geojson as JSONB
+        const parcelGeom = data.parcel_geometry_geojson as unknown as GeoJSON.Polygon | null;
+        const buildableGeom = data.buildable_footprint_2d_geojson as unknown as GeoJSON.Polygon | null;
+        
         const envelope = {
           id: data.id,
           applicationId: data.application_id,
-          parcelGeometry: data.parcel_geometry as GeoJSON.Polygon,
-          buildableFootprint2d: data.buildable_footprint_2d as GeoJSON.Polygon,
+          parcelGeometry: parcelGeom,
+          buildableFootprint2d: buildableGeom,
           farCap: data.far_cap,
           heightCapFt: data.height_cap_ft,
           coverageCapPct: data.coverage_cap_pct,
@@ -71,6 +78,7 @@ export function useRegulatoryEnvelope(applicationId: string | undefined) {
           },
           exclusionZones: (data.exclusion_zones as unknown[]) || [],
           constraintsVersion: data.constraints_version,
+          constraintsSource: constraintsSource,
           computedAt: data.computed_at,
         };
         setEnvelope(envelope);

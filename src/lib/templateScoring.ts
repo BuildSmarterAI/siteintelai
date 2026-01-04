@@ -169,12 +169,27 @@ export function createEnvelopeSummary(envelope: any): EnvelopeSummary | null {
   let parcelAcres = 1;
   if (envelope.parcelGeometry) {
     try {
-      // Import turf dynamically to avoid circular deps
       const turf = require('@turf/turf');
-      const area = turf.area(turf.polygon(envelope.parcelGeometry.coordinates));
+      const geom = envelope.parcelGeometry;
+      
+      // Handle both GeoJSON Geometry and Feature formats
+      let feature;
+      if (geom.type === 'Feature') {
+        feature = geom;
+      } else if (geom.type === 'Polygon' && geom.coordinates) {
+        feature = turf.polygon(geom.coordinates);
+      } else if (geom.type === 'MultiPolygon' && geom.coordinates) {
+        feature = turf.multiPolygon(geom.coordinates);
+      } else {
+        console.warn('[EnvelopeSummary] Unknown geometry type:', geom.type);
+        throw new Error('Unknown geometry type');
+      }
+      
+      const area = turf.area(feature);
       parcelAcres = area / 4046.86; // sqm to acres
     } catch (err) {
-      console.warn('[EnvelopeSummary] Failed to calculate parcel area from geometry:', err);
+      console.warn('[EnvelopeSummary] Failed to calculate parcel area from geometry:', err, 
+        'Geometry preview:', JSON.stringify(envelope.parcelGeometry).slice(0, 200));
       parcelAcres = 1;
     }
   } else {
@@ -191,7 +206,21 @@ export function createEnvelopeSummary(envelope: any): EnvelopeSummary | null {
   if (envelope.buildableFootprint2d) {
     try {
       const turf = require('@turf/turf');
-      const area = turf.area(turf.polygon(envelope.buildableFootprint2d.coordinates));
+      const geom = envelope.buildableFootprint2d;
+      
+      // Handle both GeoJSON Geometry and Feature formats
+      let feature;
+      if (geom.type === 'Feature') {
+        feature = geom;
+      } else if (geom.type === 'Polygon' && geom.coordinates) {
+        feature = turf.polygon(geom.coordinates);
+      } else if (geom.type === 'MultiPolygon' && geom.coordinates) {
+        feature = turf.multiPolygon(geom.coordinates);
+      } else {
+        throw new Error('Unknown geometry type');
+      }
+      
+      const area = turf.area(feature);
       buildableSqft = area * 10.7639; // sqm to sqft
     } catch {
       buildableSqft = parcelSqft * (coverageCapPct / 100);
