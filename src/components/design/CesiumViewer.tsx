@@ -42,6 +42,7 @@ import {
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType, type Buildings3DSource } from "@/stores/useDesignStore";
+import { useWizardStore } from "@/stores/useWizardStore";
 import { ShadowControls } from "./ShadowControls";
 import { ShadowTimeline } from "./ShadowTimeline";
 import { ShadowComparisonPanel } from "./ShadowComparisonPanel";
@@ -557,6 +558,11 @@ export function CesiumViewerComponent({
     previewGeometry,
     previewHeightFt,
   } = useDesignStore();
+
+  // Wizard state - only show building preview on step 3
+  const wizardIsOpen = useWizardStore((s) => s.isOpen);
+  const wizardCurrentStep = useWizardStore((s) => s.currentStep);
+  const showBuildingPreview = wizardIsOpen && wizardCurrentStep === 3 && previewGeometry && previewHeightFt;
 
   // Track camera heading for street view HUD
   const [cameraHeading, setCameraHeading] = useState(0);
@@ -1446,8 +1452,8 @@ export function CesiumViewerComponent({
           </Entity>
         )}
 
-        {/* Building Type Preview (Ephemeral - from wizard step 3) */}
-        {previewGeometry && previewHeightFt && (
+        {/* Building Type Preview (Ephemeral - only visible on wizard step 3) */}
+        {showBuildingPreview && (
           <Entity name="building-preview">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(previewGeometry)}
@@ -1596,7 +1602,7 @@ export function CesiumViewerComponent({
               <div className="w-3 h-3 rounded-sm bg-red-500/50 border border-red-500" />
               <span>Violation Zone</span>
             </div>
-            {previewGeometry && (
+            {showBuildingPreview && (
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-sm bg-gray-400/70 border border-white" />
                 <span>Building Preview</span>
