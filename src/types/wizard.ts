@@ -213,9 +213,10 @@ export const USE_TYPE_CONFIG: Record<UseType, { label: string; icon: string; col
 export const WIZARD_STEPS: WizardStepConfig[] = [
   { id: 1, key: 'site', label: 'Site', icon: 'MapPin', isOptional: false },
   { id: 2, key: 'use-types', label: 'Use Types', icon: 'Layers', isOptional: false },
-  { id: 3, key: 'program', label: 'Program', icon: 'Settings2', isOptional: false },
-  { id: 4, key: 'parking', label: 'Parking', icon: 'Car', isOptional: true },
-  { id: 5, key: 'templates', label: 'Buildings', icon: 'Building', isOptional: false },
-  { id: 6, key: 'sustainability', label: 'Sustainability', icon: 'Leaf', isOptional: true },
-  { id: 7, key: 'generate', label: 'Generate', icon: 'Sparkles', isOptional: false },
+  { id: 3, key: 'building-type', label: 'Building Type', icon: 'Building', isOptional: false }, // NEW
+  { id: 4, key: 'program', label: 'Program', icon: 'Settings2', isOptional: false },
+  { id: 5, key: 'parking', label: 'Parking', icon: 'Car', isOptional: true },
+  { id: 6, key: 'templates', label: 'Buildings', icon: 'Building', isOptional: false },
+  { id: 7, key: 'sustainability', label: 'Sustainability', icon: 'Leaf', isOptional: true },
+  { id: 8, key: 'generate', label: 'Generate', icon: 'Sparkles', isOptional: false },
 ];

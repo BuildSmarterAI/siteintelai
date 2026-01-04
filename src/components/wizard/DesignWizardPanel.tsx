@@ -1,12 +1,15 @@
 /**
  * Design Wizard Panel
- * Main container for the 7-step wizard flow
+ * Main container for the 8-step wizard flow
  */
 
+import { useEffect } from 'react';
 import { useWizardStore, selectCanProceed } from '@/stores/useWizardStore';
+import { useDesignStore } from '@/stores/useDesignStore';
 import { WizardStepper } from './WizardStepper';
 import { SiteConfirmationStep } from './steps/SiteConfirmationStep';
 import { UseTypeSelector } from './steps/UseTypeSelector';
+import { BuildingTypeSelectorStep } from './steps/BuildingTypeSelectorStep';
 import { ProgramTargetsForm } from './steps/ProgramTargetsForm';
 import { ParkingConceptForm } from './steps/ParkingConceptForm';
 import { TemplateRecommendations } from './steps/TemplateRecommendations';
@@ -21,9 +24,18 @@ import { Badge } from '@/components/ui/badge';
 export function DesignWizardPanel() {
   const { isOpen, currentStep, closeWizard, resetWizard, nextStep, prevStep } = useWizardStore();
   const canProceed = useWizardStore(selectCanProceed);
+  const clearPreviewGeometry = useDesignStore((s) => s.clearPreviewGeometry);
+  
+  // Clear preview geometry when leaving building type step
+  useEffect(() => {
+    if (currentStep !== 3) {
+      clearPreviewGeometry();
+    }
+  }, [currentStep, clearPreviewGeometry]);
   
   const handleClose = () => {
     closeWizard();
+    clearPreviewGeometry();
     // Reset after animation completes
     setTimeout(resetWizard, 300);
   };
@@ -36,14 +48,16 @@ export function DesignWizardPanel() {
       case 2:
         return <UseTypeSelector />;
       case 3:
-        return <ProgramTargetsForm />;
+        return <BuildingTypeSelectorStep />; // NEW
       case 4:
-        return <ParkingConceptForm />;
+        return <ProgramTargetsForm />;
       case 5:
-        return <TemplateRecommendations />;
+        return <ParkingConceptForm />;
       case 6:
-        return <SustainabilityStep />;
+        return <TemplateRecommendations />;
       case 7:
+        return <SustainabilityStep />;
+      case 8:
         return <GenerateStep />;
       default:
         return <SiteConfirmationStep />;
@@ -65,7 +79,7 @@ export function DesignWizardPanel() {
             <div className="flex items-center gap-2">
               <h2 className="font-semibold">Explore Designs</h2>
               <Badge variant="outline" className="text-xs">
-                Step {currentStep}/7
+                Step {currentStep}/8
               </Badge>
             </div>
             <Button
@@ -124,7 +138,7 @@ export function DesignWizardPanel() {
               <ChevronLeft className="h-4 w-4" />
               Back
             </Button>
-            {currentStep < 7 && (
+            {currentStep < 8 && (
               <Button 
                 onClick={nextStep} 
                 disabled={!canProceed}

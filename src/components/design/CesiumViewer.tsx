@@ -553,6 +553,9 @@ export function CesiumViewerComponent({
     streetViewSettings,
     setStreetViewSettings,
     shadowComparisonMode,
+    // Preview geometry (ephemeral - from Building Type step)
+    previewGeometry,
+    previewHeightFt,
   } = useDesignStore();
 
   // Track camera heading for street view HUD
@@ -1443,6 +1446,22 @@ export function CesiumViewerComponent({
           </Entity>
         )}
 
+        {/* Building Type Preview (Ephemeral - from wizard step 3) */}
+        {previewGeometry && previewHeightFt && (
+          <Entity name="building-preview">
+            <PolygonGraphics
+              hierarchy={geojsonToCesiumPositions(previewGeometry)}
+              extrudedHeight={(groundHeightMeters ?? 0) + feetToMeters(previewHeightFt)}
+              height={groundHeightMeters ?? 0}
+              material={Color.GRAY.withAlpha(0.7)}
+              outline
+              outlineColor={Color.WHITE}
+              outlineWidth={1.5}
+              shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
+            />
+          </Entity>
+        )}
+
         {/* Design Footprint (extruded volume) */}
         {activeVariant?.footprint && (
           <Entity name="design-footprint">
@@ -1577,6 +1596,12 @@ export function CesiumViewerComponent({
               <div className="w-3 h-3 rounded-sm bg-red-500/50 border border-red-500" />
               <span>Violation Zone</span>
             </div>
+            {previewGeometry && (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm bg-gray-400/70 border border-white" />
+                <span>Building Preview</span>
+              </div>
+            )}
           </div>
         </div>
       )}

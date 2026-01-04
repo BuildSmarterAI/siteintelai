@@ -16,6 +16,7 @@ import type {
   ShareSettings,
   ShareInvite 
 } from "@/types/design";
+import type { PreviewMetrics } from "@/types/buildingTypes";
 
 export type DesignModeView = "design" | "compare" | "export";
 
@@ -138,6 +139,19 @@ export interface DesignSession {
 }
 
 interface DesignState {
+  // ========== Preview Geometry (Ephemeral - Building Type Step) ==========
+  previewGeometry: GeoJSON.Polygon | null;
+  previewHeightFt: number | null;
+  previewStories: number | null;
+  previewMetrics: PreviewMetrics | null;
+  setPreviewGeometry: (payload: {
+    footprint: GeoJSON.Polygon | null;
+    heightFt: number | null;
+    stories: number | null;
+    metrics?: PreviewMetrics | null;
+  }) => void;
+  clearPreviewGeometry: () => void;
+
   // Current mode/view
   currentView: DesignModeView;
   setCurrentView: (view: DesignModeView) => void;
@@ -318,6 +332,12 @@ interface DesignState {
 }
 
 const initialState = {
+  // Preview geometry (ephemeral)
+  previewGeometry: null as GeoJSON.Polygon | null,
+  previewHeightFt: null as number | null,
+  previewStories: null as number | null,
+  previewMetrics: null as PreviewMetrics | null,
+  
   currentView: "design" as DesignModeView,
   session: null,
   envelope: null,
@@ -406,6 +426,21 @@ export const useDesignStore = create<DesignState>()(
   devtools(
     (set, get) => ({
       ...initialState,
+
+      // ========== Preview Geometry Actions ==========
+      setPreviewGeometry: (payload) => set({
+        previewGeometry: payload.footprint,
+        previewHeightFt: payload.heightFt,
+        previewStories: payload.stories,
+        previewMetrics: payload.metrics ?? null,
+      }),
+      
+      clearPreviewGeometry: () => set({
+        previewGeometry: null,
+        previewHeightFt: null,
+        previewStories: null,
+        previewMetrics: null,
+      }),
 
       setCurrentView: (view) => set({ currentView: view }),
 
