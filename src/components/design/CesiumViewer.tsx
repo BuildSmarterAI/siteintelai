@@ -1473,8 +1473,8 @@ export function CesiumViewerComponent({
           </Entity>
         )}
 
-        {/* Design Footprint (extruded volume) */}
-        {activeVariant?.footprint && (
+        {/* Design Footprint (extruded volume) - Hidden while wizard is open */}
+        {!wizardIsOpen && activeVariant?.footprint && (
           <Entity name="design-footprint">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(activeVariant.footprint)}
@@ -1489,8 +1489,8 @@ export function CesiumViewerComponent({
           </Entity>
         )}
 
-        {/* Violation Zone (parts outside envelope) */}
-        {violationGeometry && activeVariant && (
+        {/* Violation Zone (parts outside envelope) - Hidden while wizard is open */}
+        {!wizardIsOpen && violationGeometry && activeVariant && (
           <Entity name="violation-zone">
             <PolygonGraphics
               hierarchy={geojsonToCesiumPositions(violationGeometry)}
@@ -1599,14 +1599,18 @@ export function CesiumViewerComponent({
               <div className="w-3 h-3 rounded-sm bg-slate-500/15 border border-slate-500/50" />
               <span>Regulatory Envelope</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-[#FF7A00]/60 border border-[#FF7A00]" />
-              <span>Design Footprint</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-sm bg-red-500/50 border border-red-500" />
-              <span>Violation Zone</span>
-            </div>
+            {!wizardIsOpen && activeVariant?.footprint && (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm bg-[#FF7A00]/60 border border-[#FF7A00]" />
+                <span>Design Footprint</span>
+              </div>
+            )}
+            {!wizardIsOpen && violationGeometry && (
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-sm bg-red-500/50 border border-red-500" />
+                <span>Violation Zone</span>
+              </div>
+            )}
             {showBuildingPreview && (
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-sm bg-gray-400/70 border border-white" />
