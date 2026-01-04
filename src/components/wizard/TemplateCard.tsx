@@ -58,7 +58,7 @@ export function TemplateCard({
   return (
     <div
       className={cn(
-        "group relative p-3 rounded-lg border transition-all cursor-pointer min-w-[280px]",
+        "group relative p-3 rounded-lg border transition-all cursor-pointer overflow-hidden",
         isSelected && "border-primary bg-primary/5",
         !isSelected && !isFail && "border-border hover:border-muted-foreground/50 hover:bg-muted/30",
         isFail && !isSelected && "border-red-500/30 bg-red-500/5 opacity-75"
@@ -109,12 +109,12 @@ export function TemplateCard({
           </div>
           
           {/* Metrics */}
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span>{(score.estimatedGfa / 1000).toFixed(0)}K SF</span>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            <span className="whitespace-nowrap">{(score.estimatedGfa / 1000).toFixed(0)}K SF</span>
             <span className="w-px h-3 bg-border" />
-            <span>FAR {score.estimatedFar}</span>
+            <span className="whitespace-nowrap">FAR {score.estimatedFar}</span>
             <span className="w-px h-3 bg-border" />
-            <span>{Math.round(score.estimatedHeight)}'</span>
+            <span className="whitespace-nowrap">{Math.round(score.estimatedHeight)}'</span>
           </div>
           
           {/* Score Bar */}

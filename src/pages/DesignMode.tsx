@@ -439,7 +439,7 @@ export default function DesignMode() {
       <DesignMeasurementResultPanel 
         className={cn(
           "fixed bottom-24 z-30 w-48 transition-all duration-300",
-          isWizardOpen ? "right-[500px]" : "right-20"
+          isWizardOpen ? "right-[540px]" : "right-20"
         )} 
       />
 
@@ -450,7 +450,7 @@ export default function DesignMode() {
       <FloatingMapControls 
         className={cn(
           "fixed bottom-4 z-40 transition-all duration-300",
-          isWizardOpen ? "right-[500px]" : "right-4"
+          isWizardOpen ? "right-[540px]" : "right-4"
         )} 
       />
     </div>
