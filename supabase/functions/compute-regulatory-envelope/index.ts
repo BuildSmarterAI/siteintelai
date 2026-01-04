@@ -207,10 +207,11 @@ serve(async (req) => {
 
     // If no drawn parcel, try to get from parcels table or construct approximate
     if (!parcelGeometry && application.geo_lat && application.geo_lng) {
-      console.log("No drawn parcel found, creating synthetic geometry from lat/lng and acreage");
-      // Create an approximate parcel based on acreage (square for simplicity)
-      // 1 acre = 43,560 sq ft
-      const acreage = application.acreage_cad || 1; // Default 1 acre if unknown
+      const acreage = application.acreage_cad || 1;
+      if (!application.acreage_cad) {
+        console.warn("⚠️ No acreage_cad found, defaulting to 1 acre for synthetic geometry");
+      }
+      console.log(`No drawn parcel found, creating synthetic geometry from lat/lng and acreage (${acreage} acres)`);
       const sqft = acreage * 43560;
       const sideLength = Math.sqrt(sqft); // feet
       

@@ -421,3 +421,9 @@ verify_jwt = false
 
 [functions.validate-google-maps-key]
 verify_jwt = false
+
+[functions.repair-parcel-geometry]
+verify_jwt = true
+
+[functions.compute-regulatory-envelope]
+verify_jwt = true
