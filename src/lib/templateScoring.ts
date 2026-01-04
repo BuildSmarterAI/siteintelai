@@ -3,6 +3,7 @@
  * Ranks templates based on site envelope and program targets
  */
 
+import * as turf from '@turf/turf';
 import type {
   DesignTemplate,
   RiskTolerance,
@@ -169,7 +170,6 @@ export function createEnvelopeSummary(envelope: any): EnvelopeSummary | null {
   let parcelAcres = 1;
   if (envelope.parcelGeometry) {
     try {
-      const turf = require('@turf/turf');
       const geom = envelope.parcelGeometry;
       
       // Handle both GeoJSON Geometry and Feature formats
@@ -205,7 +205,6 @@ export function createEnvelopeSummary(envelope: any): EnvelopeSummary | null {
   let buildableSqft = parcelSqft * 0.7;
   if (envelope.buildableFootprint2d) {
     try {
-      const turf = require('@turf/turf');
       const geom = envelope.buildableFootprint2d;
       
       // Handle both GeoJSON Geometry and Feature formats
