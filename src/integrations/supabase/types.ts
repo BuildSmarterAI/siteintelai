@@ -3173,6 +3173,102 @@ export type Database = {
           },
         ]
       }
+      design_jobs: {
+        Row: {
+          application_id: string
+          attempt: number
+          created_at: string
+          envelope_id: string | null
+          error_json: Json | null
+          id: string
+          idempotency_key: string
+          input_json: Json
+          job_type: string
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_run_at: string
+          output_json: Json | null
+          session_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          attempt?: number
+          created_at?: string
+          envelope_id?: string | null
+          error_json?: Json | null
+          id?: string
+          idempotency_key: string
+          input_json?: Json
+          job_type: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_run_at?: string
+          output_json?: Json | null
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          attempt?: number
+          created_at?: string
+          envelope_id?: string | null
+          error_json?: Json | null
+          id?: string
+          idempotency_key?: string
+          input_json?: Json
+          job_type?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_run_at?: string
+          output_json?: Json | null
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_jobs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_jobs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "design_jobs_envelope_id_fkey"
+            columns: ["envelope_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_envelopes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_jobs_envelope_id_fkey"
+            columns: ["envelope_id"]
+            isOneToOne: false
+            referencedRelation: "regulatory_envelopes_geojson"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_jobs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "design_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       design_presets: {
         Row: {
           category: string
@@ -3227,11 +3323,13 @@ export type Database = {
           description: string | null
           design_intent: Json | null
           envelope_id: string
+          envelope_version: number
           id: string
           is_active: boolean | null
           is_shared: boolean | null
           name: string
           shared_with: Json | null
+          status: string
           updated_at: string | null
           user_id: string
         }
@@ -3240,11 +3338,13 @@ export type Database = {
           description?: string | null
           design_intent?: Json | null
           envelope_id: string
+          envelope_version?: number
           id?: string
           is_active?: boolean | null
           is_shared?: boolean | null
           name?: string
           shared_with?: Json | null
+          status?: string
           updated_at?: string | null
           user_id: string
         }
@@ -3253,11 +3353,13 @@ export type Database = {
           description?: string | null
           design_intent?: Json | null
           envelope_id?: string
+          envelope_version?: number
           id?: string
           is_active?: boolean | null
           is_shared?: boolean | null
           name?: string
           shared_with?: Json | null
+          status?: string
           updated_at?: string | null
           user_id?: string
         }
@@ -6085,51 +6187,66 @@ export type Database = {
           buffer_zones: Json | null
           buildable_footprint_2d: unknown
           computed_at: string | null
+          confidence_grade: string | null
           constraints_source: Json | null
           constraints_version: string | null
           coverage_cap_pct: number | null
           created_at: string | null
           envelope_3d_volume: Json | null
+          error_message: string | null
           exclusion_zones: Json | null
           far_cap: number | null
           height_cap_ft: number | null
           id: string
           parcel_geometry: unknown
           setbacks: Json | null
+          source_versions: Json | null
+          status: string
+          version: number
         }
         Insert: {
           application_id: string
           buffer_zones?: Json | null
           buildable_footprint_2d: unknown
           computed_at?: string | null
+          confidence_grade?: string | null
           constraints_source?: Json | null
           constraints_version?: string | null
           coverage_cap_pct?: number | null
           created_at?: string | null
           envelope_3d_volume?: Json | null
+          error_message?: string | null
           exclusion_zones?: Json | null
           far_cap?: number | null
           height_cap_ft?: number | null
           id?: string
           parcel_geometry: unknown
           setbacks?: Json | null
+          source_versions?: Json | null
+          status?: string
+          version?: number
         }
         Update: {
           application_id?: string
           buffer_zones?: Json | null
           buildable_footprint_2d?: unknown
           computed_at?: string | null
+          confidence_grade?: string | null
           constraints_source?: Json | null
           constraints_version?: string | null
           coverage_cap_pct?: number | null
           created_at?: string | null
           envelope_3d_volume?: Json | null
+          error_message?: string | null
           exclusion_zones?: Json | null
           far_cap?: number | null
           height_cap_ft?: number | null
           id?: string
           parcel_geometry?: unknown
           setbacks?: Json | null
+          source_versions?: Json | null
+          status?: string
+          version?: number
         }
         Relationships: [
           {
@@ -8711,7 +8828,28 @@ export type Database = {
           score_gap: number
         }[]
       }
+      claim_next_design_job: {
+        Args: { p_job_type: string; p_worker_id: string }
+        Returns: Json
+      }
       cleanup_expired_api_cache: { Args: never; Returns: number }
+      complete_design_job: {
+        Args: { p_job_id: string; p_output: Json }
+        Returns: undefined
+      }
+      complete_envelope_computation: {
+        Args: {
+          p_buildable_footprint?: unknown
+          p_confidence_grade?: string
+          p_coverage_cap_pct: number
+          p_envelope_id: string
+          p_far_cap: number
+          p_height_cap_ft: number
+          p_job_id: string
+          p_setbacks: Json
+        }
+        Returns: undefined
+      }
       compute_buildable_footprint: {
         Args: {
           parcel_geom: unknown
@@ -8757,10 +8895,35 @@ export type Database = {
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
+      ensure_design_session: {
+        Args: {
+          p_application_id: string
+          p_create_if_missing?: boolean
+          p_envelope_id: string
+          p_envelope_version: number
+        }
+        Returns: Json
+      }
+      ensure_regulatory_envelope: {
+        Args: {
+          p_application_id: string
+          p_create_if_missing?: boolean
+          p_force_recompute?: boolean
+          p_overlays_version?: string
+          p_parcel_id?: string
+          p_parcel_version?: string
+          p_zoning_version?: string
+        }
+        Returns: Json
+      }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
       execute_canonical_insert: {
         Args: { p_record: Json; p_table_name: string }
         Returns: Json
+      }
+      fail_design_job: {
+        Args: { p_error: Json; p_job_id: string }
+        Returns: undefined
       }
       find_multi_parcel_assembly: {
         Args: {
@@ -10161,11 +10324,13 @@ export type Database = {
           description: string | null
           design_intent: Json | null
           envelope_id: string
+          envelope_version: number
           id: string
           is_active: boolean | null
           is_shared: boolean | null
           name: string
           shared_with: Json | null
+          status: string
           updated_at: string | null
           user_id: string
         }
