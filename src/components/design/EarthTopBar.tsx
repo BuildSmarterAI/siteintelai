@@ -289,7 +289,15 @@ export function EarthTopBar({
                   variant={isWizardOpen ? "secondary" : "outline"}
                   size="sm"
                   className="h-10 bg-background/95 backdrop-blur-md shadow-lg rounded-full px-4"
-                  onClick={() => isWizardOpen ? closeWizard() : openWizard()}
+                  onClick={() => {
+                    if (isWizardOpen) {
+                      closeWizard();
+                      // Ensure any ephemeral Building Type preview is cleared when the wizard closes
+                      useDesignStore.getState().clearPreviewGeometry();
+                    } else {
+                      openWizard();
+                    }
+                  }}
                 >
                   <Wand2 className="h-4 w-4 mr-1.5" />
                   Explore Designs

@@ -562,7 +562,12 @@ export function CesiumViewerComponent({
   // Wizard state - only show building preview on step 3
   const wizardIsOpen = useWizardStore((s) => s.isOpen);
   const wizardCurrentStep = useWizardStore((s) => s.currentStep);
-  const showBuildingPreview = wizardIsOpen && wizardCurrentStep === 3 && previewGeometry && previewHeightFt;
+  const showBuildingPreview = !!(
+    wizardIsOpen === true &&
+    wizardCurrentStep === 3 &&
+    previewGeometry &&
+    previewHeightFt
+  );
 
   // Track camera heading for street view HUD
   const [cameraHeading, setCameraHeading] = useState(0);
