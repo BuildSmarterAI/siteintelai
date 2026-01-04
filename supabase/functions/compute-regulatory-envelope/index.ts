@@ -165,6 +165,7 @@ serve(async (req) => {
     // Get parcel geometry - first try drawn_parcels, then try to construct from lat/lng
     let parcelGeometry: unknown = null;
     let buildableFootprint: unknown = null;
+    let geometrySource: 'drawn' | 'api' | 'synthetic' = 'synthetic';
 
     // Try to get from drawn_parcels via applications_draft
     const { data: draft } = await supabase
@@ -182,11 +183,31 @@ serve(async (req) => {
 
       if (drawnParcel?.geometry) {
         parcelGeometry = drawnParcel.geometry;
+        geometrySource = 'drawn';
+        console.log("Using parcel geometry from applications_draft.drawn_parcel_id");
+      }
+    }
+
+    // Fallback: try drawn_parcels directly by application_id (new flow)
+    if (!parcelGeometry) {
+      const { data: drawnParcel } = await supabase
+        .from("drawn_parcels")
+        .select("geometry")
+        .eq("application_id", application_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (drawnParcel?.geometry) {
+        parcelGeometry = drawnParcel.geometry;
+        geometrySource = 'drawn';
+        console.log("Using parcel geometry from drawn_parcels.application_id");
       }
     }
 
     // If no drawn parcel, try to get from parcels table or construct approximate
     if (!parcelGeometry && application.geo_lat && application.geo_lng) {
+      console.log("No drawn parcel found, creating synthetic geometry from lat/lng and acreage");
       // Create an approximate parcel based on acreage (square for simplicity)
       // 1 acre = 43,560 sq ft
       const acreage = application.acreage_cad || 1; // Default 1 acre if unknown
@@ -279,7 +300,8 @@ serve(async (req) => {
         constraints_source: {
           governing_path: application.governing_path,
           buildability_output_id: application.buildability_output_id,
-          computed_from: application.buildability_output_id ? "buildability_output" : "defaults"
+          computed_from: application.buildability_output_id ? "buildability_output" : "defaults",
+          geometry_source: geometrySource,
         },
         constraints_version
       })

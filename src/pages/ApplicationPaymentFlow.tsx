@@ -100,6 +100,7 @@ export default function ApplicationPaymentFlow() {
           state: formData.state,
           zipCode: formData.zipCode,
           neighborhood: formData.neighborhood,
+          parcelGeometry: parcel.geom || null, // Pass parcel geometry to backend
         }
       });
 
@@ -146,6 +147,7 @@ export default function ApplicationPaymentFlow() {
           state: formData.state,
           zipCode: formData.zipCode,
           neighborhood: formData.neighborhood,
+          parcelGeometry: formData.parcelGeometry, // Pass parcel geometry to backend
         }
       });
 

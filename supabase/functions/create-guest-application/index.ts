@@ -43,6 +43,7 @@ serve(async (req) => {
       state,
       zipCode,
       neighborhood,
+      parcelGeometry, // GeoJSON geometry from parcel selection
     } = body;
 
     logStep("Received data", { propertyAddress, geoLat, geoLng, email });
@@ -125,6 +126,27 @@ serve(async (req) => {
       status: application.status,
       paymentStatus: application.payment_status 
     });
+
+    // Save parcel geometry to drawn_parcels if provided
+    if (parcelGeometry) {
+      const { data: drawnParcel, error: drawnError } = await supabaseClient
+        .from("drawn_parcels")
+        .insert({
+          application_id: application.id,
+          user_id: userId,
+          name: `Parcel ${parcelId || 'selected'}`,
+          geometry: parcelGeometry,
+          source: 'feasibility_intake',
+        })
+        .select("id")
+        .single();
+
+      if (drawnError) {
+        logStep("Warning: Failed to save parcel geometry", { error: drawnError.message });
+      } else {
+        logStep("Parcel geometry saved", { drawnParcelId: drawnParcel?.id });
+      }
+    }
 
     return new Response(JSON.stringify({
       success: true,
