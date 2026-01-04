@@ -4,7 +4,7 @@
  */
 
 // Use types supported by templates
-export type UseType = 'industrial' | 'multifamily' | 'office' | 'retail' | 'medical' | 'hotel';
+export type UseType = 'industrial' | 'multifamily' | 'office' | 'retail' | 'medical' | 'hotel' | 'qsr' | 'retail_strip';
 
 // Footprint shapes for building massing
 export type FootprintShape = 'bar' | 'L' | 'courtyard' | 'tower' | 'pad';
@@ -175,6 +175,8 @@ export const DEFAULT_PARKING_RATIOS: Record<UseType, number> = {
   retail: 4.0,        // 4 stalls per 1,000 SF
   medical: 5.0,       // 5 stalls per 1,000 SF
   hotel: 1.0,         // 1 stall per room (approximate)
+  qsr: 10.0,          // 10 stalls per 1,000 SF (high turnover, drive-thru)
+  retail_strip: 4.5,  // 4.5 stalls per 1,000 SF (inline retail)
 };
 
 /**
@@ -187,6 +189,8 @@ export const DEFAULT_FLOOR_HEIGHTS: Record<UseType, number> = {
   retail: 14,
   medical: 12,
   hotel: 10,
+  qsr: 15,           // Single-story with tall ceiling
+  retail_strip: 16,  // Inline retail height
 };
 
 /**
@@ -199,6 +203,8 @@ export const USE_TYPE_CONFIG: Record<UseType, { label: string; icon: string; col
   retail: { label: 'Retail', icon: 'Store', color: 'hsl(var(--chart-4))' },
   medical: { label: 'Medical', icon: 'Stethoscope', color: 'hsl(var(--chart-5))' },
   hotel: { label: 'Hotel', icon: 'Hotel', color: 'hsl(var(--primary))' },
+  qsr: { label: 'QSR', icon: 'UtensilsCrossed', color: 'hsl(var(--chart-1))' },
+  retail_strip: { label: 'Retail Strip', icon: 'ShoppingBag', color: 'hsl(var(--chart-4))' },
 };
 
 /**

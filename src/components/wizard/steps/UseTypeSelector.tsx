@@ -9,7 +9,7 @@ import { USE_TYPE_CONFIG, type UseType } from '@/types/wizard';
 import * as Icons from 'lucide-react';
 import { Check, AlertCircle } from 'lucide-react';
 
-const USE_TYPES: UseType[] = ['industrial', 'multifamily', 'office', 'retail', 'medical', 'hotel'];
+const USE_TYPES: UseType[] = ['industrial', 'multifamily', 'office', 'retail', 'medical', 'hotel', 'qsr', 'retail_strip'];
 
 export function UseTypeSelector() {
   const { selectedUseTypes, toggleUseType } = useWizardStore();
