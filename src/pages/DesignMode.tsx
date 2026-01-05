@@ -22,7 +22,7 @@ import { useWizardStore } from "@/stores/useWizardStore";
 import { ComplianceChip } from "@/components/design/ComplianceChip";
 import { FloatingMapControls } from "@/components/design/FloatingMapControls";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
-import { DesignMeasurementTools } from "@/components/design/DesignMeasurementTools";
+
 import { DesignMeasurementResultPanel } from "@/components/design/DesignMeasurementResultPanel";
 import { CompareMode } from "@/components/design/CompareMode";
 import { ExportPanel } from "@/components/design/ExportPanel";
@@ -423,8 +423,7 @@ export default function DesignMode() {
       {/* Design Wizard Panel */}
       <DesignWizardPanel />
 
-      {/* Measurement tools - top center */}
-      <DesignMeasurementTools className="fixed top-20 left-1/2 -translate-x-1/2 z-30" />
+      {/* Measurement tools are now integrated into EarthTopBar */}
 
       {/* Measurement results - shifts right when wizard open */}
       <DesignMeasurementResultPanel 

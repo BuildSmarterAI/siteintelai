@@ -26,6 +26,11 @@ import {
   AlertTriangle,
   Wand2,
   ChevronUp,
+  Ruler,
+  Square,
+  ArrowUpDown,
+  Magnet,
+  X,
 } from "lucide-react";
 import { ShareModal } from "./ShareModal";
 import { useWizardStore } from "@/stores/useWizardStore";
@@ -51,6 +56,12 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
     isSaving,
     setShareModalOpen,
     session,
+    measurementMode,
+    setMeasurementMode,
+    clearMeasurement,
+    canvasViewMode,
+    measurementSnappingEnabled,
+    setMeasurementSnappingEnabled,
   } = useDesignStore();
 
   const { isOpen: isWizardOpen, openWizard, closeWizard } = useWizardStore();
@@ -180,20 +191,120 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
 
               <ToolbarDivider />
 
-              {/* Conceptual Design indicator */}
-              <TooltipProvider>
+              {/* Measurement Tools */}
+              <div className="flex items-center gap-0.5">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 text-[hsl(27_100%_50%)] px-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <span className="text-xs font-medium">Conceptual</span>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-8 w-8 rounded-md",
+                        measurementMode === "distance"
+                          ? "bg-[hsl(27_100%_50%)] text-white hover:bg-[hsl(27_100%_45%)]"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
+                      onClick={() => setMeasurementMode(measurementMode === "distance" ? null : "distance")}
+                    >
+                      <Ruler className="h-4 w-4" />
+                    </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    <p>This is a conceptual design for illustration purposes</p>
-                  </TooltipContent>
+                  <TooltipContent side="bottom">Measure Distance (M)</TooltipContent>
                 </Tooltip>
-              </TooltipProvider>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-8 w-8 rounded-md",
+                        measurementMode === "area"
+                          ? "bg-[hsl(27_100%_50%)] text-white hover:bg-[hsl(27_100%_45%)]"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
+                      onClick={() => setMeasurementMode(measurementMode === "area" ? null : "area")}
+                    >
+                      <Square className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Measure Area</TooltipContent>
+                </Tooltip>
+
+                {/* Height - only in 3D/split mode */}
+                {(canvasViewMode === "3d" || canvasViewMode === "split") && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "h-8 w-8 rounded-md",
+                          measurementMode === "height"
+                            ? "bg-[hsl(27_100%_50%)] text-white hover:bg-[hsl(27_100%_45%)]"
+                            : "text-white/80 hover:text-white hover:bg-white/10"
+                        )}
+                        onClick={() => setMeasurementMode(measurementMode === "height" ? null : "height")}
+                      >
+                        <ArrowUpDown className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Measure Height</TooltipContent>
+                  </Tooltip>
+                )}
+
+                {/* Snap toggle */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-8 w-8 rounded-md",
+                        measurementSnappingEnabled
+                          ? "bg-white/20 text-white hover:bg-white/25"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
+                      onClick={() => setMeasurementSnappingEnabled(!measurementSnappingEnabled)}
+                    >
+                      <Magnet className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Snap to Edges {measurementSnappingEnabled ? "(On)" : "(Off)"}</TooltipContent>
+                </Tooltip>
+
+                {/* Clear - only when measuring */}
+                {measurementMode && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-md text-red-400 hover:text-red-300 hover:bg-white/10"
+                        onClick={clearMeasurement}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Clear Measurement</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
+
+              <ToolbarDivider />
+
+              {/* Conceptual Design indicator */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center gap-1 text-[hsl(27_100%_50%)] px-2">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-xs font-medium">Conceptual</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>This is a conceptual design for illustration purposes</p>
+                </TooltipContent>
+              </Tooltip>
 
               <ToolbarDivider />
             </>
