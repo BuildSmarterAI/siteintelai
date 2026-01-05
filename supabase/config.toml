@@ -433,3 +433,9 @@ verify_jwt = true
 
 [functions.compute-regulatory-envelope]
 verify_jwt = true
+
+[functions.queue-cityengine-job]
+verify_jwt = true
+
+[functions.cityengine-job-status]
+verify_jwt = true
