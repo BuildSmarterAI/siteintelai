@@ -1,8 +1,8 @@
 /**
  * SiteIntel™ Design Mode - Google Earth-Style Top Bar
  * 
- * Floating top bar with search, tool icons, mode toggles, and primary actions.
- * Matches Google Earth's interaction patterns while preserving SiteIntel features.
+ * Unified top bar matching Google Earth's clean toolbar design.
+ * Single container with vertical dividers, flat icons, and collapse functionality.
  */
 
 import { useState, useRef, useEffect } from "react";
@@ -11,19 +11,12 @@ import { useDesignStore } from "@/stores/useDesignStore";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Search,
   Share2,
@@ -32,6 +25,7 @@ import {
   Loader2,
   AlertTriangle,
   Wand2,
+  ChevronUp,
 } from "lucide-react";
 import { ShareModal } from "./ShareModal";
 import { useWizardStore } from "@/stores/useWizardStore";
@@ -40,18 +34,21 @@ interface EarthTopBarProps {
   className?: string;
 }
 
-export function EarthTopBar({ 
-  className, 
-}: EarthTopBarProps) {
+/** Vertical divider between toolbar sections */
+const ToolbarDivider = () => (
+  <div className="h-6 w-px bg-border mx-1" />
+);
+
+export function EarthTopBar({ className }: EarthTopBarProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const {
     setCurrentView,
     isSaving,
-    shareModalOpen,
     setShareModalOpen,
     session,
   } = useDesignStore();
@@ -62,7 +59,6 @@ export function EarthTopBar({
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      // TODO: Implement geocoding fly-to
       console.log("Search for:", searchQuery);
     }
   };
@@ -81,121 +77,196 @@ export function EarthTopBar({
 
   return (
     <>
+      {/* Unified Google Earth-style toolbar */}
       <div
         className={cn(
-          "fixed top-4 left-4 right-4 z-50 flex items-center justify-between gap-4",
+          "fixed top-0 left-0 right-0 z-50",
+          "bg-background/98 backdrop-blur-sm border-b shadow-sm",
           className
         )}
       >
-        {/* Left section: Back, Search, Tools */}
-        <div className="flex items-center gap-3">
-          {/* Back button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="bg-background/95 backdrop-blur-md border shadow-lg rounded-full h-10 w-10"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center h-12 px-2">
+          {/* Left section: Back + Search */}
+          <div className="flex items-center gap-1">
+            {/* Back button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate(-1)}
+                    className="h-8 w-8 rounded-md"
+                  >
+                    <ArrowLeft className="h-[18px] w-[18px]" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <p>Go back</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
 
-          {/* Search pill */}
-          <form onSubmit={handleSearch} className="relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                ref={searchRef}
-                type="text"
-                placeholder="Search address, place, parcel ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={() => setIsSearchFocused(true)}
-                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                className="w-[280px] pl-9 pr-4 h-10 bg-background/95 backdrop-blur-md border shadow-lg rounded-full"
-              />
-            </div>
-            {/* Search dropdown - would show results here */}
-            {isSearchFocused && searchQuery && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-background/95 backdrop-blur-md border shadow-xl rounded-xl p-2">
-                <div className="text-xs text-muted-foreground p-2">
-                  Press Enter to search...
-                </div>
+            {/* Search input */}
+            <form onSubmit={handleSearch} className="relative">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={searchRef}
+                  type="text"
+                  placeholder="Search address, place, parcel ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                  className="w-[240px] pl-8 pr-3 h-8 bg-muted/50 border-0 rounded-md text-sm focus-visible:ring-1"
+                />
               </div>
-            )}
-          </form>
+              {/* Search dropdown */}
+              {isSearchFocused && searchQuery && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-popover border shadow-lg rounded-md p-2 z-50">
+                  <div className="text-xs text-muted-foreground p-1.5">
+                    Press Enter to search...
+                  </div>
+                </div>
+              )}
+            </form>
+          </div>
 
-        </div>
+          <ToolbarDivider />
 
-        {/* Center spacer */}
-        <div className="flex-1" />
+          {/* Center section: Tools (collapsed hides these) */}
+          {!isCollapsed && (
+            <>
+              {/* Saving indicator */}
+              {isSaving && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              )}
 
-        {/* Right section: Actions */}
-        <div className="flex items-center gap-3">
-          {/* Saving indicator */}
-          {isSaving && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/95 backdrop-blur-md border shadow-lg rounded-full px-3 py-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>Saving...</span>
-            </div>
+              {/* Explore Designs wizard toggle */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={isWizardOpen ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-8 rounded-md px-3 text-sm gap-1.5"
+                      onClick={() => {
+                        if (isWizardOpen) {
+                          closeWizard();
+                          useDesignStore.getState().clearPreviewGeometry();
+                        } else {
+                          openWizard();
+                        }
+                      }}
+                    >
+                      <Wand2 className="h-4 w-4" />
+                      Explore
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Design Wizard (W)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <ToolbarDivider />
+
+              {/* Conceptual Design indicator */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 px-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span className="text-xs font-medium">Conceptual</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>This is a conceptual design for illustration purposes</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <ToolbarDivider />
+            </>
           )}
 
-          {/* Disclaimer badge - always visible */}
-          <Badge
-            variant="outline"
-            className="bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 px-3 py-1.5 text-xs font-medium shadow-lg"
-          >
-            <AlertTriangle className="h-3 w-3 mr-1.5" />
-            Conceptual Design
-          </Badge>
+          {/* Spacer */}
+          <div className="flex-1" />
 
-          {/* Explore Designs wizard toggle */}
+          {/* Right section: Actions */}
+          {!isCollapsed && (
+            <>
+              {/* Share button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-md px-3 text-sm gap-1.5"
+                      onClick={() => setShareModalOpen(true)}
+                    >
+                      <Share2 className="h-4 w-4" />
+                      Share
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Share this design</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Export button */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 rounded-md px-3 text-sm gap-1.5"
+                      onClick={() => setCurrentView("export")}
+                    >
+                      <Download className="h-4 w-4" />
+                      Export
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Export report</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <ToolbarDivider />
+            </>
+          )}
+
+          {/* Collapse/Expand chevron */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={isWizardOpen ? "secondary" : "outline"}
-                  size="sm"
-                  className="h-10 bg-background/95 backdrop-blur-md shadow-lg rounded-full px-4"
-                  onClick={() => {
-                    if (isWizardOpen) {
-                      closeWizard();
-                      // Ensure any ephemeral Building Type preview is cleared when the wizard closes
-                      useDesignStore.getState().clearPreviewGeometry();
-                    } else {
-                      openWizard();
-                    }
-                  }}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-md"
+                  onClick={() => setIsCollapsed(!isCollapsed)}
                 >
-                  <Wand2 className="h-4 w-4 mr-1.5" />
-                  Explore Designs
+                  <ChevronUp
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      isCollapsed && "rotate-180"
+                    )}
+                  />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                <p>Design Wizard (W)</p>
+              <TooltipContent side="bottom">
+                <p>{isCollapsed ? "Expand toolbar" : "Collapse toolbar"}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
-          {/* Share button */}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-10 bg-background/95 backdrop-blur-md shadow-lg rounded-full px-4"
-            onClick={() => setShareModalOpen(true)}
-          >
-            <Share2 className="h-4 w-4 mr-1.5" />
-            Share
-          </Button>
-
-          {/* Export button */}
-          <Button
-            size="sm"
-            className="h-10 shadow-lg rounded-full px-4"
-            onClick={() => setCurrentView("export")}
-          >
-            <Download className="h-4 w-4 mr-1.5" />
-            Export
-          </Button>
         </div>
       </div>
 
