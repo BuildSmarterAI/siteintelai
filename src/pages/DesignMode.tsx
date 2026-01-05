@@ -19,7 +19,7 @@ import { MapContentsPanel } from "@/components/design/MapContentsPanel";
 import { ComplianceDock } from "@/components/design/ComplianceDock";
 import { DesignWizardPanel } from "@/components/wizard";
 import { useWizardStore } from "@/stores/useWizardStore";
-import { MetricsChipsBar } from "@/components/design/MetricsChipsBar";
+import { ComplianceChip } from "@/components/design/ComplianceChip";
 import { FloatingMapControls } from "@/components/design/FloatingMapControls";
 import { DesignModeCanvas } from "@/components/design/DesignModeCanvas";
 import { DesignMeasurementTools } from "@/components/design/DesignMeasurementTools";
@@ -358,10 +358,7 @@ export default function DesignMode() {
   if (currentView === "compare") {
     return (
       <>
-        <EarthTopBar
-          onStartDrawing={handleStartDrawing}
-          onClearDrawing={handleClearDrawing}
-        />
+        <EarthTopBar />
         <div className="h-screen pt-20">
           <CompareMode className="h-full" />
         </div>
@@ -372,10 +369,7 @@ export default function DesignMode() {
   if (currentView === "export") {
     return (
       <>
-        <EarthTopBar
-          onStartDrawing={handleStartDrawing}
-          onClearDrawing={handleClearDrawing}
-        />
+        <EarthTopBar />
         <div className="h-screen pt-20 flex justify-center">
           <ExportPanel className="max-w-2xl w-full" />
         </div>
@@ -414,10 +408,7 @@ export default function DesignMode() {
       {/* Google Earth-style overlay components */}
 
       {/* Top bar */}
-      <EarthTopBar
-        onStartDrawing={handleStartDrawing}
-        onClearDrawing={handleClearDrawing}
-      />
+      <EarthTopBar />
 
       {/* Left panel - Map Contents (Variants + Layers) */}
       <MapContentsPanel
@@ -443,8 +434,8 @@ export default function DesignMode() {
         )} 
       />
 
-      {/* Bottom left - Metrics chips */}
-      <MetricsChipsBar className="fixed bottom-4 left-4 z-30" />
+      {/* Bottom left - Collapsible compliance chip */}
+      <ComplianceChip className="fixed bottom-4 left-4 z-30 min-w-48" />
 
       {/* Bottom right - Floating map controls - shifts left when wizard open */}
       <FloatingMapControls 

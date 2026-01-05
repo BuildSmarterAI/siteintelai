@@ -26,20 +26,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Search,
-  Undo2,
-  Redo2,
-  PenTool,
-  Ruler,
-  Eraser,
-  Columns2,
   Share2,
   Download,
   ArrowLeft,
-  Map,
-  Box,
-  SplitSquareHorizontal,
   Loader2,
-  ChevronDown,
   AlertTriangle,
   Wand2,
 } from "lucide-react";
@@ -48,14 +38,10 @@ import { useWizardStore } from "@/stores/useWizardStore";
 
 interface EarthTopBarProps {
   className?: string;
-  onStartDrawing?: () => void;
-  onClearDrawing?: () => void;
 }
 
 export function EarthTopBar({ 
   className, 
-  onStartDrawing,
-  onClearDrawing 
 }: EarthTopBarProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,17 +49,8 @@ export function EarthTopBar({
   const searchRef = useRef<HTMLInputElement>(null);
 
   const {
-    currentView,
     setCurrentView,
-    canvasViewMode,
-    setCanvasViewMode,
-    isDrawing,
-    setIsDrawing,
-    measurementMode,
-    setMeasurementMode,
-    clearMeasurement,
     isSaving,
-    activeVariantId,
     shareModalOpen,
     setShareModalOpen,
     session,
@@ -101,28 +78,6 @@ export function EarthTopBar({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSearchFocused]);
-
-  const handleDrawClick = () => {
-    if (isDrawing) {
-      setIsDrawing(false);
-    } else if (onStartDrawing) {
-      onStartDrawing();
-    }
-  };
-
-  const handleMeasureClick = () => {
-    if (measurementMode) {
-      clearMeasurement();
-    } else {
-      setMeasurementMode("distance");
-    }
-  };
-
-  const handleEraseClick = () => {
-    if (onClearDrawing) {
-      onClearDrawing();
-    }
-  };
 
   return (
     <>
@@ -169,98 +124,10 @@ export function EarthTopBar({
             )}
           </form>
 
-          {/* Tool icons */}
-          <TooltipProvider>
-            <div className="flex items-center gap-1 bg-background/95 backdrop-blur-md border shadow-lg rounded-full px-2 py-1.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-8 w-8 rounded-full",
-                      isDrawing && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={handleDrawClick}
-                    disabled={!activeVariantId}
-                  >
-                    <PenTool className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Draw footprint (D)</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn(
-                      "h-8 w-8 rounded-full",
-                      measurementMode && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={handleMeasureClick}
-                  >
-                    <Ruler className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Measure (M)</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-full"
-                    onClick={handleEraseClick}
-                    disabled={!activeVariantId}
-                  >
-                    <Eraser className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Clear footprint</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
         </div>
 
-        {/* Center section: View mode toggle */}
-        <div className="flex items-center gap-1 bg-background/95 backdrop-blur-md border shadow-lg rounded-full px-1 py-1">
-          <Button
-            variant={canvasViewMode === "2d" ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 rounded-full px-4"
-            onClick={() => setCanvasViewMode("2d")}
-          >
-            <Map className="h-4 w-4 mr-1.5" />
-            2D
-          </Button>
-          <Button
-            variant={canvasViewMode === "3d" ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 rounded-full px-4"
-            onClick={() => setCanvasViewMode("3d")}
-          >
-            <Box className="h-4 w-4 mr-1.5" />
-            3D
-          </Button>
-          <Button
-            variant={canvasViewMode === "split" ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 rounded-full px-4"
-            onClick={() => setCanvasViewMode("split")}
-          >
-            <SplitSquareHorizontal className="h-4 w-4 mr-1.5" />
-            Split
-          </Button>
-        </div>
+        {/* Center spacer */}
+        <div className="flex-1" />
 
         {/* Right section: Actions */}
         <div className="flex items-center gap-3">
@@ -308,27 +175,6 @@ export function EarthTopBar({
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-
-          {/* View mode buttons */}
-          <div className="flex items-center gap-1 bg-background/95 backdrop-blur-md border shadow-lg rounded-full px-1 py-1">
-            <Button
-              variant={currentView === "design" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 rounded-full px-4"
-              onClick={() => setCurrentView("design")}
-            >
-              Design
-            </Button>
-            <Button
-              variant={currentView === "compare" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-8 rounded-full px-4"
-              onClick={() => setCurrentView("compare")}
-            >
-              <Columns2 className="h-4 w-4 mr-1.5" />
-              Compare
-            </Button>
-          </div>
 
           {/* Share button */}
           <Button
