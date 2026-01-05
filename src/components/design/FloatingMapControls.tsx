@@ -26,7 +26,9 @@ import {
   Minus,
   RotateCcw,
   Mountain,
-  Eye,
+  Map,
+  Box,
+  SplitSquareHorizontal,
 } from "lucide-react";
 import { useState, useCallback } from "react";
 
@@ -51,7 +53,7 @@ export function FloatingMapControls({
   currentHeading = 0,
   currentTilt = 45,
 }: FloatingMapControlsProps) {
-  const { canvasViewMode, isStreetViewMode, setIsStreetViewMode } = useDesignStore();
+  const { canvasViewMode, setCanvasViewMode } = useDesignStore();
   const [localTilt, setLocalTilt] = useState(currentTilt);
 
   const handleTiltChange = useCallback(
@@ -63,7 +65,7 @@ export function FloatingMapControls({
     [onTiltChange]
   );
 
-  // Only show 3D controls when in 3D mode
+  // Only show 3D-specific controls (compass, tilt) when not in pure 2D mode
   const show3DControls = canvasViewMode === "3d" || canvasViewMode === "split";
 
   return (
@@ -74,6 +76,57 @@ export function FloatingMapControls({
           className
         )}
       >
+        {/* View mode toggle - 2D / 3D / Split */}
+        <div className="flex flex-col bg-background/95 backdrop-blur-md border shadow-lg rounded-full overflow-hidden">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={canvasViewMode === "2d" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none border-b"
+                onClick={() => setCanvasViewMode("2d")}
+              >
+                <Map className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>2D View (T)</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={canvasViewMode === "3d" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none border-b"
+                onClick={() => setCanvasViewMode("3d")}
+              >
+                <Box className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>3D View (T)</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={canvasViewMode === "split" ? "secondary" : "ghost"}
+                size="icon"
+                className="h-9 w-9 rounded-none"
+                onClick={() => setCanvasViewMode("split")}
+              >
+                <SplitSquareHorizontal className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Split View (T)</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         {/* Compass - only in 3D */}
         {show3DControls && (
           <Tooltip>
@@ -166,28 +219,6 @@ export function FloatingMapControls({
               </div>
             </PopoverContent>
           </Popover>
-        )}
-
-        {/* Street View toggle - only in 3D */}
-        {show3DControls && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className={cn(
-                  "h-10 w-10 rounded-full bg-background/95 backdrop-blur-md shadow-lg border",
-                  isStreetViewMode && "bg-primary text-primary-foreground"
-                )}
-                onClick={() => setIsStreetViewMode(!isStreetViewMode)}
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">
-              <p>Street view (G)</p>
-            </TooltipContent>
-          </Tooltip>
         )}
 
         {/* Reset view */}

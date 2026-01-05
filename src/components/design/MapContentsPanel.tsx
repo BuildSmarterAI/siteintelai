@@ -415,12 +415,7 @@ export function MapContentsPanel({
 
                   <CollapsibleContent className="pt-2 space-y-1">
                     {[
-                      { key: "parcel", label: "Parcel Boundary", icon: Map },
-                      { key: "envelope", label: "Regulatory Envelope", icon: Box },
-                      { key: "footprint", label: "Design Footprint", icon: Building2 },
                       { key: "violations", label: "Violation Zones", icon: AlertTriangle },
-                      { key: "zoning", label: "Zoning", icon: Grid3X3 },
-                      { key: "flood", label: "Flood Zones", icon: Droplets },
                       { key: "shadows", label: "Shadow Analysis", icon: Box },
                     ].map(({ key, label, icon: Icon }) => (
                       <div
