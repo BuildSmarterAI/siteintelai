@@ -36,7 +36,7 @@ interface EarthTopBarProps {
 
 /** Vertical divider between toolbar sections */
 const ToolbarDivider = () => (
-  <div className="h-6 w-px bg-border mx-1" />
+  <div className="h-6 w-px bg-white/20 mx-1" />
 );
 
 export function EarthTopBar({ className }: EarthTopBarProps) {
@@ -77,11 +77,11 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
 
   return (
     <>
-      {/* Unified Google Earth-style toolbar */}
+      {/* Unified Google Earth-style toolbar with SiteIntel branding */}
       <div
         className={cn(
           "fixed top-0 left-0 right-0 z-50",
-          "bg-background/98 backdrop-blur-sm border-b shadow-sm",
+          "bg-[hsl(222_82%_11%)] border-b border-white/10 shadow-md",
           className
         )}
       >
@@ -96,7 +96,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                     variant="ghost"
                     size="icon"
                     onClick={() => navigate(-1)}
-                    className="h-8 w-8 rounded-md"
+                    className="h-8 w-8 rounded-md text-white/80 hover:text-white hover:bg-white/10"
                   >
                     <ArrowLeft className="h-[18px] w-[18px]" />
                   </Button>
@@ -110,7 +110,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
             {/* Search input */}
             <form onSubmit={handleSearch} className="relative">
               <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                 <Input
                   ref={searchRef}
                   type="text"
@@ -119,7 +119,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
                   onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
-                  className="w-[240px] pl-8 pr-3 h-8 bg-muted/50 border-0 rounded-md text-sm focus-visible:ring-1"
+                  className="w-[240px] pl-8 pr-3 h-8 bg-white/10 border border-white/20 rounded-md text-sm text-white placeholder:text-white/50 focus-visible:ring-1 focus-visible:ring-[hsl(27_100%_50%)]"
                 />
               </div>
               {/* Search dropdown */}
@@ -140,7 +140,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
             <>
               {/* Saving indicator */}
               {isSaving && (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground px-2">
+                <div className="flex items-center gap-1.5 text-xs text-white/60 px-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   <span>Saving...</span>
                 </div>
@@ -151,9 +151,14 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant={isWizardOpen ? "secondary" : "ghost"}
+                      variant="ghost"
                       size="sm"
-                      className="h-8 rounded-md px-3 text-sm gap-1.5"
+                      className={cn(
+                        "h-8 rounded-md px-3 text-sm gap-1.5",
+                        isWizardOpen
+                          ? "bg-[hsl(27_100%_50%)] text-white hover:bg-[hsl(27_100%_45%)]"
+                          : "text-white/80 hover:text-white hover:bg-white/10"
+                      )}
                       onClick={() => {
                         if (isWizardOpen) {
                           closeWizard();
@@ -179,7 +184,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 px-2">
+                    <div className="flex items-center gap-1 text-[hsl(27_100%_50%)] px-2">
                       <AlertTriangle className="h-4 w-4" />
                       <span className="text-xs font-medium">Conceptual</span>
                     </div>
@@ -207,7 +212,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 rounded-md px-3 text-sm gap-1.5"
+                      className="h-8 rounded-md px-3 text-sm gap-1.5 text-white/80 hover:text-white hover:bg-white/10"
                       onClick={() => setShareModalOpen(true)}
                     >
                       <Share2 className="h-4 w-4" />
@@ -227,7 +232,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 rounded-md px-3 text-sm gap-1.5"
+                      className="h-8 rounded-md px-3 text-sm gap-1.5 text-white/80 hover:text-white hover:bg-white/10"
                       onClick={() => setCurrentView("export")}
                     >
                       <Download className="h-4 w-4" />
@@ -251,7 +256,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 rounded-md"
+                  className="h-8 w-8 rounded-md text-white/60 hover:text-white hover:bg-white/10"
                   onClick={() => setIsCollapsed(!isCollapsed)}
                 >
                   <ChevronUp
