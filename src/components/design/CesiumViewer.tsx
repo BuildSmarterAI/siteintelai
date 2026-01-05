@@ -43,7 +43,7 @@ import {
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType, type Buildings3DSource } from "@/stores/useDesignStore";
 import { useWizardStore } from "@/stores/useWizardStore";
-import { ShadowControls } from "./ShadowControls";
+
 import { ShadowTimeline } from "./ShadowTimeline";
 import { ShadowComparisonPanel } from "./ShadowComparisonPanel";
 import { MeasurementAnnotationsPanel } from "./MeasurementAnnotationsPanel";
@@ -1631,10 +1631,6 @@ export function CesiumViewerComponent({
         <ShadowComparisonPanel className="absolute top-16 right-4 z-30" />
       )}
       
-      {/* Shadow Enable Button - When shadows disabled, positioned below top bar */}
-      {!isStreetViewMode && !shadowsEnabled && (
-        <ShadowControls className="absolute top-16 right-4 z-30" />
-      )}
 
       {/* Measurement Annotations Panel */}
       {!isStreetViewMode && (

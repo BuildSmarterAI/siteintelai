@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useDesignStore, type DesignPreset } from "@/stores/useDesignStore";
 import { useDesignSession } from "@/hooks/useDesignSession";
+import { shallow } from "zustand/shallow";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -138,6 +139,8 @@ export function MapContentsPanel({
     setBuildings3dSource,
     google3DAvailable,
     google3DError,
+    shadowsEnabled,
+    setShadowsEnabled,
   } = useDesignStore();
 
   const { createVariant, deleteVariant, duplicateVariant, isCreatingVariant } =
@@ -197,7 +200,13 @@ export function MapContentsPanel({
   });
 
   const toggleLayer = (key: keyof typeof layers) => {
-    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+    const newValue = !layers[key];
+    setLayers((prev) => ({ ...prev, [key]: newValue }));
+    
+    // Sync shadow toggle with design store
+    if (key === "shadows") {
+      setShadowsEnabled(newValue);
+    }
   };
 
   const handleCreateVariant = () => {
