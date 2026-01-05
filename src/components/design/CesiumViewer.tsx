@@ -1626,14 +1626,14 @@ export function CesiumViewerComponent({
         />
       )}
 
-      {/* Shadow Comparison Panel - When in comparison mode */}
+      {/* Shadow Comparison Panel - When in comparison mode, positioned below top bar */}
       {!isStreetViewMode && shadowsEnabled && shadowComparisonMode && (
-        <ShadowComparisonPanel className="absolute top-4 right-4 z-10" />
+        <ShadowComparisonPanel className="absolute top-16 right-4 z-30" />
       )}
       
-      {/* Shadow Enable Button - When shadows disabled */}
+      {/* Shadow Enable Button - When shadows disabled, positioned below top bar */}
       {!isStreetViewMode && !shadowsEnabled && (
-        <ShadowControls className="absolute top-4 right-4 z-10" />
+        <ShadowControls className="absolute top-16 right-4 z-30" />
       )}
 
       {/* Measurement Annotations Panel */}
