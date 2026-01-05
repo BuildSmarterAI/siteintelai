@@ -2316,6 +2316,104 @@ export type Database = {
         }
         Relationships: []
       }
+      cityengine_jobs: {
+        Row: {
+          application_id: string | null
+          attempt: number | null
+          completed_at: string | null
+          created_at: string | null
+          current_stage: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          input_hash: string
+          input_payload: Json
+          max_attempts: number | null
+          output_manifest: Json | null
+          processing_time_ms: number | null
+          progress: number | null
+          session_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          application_id?: string | null
+          attempt?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_stage?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          input_hash: string
+          input_payload: Json
+          max_attempts?: number | null
+          output_manifest?: Json | null
+          processing_time_ms?: number | null
+          progress?: number | null
+          session_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          application_id?: string | null
+          attempt?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          current_stage?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          input_hash?: string
+          input_payload?: Json
+          max_attempts?: number | null
+          output_manifest?: Json | null
+          processing_time_ms?: number | null
+          progress?: number | null
+          session_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cityengine_jobs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cityengine_jobs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "v_parcels"
+            referencedColumns: ["application_id"]
+          },
+          {
+            foreignKeyName: "cityengine_jobs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "design_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cityengine_jobs_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "design_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cohorts: {
         Row: {
           account_id: string
@@ -8827,6 +8925,37 @@ export type Database = {
           runner_up_score: number
           score_gap: number
         }[]
+      }
+      claim_cityengine_job: {
+        Args: never
+        Returns: {
+          application_id: string | null
+          attempt: number | null
+          completed_at: string | null
+          created_at: string | null
+          current_stage: string | null
+          error_code: string | null
+          error_message: string | null
+          id: string
+          input_hash: string
+          input_payload: Json
+          max_attempts: number | null
+          output_manifest: Json | null
+          processing_time_ms: number | null
+          progress: number | null
+          session_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+          variant_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "cityengine_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       claim_next_design_job: {
         Args: { p_job_type: string; p_worker_id: string }

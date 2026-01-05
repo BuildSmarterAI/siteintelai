@@ -3,6 +3,8 @@
  * 
  * Per PRD: Only PNG, PDF, and CSV exports allowed.
  * All blocked formats show clear error message.
+ * 
+ * CityEngine 3D exports are available via the CityEngineExportSection component.
  */
 
 import { useState } from "react";
@@ -36,9 +38,11 @@ import {
   Loader2,
   Ruler
 } from "lucide-react";
+import { CityEngineExportSection } from "./CityEngineExportSection";
 
 interface ExportPanelProps {
   className?: string;
+  applicationId?: string;
 }
 
 const EXPORT_OPTIONS = [
@@ -72,7 +76,7 @@ const BLOCKED_FORMATS = [
   { id: "dxf", label: "DXF (.dxf)" },
 ];
 
-export function ExportPanel({ className }: ExportPanelProps) {
+export function ExportPanel({ className, applicationId }: ExportPanelProps) {
   const { variants, envelope, measurementMode, measurementResult, measurementPoints } = useDesignStore();
   const [selectedFormat, setSelectedFormat] = useState<AllowedExportFormat>("pdf");
   const [fileName, setFileName] = useState("siteintel-design");
@@ -260,6 +264,11 @@ export function ExportPanel({ className }: ExportPanelProps) {
           </Button>
         </CardContent>
       </Card>
+
+      {/* CityEngine 3D Export Section */}
+      <CityEngineExportSection 
+        applicationId={applicationId}
+      />
 
       {/* Blocked formats */}
       <Card className="border-destructive/30">
