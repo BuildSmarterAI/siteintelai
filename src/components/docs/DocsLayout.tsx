@@ -1,16 +1,20 @@
 import { ReactNode, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ArrowLeft } from "lucide-react";
+import { Menu, ArrowLeft } from "lucide-react";
 import { DocsSidebar } from "./DocsSidebar";
+import { DocsBreadcrumb } from "./DocsBreadcrumb";
+import { DocsTableOfContents } from "./DocsTableOfContents";
+import { DocsPagination } from "./DocsPagination";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import siteintelLogo from "@/assets/siteintel-ai-logo-main.png";
 
 interface DocsLayoutProps {
   children: ReactNode;
+  showToc?: boolean;
 }
 
-export const DocsLayout = ({ children }: DocsLayoutProps) => {
+export const DocsLayout = ({ children, showToc = true }: DocsLayoutProps) => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -24,7 +28,7 @@ export const DocsLayout = ({ children }: DocsLayoutProps) => {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 bg-[hsl(var(--midnight-blue))] border-white/10">
-            <DocsSidebar />
+            <DocsSidebar onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
         
@@ -57,9 +61,22 @@ export const DocsLayout = ({ children }: DocsLayoutProps) => {
             </Link>
           </div>
 
-          {/* Page Content */}
-          <div className="px-6 lg:px-12 py-8 lg:py-12 pt-24 lg:pt-12 max-w-4xl">
-            {children}
+          {/* Page Content with ToC */}
+          <div className="flex">
+            <article className="flex-1 px-6 lg:px-12 py-8 lg:py-12 pt-24 lg:pt-12 max-w-4xl">
+              <DocsBreadcrumb />
+              {children}
+              <DocsPagination />
+            </article>
+
+            {/* Desktop Table of Contents */}
+            {showToc && (
+              <aside className="hidden xl:block w-56 shrink-0 pr-8 pt-12">
+                <div className="sticky top-28">
+                  <DocsTableOfContents />
+                </div>
+              </aside>
+            )}
           </div>
         </main>
       </div>

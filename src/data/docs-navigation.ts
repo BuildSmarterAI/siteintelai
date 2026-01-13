@@ -6,7 +6,8 @@ import {
   Server, 
   LayoutDashboard, 
   Brain, 
-  FileText 
+  FileText,
+  Box
 } from "lucide-react";
 
 export interface DocNavItem {
@@ -63,6 +64,15 @@ export const docsNavigation: DocNavSection[] = [
     items: [
       { title: "Tileserver GL + Cloudflare", href: "/docs/tile-architecture", description: "Tile serving" },
       { title: "Vector Tile Schemas", href: "/docs/tile-schemas", description: "Tile structure" },
+    ],
+  },
+  {
+    title: "3D Visualization",
+    icon: Box,
+    items: [
+      { title: "CityEngine Integration", href: "/docs/cityengine-integration", description: "3D massing pipeline" },
+      { title: "Export Formats", href: "/docs/export-formats", description: "GLB, OBJ, PNG specs" },
+      { title: "Worker Architecture", href: "/docs/cityengine-worker", description: "External processor" },
     ],
   },
   {

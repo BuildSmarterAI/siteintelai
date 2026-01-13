@@ -2,9 +2,14 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { docsNavigation } from "@/data/docs-navigation";
+import { DocsSearch } from "./DocsSearch";
 import { cn } from "@/lib/utils";
 
-export const DocsSidebar = () => {
+interface DocsSidebarProps {
+  onNavigate?: () => void;
+}
+
+export const DocsSidebar = ({ onNavigate }: DocsSidebarProps) => {
   const location = useLocation();
   const [openSections, setOpenSections] = useState<string[]>(
     docsNavigation.map((s) => s.title)
@@ -20,15 +25,24 @@ export const DocsSidebar = () => {
 
   const isActive = (href: string) => location.pathname === href;
 
+  const handleNavClick = () => {
+    onNavigate?.();
+  };
+
   return (
-    <aside className="w-64 min-h-screen bg-[hsl(var(--midnight-blue))] border-r border-white/10 overflow-y-auto">
+    <aside className="w-64 h-screen bg-[hsl(var(--midnight-blue))] border-r border-white/10 overflow-y-auto flex flex-col">
       <div className="p-4 border-b border-white/10">
-        <NavLink to="/docs" className="flex items-center gap-2">
+        <NavLink to="/docs" className="flex items-center gap-2" onClick={handleNavClick}>
           <span className="font-heading text-lg text-white">SiteIntel™ Docs</span>
         </NavLink>
       </div>
 
-      <nav className="p-4 space-y-2">
+      {/* Search */}
+      <div className="p-4 border-b border-white/10">
+        <DocsSearch />
+      </div>
+
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {docsNavigation.map((section) => {
           const Icon = section.icon;
           const isOpen = openSections.includes(section.title);
@@ -60,6 +74,7 @@ export const DocsSidebar = () => {
                     <NavLink
                       key={item.href}
                       to={item.href}
+                      onClick={handleNavClick}
                       className={cn(
                         "block px-3 py-1.5 rounded-md text-sm transition-colors",
                         isActive(item.href)
@@ -76,6 +91,13 @@ export const DocsSidebar = () => {
           );
         })}
       </nav>
+
+      {/* Keyboard shortcuts hint */}
+      <div className="p-4 border-t border-white/10">
+        <p className="text-xs text-white/40 text-center">
+          Press <kbd className="px-1.5 py-0.5 rounded bg-white/10 font-mono">⌘K</kbd> to search
+        </p>
+      </div>
     </aside>
   );
 };
