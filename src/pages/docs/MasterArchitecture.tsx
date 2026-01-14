@@ -19,7 +19,7 @@ const MasterArchitecture = () => {
 
         <DiagramBlock
           title="SiteIntel™ Platform Architecture"
-          diagram={`
+          content={`
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              FRONTEND (React + Vite)                         │
 ├─────────────────────────────────────────────────────────────────────────────┤

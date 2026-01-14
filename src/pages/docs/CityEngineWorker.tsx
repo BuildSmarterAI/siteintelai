@@ -35,7 +35,7 @@ const CityEngineWorker = () => {
 
         <DiagramBlock
           title="Worker Process Flow"
-          diagram={`
+          content={`
 ┌─────────────────────────────────────────────────────────────┐
 │                    CityEngine Worker                         │
 │                    (Python 3.11+)                            │
