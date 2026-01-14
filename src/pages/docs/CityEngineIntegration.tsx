@@ -44,7 +44,7 @@ const CityEngineIntegration = () => {
 
         <DiagramBlock
           title="CityEngine Export Pipeline"
-          diagram={`
+          content={`
 ┌──────────────┐    ┌──────────────────┐    ┌───────────────────┐
 │   Frontend   │───▶│  Edge Function   │───▶│  cityengine_jobs  │
 │  (React)     │    │ queue-cityengine │    │  (PostgreSQL)     │
@@ -58,7 +58,7 @@ const CityEngineIntegration = () => {
 │  │  Poll Queue │──▶│ Load Scene  │──▶│  Apply CGA Rules    │  │
 │  │  (claim)    │   │  + Parcel   │   │  (hotel_v1.cga etc) │  │
 │  └─────────────┘   └─────────────┘   └──────────┬──────────┘  │
-│                                                  │             │
+│                                                 │             │
 │  ┌─────────────────────────────────────────────┐│             │
 │  │   Export Formats                             ││             │
 │  │   • GLB (web viewer)     ◀───────────────────┘             │
