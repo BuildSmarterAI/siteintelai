@@ -5,7 +5,7 @@
  * and rendered views from their design variants.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useDesignStore } from "@/stores/useDesignStore";
 import { useDesignSession } from "@/hooks/useDesignSession";
 import { 
@@ -22,6 +22,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ModelViewerDialog } from "./ModelViewerDialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { 
@@ -34,7 +35,8 @@ import {
   Clock,
   Sparkles,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Eye
 } from "lucide-react";
 import type { ExportFormat, ViewType } from "@/types/cityengine";
 
@@ -61,6 +63,7 @@ export function CityEngineExportSection({ className, applicationId }: CityEngine
   const [selectedFormats, setSelectedFormats] = useState<ExportFormat[]>(["glb"]);
   const [selectedViews, setSelectedViews] = useState<ViewType[]>(["axon", "top", "street"]);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+  const [showModelViewer, setShowModelViewer] = useState(false);
   
   const { data: jobStatus, isLoading: isLoadingStatus } = useCityEngineJob(activeJobId);
   const queueJob = useQueueCityEngineJob();
@@ -274,14 +277,24 @@ export function CityEngineExportSection({ className, applicationId }: CityEngine
             {job.status === "complete" && signedUrls && (
               <div className="grid grid-cols-2 gap-2">
                 {signedUrls.model_glb && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownload(signedUrls.model_glb!, "model.glb")}
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    GLB Model
-                  </Button>
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload(signedUrls.model_glb!, "model.glb")}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      GLB Model
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setShowModelViewer(true)}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      Preview 3D
+                    </Button>
+                  </>
                 )}
                 {signedUrls.model_obj && (
                   <Button
@@ -385,6 +398,19 @@ export function CityEngineExportSection({ className, applicationId }: CityEngine
           Processing typically takes 2-5 minutes.
         </p>
       </CardContent>
+
+      {/* 3D Model Viewer Dialog */}
+      {signedUrls?.model_glb && (
+        <ModelViewerDialog
+          open={showModelViewer}
+          onOpenChange={setShowModelViewer}
+          src={signedUrls.model_glb}
+          poster={signedUrls.view_axon}
+          title={`${targetVariant?.name || "Design"} - 3D Model`}
+          downloadUrl={signedUrls.model_glb}
+          downloadFilename={`${targetVariant?.name?.replace(/\s+/g, "_") || "model"}.glb`}
+        />
+      )}
     </Card>
   );
 }
