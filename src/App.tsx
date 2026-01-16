@@ -42,6 +42,12 @@ import Contact from "./pages/Contact";
 import Developers from "./pages/industries/Developers";
 import Lenders from "./pages/industries/Lenders";
 import TexasDevelopers from "./pages/industries/TexasDevelopers";
+import Municipalities from "./pages/industries/Municipalities";
+import LandBrokers from "./pages/industries/LandBrokers";
+import ArchitectsEngineers from "./pages/industries/ArchitectsEngineers";
+import Compare from "./pages/Compare";
+import ROICalculator from "./pages/tools/ROICalculator";
+import Partners from "./pages/Partners";
 import SurveyUpload from "./pages/SurveyUpload";
 import Demo from "./pages/Demo";
 import Blog from "./pages/resources/Blog";
@@ -166,7 +172,9 @@ const App = () => (
               <Route path="/industries/lenders" element={<Lenders />} />
               <Route path="/industries/texas-developers" element={<TexasDevelopers />} />
               <Route path="/industries/design-build" element={<Developers />} />
-              <Route path="/industries/municipalities" element={<Developers />} />
+              <Route path="/industries/municipalities" element={<Municipalities />} />
+              <Route path="/industries/land-brokers" element={<LandBrokers />} />
+              <Route path="/industries/architects-engineers" element={<ArchitectsEngineers />} />
               <Route path="/resources/blog" element={<Blog />} />
               <Route path="/resources/case-studies" element={<CaseStudies />} />
               <Route path="/resources/documentation" element={<Blog />} />
@@ -174,6 +182,9 @@ const App = () => (
               <Route path="/faq" element={<FAQ />} />
               <Route path="/sample-report" element={<SampleReport />} />
               <Route path="/data-sources" element={<DataSourcesPage />} />
+              <Route path="/compare" element={<Compare />} />
+              <Route path="/tools/roi-calculator" element={<ROICalculator />} />
+              <Route path="/partners" element={<Partners />} />
               <Route path="/legal/privacy" element={<Privacy />} />
               <Route path="/legal/terms" element={<Terms />} />
               <Route path="/legal/beta-nda" element={<BetaNDA />} />
