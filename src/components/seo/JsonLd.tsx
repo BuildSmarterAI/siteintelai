@@ -176,3 +176,50 @@ export function WebPageJsonLd({ name, description, url }: WebPageJsonLdProps) {
     </Helmet>
   );
 }
+
+// Article Schema
+interface ArticleJsonLdProps {
+  headline: string;
+  author: string;
+  datePublished: string;
+  dateModified?: string;
+  image?: string;
+  description?: string;
+}
+
+export function ArticleJsonLd({
+  headline,
+  author,
+  datePublished,
+  dateModified,
+  image,
+  description,
+}: ArticleJsonLdProps) {
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline,
+    author: {
+      "@type": "Person",
+      name: author,
+    },
+    datePublished,
+    dateModified: dateModified || datePublished,
+    image: image || seoConfig.defaultOgImage,
+    description,
+    publisher: {
+      "@type": "Organization",
+      name: seoConfig.siteName,
+      logo: {
+        "@type": "ImageObject",
+        url: seoConfig.organization.logo,
+      },
+    },
+  };
+
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+    </Helmet>
+  );
+}
