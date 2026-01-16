@@ -45,6 +45,10 @@ import TexasDevelopers from "./pages/industries/TexasDevelopers";
 import SurveyUpload from "./pages/SurveyUpload";
 import Demo from "./pages/Demo";
 import Blog from "./pages/resources/Blog";
+import FAQ from "./pages/FAQ";
+import SampleReport from "./pages/SampleReport";
+import CaseStudies from "./pages/resources/CaseStudies";
+import DataSourcesPage from "./pages/DataSources";
 import Privacy from "./pages/legal/Privacy";
 import Terms from "./pages/legal/Terms";
 import BetaNDA from "./pages/legal/BetaNDA";
@@ -164,9 +168,12 @@ const App = () => (
               <Route path="/industries/design-build" element={<Developers />} />
               <Route path="/industries/municipalities" element={<Developers />} />
               <Route path="/resources/blog" element={<Blog />} />
-              <Route path="/resources/case-studies" element={<Blog />} />
+              <Route path="/resources/case-studies" element={<CaseStudies />} />
               <Route path="/resources/documentation" element={<Blog />} />
               <Route path="/resources/api" element={<Blog />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/sample-report" element={<SampleReport />} />
+              <Route path="/data-sources" element={<DataSourcesPage />} />
               <Route path="/legal/privacy" element={<Privacy />} />
               <Route path="/legal/terms" element={<Terms />} />
               <Route path="/legal/beta-nda" element={<BetaNDA />} />

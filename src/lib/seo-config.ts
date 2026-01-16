@@ -125,4 +125,24 @@ export const pageSeoConfig: Record<string, { title: string; description: string;
     description: "Join the SiteIntel beta program and get early access to AI-powered feasibility tools.",
     keywords: ["beta", "early access", "waitlist"],
   },
+  "/faq": {
+    title: "FAQ - Frequently Asked Questions",
+    description: "Get answers about SiteIntel feasibility reports, pricing, data sources, and lender acceptance.",
+    keywords: ["FAQ", "feasibility questions", "real estate FAQ"],
+  },
+  "/sample-report": {
+    title: "Sample Feasibility Report",
+    description: "Preview a complete SiteIntel feasibility report. See zoning, flood, utilities, and market analysis.",
+    keywords: ["sample report", "feasibility example", "report preview"],
+  },
+  "/resources/case-studies": {
+    title: "Case Studies - Customer Success Stories",
+    description: "See how developers, lenders, and investors use SiteIntel to save time and money.",
+    keywords: ["case studies", "success stories", "real estate ROI"],
+  },
+  "/data-sources": {
+    title: "Data Sources & Methodology",
+    description: "SiteIntel uses verified data from FEMA, ArcGIS, TxDOT, EPA. 100% transparent citations.",
+    keywords: ["data sources", "FEMA", "ArcGIS", "verified data"],
+  },
 };
