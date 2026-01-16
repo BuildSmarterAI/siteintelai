@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { ProprietaryHero } from "@/components/sections/prelaunch/ProprietaryHero";
 import { ProprietaryTrustBar } from "@/components/sections/prelaunch/ProprietaryTrustBar";
 import { ProprietarySocialProof } from "@/components/sections/prelaunch/ProprietarySocialProof";
@@ -15,11 +15,11 @@ import { BetaStickyHeader } from "@/components/sections/prelaunch/BetaStickyHead
 import { BetaMobileCTA } from "@/components/sections/prelaunch/BetaMobileCTA";
 const Beta = () => {
   return <>
-      <Helmet>
-        <title>SiteIntel™ | Proprietary Feasibility Computation Engine</title>
-        <meta name="description" content="The world's first proprietary feasibility computation engine. Built on protected Geospatial Inference Stack™ and Neural Constraint Resolution Engine™. Private access only." />
-        <link rel="canonical" href="https://siteintel.ai/beta" />
-      </Helmet>
+      <SEOHead
+        title="Proprietary Feasibility Computation Engine"
+        description="The world's first proprietary feasibility computation engine. Built on protected Geospatial Inference Stack™ and Neural Constraint Resolution Engine™. Private access only."
+        keywords={["feasibility engine", "AI real estate", "geospatial AI"]}
+      />
 
       <BetaStickyHeader />
       <div className="min-h-screen bg-background">

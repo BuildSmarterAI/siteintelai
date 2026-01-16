@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Check, FileText, Building2, HelpCircle, Database, Clock, Shield } from "lucide-react";
 import { PaymentButton } from "@/components/PaymentButton";
 import { supabase } from "@/integrations/supabase/client";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { FAQJsonLd, ProductJsonLd } from "@/components/seo/JsonLd";
 import {
   Accordion,
   AccordionContent,
@@ -80,6 +82,18 @@ export default function Pricing() {
   }, []);
 
   return (
+    <>
+      <SEOHead
+        title="Pricing - $999 Feasibility Report"
+        description="Get a complete lender-ready feasibility report for $999. AI-powered analysis with FEMA, EPA, TxDOT data delivered in 60 seconds."
+        keywords={["feasibility pricing", "report cost", "real estate software pricing"]}
+      />
+      <ProductJsonLd
+        name="Site Feasibility Intelligence Report"
+        description="Complete lender-ready feasibility analysis with zoning, flood, utility, and environmental data."
+        price="999"
+      />
+      <FAQJsonLd items={faqs} />
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="pt-32 pb-16 px-6 bg-gradient-to-b from-secondary to-background">
@@ -260,5 +274,6 @@ export default function Pricing() {
         </div>
       </section>
     </div>
+    </>
   );
 }

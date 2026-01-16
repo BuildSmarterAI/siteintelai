@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useCounter } from "@/hooks/useCounter";
 import { useRef } from "react";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { WebPageJsonLd } from "@/components/seo/JsonLd";
+import { seoConfig } from "@/lib/seo-config";
 
 const HowItWorks = () => {
   const metricsRef = useRef(null);
@@ -78,6 +81,17 @@ const HowItWorks = () => {
   ];
 
   return (
+    <>
+      <SEOHead
+        title="How It Works - AI Feasibility Process"
+        description="See how SiteIntel transforms public data into proprietary intelligence. From address to verified feasibility report in 60 seconds."
+        keywords={["how feasibility works", "AI site analysis", "feasibility process"]}
+      />
+      <WebPageJsonLd
+        name="How SiteIntel Works"
+        description="From public data to proprietary intelligence - the SiteIntel feasibility process."
+        url={`${seoConfig.siteUrl}/how-it-works`}
+      />
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       {/* 1️⃣ Hero Intro */}
       <section className="relative overflow-hidden py-32">
@@ -495,6 +509,7 @@ const HowItWorks = () => {
         </div>
       </section>
     </div>
+    </>
   );
 };
 

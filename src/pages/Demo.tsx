@@ -1,3 +1,5 @@
+import { SEOHead } from "@/components/seo/SEOHead";
+import { FAQJsonLd } from "@/components/seo/JsonLd";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -208,6 +210,13 @@ const Demo = () => {
   ];
 
   return (
+    <>
+      <SEOHead
+        title="Book a Demo - See Feasibility in 60 Seconds"
+        description="Experience how SiteIntel™ instantly analyzes zoning, flood, utilities, buildable envelope, and deal-killers using real Texas data."
+        keywords={["feasibility demo", "real estate software demo", "site analysis demo"]}
+      />
+      <FAQJsonLd items={faqs} />
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="relative py-20 lg:py-28 overflow-hidden">
@@ -749,6 +758,7 @@ const Demo = () => {
         </div>
       </section>
     </div>
+    </>
   );
 };
 

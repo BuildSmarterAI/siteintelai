@@ -175,4 +175,34 @@ export const pageSeoConfig: Record<string, { title: string; description: string;
     description: "Join the SiteIntel partner network. Earn $100 per referral or integrate our API into your platform.",
     keywords: ["partner program", "referral", "API partner", "reseller"],
   },
+  "/demo": {
+    title: "Book a Demo - See Feasibility in 60 Seconds",
+    description: "Experience SiteIntel's instant feasibility analysis with real Texas data.",
+    keywords: ["feasibility demo", "real estate demo", "site analysis demo"],
+  },
+  "/beta-signup": {
+    title: "Join Private Beta",
+    description: "Join the founding cohort of SiteIntel™ Feasibility. Free access for verified professionals.",
+    keywords: ["beta access", "early adopter", "feasibility beta"],
+  },
+  "/api-docs": {
+    title: "API Documentation",
+    description: "SiteIntel API documentation for developers. REST and OData endpoints.",
+    keywords: ["feasibility API", "real estate data API", "OData"],
+  },
+  "/brand-kit": {
+    title: "Brand Kit - Visual Identity",
+    description: "SiteIntel brand guidelines, logo assets, color palette, and typography.",
+    keywords: ["brand kit", "press kit", "brand assets"],
+  },
+  "/resources/blog": {
+    title: "Blog - Real Estate Insights",
+    description: "Insights on development intelligence and feasibility analysis from SiteIntel.",
+    keywords: ["real estate blog", "feasibility insights", "PropTech"],
+  },
+  "/industries/texas-developers": {
+    title: "Texas Commercial Developers",
+    description: "Site feasibility in 60 seconds for Texas commercial developers.",
+    keywords: ["Texas developers", "Houston real estate", "Texas feasibility"],
+  },
 };
