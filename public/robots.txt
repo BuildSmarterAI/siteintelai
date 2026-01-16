@@ -1,2 +1,25 @@
+# SiteIntel™ Robots.txt
+# Allow search engines to index public pages
+
 User-agent: *
-Disallow: /
+Allow: /
+
+# Block private/authenticated areas
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /report/
+Disallow: /settings
+Disallow: /create-account
+Disallow: /payment-history
+Disallow: /analytics
+Disallow: /feasibility-intake
+Disallow: /feasibility-processing
+Disallow: /api/
+
+# Block utility pages
+Disallow: /auth
+Disallow: /thank-you
+Disallow: /beta-thank-you
+
+# Sitemap location
+Sitemap: https://siteintel.lovable.app/sitemap.xml
