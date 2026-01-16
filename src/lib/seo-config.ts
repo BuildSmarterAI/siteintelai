@@ -145,4 +145,34 @@ export const pageSeoConfig: Record<string, { title: string; description: string;
     description: "SiteIntel uses verified data from FEMA, ArcGIS, TxDOT, EPA. 100% transparent citations.",
     keywords: ["data sources", "FEMA", "ArcGIS", "verified data"],
   },
+  "/compare": {
+    title: "SiteIntel vs Traditional Consultants",
+    description: "Compare SiteIntel AI feasibility reports to traditional consultants. Save 90% cost and get results in 10 minutes.",
+    keywords: ["compare feasibility", "consultant alternative", "cost savings"],
+  },
+  "/tools/roi-calculator": {
+    title: "ROI Calculator - Calculate Your Savings",
+    description: "Calculate how much you can save with SiteIntel AI feasibility reports. Free ROI calculator.",
+    keywords: ["ROI calculator", "feasibility savings", "cost calculator"],
+  },
+  "/industries/municipalities": {
+    title: "For Municipalities & Economic Development",
+    description: "Help municipalities attract development with instant feasibility pre-screening and compliance verification.",
+    keywords: ["municipalities", "economic development", "permit screening"],
+  },
+  "/industries/land-brokers": {
+    title: "For Land Brokers & Commercial Real Estate Agents",
+    description: "Differentiate your listings with instant feasibility reports. Help buyers make faster decisions.",
+    keywords: ["land brokers", "commercial real estate", "listing tools"],
+  },
+  "/industries/architects-engineers": {
+    title: "For Architects & Engineers",
+    description: "Validate site constraints before design begins. Get zoning, utilities, and environmental data instantly.",
+    keywords: ["architects", "engineers", "site validation", "pre-design"],
+  },
+  "/partners": {
+    title: "Partner Program - Earn Referral Credits",
+    description: "Join the SiteIntel partner network. Earn $100 per referral or integrate our API into your platform.",
+    keywords: ["partner program", "referral", "API partner", "reseller"],
+  },
 };
