@@ -1,5 +1,6 @@
-import { Helmet } from "react-helmet";
 import { motion } from "framer-motion";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { BreadcrumbJsonLd } from "@/components/seo/JsonLd";
 import { Link } from "react-router-dom";
 import { 
   ArrowRight, 
@@ -79,10 +80,18 @@ const TexasDevelopers = () => {
 
   return (
     <>
-      <Helmet>
-        <title>Texas Commercial Developers | SiteIntel™ Feasibility Intelligence</title>
-        <meta name="description" content="Site feasibility in 60 seconds for Texas commercial developers. Instant zoning, flood, utility, and buildability analysis before you spend a dollar." />
-      </Helmet>
+      <SEOHead
+        title="Texas Commercial Developers"
+        description="Site feasibility in 60 seconds for Texas commercial developers. Instant zoning, flood, utility, and buildability analysis before you spend a dollar."
+        keywords={["Texas developers", "Houston real estate", "Texas feasibility", "commercial development Texas"]}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", url: "https://siteintel.lovable.app" },
+          { name: "Industries", url: "https://siteintel.lovable.app/industries" },
+          { name: "Texas Developers", url: "https://siteintel.lovable.app/industries/texas-developers" },
+        ]}
+      />
 
       <div className="min-h-screen bg-background">
         {/* HERO SECTION */}

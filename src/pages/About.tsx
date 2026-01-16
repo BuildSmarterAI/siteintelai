@@ -1,9 +1,23 @@
 import { Target, Users, Heart, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { WebPageJsonLd } from "@/components/seo/JsonLd";
+import { seoConfig } from "@/lib/seo-config";
 
 const About = () => {
   return (
+    <>
+      <SEOHead
+        title="About SiteIntel - AI Feasibility Intelligence"
+        description="SiteIntel transforms fragmented real estate data into decision-making clarity. Learn about our mission, team, and data ethics."
+        keywords={["about siteintel", "real estate AI company", "feasibility software company", "PropTech"]}
+      />
+      <WebPageJsonLd
+        name="About SiteIntel™"
+        description="Building the verified intelligence layer for real estate and construction."
+        url={`${seoConfig.siteUrl}/about`}
+      />
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
@@ -107,6 +121,7 @@ const About = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

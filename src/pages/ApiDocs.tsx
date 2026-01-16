@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Helmet } from "react-helmet";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -100,10 +100,12 @@ const EndpointCard = ({
 export default function ApiDocs() {
   return (
     <>
-      <Helmet>
-        <title>API Documentation | SiteIntel™</title>
-        <meta name="description" content="SiteIntel API documentation for developers. REST and OData endpoints for feasibility data." />
-      </Helmet>
+      <SEOHead
+        title="API Documentation"
+        description="SiteIntel API documentation for developers. REST and OData endpoints for feasibility data integration."
+        keywords={["feasibility API", "real estate data API", "OData", "REST API"]}
+        noIndex={false}
+      />
 
       <div className="min-h-screen bg-background">
         {/* Hero Section */}

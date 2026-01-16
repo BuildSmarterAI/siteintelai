@@ -2,9 +2,16 @@ import { Mail, MessageSquare, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 const Contact = () => {
   return (
+    <>
+      <SEOHead
+        title="Contact Us"
+        description="Get in touch with the SiteIntel team. Questions about feasibility reports, pricing, or enterprise solutions? We're here to help."
+        keywords={["contact siteintel", "feasibility demo", "real estate software support"]}
+      />
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-4xl mx-auto">
@@ -78,6 +85,7 @@ const Contact = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

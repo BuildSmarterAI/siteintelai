@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Copy, Check } from "lucide-react";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +50,12 @@ const BrandKit = () => {
   ];
 
   return (
+    <>
+      <SEOHead
+        title="Brand Kit - Visual Identity"
+        description="SiteIntel™ brand guidelines, logo assets, color palette, typography, and visual identity system."
+        keywords={["brand kit", "press kit", "brand assets", "media resources"]}
+      />
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="relative py-20 px-4 bg-gradient-to-b from-midnight-blue to-background">
@@ -347,6 +354,7 @@ const BrandKit = () => {
         </div>
       </section>
     </div>
+    </>
   );
 };
 

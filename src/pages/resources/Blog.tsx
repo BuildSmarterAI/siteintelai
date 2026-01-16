@@ -1,4 +1,5 @@
 import { Calendar, ArrowRight } from "lucide-react";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 const Blog = () => {
   const articles = [
@@ -23,6 +24,12 @@ const Blog = () => {
   ];
 
   return (
+    <>
+      <SEOHead
+        title="Blog - Real Estate Insights"
+        description="Insights on development intelligence, data transparency, and the future of feasibility analysis from the SiteIntel team."
+        keywords={["real estate blog", "feasibility insights", "PropTech articles"]}
+      />
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F2C] via-[#11224F] to-[#0A0F2C]">
       <div className="container mx-auto px-6 py-24">
         <div className="max-w-5xl mx-auto">
@@ -59,6 +66,7 @@ const Blog = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

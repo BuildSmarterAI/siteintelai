@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Helmet } from "react-helmet";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -90,10 +90,11 @@ export default function BetaSignup() {
     }
   };
   return <>
-      <Helmet>
-        <title>Join Private Beta | SiteIntel™ Feasibility</title>
-        <meta name="description" content="Join the founding cohort of SiteIntel™ Feasibility. Free access for verified developers, lenders, and investors." />
-      </Helmet>
+      <SEOHead
+        title="Join Private Beta"
+        description="Join the founding cohort of SiteIntel™ Feasibility. Free access for verified developers, lenders, and investors."
+        keywords={["beta access", "early adopter", "feasibility beta", "real estate beta"]}
+      />
 
       {/* Hero Section */}
       <section className="relative min-h-[90vh] w-full overflow-hidden">
