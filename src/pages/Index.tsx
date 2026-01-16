@@ -18,6 +18,8 @@ import { UnifiedMobileCTA } from "@/components/sections/UnifiedMobileCTA";
 import { KeyAdvantages } from "@/components/sections/KeyAdvantages";
 import { Button } from "@/components/ui/button";
 import { Map } from "lucide-react";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { OrganizationJsonLd, SoftwareApplicationJsonLd } from "@/components/seo/JsonLd";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -38,38 +40,43 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <Hero />
-      <GlobeFeatureSection />
-      <AssociationLogos />
-      
-      {/* Parcel Explorer CTA */}
-      <section className="py-12 bg-muted/30">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold mb-4">Explore HCAD Parcels on Map</h2>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Browse parcels interactively, search by address or cross-street, and instantly run feasibility analysis on any property.
-          </p>
-          <Button size="lg" onClick={() => navigate('/parcel-explorer')}>
-            <Map className="h-5 w-5 mr-2" />
-            Open Parcel Map
-          </Button>
-        </div>
-      </section>
-      
-      <PlatformOverview />
-      <Solution />
-      <KeyAdvantages />
-      <Comparison />
-      <IndustriesWeServe />
-      <PackagesPricing />
-      <Advantage />
-      <FAQ />
-      <LeadMagnet />
-      <FinalCTA />
-      <Footer />
-      <UnifiedMobileCTA />
-    </div>
+    <>
+      <SEOHead />
+      <OrganizationJsonLd />
+      <SoftwareApplicationJsonLd />
+      <div className="min-h-screen">
+        <Hero />
+        <GlobeFeatureSection />
+        <AssociationLogos />
+        
+        {/* Parcel Explorer CTA */}
+        <section className="py-12 bg-muted/30">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-3xl font-bold mb-4">Explore HCAD Parcels on Map</h2>
+            <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
+              Browse parcels interactively, search by address or cross-street, and instantly run feasibility analysis on any property.
+            </p>
+            <Button size="lg" onClick={() => navigate('/parcel-explorer')}>
+              <Map className="h-5 w-5 mr-2" />
+              Open Parcel Map
+            </Button>
+          </div>
+        </section>
+        
+        <PlatformOverview />
+        <Solution />
+        <KeyAdvantages />
+        <Comparison />
+        <IndustriesWeServe />
+        <PackagesPricing />
+        <Advantage />
+        <FAQ />
+        <LeadMagnet />
+        <FinalCTA />
+        <Footer />
+        <UnifiedMobileCTA />
+      </div>
+    </>
   );
 };
 
