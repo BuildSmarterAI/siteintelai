@@ -1921,6 +1921,72 @@ export type Database = {
           },
         ]
       }
+      building_models: {
+        Row: {
+          archetype_id: string
+          base_depth_ft: number
+          base_height_ft: number
+          base_stories: number
+          base_width_ft: number
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          glb_storage_path: string
+          id: string
+          is_featured: boolean | null
+          is_public: boolean | null
+          max_scale: number | null
+          min_scale: number | null
+          name: string
+          preview_url: string | null
+          style: string
+          thumbnail_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          archetype_id: string
+          base_depth_ft: number
+          base_height_ft: number
+          base_stories?: number
+          base_width_ft: number
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          glb_storage_path: string
+          id?: string
+          is_featured?: boolean | null
+          is_public?: boolean | null
+          max_scale?: number | null
+          min_scale?: number | null
+          name: string
+          preview_url?: string | null
+          style: string
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          archetype_id?: string
+          base_depth_ft?: number
+          base_height_ft?: number
+          base_stories?: number
+          base_width_ft?: number
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          glb_storage_path?: string
+          id?: string
+          is_featured?: boolean | null
+          is_public?: boolean | null
+          max_scale?: number | null
+          min_scale?: number | null
+          name?: string
+          preview_url?: string | null
+          style?: string
+          thumbnail_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       canonical_demographics: {
         Row: {
           accuracy_tier: string | null
@@ -3549,6 +3615,72 @@ export type Database = {
           width_depth_ratio?: number | null
         }
         Relationships: []
+      }
+      design_variant_models: {
+        Row: {
+          created_at: string | null
+          final_footprint_sqft: number | null
+          final_gfa: number | null
+          final_height_ft: number | null
+          id: string
+          model_id: string | null
+          offset_x_meters: number | null
+          offset_y_meters: number | null
+          rotation_deg: number | null
+          scale_x: number | null
+          scale_y: number | null
+          scale_z: number | null
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          final_footprint_sqft?: number | null
+          final_gfa?: number | null
+          final_height_ft?: number | null
+          id?: string
+          model_id?: string | null
+          offset_x_meters?: number | null
+          offset_y_meters?: number | null
+          rotation_deg?: number | null
+          scale_x?: number | null
+          scale_y?: number | null
+          scale_z?: number | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          final_footprint_sqft?: number | null
+          final_gfa?: number | null
+          final_height_ft?: number | null
+          id?: string
+          model_id?: string | null
+          offset_x_meters?: number | null
+          offset_y_meters?: number | null
+          rotation_deg?: number | null
+          scale_x?: number | null
+          scale_y?: number | null
+          scale_z?: number | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "design_variant_models_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "building_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "design_variant_models_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: true
+            referencedRelation: "design_variants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       design_variants: {
         Row: {
