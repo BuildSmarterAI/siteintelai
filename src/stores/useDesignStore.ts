@@ -139,6 +139,9 @@ export interface DesignSession {
 }
 
 interface DesignState {
+  // Property address for display
+  propertyAddress: string | null;
+  setPropertyAddress: (address: string | null) => void;
   // ========== Preview Geometry (Ephemeral - Building Type Step) ==========
   previewGeometry: GeoJSON.Polygon | null;
   previewHeightFt: number | null;
@@ -332,6 +335,8 @@ interface DesignState {
 }
 
 const initialState = {
+  // Property address
+  propertyAddress: null as string | null,
   // Preview geometry (ephemeral)
   previewGeometry: null as GeoJSON.Polygon | null,
   previewHeightFt: null as number | null,
@@ -447,6 +452,8 @@ export const useDesignStore = create<DesignState>()(
       setSession: (session) => set({ session }),
 
       setEnvelope: (envelope) => set({ envelope }),
+
+      setPropertyAddress: (propertyAddress) => set({ propertyAddress }),
 
       setVariants: (variants) => {
         set({ variants });

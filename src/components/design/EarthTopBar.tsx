@@ -31,7 +31,9 @@ import {
   ArrowUpDown,
   Magnet,
   X,
+  MapPin,
 } from "lucide-react";
+import { toast } from "sonner";
 import { ShareModal } from "./ShareModal";
 import { useWizardStore } from "@/stores/useWizardStore";
 
@@ -62,6 +64,7 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
     canvasViewMode,
     measurementSnappingEnabled,
     setMeasurementSnappingEnabled,
+    propertyAddress,
   } = useDesignStore();
 
   const { isOpen: isWizardOpen, openWizard, closeWizard } = useWizardStore();
@@ -117,6 +120,34 @@ export function EarthTopBar({ className }: EarthTopBarProps) {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            {/* Property Address Display */}
+            {propertyAddress && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(propertyAddress);
+                        toast.success("Address copied to clipboard");
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[hsl(27_100%_50%)] hover:bg-white/10 transition-colors max-w-[280px] truncate"
+                    >
+                      <MapPin className="h-4 w-4 flex-shrink-0" />
+                      <span className="text-sm font-medium truncate">
+                        {propertyAddress}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-[400px]">
+                    <p className="text-sm">{propertyAddress}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Click to copy</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
+            <ToolbarDivider />
 
             {/* Search input */}
             <form onSubmit={handleSearch} className="relative">

@@ -66,6 +66,7 @@ export default function DesignMode() {
     reset,
     leftPanelState,
     setLeftPanelState,
+    setPropertyAddress,
   } = useDesignStore();
 
   const isWizardOpen = useWizardStore((s) => s.isOpen);
@@ -125,6 +126,25 @@ export default function DesignMode() {
       createSession({ envelopeId: envelope.id });
     }
   }, [envelope, fetchedSession, isLoadingSession, createSession]);
+
+  // Fetch property address when envelope loads
+  useEffect(() => {
+    if (!envelope?.applicationId) return;
+
+    const fetchAddress = async () => {
+      const { data } = await supabase
+        .from("applications")
+        .select("formatted_address")
+        .eq("id", envelope.applicationId)
+        .single();
+
+      if (data?.formatted_address) {
+        setPropertyAddress(data.formatted_address);
+      }
+    };
+
+    fetchAddress();
+  }, [envelope?.applicationId, setPropertyAddress]);
 
   // Reset on unmount
   useEffect(() => {
