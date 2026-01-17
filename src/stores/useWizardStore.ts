@@ -14,6 +14,7 @@ import type {
   WizardState,
 } from '@/types/wizard';
 import type { IntensityLevel, OrientationMode, PreviewParkingMode } from '@/types/buildingTypes';
+import type { ModelTransform } from '@/hooks/useBuildingModels';
 
 interface WizardStore extends WizardState {
   isOpen: boolean;
@@ -29,15 +30,19 @@ interface WizardStore extends WizardState {
   confirmSite: () => void;
   // Step 2: Use Types
   toggleUseType: (useType: UseType) => void;
-  // Step 3: Building Type (NEW)
+  // Step 3: Building Type
   buildingTypeId: string | null;
   intensity: IntensityLevel;
   orientation: OrientationMode;
   parkingMode: PreviewParkingMode;
+  selectedModelId: string | null;
+  modelTransform: ModelTransform | null;
   setBuildingType: (id: string | null) => void;
   setIntensity: (level: IntensityLevel) => void;
   setOrientation: (mode: OrientationMode) => void;
   setParkingMode: (mode: PreviewParkingMode) => void;
+  setSelectedModel: (id: string | null) => void;
+  setModelTransform: (transform: ModelTransform | null) => void;
   // Step 4: Program Targets
   updateProgramBucket: (useType: UseType, updates: Partial<ProgramBucket>) => void;
   // Step 5: Parking
@@ -64,6 +69,8 @@ const initialState: WizardState & {
   intensity: IntensityLevel;
   orientation: OrientationMode;
   parkingMode: PreviewParkingMode;
+  selectedModelId: string | null;
+  modelTransform: ModelTransform | null;
 } = {
   isOpen: false,
   currentStep: 1,
@@ -71,11 +78,13 @@ const initialState: WizardState & {
   siteConfirmed: false,
   selectedUseTypes: [],
   programBuckets: [],
-  // Building type step (NEW)
+  // Building type step
   buildingTypeId: null,
   intensity: 'optimal',
   orientation: 'parcel',
   parkingMode: 'surface',
+  selectedModelId: null,
+  modelTransform: null,
   // Existing state
   parkingConfig: { enabled: false, type: 'surface', ratio: 3.5, estimatedStalls: 0 },
   selectedTemplates: [],
@@ -113,11 +122,13 @@ export const useWizardStore = create<WizardStore>()((set, get) => ({
   
   confirmSite: () => set({ siteConfirmed: true }),
   
-  // Building Type Step (NEW)
-  setBuildingType: (id) => set({ buildingTypeId: id }),
+  // Building Type Step
+  setBuildingType: (id) => set({ buildingTypeId: id, selectedModelId: null, modelTransform: null }),
   setIntensity: (level) => set({ intensity: level }),
   setOrientation: (mode) => set({ orientation: mode }),
   setParkingMode: (mode) => set({ parkingMode: mode }),
+  setSelectedModel: (id) => set({ selectedModelId: id }),
+  setModelTransform: (transform) => set({ modelTransform: transform }),
   
   toggleUseType: (useType) => set((s) => {
     const idx = s.selectedUseTypes.indexOf(useType);
