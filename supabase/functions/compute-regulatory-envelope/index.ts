@@ -286,25 +286,31 @@ serve(async (req) => {
       });
     }
 
-    // Store the regulatory envelope
+    // Store the regulatory envelope using upsert to handle race conditions
+    const envelopeData = {
+      application_id,
+      parcel_geometry: parcelGeometry,
+      buildable_footprint_2d: buildableFootprint || parcelGeometry,
+      far_cap: constraints.far_cap,
+      height_cap_ft: constraints.height_cap_ft,
+      coverage_cap_pct: constraints.coverage_cap_pct,
+      setbacks: constraints.setbacks,
+      exclusion_zones: exclusionZones,
+      constraints_source: {
+        governing_path: application.governing_path,
+        buildability_output_id: application.buildability_output_id,
+        computed_from: application.buildability_output_id ? "buildability_output" : "defaults",
+        geometry_source: geometrySource,
+      },
+      constraints_version,
+      computed_at: new Date().toISOString()
+    };
+
     const { data: envelope, error: insertError } = await supabase
       .from("regulatory_envelopes")
-      .insert({
-        application_id,
-        parcel_geometry: parcelGeometry,
-        buildable_footprint_2d: buildableFootprint || parcelGeometry,
-        far_cap: constraints.far_cap,
-        height_cap_ft: constraints.height_cap_ft,
-        coverage_cap_pct: constraints.coverage_cap_pct,
-        setbacks: constraints.setbacks,
-        exclusion_zones: exclusionZones,
-        constraints_source: {
-          governing_path: application.governing_path,
-          buildability_output_id: application.buildability_output_id,
-          computed_from: application.buildability_output_id ? "buildability_output" : "defaults",
-          geometry_source: geometrySource,
-        },
-        constraints_version
+      .upsert(envelopeData, {
+        onConflict: "application_id,constraints_version",
+        ignoreDuplicates: false
       })
       .select()
       .single();
