@@ -1,19 +1,21 @@
 /**
  * Building Type Selector Step
- * Step 3: Select a building archetype and preview on the canvas
+ * Step 3: Select a building archetype, pick a 3D model, and preview on the canvas
  */
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDesignStore } from '@/stores/useDesignStore';
 import { useWizardStore } from '@/stores/useWizardStore';
 import { getAllArchetypes, getArchetypeById } from '@/lib/archetypes/buildingTypeRegistry';
 import { generateBuildingPreview } from '@/lib/geometry/generateBuildingPreview';
 import { BuildingTypeCard } from './BuildingTypeCard';
+import { BuildingModelGallery } from './BuildingModelGallery';
 import { IntensityToggle } from './IntensityToggle';
 import { OrientationToggle } from './OrientationToggle';
 import { ParkingModeSelector } from './ParkingModeSelector';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Info } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { AlertTriangle, Info, Box } from 'lucide-react';
 import * as turf from '@turf/turf';
 
 export function BuildingTypeSelectorStep() {
@@ -25,11 +27,18 @@ export function BuildingTypeSelectorStep() {
     intensity,
     orientation,
     parkingMode,
+    selectedModelId,
     setBuildingType,
     setIntensity,
     setOrientation,
     setParkingMode,
+    setSelectedModel,
   } = useWizardStore();
+
+  // Track view mode: 'archetypes' or 'models'
+  const [viewMode, setViewMode] = useState<'archetypes' | 'models'>(
+    buildingTypeId ? 'models' : 'archetypes'
+  );
 
   const archetypes = useMemo(() => getAllArchetypes(), []);
   const selectedArchetype = useMemo(
@@ -84,20 +93,58 @@ export function BuildingTypeSelectorStep() {
     });
   }, [buildingTypeId, intensity, orientation, envelope, selectedArchetype, parcelSqft, setPreviewGeometry]);
 
+  // Switch to models view when archetype is selected
+  useEffect(() => {
+    if (buildingTypeId && viewMode === 'archetypes') {
+      setViewMode('models');
+    }
+  }, [buildingTypeId, viewMode]);
+
   // Get current preview metrics
   const previewMetrics = useDesignStore((s) => s.previewMetrics);
   const previewStories = useDesignStore((s) => s.previewStories);
   const previewHeightFt = useDesignStore((s) => s.previewHeightFt);
 
+  // Handle archetype change (back button)
+  const handleChangeArchetype = () => {
+    setViewMode('archetypes');
+  };
+
   return (
     <div className="space-y-4 h-full flex flex-col">
       {/* Header */}
       <div className="space-y-1 flex-shrink-0">
-        <h3 className="font-semibold text-lg">Building Type</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-lg">
+            {viewMode === 'archetypes' ? 'Building Type' : '3D Model Selection'}
+          </h3>
+          {selectedArchetype && viewMode === 'models' && (
+            <button
+              onClick={handleChangeArchetype}
+              className="text-xs text-primary hover:underline"
+            >
+              Change type
+            </button>
+          )}
+        </div>
         <p className="text-muted-foreground text-sm">
-          Select a building archetype to preview on your site.
+          {viewMode === 'archetypes' 
+            ? 'Select a building archetype to preview on your site.'
+            : `Choose a 3D model for your ${selectedArchetype?.name || 'building'}.`
+          }
         </p>
       </div>
+
+      {/* Selected Archetype Badge (when in models view) */}
+      {selectedArchetype && viewMode === 'models' && (
+        <div className="flex-shrink-0 flex items-center gap-2 p-2 rounded-lg bg-primary/5 border border-primary/20">
+          <Box className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{selectedArchetype.name}</span>
+          <Badge variant="outline" className="text-[10px] ml-auto">
+            {selectedArchetype.category}
+          </Badge>
+        </div>
+      )}
 
       {/* Preview Metrics (when type selected) */}
       {selectedArchetype && previewMetrics && (
@@ -139,18 +186,30 @@ export function BuildingTypeSelectorStep() {
         </div>
       )}
 
-      {/* Building Type Cards */}
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto -mx-1 px-1">
-        <div className="grid grid-cols-1 gap-2 pb-4">
-          {archetypes.map((archetype) => (
-            <BuildingTypeCard
-              key={archetype.id}
-              archetype={archetype}
-              isSelected={buildingTypeId === archetype.id}
-              onSelect={() => setBuildingType(archetype.id)}
+        {viewMode === 'archetypes' ? (
+          /* Building Type Cards */
+          <div className="grid grid-cols-1 gap-2 pb-4">
+            {archetypes.map((archetype) => (
+              <BuildingTypeCard
+                key={archetype.id}
+                archetype={archetype}
+                isSelected={buildingTypeId === archetype.id}
+                onSelect={() => setBuildingType(archetype.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          /* 3D Model Gallery */
+          <div className="space-y-4 pb-4">
+            <BuildingModelGallery
+              archetypeId={buildingTypeId}
+              selectedModelId={selectedModelId}
+              onSelectModel={setSelectedModel}
             />
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Controls (visible when type selected) */}
