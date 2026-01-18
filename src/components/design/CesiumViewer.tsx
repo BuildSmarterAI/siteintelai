@@ -14,6 +14,7 @@ import {
   Entity,
   PolygonGraphics,
   PolylineGraphics,
+  ModelGraphics,
 } from "resium";
 import {
   Viewer as CesiumViewer,
@@ -39,6 +40,8 @@ import {
   createWorldTerrainAsync,
   TerrainProvider,
   sampleTerrainMostDetailed,
+  HeadingPitchRoll,
+  Transforms,
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 import { useDesignStore, CameraPreset, type BasemapType, type Buildings3DSource } from "@/stores/useDesignStore";
@@ -65,6 +68,7 @@ import * as turf from "@turf/turf";
 import { useCesiumMeasurement } from "@/hooks/useCesiumMeasurement";
 import { useMapboxToken } from "@/hooks/useMapboxToken";
 import { useGoogleMapsToken } from "@/hooks/useGoogleMapsToken";
+import { useBuildingModel, getModelSignedUrl, DEFAULT_TRANSFORM } from "@/hooks/useBuildingModels";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -566,12 +570,50 @@ export function CesiumViewerComponent({
   // Wizard state - only show building preview on step 3
   const wizardIsOpen = useWizardStore((s) => s.isOpen);
   const wizardCurrentStep = useWizardStore((s) => s.currentStep);
-  const showBuildingPreview = !!(
-    wizardIsOpen === true &&
-    wizardCurrentStep === 3 &&
-    previewGeometry &&
-    previewHeightFt
-  );
+  const selectedModelId = useWizardStore((s) => s.selectedModelId);
+  const modelTransform = useWizardStore((s) => s.modelTransform) || DEFAULT_TRANSFORM;
+  
+  // Fetch selected building model data
+  const { data: selectedBuildingModel, isLoading: modelLoading } = useBuildingModel(selectedModelId);
+  
+  // State for GLB model signed URL
+  const [glbModelUrl, setGlbModelUrl] = useState<string | null>(null);
+  const [glbModelLoading, setGlbModelLoading] = useState(false);
+  
+  // Fetch signed URL when model changes
+  useEffect(() => {
+    if (!selectedBuildingModel?.glb_storage_path) {
+      setGlbModelUrl(null);
+      return;
+    }
+    
+    let mounted = true;
+    setGlbModelLoading(true);
+    
+    getModelSignedUrl(selectedBuildingModel.glb_storage_path)
+      .then((url) => {
+        if (mounted) {
+          setGlbModelUrl(url);
+          setGlbModelLoading(false);
+          if (url) {
+            console.log('[CesiumViewer] GLB model URL loaded');
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('[CesiumViewer] Failed to get GLB model URL:', err);
+        if (mounted) {
+          setGlbModelUrl(null);
+          setGlbModelLoading(false);
+        }
+      });
+    
+    return () => {
+      mounted = false;
+    };
+  }, [selectedBuildingModel?.glb_storage_path]);
+  
+  // NOTE: showGlbModel and showBuildingPreview are defined after centroid to avoid use-before-declaration
 
   // Animate envelope transition (2D ↔ 3D) when wizard opens/closes
   useEffect(() => {
@@ -687,6 +729,24 @@ export function CesiumViewerComponent({
     if (!envelope?.parcelGeometry) return null;
     return getPolygonCentroid(envelope.parcelGeometry);
   }, [envelope?.parcelGeometry]);
+
+  // Determine if we should show a 3D GLB model instead of extruded polygon
+  const showGlbModel = !!(
+    wizardIsOpen &&
+    (wizardCurrentStep === 3 || wizardCurrentStep === 4) &&
+    selectedModelId &&
+    glbModelUrl &&
+    centroid
+  );
+  
+  // Show polygon preview when no GLB or loading
+  const showBuildingPreview = !!(
+    wizardIsOpen === true &&
+    wizardCurrentStep === 3 &&
+    previewGeometry &&
+    previewHeightFt &&
+    !showGlbModel
+  );
 
   // Calculate optimal camera range based on parcel size
   const optimalCameraRange = useMemo(() => {
@@ -1533,6 +1593,36 @@ export function CesiumViewerComponent({
               outlineColor={Color.WHITE}
               outlineWidth={1.5}
               shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
+            />
+          </Entity>
+        )}
+
+        {/* 3D GLB Building Model (when selected in wizard) */}
+        {showGlbModel && centroid && selectedBuildingModel && (
+          <Entity
+            name="glb-building-model"
+            position={Cartesian3.fromDegrees(
+              centroid.lng + (modelTransform.offsetX * 0.00001), // Convert meters to approx degrees
+              centroid.lat + (modelTransform.offsetY * 0.00001),
+              (groundHeightMeters ?? 0)
+            )}
+            orientation={Transforms.headingPitchRollQuaternion(
+              Cartesian3.fromDegrees(centroid.lng, centroid.lat, groundHeightMeters ?? 0),
+              new HeadingPitchRoll(
+                CesiumMath.toRadians(modelTransform.rotationDeg),
+                0,
+                0
+              )
+            )}
+          >
+            <ModelGraphics
+              uri={glbModelUrl}
+              scale={Math.max(modelTransform.scaleX, modelTransform.scaleY, modelTransform.scaleZ)}
+              minimumPixelSize={64}
+              maximumScale={20000}
+              shadows={shadowsEnabled ? ShadowMode.ENABLED : ShadowMode.DISABLED}
+              silhouetteColor={Color.ORANGE}
+              silhouetteSize={1.5}
             />
           </Entity>
         )}
