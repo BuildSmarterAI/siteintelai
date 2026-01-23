@@ -6758,6 +6758,60 @@ export type Database = {
         }
         Relationships: []
       }
+      sprint_tasks: {
+        Row: {
+          actual_hours: number | null
+          completed_at: string | null
+          complexity: string | null
+          created_at: string | null
+          description: string | null
+          estimated_hours: number | null
+          files_involved: string[] | null
+          id: string
+          notes: string | null
+          owner: string | null
+          sprint_number: number
+          status: string | null
+          task_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          actual_hours?: number | null
+          completed_at?: string | null
+          complexity?: string | null
+          created_at?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          files_involved?: string[] | null
+          id?: string
+          notes?: string | null
+          owner?: string | null
+          sprint_number: number
+          status?: string | null
+          task_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          actual_hours?: number | null
+          completed_at?: string | null
+          complexity?: string | null
+          created_at?: string | null
+          description?: string | null
+          estimated_hours?: number | null
+          files_involved?: string[] | null
+          id?: string
+          notes?: string | null
+          owner?: string | null
+          sprint_number?: number
+          status?: string | null
+          task_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       staging_parcels: {
         Row: {
           county_fips: string | null
