@@ -30,7 +30,9 @@ import {
   MapPin, 
   DollarSign,
   Shield,
+  Target,
 } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { ApiPerformanceTab } from "@/components/admin/ApiPerformanceTab";
 import { PipelineHealthTab } from "@/components/admin/PipelineHealthTab";
 import { RealTimeMonitorTab } from "@/components/admin/RealTimeMonitorTab";
@@ -39,6 +41,7 @@ import { GisHealthTab } from "@/components/admin/GisHealthTab";
 import { ApiCostTab } from "@/components/admin/ApiCostTab";
 import { CostProtectionDashboard } from "@/components/admin/CostProtectionDashboard";
 import { StuckApplicationsTab } from "@/components/admin/StuckApplicationsTab";
+import { SprintDashboard } from "@/components/admin/SprintDashboard";
 interface CronJob {
   id: string;
   job_name: string;
@@ -124,7 +127,7 @@ export default function SystemHealth() {
       setAlerts(alertData || []);
       setMetrics(metricData || []);
     } catch (error) {
-      console.error('Error fetching system health data:', error);
+      logger.error('Error fetching system health data:', error);
       toast.error('Failed to load system health data');
     } finally {
       setLoading(false);
@@ -141,7 +144,7 @@ export default function SystemHealth() {
       toast.success(`${jobName} triggered successfully`);
       fetchData(); // Refresh data
     } catch (error) {
-      console.error(`Error triggering ${jobName}:`, error);
+      logger.error(`Error triggering ${jobName}:`, error);
       toast.error(`Failed to trigger ${jobName}`);
     } finally {
       setTriggeringJob(null);
@@ -163,7 +166,7 @@ export default function SystemHealth() {
       toast.success('Alert acknowledged');
       fetchData();
     } catch (error) {
-      console.error('Error acknowledging alert:', error);
+      logger.error('Error acknowledging alert:', error);
       toast.error('Failed to acknowledge alert');
     }
   };
@@ -358,6 +361,10 @@ export default function SystemHealth() {
             <TabsTrigger value="cost-protection" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Cost Protection
+            </TabsTrigger>
+            <TabsTrigger value="sprint" className="flex items-center gap-2">
+              <Target className="w-4 h-4" />
+              Sprint Progress
             </TabsTrigger>
             <TabsTrigger value="tiles" className="flex items-center gap-2" onClick={() => window.location.href = '/admin/tile-management'}>
               <Layers className="w-4 h-4" />
@@ -567,6 +574,11 @@ export default function SystemHealth() {
           {/* Cost Protection Tab */}
           <TabsContent value="cost-protection">
             <CostProtectionDashboard />
+          </TabsContent>
+
+          {/* Sprint Progress Tab */}
+          <TabsContent value="sprint">
+            <SprintDashboard />
           </TabsContent>
         </Tabs>
       </div>

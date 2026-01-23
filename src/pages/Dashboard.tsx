@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, FileText, Plus, Clock, CheckCircle, Menu, RefreshCw, AlertCircle, Building2, DollarSign, TrendingUp, GripVertical, CheckCircle2, PencilRuler } from "lucide-react";
+import { logger } from "@/lib/logger";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { DashboardSidebar } from "@/components/navigation/DashboardSidebar";
@@ -106,7 +107,7 @@ export default function Dashboard() {
       return;
     }
     
-    console.log("[Dashboard] Attempting pending link recovery for:", pendingEmail);
+    logger.debug("[Dashboard]", "Attempting pending link recovery for:", pendingEmail);
     
     try {
       const session = await supabase.auth.getSession();
@@ -117,7 +118,7 @@ export default function Dashboard() {
       });
       
       if (error) {
-        console.error("[Dashboard] Recovery link error:", error);
+        logger.error("[Dashboard] Recovery link error:", error);
         return;
       }
       
@@ -131,7 +132,7 @@ export default function Dashboard() {
         localStorage.removeItem("pending_link_email");
       }
     } catch (err) {
-      console.error("[Dashboard] Recovery error:", err);
+      logger.error("[Dashboard] Recovery error:", err);
     }
   };
 
@@ -158,7 +159,7 @@ export default function Dashboard() {
     
     if (generatingReports.length > 0) {
       pollInterval = setInterval(() => {
-        console.log('🔄 Polling for report updates...');
+        logger.debug("[Dashboard]", "Polling for report updates...");
         fetchReports();
       }, 3000);
     }

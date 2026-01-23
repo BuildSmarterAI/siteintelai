@@ -10,6 +10,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Upload, FileText, X, AlertTriangle, Loader2, Eye, Trash2, ChevronRight } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -95,7 +96,7 @@ export function SurveyUploadTab({
   const handleFile = useCallback(async (file: File) => {
     // Validate file size
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      console.warn('[SurveyUploadTab] File too large');
+      logger.warn('[SurveyUploadTab] File too large');
       return;
     }
 
@@ -110,7 +111,7 @@ export function SurveyUploadTab({
 
     if (result.success && result.survey) {
       setInternalUploadedSurvey(result.survey);
-      console.log('[SurveyUploadTab] Survey uploaded');
+      logger.debug('[SurveyUploadTab]', 'Survey uploaded');
       onSurveyUploaded?.(result.survey);
 
       // Trigger auto-match with optional client-side OCR image
@@ -120,11 +121,11 @@ export function SurveyUploadTab({
       let ocrImageBase64: string | undefined;
       if (isPdfFile(file)) {
         try {
-          console.log('[SurveyUploadTab] Rendering PDF first page for OCR...');
+          logger.debug('[SurveyUploadTab]', 'Rendering PDF first page for OCR...');
           ocrImageBase64 = await renderPdfFirstPage(file);
-          console.log('[SurveyUploadTab] PDF rendered, image length:', ocrImageBase64?.length);
+          logger.debug('[SurveyUploadTab]', 'PDF rendered, image length:', ocrImageBase64?.length);
         } catch (renderError) {
-          console.warn('[SurveyUploadTab] PDF render failed, proceeding without OCR image:', renderError);
+          logger.warn('[SurveyUploadTab] PDF render failed, proceeding without OCR image:', renderError);
         }
       }
       
@@ -140,22 +141,22 @@ export function SurveyUploadTab({
         if (matchResult.status === 'AUTO_SELECTED' && matchResult.candidates[0]) {
           setMatchStatus('matched');
           setSelectedParcel(matchResult.candidates[0]);
-          console.log('[SurveyUploadTab] Auto-matched');
+          logger.debug('[SurveyUploadTab]', 'Auto-matched');
           onParcelSelected?.(matchResult.candidates[0]);
         } else if (matchResult.status === 'NEEDS_REVIEW') {
           setMatchStatus('needs_review');
-          console.log('[SurveyUploadTab] Needs review');
+          logger.debug('[SurveyUploadTab]', 'Needs review');
         } else {
           setMatchStatus('no_match');
-          console.log('[SurveyUploadTab] No match');
+          logger.debug('[SurveyUploadTab]', 'No match');
         }
       } else {
         setMatchStatus('error');
-        console.error('[SurveyUploadTab] Match error:', matchResult.error);
+        logger.error('[SurveyUploadTab] Match error:', matchResult.error);
       }
     } else {
       setIsUploading(false);
-      console.error('[SurveyUploadTab] Upload failed:', result.error);
+      logger.error('[SurveyUploadTab] Upload failed:', result.error);
     }
   }, [surveyTitle, surveyCounty, draftId, onSurveyUploaded, onParcelSelected]);
 
@@ -192,7 +193,7 @@ export function SurveyUploadTab({
     if (url) {
       window.open(url, '_blank');
     } else {
-      console.error('[SurveyUploadTab] Failed to load survey preview');
+      logger.error('[SurveyUploadTab] Failed to load survey preview');
     }
   }, [uploadedSurvey]);
 
@@ -206,9 +207,9 @@ export function SurveyUploadTab({
       setMatchStatus('pending');
       setMatchCandidates([]);
       setSelectedParcel(null);
-      console.log('[SurveyUploadTab] Survey deleted');
+      logger.debug('[SurveyUploadTab]', 'Survey deleted');
     } else {
-      console.error('[SurveyUploadTab] Failed to delete survey');
+      logger.error('[SurveyUploadTab] Failed to delete survey');
     }
   }, [uploadedSurvey, onSurveyDeleted]);
 
@@ -222,10 +223,10 @@ export function SurveyUploadTab({
     if (result.success) {
       setMatchStatus('matched');
       setSelectedParcel(candidate);
-      console.log('[SurveyUploadTab] Parcel selected');
+      logger.debug('[SurveyUploadTab]', 'Parcel selected');
       onParcelSelected?.(candidate);
     } else {
-      console.error('[SurveyUploadTab] Failed to select parcel:', result.error);
+      logger.error('[SurveyUploadTab] Failed to select parcel:', result.error);
     }
   }, [uploadedSurvey, onParcelSelected]);
 

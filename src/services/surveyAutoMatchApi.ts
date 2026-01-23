@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 import type { 
   AutoMatchResult, 
   SurveyMatchCandidate, 
@@ -23,8 +24,8 @@ export async function triggerAutoMatch(
   ocrImageBase64?: string
 ): Promise<AutoMatchResult> {
   try {
-    console.log("[surveyAutoMatchApi] Triggering auto-match for:", surveyUploadId);
-    console.log("[surveyAutoMatchApi] OCR image provided:", ocrImageBase64 ? "Yes" : "No");
+    logger.debug("[surveyAutoMatchApi]", "Triggering auto-match for:", surveyUploadId);
+    logger.debug("[surveyAutoMatchApi]", "OCR image provided:", ocrImageBase64 ? "Yes" : "No");
 
     const { data, error } = await supabase.functions.invoke("auto-match-survey-parcel", {
       body: { 
@@ -34,7 +35,7 @@ export async function triggerAutoMatch(
     });
 
     if (error) {
-      console.error("[surveyAutoMatchApi] Auto-match invoke error:", error);
+      logger.error("[surveyAutoMatchApi] Auto-match invoke error:", error);
       return {
         success: false,
         status: "ERROR",
@@ -46,10 +47,10 @@ export async function triggerAutoMatch(
       };
     }
 
-    console.log("[surveyAutoMatchApi] Auto-match result:", data);
+    logger.debug("[surveyAutoMatchApi]", "Auto-match result:", data);
     return data as AutoMatchResult;
   } catch (err) {
-    console.error("[surveyAutoMatchApi] triggerAutoMatch exception:", err);
+    logger.error("[surveyAutoMatchApi] triggerAutoMatch exception:", err);
     return {
       success: false,
       status: "ERROR",
@@ -96,7 +97,7 @@ export async function getMatchStatus(
       extraction: data.extraction_json as unknown as SurveyExtraction,
     };
   } catch (err) {
-    console.error("[surveyAutoMatchApi] getMatchStatus exception:", err);
+    logger.error("[surveyAutoMatchApi] getMatchStatus exception:", err);
     return { success: false, error: "Unexpected error getting match status" };
   }
 }
@@ -118,13 +119,13 @@ export async function selectMatchedParcel(
       .eq("id", surveyUploadId);
 
     if (error) {
-      console.error("[surveyAutoMatchApi] selectMatchedParcel error:", error);
+      logger.error("[surveyAutoMatchApi] selectMatchedParcel error:", error);
       return { success: false, error: error.message };
     }
 
     return { success: true };
   } catch (err) {
-    console.error("[surveyAutoMatchApi] selectMatchedParcel exception:", err);
+    logger.error("[surveyAutoMatchApi] selectMatchedParcel exception:", err);
     return { success: false, error: "Unexpected error selecting parcel" };
   }
 }
@@ -168,7 +169,7 @@ export async function getSurveyWithMatchData(
       },
     };
   } catch (err) {
-    console.error("[surveyAutoMatchApi] getSurveyWithMatchData exception:", err);
+    logger.error("[surveyAutoMatchApi] getSurveyWithMatchData exception:", err);
     return { success: false, error: "Unexpected error getting survey data" };
   }
 }

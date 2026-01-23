@@ -4,6 +4,7 @@
  */
 
 import * as pdfjs from 'pdfjs-dist';
+import { logger } from '@/lib/logger';
 
 // Set the worker source
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -16,21 +17,21 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
  */
 export async function renderPdfFirstPage(file: File, scale = 2.0): Promise<string> {
   try {
-    console.log('[pdfRenderer] Starting PDF render for:', file.name);
+    logger.debug('[pdfRenderer]', 'Starting PDF render for:', file.name);
     
     // Read file as ArrayBuffer
     const arrayBuffer = await file.arrayBuffer();
     
     // Load the PDF document
     const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-    console.log('[pdfRenderer] PDF loaded, pages:', pdf.numPages);
+    logger.debug('[pdfRenderer]', 'PDF loaded, pages:', pdf.numPages);
     
     // Get the first page
     const page = await pdf.getPage(1);
     
     // Calculate viewport at the specified scale
     const viewport = page.getViewport({ scale });
-    console.log('[pdfRenderer] Viewport size:', viewport.width, 'x', viewport.height);
+    logger.debug('[pdfRenderer]', 'Viewport size:', viewport.width, 'x', viewport.height);
     
     // Create a canvas element
     const canvas = document.createElement('canvas');
@@ -48,20 +49,20 @@ export async function renderPdfFirstPage(file: File, scale = 2.0): Promise<strin
       viewport: viewport,
     }).promise;
     
-    console.log('[pdfRenderer] Page rendered to canvas');
+    logger.debug('[pdfRenderer]', 'Page rendered to canvas');
     
     // Convert canvas to base64 PNG (strip the data URL prefix)
     const dataUrl = canvas.toDataURL('image/png');
     const base64 = dataUrl.split(',')[1];
     
-    console.log('[pdfRenderer] Generated base64 image, length:', base64.length);
+    logger.debug('[pdfRenderer]', 'Generated base64 image, length:', base64.length);
     
     // Clean up
     pdf.destroy();
     
     return base64;
   } catch (error) {
-    console.error('[pdfRenderer] Error rendering PDF:', error);
+    logger.error('[pdfRenderer] Error rendering PDF:', error);
     throw error;
   }
 }

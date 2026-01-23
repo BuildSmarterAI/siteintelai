@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, Mail, Lock, User, AlertCircle } from "lucide-react";
 import { Helmet } from "react-helmet";
+import { logger } from "@/lib/logger";
 
 const CreateAccount = () => {
   const [searchParams] = useSearchParams();
@@ -96,14 +97,14 @@ const CreateAccount = () => {
 
     for (let attempt = 0; attempt < MAX_LINK_RETRIES; attempt++) {
       try {
-        console.log(`[CreateAccount] Link attempt ${attempt + 1}/${MAX_LINK_RETRIES}`);
+        logger.debug("[CreateAccount]", `Link attempt ${attempt + 1}/${MAX_LINK_RETRIES}`);
         
         const { data, error } = await supabase.functions.invoke("link-application-to-user", {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (error) {
-          console.error(`[CreateAccount] Link error (attempt ${attempt + 1}):`, error);
+          logger.error(`[CreateAccount] Link error (attempt ${attempt + 1}):`, error);
           lastError = new Error(error.message || "Link failed");
           
           // Wait before retry with exponential backoff: 1s, 2s, 4s
@@ -119,7 +120,7 @@ const CreateAccount = () => {
           return;
         } else if (data && !data.linked) {
           // No applications to link - user might have used a different email
-          console.log("[CreateAccount] No applications to link, redirecting to dashboard");
+          logger.debug("[CreateAccount]", "No applications to link, redirecting to dashboard");
           
           // Store email for dashboard recovery attempt
           if (sessionData?.customer_email) {
