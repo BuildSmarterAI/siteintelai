@@ -1,76 +1,86 @@
 
+## Update SiteIntel Logo Across the Site
 
-## Seed Census Canonical - 100% Texas Coverage
+### Overview
+Replace the current logo (`siteintel-ai-logo-main.png`) with the new isometric building design logo across all 13 files that reference it.
 
-### Current State
-- **Seeded Tracts:** 3,797 (72% coverage)
-- **Target:** ~5,265 Texas Census tracts
-- **Gap:** ~1,468 tracts remaining
+### New Logo Characteristics
+- **Design:** Isometric building icon (orange) on a grid platform, encircled by a blue arc
+- **Text:** "SITEINTEL™" wordmark in light gray
+- **Format:** Horizontal layout, suitable for headers and footers
 
-### Execution Plan
+---
 
-#### Step 1: Invoke seed-census-canonical Edge Function
-Call the function to complete Texas-wide Census tract seeding:
+### Step 1: Copy New Logo Asset
+
+Copy the uploaded logo to the src/assets folder, replacing the current main logo:
 
 ```text
-POST https://mcmfwlgovubpdcfiqfvk.supabase.co/functions/v1/seed-census-canonical
+src/assets/siteintel-ai-logo-main.png ← New logo replaces existing
 ```
 
-The function will:
-1. Authenticate with BigQuery using your new service account key
-2. Query all Texas tracts from `bigquery-public-data.census_bureau_acs.censustract_2020_5yr`
-3. Join with geometry from `bigquery-public-data.geo_census_tracts.census_tracts_texas`
-4. Compute 6 proprietary CRE indices for each tract
-5. Upsert to `canonical_demographics` table with conflict resolution on `geoid`
+This single asset replacement will automatically propagate to all 13 files that import it.
 
-#### Step 2: Monitor Progress via Logs
-Watch real-time logs at the Edge Function dashboard showing:
-- BigQuery authentication success
-- Row fetching with pagination
-- Batch upsert progress (500-record batches)
-- Geometry updates
-- Final validation summary
+---
 
-#### Step 3: Verify Final Coverage
-Query database to confirm 100% coverage:
+### Step 2: Files Automatically Updated (No Code Changes Needed)
 
-```sql
-SELECT 
-  COUNT(*) as total_seeded,
-  COUNT(DISTINCT LEFT(geoid, 5)) as counties_covered
-FROM canonical_demographics 
-WHERE state_fips = '48';
-```
+Since all components import from `@/assets/siteintel-ai-logo-main.png`, replacing the file updates:
 
-### Technical Details
+| Component/Page | Location |
+|---------------|----------|
+| Header | `src/components/navigation/Header.tsx` |
+| Footer (nav) | `src/components/navigation/Footer.tsx` |
+| Auth Page | `src/pages/Auth.tsx` |
+| Investor Deck | `src/pages/InvestorDeck.tsx` |
+| Report Viewer | `src/pages/ReportViewer.tsx` |
+| Report Layout | `src/pages/report/ReportLayout.tsx` |
+| Report Header | `src/components/report/ReportHeader.tsx` |
+| Docs Layout | `src/components/docs/DocsLayout.tsx` |
+| Developers Industry | `src/pages/industries/Developers.tsx` |
+| Lenders Industry | `src/pages/industries/Lenders.tsx` |
+| Beta Sticky Header | `src/components/sections/prelaunch/BetaStickyHeader.tsx` |
+| Prelaunch Footer | `src/components/sections/prelaunch/PrelaunchFooter.tsx` |
+| Brand Kit | `src/pages/BrandKit.tsx` |
 
-**Function Behavior:**
-- Performs full upsert (updates existing + inserts new)
-- Batch size: 500 records per database call
-- Handles BigQuery pagination for large datasets (10,000 records per page)
-- Timeout: 5 minutes for BigQuery queries
-- Geometry updates in batches of 50
+---
 
-**Data Pipeline:**
+### Step 3: Update Public Logo for SEO
+
+Copy the logo to the public folder for SEO/structured data references:
+
 ```text
-BigQuery ACS Tables --> Transform (83+ variables) --> Compute Indices --> Validate --> Upsert Supabase
+public/logo.png ← New logo for JSON-LD schema
 ```
 
-**Expected Output:**
-- ~5,265 total tracts in `canonical_demographics`
-- 245+ of 254 Texas counties covered
-- All 6 proprietary indices populated:
-  - Retail Spending Index
-  - Workforce Availability Score
-  - Growth Potential Index
-  - Affluence Concentration
-  - Labor Pool Depth
-  - Daytime Population Estimate
+This updates the logo referenced in `src/lib/seo-config.ts`:
+```typescript
+logo: "https://siteintel.lovable.app/logo.png"
+```
 
-### Post-Seeding Verification
-After completion, I will:
-1. Query final tract count and county coverage
-2. Sample 5 random tracts to verify data quality
-3. Confirm all proprietary indices are non-null
-4. Report summary statistics
+---
 
+### Step 4: Update Brand Kit Gallery (Optional Enhancement)
+
+The Brand Kit page at `/brand-kit` displays logo assets. The new logo will automatically appear since it imports `siteintel-ai-logo-main.png`.
+
+---
+
+### Technical Notes
+
+- **No code changes required:** All 13 files use the same import path, so replacing the asset file automatically updates the entire site
+- **Sizing preserved:** Existing Tailwind classes (h-8, h-10, h-12, h-16) will scale the new logo appropriately
+- **Dark/light compatibility:** The new logo uses blue and orange on a transparent/white background, which works well on both dark and light surfaces
+
+---
+
+### Verification Checklist
+
+After the update, verify logo appearance on:
+- [ ] Main site header and footer
+- [ ] Authentication page
+- [ ] Report viewer header
+- [ ] Documentation pages
+- [ ] Industry pages (Developers, Lenders)
+- [ ] Investor deck
+- [ ] Beta/prelaunch pages
