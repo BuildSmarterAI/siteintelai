@@ -1035,8 +1035,7 @@ serve(async (req) => {
         accuracy_tier: validationResult.is_valid ? "T1" : "T2",
         confidence: adjustedConfidence,
         source_dataset: "bigquery_acs_5yr",
-        // Store data quality flags for transparency
-        data_quality_flags: allDataFlags.length > 0 ? allDataFlags : null,
+        // Note: data_quality_flags removed - column doesn't exist in table
         centroid: (lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))) 
           ? `SRID=4326;POINT(${parseFloat(lng)} ${parseFloat(lat)})` 
           : null,
