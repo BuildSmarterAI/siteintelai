@@ -259,7 +259,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.seed-census-canonical]
-verify_jwt = true
+verify_jwt = false
 max_execution_time = 300
 
 [functions.enrich-census-canonical]
