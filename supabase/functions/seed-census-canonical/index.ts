@@ -38,26 +38,47 @@ async function getAccessToken(credentials: BigQueryCredentials): Promise<string>
   const payloadB64 = btoa(JSON.stringify(payload)).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
   const signatureInput = `${headerB64}.${payloadB64}`;
 
+  // Handle both actual newlines and escaped \n sequences from JSON
   const pemContents = credentials.private_key
+    .replace(/\\n/g, "\n")  // First convert escaped \n to actual newlines
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\n/g, "");
+    .replace(/\n/g, "")
+    .replace(/\r/g, "")
+    .trim();
 
-  const binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+  console.log(`[seed-census-canonical] PEM content length: ${pemContents.length} chars`);
+  
+  let binaryKey: Uint8Array;
+  try {
+    binaryKey = Uint8Array.from(atob(pemContents), (c) => c.charCodeAt(0));
+    console.log(`[seed-census-canonical] Binary key length: ${binaryKey.length} bytes`);
+  } catch (e) {
+    console.error(`[seed-census-canonical] Failed to decode base64: ${e}`);
+    throw new Error(`Failed to decode private key base64: ${e}`);
+  }
 
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
+  let cryptoKey: CryptoKey;
+  try {
+    cryptoKey = await crypto.subtle.importKey(
+      "pkcs8",
+      binaryKey,
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    console.log(`[seed-census-canonical] CryptoKey imported successfully`);
+  } catch (e) {
+    console.error(`[seed-census-canonical] Failed to import key: ${e}`);
+    throw new Error(`Failed to import private key: ${e}`);
+  }
 
   const signature = await crypto.subtle.sign(
     "RSASSA-PKCS1-v1_5",
     cryptoKey,
     encoder.encode(signatureInput)
   );
+  console.log(`[seed-census-canonical] Signature generated: ${signature.byteLength} bytes`);
 
   const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
     .replace(/=/g, "")
@@ -66,6 +87,9 @@ async function getAccessToken(credentials: BigQueryCredentials): Promise<string>
 
   const jwt = `${signatureInput}.${signatureB64}`;
 
+  console.log(`[seed-census-canonical] Requesting token from ${credentials.token_uri}`);
+  console.log(`[seed-census-canonical] Service account: ${credentials.client_email}`);
+  
   const tokenResponse = await fetch(credentials.token_uri, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -73,6 +97,19 @@ async function getAccessToken(credentials: BigQueryCredentials): Promise<string>
   });
 
   const tokenData = await tokenResponse.json();
+  
+  // Check for token exchange errors
+  if (!tokenResponse.ok || tokenData.error) {
+    console.error(`[seed-census-canonical] Token exchange failed:`, JSON.stringify(tokenData));
+    throw new Error(`Token exchange failed: ${tokenData.error_description || tokenData.error || 'Unknown error'}`);
+  }
+  
+  if (!tokenData.access_token) {
+    console.error(`[seed-census-canonical] No access_token in response:`, JSON.stringify(tokenData));
+    throw new Error('No access_token returned from Google OAuth');
+  }
+  
+  console.log(`[seed-census-canonical] Access token obtained successfully (expires in ${tokenData.expires_in}s)`);
   return tokenData.access_token;
 }
 
@@ -539,6 +576,11 @@ serve(async (req) => {
 
     const credentials: BigQueryCredentials = JSON.parse(credentialsJson);
     console.log("[seed-census-canonical] Authenticating with BigQuery...");
+    console.log(`[seed-census-canonical] Project ID: ${credentials.project_id}`);
+    console.log(`[seed-census-canonical] Client email: ${credentials.client_email}`);
+    console.log(`[seed-census-canonical] Private key starts with: ${credentials.private_key?.substring(0, 50)}...`);
+    console.log(`[seed-census-canonical] Private key contains literal backslash-n: ${credentials.private_key?.includes('\\n')}`);
+    console.log(`[seed-census-canonical] Private key contains newlines: ${credentials.private_key?.includes('\n')}`);
 
     const accessToken = await getAccessToken(credentials);
     console.log("[seed-census-canonical] Authentication successful");
