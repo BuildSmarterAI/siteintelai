@@ -13,7 +13,7 @@ export const PaymentCTA = ({
   loading,
   loadingMessage,
   onClick,
-  price = 1495,
+  price = 999,
   applicationId,
 }: PaymentCTAProps) => {
   return (

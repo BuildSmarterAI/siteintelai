@@ -11,7 +11,7 @@ export const BeforeAfterComparison = () => {
 
   const comparisonData = [
     { factor: "Time", traditional: "2–6 weeks", siteintel: "60 seconds" },
-    { factor: "Cost", traditional: "$5,000–$15,000", siteintel: "$1,495" },
+    { factor: "Cost", traditional: "$5,000–$15,000", siteintel: "$999" },
     { factor: "Data Sources", traditional: "3–5 manual lookups", siteintel: "20+ automated" },
     { factor: "Accuracy", traditional: "Variable, human-dependent", siteintel: "97.3% verified" },
     { factor: "Format", traditional: "Inconsistent reports", siteintel: "Lender-ready PDF" },

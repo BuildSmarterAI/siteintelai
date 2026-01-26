@@ -142,7 +142,7 @@ export const PaymentGate = ({
           <FeaturesOutcomes />
 
           {/* Pricing */}
-          <PricingSection price={1495} />
+          <PricingSection price={999} />
 
           {/* Email Input */}
           <EmailInputSection

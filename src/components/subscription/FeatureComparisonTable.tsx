@@ -1,4 +1,4 @@
-import { Check, X, Minus } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { SUBSCRIPTION_TIERS, TIER_ORDER } from '@/config/subscription-tiers';
 import { cn } from '@/lib/utils';
 
@@ -10,51 +10,51 @@ interface Feature {
 const FEATURES: Feature[] = [
   {
     name: 'AI Feasibility Reports',
-    values: { starter: '5/mo', professional: '20/mo', team: '75/mo', enterprise: '250+/mo' },
+    values: { starter: '5/mo', pro: '15/mo', unlimited: 'Unlimited' },
   },
   {
-    name: 'QuickChecks',
-    values: { starter: 'Unlimited', professional: 'Unlimited', team: 'Unlimited', enterprise: 'Unlimited' },
+    name: 'PDF Download',
+    values: { starter: true, pro: true, unlimited: true },
   },
   {
-    name: 'Active Parcels',
-    values: { starter: '10', professional: '50', team: '150', enterprise: 'Unlimited' },
+    name: 'Dashboard & History',
+    values: { starter: true, pro: true, unlimited: true },
   },
   {
-    name: 'Team Seats',
-    values: { starter: '1', professional: '2', team: '5', enterprise: 'Unlimited' },
+    name: 'Excel Export',
+    values: { starter: false, pro: true, unlimited: true },
   },
   {
-    name: 'Lender-Ready PDF',
-    values: { starter: true, professional: true, team: true, enterprise: true },
+    name: '3D Design Mode',
+    values: { starter: false, pro: true, unlimited: true },
   },
   {
-    name: 'Share Reports via Links',
-    values: { starter: false, professional: true, team: true, enterprise: true },
-  },
-  {
-    name: 'CSV Export',
-    values: { starter: false, professional: false, team: true, enterprise: true },
+    name: 'CAD/DXF Export',
+    values: { starter: false, pro: true, unlimited: true },
   },
   {
     name: 'API Access',
-    values: { starter: false, professional: false, team: false, enterprise: true },
+    values: { starter: false, pro: false, unlimited: true },
   },
   {
-    name: 'SSO Integration',
-    values: { starter: false, professional: false, team: false, enterprise: true },
+    name: 'Priority Support',
+    values: { starter: false, pro: true, unlimited: true },
   },
   {
-    name: 'Custom Scoring Models',
-    values: { starter: false, professional: false, team: false, enterprise: true },
+    name: 'Dedicated Account Manager',
+    values: { starter: false, pro: false, unlimited: true },
+  },
+  {
+    name: 'Team Seats',
+    values: { starter: '1', pro: '3', unlimited: '10' },
+  },
+  {
+    name: 'Active Parcels',
+    values: { starter: '25', pro: '100', unlimited: 'Unlimited' },
   },
   {
     name: 'Report History',
-    values: { starter: '90 days', professional: '365 days', team: 'Unlimited', enterprise: 'Unlimited' },
-  },
-  {
-    name: 'Support',
-    values: { starter: 'Email', professional: 'Priority', team: 'Priority', enterprise: 'Dedicated' },
+    values: { starter: '90 days', pro: '365 days', unlimited: 'Unlimited' },
   },
 ];
 

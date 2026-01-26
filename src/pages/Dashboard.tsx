@@ -606,7 +606,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <PaymentButton type="report" variant="outline" className="w-full sm:w-auto text-sm">
-                      Buy Report ($1,495)
+                      Buy Report ($999)
                     </PaymentButton>
                     <Button 
                       data-tour="new-application"

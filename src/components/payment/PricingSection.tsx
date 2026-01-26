@@ -2,7 +2,7 @@ interface PricingSectionProps {
   price?: number;
 }
 
-export const PricingSection = ({ price = 1495 }: PricingSectionProps) => {
+export const PricingSection = ({ price = 999 }: PricingSectionProps) => {
   return (
     <div className="text-center py-4 border-y border-border/50">
       <div className="flex items-baseline justify-center gap-1">

@@ -17,7 +17,7 @@ export const FAQ = () => {
     },
     {
       question: "How fast can I get results?",
-      answer: "Your comprehensive feasibility report is delivered in 60 seconds. Each report is $1,495 and includes complete zoning, flood, utility, environmental, and traffic analysis."
+      answer: "Your comprehensive feasibility report is delivered in 60 seconds. Each report is $999 and includes complete zoning, flood, utility, environmental, and traffic analysis."
     },
     {
       question: "Do I lose my fee if I hire Maxx Builders?",

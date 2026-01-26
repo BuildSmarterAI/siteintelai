@@ -38,7 +38,7 @@ export const docsNavigation: DocNavSection[] = [
     icon: Sparkles,
     items: [
       { title: "Features Overview", href: "/docs/features", description: "All capabilities" },
-      { title: "Feasibility Reports", href: "/docs/features/feasibility-reports", description: "$1,495 lender-ready reports" },
+      { title: "Feasibility Reports", href: "/docs/features/feasibility-reports", description: "$999 lender-ready reports" },
       { title: "Design Mode", href: "/docs/features/design-mode", description: "8-step conceptual design" },
       { title: "Parcel Explorer", href: "/docs/features/parcel-explorer", description: "Interactive parcel search" },
       { title: "Market Intelligence", href: "/docs/features/market-intelligence", description: "H3 trade area analysis" },
