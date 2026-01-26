@@ -4,11 +4,15 @@ import { PaymentButton } from "@/components/PaymentButton";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
-import { Check, FileText, Shield, Clock, Database } from "lucide-react";
+import { Check, FileText, Shield, Clock, Database, Zap } from "lucide-react";
+import { BillingToggle } from "@/components/subscription/BillingToggle";
+import { SubscriptionTierCard } from "@/components/subscription/SubscriptionTierCard";
+import { SUBSCRIPTION_TIERS, TIER_ORDER, BillingCycle } from "@/config/subscription-tiers";
 
 export const PackagesPricing = () => {
   const navigate = useNavigate();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -42,22 +46,22 @@ export const PackagesPricing = () => {
       <div className="container mx-auto px-6 lg:px-8">
         <div className="text-center mb-12 lg:mb-16">
           <Badge variant="outline" className="mb-4 border-accent text-accent">
-            Simple Pricing
+            Launch Pricing
           </Badge>
           <h3 className="font-headline text-4xl md:text-5xl lg:text-6xl text-charcoal mb-6 lg:mb-8">
             Complete Feasibility Intelligence
           </h3>
           <h4 className="font-body text-lg md:text-xl lg:text-2xl text-charcoal/85 max-w-3xl mx-auto leading-relaxed">
-            One comprehensive report with everything you need for confident site decisions.
+            One report or unlimited access — choose what fits your workflow.
           </h4>
         </div>
         
-        {/* Single Pricing Card - Centered */}
-        <div className="max-w-lg mx-auto mb-12 md:mb-16">
+        {/* Single Report Card */}
+        <div className="max-w-lg mx-auto mb-16 md:mb-20">
           <div className="relative group">
             <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
               <Badge className="bg-navy text-navy-foreground px-4 py-1 text-sm font-medium">
-                Complete Package
+                Single Report
               </Badge>
             </div>
             
@@ -110,6 +114,30 @@ export const PackagesPricing = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Subscription Plans Section */}
+        <div className="mb-16">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 mb-4">
+              <Zap className="h-5 w-5 text-accent" />
+              <span className="text-sm font-semibold text-accent uppercase tracking-wide">Subscription Plans</span>
+            </div>
+            <h4 className="font-headline text-2xl md:text-3xl text-charcoal mb-6">
+              Need Multiple Reports? Save with a Subscription
+            </h4>
+            <BillingToggle value={billingCycle} onChange={setBillingCycle} />
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {TIER_ORDER.map((tierId) => (
+              <SubscriptionTierCard
+                key={tierId}
+                tier={SUBSCRIPTION_TIERS[tierId]}
+                billingCycle={billingCycle}
+              />
+            ))}
           </div>
         </div>
         
