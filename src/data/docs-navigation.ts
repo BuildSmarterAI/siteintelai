@@ -7,7 +7,9 @@ import {
   LayoutDashboard, 
   Brain, 
   FileText,
-  Box
+  Box,
+  Sparkles,
+  FileBarChart
 } from "lucide-react";
 
 export interface DocNavItem {
@@ -29,6 +31,32 @@ export const docsNavigation: DocNavSection[] = [
     items: [
       { title: "What is SiteIntel™", href: "/docs", description: "Platform overview" },
       { title: "Feasibility-as-a-Service™", href: "/docs/faas", description: "FaaS overview" },
+    ],
+  },
+  {
+    title: "Platform Features",
+    icon: Sparkles,
+    items: [
+      { title: "Features Overview", href: "/docs/features", description: "All capabilities" },
+      { title: "Feasibility Reports", href: "/docs/features/feasibility-reports", description: "$1,495 lender-ready reports" },
+      { title: "Design Mode", href: "/docs/features/design-mode", description: "8-step conceptual design" },
+      { title: "Parcel Explorer", href: "/docs/features/parcel-explorer", description: "Interactive parcel search" },
+      { title: "Market Intelligence", href: "/docs/features/market-intelligence", description: "H3 trade area analysis" },
+      { title: "Decision Map", href: "/docs/features/decision-map", description: "Multi-layer GIS" },
+      { title: "AI Scoring Engine", href: "/docs/features/scoring-engine", description: "0-100 methodology" },
+    ],
+  },
+  {
+    title: "Report Domains",
+    icon: FileBarChart,
+    items: [
+      { title: "Zoning", href: "/docs/domains/zoning", description: "Setbacks, FAR, overlays" },
+      { title: "Flood Risk", href: "/docs/domains/flood", description: "FEMA zones, BFE, claims" },
+      { title: "Utilities", href: "/docs/domains/utilities", description: "Water, sewer, storm" },
+      { title: "Environmental", href: "/docs/domains/environmental", description: "Wetlands, EPA, soil" },
+      { title: "Traffic & Access", href: "/docs/domains/traffic", description: "AADT, drive times" },
+      { title: "Market Demographics", href: "/docs/domains/market", description: "Census, proprietary indices" },
+      { title: "Topography", href: "/docs/domains/topography", description: "Elevation, slope analysis" },
     ],
   },
   {
