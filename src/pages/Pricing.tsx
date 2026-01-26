@@ -8,6 +8,9 @@ import { PaymentButton } from "@/components/PaymentButton";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { FAQJsonLd, ProductJsonLd } from "@/components/seo/JsonLd";
+import { BillingToggle } from "@/components/subscription/BillingToggle";
+import { SubscriptionTierCard } from "@/components/subscription/SubscriptionTierCard";
+import { SUBSCRIPTION_TIERS, TIER_ORDER, BillingCycle } from "@/config/subscription-tiers";
 import {
   Accordion,
   AccordionContent,
@@ -47,8 +50,12 @@ const faqs = [
     answer: "Traditional feasibility studies cost $5,000-$15,000 and take 2-4 weeks. SiteIntel delivers the same authoritative data analysis in 60 seconds for $999, with full source citations and lender-ready formatting.",
   },
   {
-    question: "Can I purchase multiple reports?",
-    answer: "Yes, each report is $999 per property. For teams processing 50+ properties per month, contact us about enterprise pricing with volume discounts.",
+    question: "What's the difference between one-off and subscription?",
+    answer: "One-off reports are $999 each with no commitment. Subscriptions offer monthly report credits at a lower per-report cost, plus additional features like dashboard access, Excel exports, and API access depending on your tier.",
+  },
+  {
+    question: "Can I change my subscription plan?",
+    answer: "Yes, you can upgrade or downgrade at any time. When upgrading, you'll be charged the prorated difference. When downgrading, the change takes effect at the end of your current billing cycle.",
   },
   {
     question: "What payment methods do you accept?",
@@ -58,14 +65,11 @@ const faqs = [
     question: "What's your refund policy?",
     answer: "If our system cannot generate a report due to insufficient data for your property, you will not be charged. For other issues, contact our support team within 7 days of purchase for a full refund.",
   },
-  {
-    question: "What areas do you cover?",
-    answer: "We currently provide comprehensive coverage for 18 Texas counties including Harris, Fort Bend, Montgomery, Travis, Bexar, Dallas, Tarrant, and more. We're actively expanding coverage and will announce new areas soon.",
-  },
 ];
 
 export default function Pricing() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -84,9 +88,9 @@ export default function Pricing() {
   return (
     <>
       <SEOHead
-        title="Pricing - $999 Feasibility Report"
-        description="Get a complete lender-ready feasibility report for $999. AI-powered analysis with FEMA, EPA, TxDOT data delivered in 60 seconds."
-        keywords={["feasibility pricing", "report cost", "real estate software pricing"]}
+        title="Pricing - $999 Feasibility Report | Subscriptions from $199/mo"
+        description="Get a complete lender-ready feasibility report for $999 or subscribe for monthly credits. AI-powered analysis with FEMA, EPA, TxDOT data delivered in 60 seconds."
+        keywords={["feasibility pricing", "report cost", "real estate software pricing", "subscription plans"]}
       />
       <ProductJsonLd
         name="Site Feasibility Intelligence Report"
@@ -99,24 +103,24 @@ export default function Pricing() {
       <section className="pt-32 pb-16 px-6 bg-gradient-to-b from-secondary to-background">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="outline" className="mb-4 border-accent text-accent">
-            Simple Pricing
+            Launch Pricing
           </Badge>
           <h1 className="font-headline text-4xl md:text-5xl lg:text-6xl text-foreground mb-6">
-            Complete Feasibility Intelligence
+            Flexible Plans for Every Developer
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
-            One comprehensive report with everything you need for confident site decisions. 
-            Lender-ready analysis delivered in 60 seconds.
+            From single reports to unlimited enterprise access. Get lender-ready feasibility intelligence in 60 seconds.
           </p>
         </div>
       </section>
 
-      {/* Single Pricing Card */}
+      {/* One-Off Report */}
       <section className="py-16 px-6">
         <div className="container mx-auto max-w-lg">
+          <h2 className="text-2xl font-bold text-center mb-8">Single Report</h2>
           <Card className="relative border-primary shadow-lg shadow-primary/20">
             <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-              Complete Package
+              No Commitment
             </Badge>
             <CardHeader className="text-center pb-4">
               <div className="mx-auto mb-4 p-3 rounded-full bg-muted w-fit">
@@ -156,9 +160,38 @@ export default function Pricing() {
               )}
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* Subscription Tiers */}
+      <section className="py-16 px-6 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Subscription Plans
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
+              Save up to 33% with annual billing. Get monthly report credits at a lower per-report cost.
+            </p>
+            <BillingToggle value={billingCycle} onChange={setBillingCycle} />
+          </div>
           
-          {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center gap-6 mt-8 text-muted-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {TIER_ORDER.map((tierId) => (
+              <SubscriptionTierCard
+                key={tierId}
+                tier={SUBSCRIPTION_TIERS[tierId]}
+                billingCycle={billingCycle}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trust Indicators */}
+      <section className="py-12 px-6">
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex flex-wrap justify-center gap-8 text-muted-foreground">
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-accent" />
               <span className="text-sm">FEMA • EPA • TxDOT</span>
