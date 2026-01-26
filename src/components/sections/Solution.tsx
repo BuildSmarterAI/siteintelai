@@ -12,7 +12,7 @@ export const Solution = () => {
     {
       title: "Cost",
       traditional: "$8,000–$15,000 per study, plus additional fees for revisions",
-      siteintel: "$1,495 Access Fee — unlimited revisions included in Pro tier"
+      siteintel: "$999 Access Fee — unlimited revisions included in Pro tier"
     },
     {
       title: "Scope",

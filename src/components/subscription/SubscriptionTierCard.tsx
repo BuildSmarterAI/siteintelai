@@ -20,11 +20,11 @@ export function SubscriptionTierCard({ tier, billingCycle }: SubscriptionTierCar
   
   const price = billingCycle === 'annual' && tier.annualPrice 
     ? tier.annualPrice / 12 
-    : tier.monthlyPrice;
+    : tier.quarterlyPrice;
   
   const totalPrice = billingCycle === 'annual' && tier.annualPrice
     ? tier.annualPrice
-    : tier.monthlyPrice;
+    : tier.quarterlyPrice * 3; // Quarterly billing = 3 months
 
   const savings = getAnnualSavings(tier);
 
@@ -71,9 +71,9 @@ export function SubscriptionTierCard({ tier, billingCycle }: SubscriptionTierCar
                   )}
                 </div>
               )}
-              {billingCycle === 'monthly' && (
+              {billingCycle === 'quarterly' && (
                 <div className="mt-1 text-sm text-muted-foreground">
-                  Billed monthly
+                  {formatPrice(totalPrice)} billed quarterly
                 </div>
               )}
             </>
@@ -82,7 +82,9 @@ export function SubscriptionTierCard({ tier, billingCycle }: SubscriptionTierCar
 
         <div className="grid grid-cols-3 gap-2 text-center py-4 border-y">
           <div>
-            <div className="text-2xl font-bold text-primary">{tier.reportsPerMonth}</div>
+            <div className="text-2xl font-bold text-primary">
+              {tier.reportsPerMonth === 'unlimited' ? '∞' : tier.reportsPerMonth}
+            </div>
             <div className="text-xs text-muted-foreground">Reports/mo</div>
           </div>
           <div>

@@ -6,16 +6,70 @@ import { PaymentButton } from "./PaymentButton";
 import { Check, Crown } from "lucide-react";
 import { format } from "date-fns";
 
-const PRODUCT_TIERS = {
-  'prod_TE4lkdrjoRn4ad': {
-    name: 'SiteIntel Pro',
-    price: '$1,950/month',
+const PRODUCT_TIERS: Record<string, {
+  name: string;
+  price: string;
+  features: string[];
+}> = {
+  // New Launch Pricing Tiers
+  'prod_TrQY3CHqd1m8YY': {
+    name: 'Starter (Quarterly)',
+    price: '$299/month',
     features: [
-      '10 Professional Reports per month',
-      'Priority Support',
-      'API Access'
+      '5 AI Feasibility Reports per month',
+      'PDF download',
+      'Dashboard & history',
     ]
-  }
+  },
+  'prod_TrQY0CbIr1GBVG': {
+    name: 'Starter (Annual)',
+    price: '$199/month',
+    features: [
+      '5 AI Feasibility Reports per month',
+      'PDF download',
+      'Dashboard & history',
+    ]
+  },
+  'prod_TrQYc8GqYPp1WC': {
+    name: 'Pro (Quarterly)',
+    price: '$599/month',
+    features: [
+      '15 AI Feasibility Reports per month',
+      'Excel export',
+      '3D Design Mode',
+      'CAD/DXF export',
+    ]
+  },
+  'prod_TrQYTguPfHVBDt': {
+    name: 'Pro (Annual)',
+    price: '$399/month',
+    features: [
+      '15 AI Feasibility Reports per month',
+      'Excel export',
+      '3D Design Mode',
+      'CAD/DXF export',
+    ]
+  },
+  'prod_TrQYnbGLp9ElsH': {
+    name: 'Unlimited (Quarterly)',
+    price: '$1,499/month',
+    features: [
+      'Unlimited AI Feasibility Reports',
+      'Full API access',
+      'Priority support',
+      'Dedicated account manager',
+    ]
+  },
+  'prod_TrQYErb6UZsqWG': {
+    name: 'Unlimited (Annual)',
+    price: '$999/month',
+    features: [
+      'Unlimited AI Feasibility Reports',
+      'Full API access',
+      'Priority support',
+      'Dedicated account manager',
+    ]
+  },
 };
 
 export const SubscriptionStatus = () => {
@@ -46,17 +100,27 @@ export const SubscriptionStatus = () => {
           <div className="space-y-2">
             <h4 className="font-semibold">SiteIntel Pro includes:</h4>
             <ul className="space-y-2">
-              {PRODUCT_TIERS['prod_TE4lkdrjoRn4ad'].features.map((feature, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-600" />
-                  <span className="text-sm">{feature}</span>
-                </li>
-              ))}
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-sm">15 AI Feasibility Reports per month</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-sm">Excel & CAD/DXF export</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-sm">3D Design Mode</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-green-600" />
+                <span className="text-sm">Priority support</span>
+              </li>
             </ul>
           </div>
           <div className="pt-4">
             <PaymentButton type="subscription" size="lg" className="w-full">
-              Subscribe for $1,950/month
+              Subscribe from $399/month
             </PaymentButton>
           </div>
         </CardContent>

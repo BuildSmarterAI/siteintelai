@@ -35,7 +35,7 @@ const FAQ_ITEMS = [
 ];
 
 export default function SubscriptionPricing() {
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly');
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('quarterly');
   const [showComparison, setShowComparison] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const { subscribed } = useSubscription();

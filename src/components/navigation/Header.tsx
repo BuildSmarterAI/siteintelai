@@ -241,7 +241,7 @@ export const Header = () => {
               className="rounded-full px-6 relative overflow-hidden group"
             >
               <Link to="/get-started">
-                <span className="relative z-10">Get Report - $1,495</span>
+                <span className="relative z-10">Get Report - $999</span>
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
                   initial={{ x: '-100%' }}
@@ -358,7 +358,7 @@ export const Header = () => {
                 asChild
                 className="bg-gradient-to-r from-[#FF7A00] to-[#FF9240] text-white font-semibold rounded-full mt-4"
               >
-                <Link to="/get-started">Get Your Report - $1,495</Link>
+                <Link to="/get-started">Get Your Report - $999</Link>
               </Button>
 
             </nav>
